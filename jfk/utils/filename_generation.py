@@ -31,7 +31,7 @@ from .regex_patterns import extract_serial_id
 def trim_separators(text: str) -> str:
     """去除字符串前后的分隔符
     
-    去除前后的：空格、连字符(-)、下划线(_)
+    去除前后的：空格、连字符(-)、下划线(_)、@符号、#符号
     注意：不处理点号(.)，因为点号可能是文件名内容的一部分
     
     Args:
@@ -43,12 +43,14 @@ def trim_separators(text: str) -> str:
     Examples:
         >>> trim_separators("  _abc-123_  ")
         "abc-123"
+        >>> trim_separators("@ABC-001#")
+        "ABC-001"
         >>> trim_separators("...ABC-001...")
         "...ABC-001..."  # 点号不会被trim
         >>> trim_separators("")
         ""
     """
-    return text.strip(" -_")
+    return text.strip(" -_@#")
 
 
 def generate_new_filename(

@@ -9,7 +9,7 @@
 
 功能说明：
 - 将文件名分解为4部分：番号之前、番号、番号之后、扩展名
-- 对第1、2、3部分执行trim操作（去除前后的空格、连字符、下划线、点号）
+- 对第1、2、3部分执行trim操作（去除前后的空格、连字符、下划线、@符号、#符号）
 - 根据第1部分trim后是否为空判断番号是否在开头
 - 按不同规则拼接新文件名
 """
@@ -18,6 +18,7 @@ import pytest
 from pathlib import Path
 
 from jfk.utils.filename_generation import generate_new_filename
+from jfk.utils.regex_patterns import DEFAULT_SERIAL_PATTERN
 
 
 class TestFilenameGeneration:
@@ -33,8 +34,7 @@ class TestFilenameGeneration:
     def test_generate_new_filename_already_at_start(self, tmp_path):
         """测试番号已在开头的情况"""
         original_path = tmp_path / "ABC-001_video.mp4"
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
-        new_path, serial_id = generate_new_filename(original_path, pattern)
+        new_path, serial_id = generate_new_filename(original_path, DEFAULT_SERIAL_PATTERN)
         expected = tmp_path / "ABC-001 video.mp4"
         assert new_path == expected
         assert serial_id == "ABC-001"
@@ -42,8 +42,7 @@ class TestFilenameGeneration:
     def test_generate_new_filename_move_to_start(self, tmp_path):
         """测试番号移动到开头的情况"""
         original_path = tmp_path / "video_ABC-001_hd.mp4"
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
-        new_path, serial_id = generate_new_filename(original_path, pattern)
+        new_path, serial_id = generate_new_filename(original_path, DEFAULT_SERIAL_PATTERN)
         expected = tmp_path / "ABC-001 video-serialId-hd.mp4"
         assert new_path == expected
         assert serial_id == "ABC-001"
@@ -51,16 +50,14 @@ class TestFilenameGeneration:
     def test_generate_new_filename_no_serial_id(self, tmp_path):
         """测试无番号的情况"""
         original_path = tmp_path / "video.mp4"
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
-        new_path, serial_id = generate_new_filename(original_path, pattern)
+        new_path, serial_id = generate_new_filename(original_path, DEFAULT_SERIAL_PATTERN)
         assert new_path == original_path
         assert serial_id is None
     
     def test_generate_new_filename_already_standard_format(self, tmp_path):
         """测试文件名已经是标准格式的情况"""
         original_path = tmp_path / "ABC-001.mp4"
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
-        new_path, serial_id = generate_new_filename(original_path, pattern)
+        new_path, serial_id = generate_new_filename(original_path, DEFAULT_SERIAL_PATTERN)
         # 文件名已经是标准格式，应该返回相同路径
         assert new_path == original_path
         assert serial_id == "ABC-001"
@@ -79,7 +76,7 @@ class TestFilenameGenerationEdgeCases:
     
     def test_different_file_extensions(self, tmp_path):
         """测试不同文件扩展名"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         # 测试各种文件扩展名
         extensions = [".mp4", ".avi", ".mkv", ".jpg", ".png", ".txt", ".zip"]
@@ -92,7 +89,7 @@ class TestFilenameGenerationEdgeCases:
     
     def test_complex_filename_structures(self, tmp_path):
         """测试复杂文件名结构"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         test_cases = [
             # (原始文件名, 期望的新文件名)
@@ -112,11 +109,11 @@ class TestFilenameGenerationEdgeCases:
     
     def test_special_characters_in_filename(self, tmp_path):
         """测试文件名中的特殊字符"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         special_char_tests = [
-            ("video_ABC-001@special.mp4", "ABC-001 video-serialId-@special.mp4"),
-            ("video_ABC-001#tag.mp4", "ABC-001 video-serialId-#tag.mp4"),
+            ("video_ABC-001@special.mp4", "ABC-001 video-serialId-special.mp4"),
+            ("video_ABC-001#tag.mp4", "ABC-001 video-serialId-tag.mp4"),
             ("video_ABC-001.2023.mp4", "ABC-001 video-serialId-.2023.mp4"),
             ("video_ABC-001[HD].mp4", "ABC-001 video-serialId-[HD].mp4"),
             ("video_ABC-001(1080p).mp4", "ABC-001 video-serialId-(1080p).mp4"),
@@ -130,7 +127,7 @@ class TestFilenameGenerationEdgeCases:
     
     def test_long_filenames(self, tmp_path):
         """测试长文件名"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         # 生成长文件名
         long_prefix = "very_long_prefix_" * 20
@@ -148,7 +145,7 @@ class TestFilenameGenerationEdgeCases:
     
     def test_no_extension_files(self, tmp_path):
         """测试无扩展名的文件"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         original_path = tmp_path / "video_ABC-001_hd"
         new_path, serial_id = generate_new_filename(original_path, pattern)
@@ -158,7 +155,7 @@ class TestFilenameGenerationEdgeCases:
     
     def test_multiple_serial_ids_in_filename(self, tmp_path):
         """测试文件名中包含多个番号的情况"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         # 当文件名中有多个番号时，应该处理第一个匹配的番号
         test_cases = [
@@ -174,7 +171,7 @@ class TestFilenameGenerationEdgeCases:
     
     def test_case_sensitivity(self, tmp_path):
         """测试大小写敏感性"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         case_tests = [
             ("video_abc-001_hd.mp4", "ABC-001 video-serialId-hd.mp4"),  # 小写番号
@@ -193,14 +190,14 @@ class TestTrimFunctionality:
     """测试 trim 功能
     
     测试各种分隔符的 trim 处理：
-    - 空格、连字符、下划线、点号的 trim
+    - 空格、连字符、下划线、@符号、#符号的 trim
     - 番号在开头但需要规范化的场景
     - 第三部分为空和不为空的情况
     """
     
     def test_serial_at_start_with_different_separators(self, tmp_path):
         """测试番号在开头但分隔符不同的情况"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         test_cases = [
             # (原始文件名, 期望的新文件名) - 番号在开头时也要重构
@@ -222,7 +219,7 @@ class TestTrimFunctionality:
     
     def test_serial_not_at_start_with_trim(self, tmp_path):
         """测试番号不在开头的情况，包含 trim 处理"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         test_cases = [
             # (原始文件名, 期望的新文件名)
@@ -242,7 +239,7 @@ class TestTrimFunctionality:
     
     def test_trim_edge_cases(self, tmp_path):
         """测试 trim 的边界情况"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         test_cases = [
             # (原始文件名, 期望的新文件名)
@@ -250,6 +247,8 @@ class TestTrimFunctionality:
             ("...ABC-001...mp4", "ABC-001 ...-serialId-...mp4"),  # 点号分隔符，第1部分不为空
             ("video__ABC-001__hd.mp4", "ABC-001 video-serialId-hd.mp4"),  # 双下划线
             ("  video  _  ABC-001  _  hd  .mp4", "ABC-001 video-serialId-hd.mp4"),  # 多个空格
+            ("@video@_ABC-001_#hd#.mp4", "ABC-001 video-serialId-hd.mp4"),  # @和#符号
+            ("#ABC-001@.mp4", "ABC-001.mp4"),  # @和#符号在开头和结尾
         ]
         
         for original_name, expected_name in test_cases:
@@ -261,7 +260,7 @@ class TestTrimFunctionality:
     
     def test_third_part_empty_vs_not_empty(self, tmp_path):
         """测试第三部分为空和不为空的情况"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         test_cases = [
             # 第三部分为空的情况

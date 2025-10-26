@@ -26,12 +26,7 @@ from pathlib import Path
 
 from jfk.utils.regex_patterns import (
     DEFAULT_SERIAL_PATTERN,
-    extract_serial_id,
-    validate_serial_pattern,
-    get_pattern_info,
-    find_all_serial_ids,
-    is_valid_serial_format,
-    normalize_serial_id
+    extract_serial_id
 )
 
 
@@ -110,8 +105,7 @@ class TestSerialIdExtraction:
         - 特殊字符：方括号、圆括号等
         - 多个匹配：取第一个匹配的番号
         """
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"  # 配置文件中的默认模式
-        result = extract_serial_id(filename, pattern)
+        result = extract_serial_id(filename, DEFAULT_SERIAL_PATTERN)
         assert result == expected
     
 class TestAdvancedEdgeCases:
@@ -127,7 +121,7 @@ class TestAdvancedEdgeCases:
     
     def test_complex_filename_scenarios(self):
         """测试复杂文件名场景"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         # 复杂文件名测试
         test_cases = [
@@ -154,7 +148,7 @@ class TestAdvancedEdgeCases:
     
     def test_separator_variations(self):
         """测试分隔符变化"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         # 测试不同的分隔符
         separator_tests = [
@@ -171,7 +165,7 @@ class TestAdvancedEdgeCases:
     
     def test_length_boundary_validation(self):
         """测试长度边界验证"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         # 测试字母长度边界
         letter_length_tests = [
@@ -221,7 +215,7 @@ class TestAdvancedEdgeCases:
     
     def test_context_boundary_validation(self):
         """测试上下文边界验证"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         # 测试前后边界
         boundary_tests = [
@@ -258,7 +252,7 @@ class TestEdgeCasesAndSpecialScenarios:
     
     def test_file_extension_variations(self):
         """测试不同文件扩展名"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         extension_tests = [
             # === 应该匹配的情况 ===
@@ -282,7 +276,7 @@ class TestEdgeCasesAndSpecialScenarios:
     
     def test_special_characters_and_unicode(self):
         """测试特殊字符和Unicode字符"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         special_char_tests = [
             # === 应该匹配的情况 ===
@@ -305,7 +299,7 @@ class TestEdgeCasesAndSpecialScenarios:
     
     def test_performance_with_long_filenames(self):
         """测试长文件名的性能"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         # 生成很长的文件名
         long_prefix = "very_long_prefix_" * 50
@@ -326,7 +320,7 @@ class TestEdgeCasesAndSpecialScenarios:
     
     def test_multiple_serial_ids_in_filename(self):
         """测试文件名中包含多个番号的情况"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         multiple_serial_tests = [
             # === 应该匹配第一个番号 ===
@@ -341,7 +335,7 @@ class TestEdgeCasesAndSpecialScenarios:
     
     def test_case_insensitive_matching(self):
         """测试大小写不敏感的匹配"""
-        pattern = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+        pattern = DEFAULT_SERIAL_PATTERN
         
         case_tests = [
             # === 应该匹配的情况 ===
