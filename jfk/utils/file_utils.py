@@ -6,33 +6,14 @@
 from __future__ import annotations
 
 import random
-import re
 from pathlib import Path
 from typing import Literal
 
 from ..core.models import FileType
 
 
-def extract_serial_id(filename: str, pattern: str = r"[A-Za-z]{2,5}-\d+") -> str | None:
-    """从文件名提取番号
-    
-    Args:
-        filename: 文件名
-        pattern: 番号正则表达式
-        
-    Returns:
-        提取到的番号（统一大写），如果没有找到则返回 None
-        
-    Examples:
-        >>> extract_serial_id("ABCD-123.mp4")
-        "ABCD-123"
-        >>> extract_serial_id("video_ABC-001_hd.mp4")
-        "ABC-001"
-        >>> extract_serial_id("no_serial.mp4")
-        None
-    """
-    match = re.search(pattern, filename)
-    return match.group(1).upper() if match else None
+# 导入番号提取功能
+from .regex_patterns import extract_serial_id
 
 
 def is_video_or_image(
@@ -102,53 +83,8 @@ def resolve_unique_path(target_path: Path) -> Path:
     raise RuntimeError(f"无法为 {target_path} 生成唯一路径，已尝试 {max_attempts} 次")
 
 
-def generate_new_filename(
-    original_path: Path, 
-    serial_id: str, 
-    pattern: str = r"[A-Za-z]{2,5}-\d+"
-) -> Path:
-    """根据番号生成新文件名
-    
-    将番号提取到文件名开头，原位置替换为 `-serialId-`。
-    如果番号已在开头，则返回原路径。
-    
-    Args:
-        original_path: 原文件路径
-        serial_id: 番号
-        pattern: 番号正则表达式
-        
-    Returns:
-        新文件路径
-        
-    Examples:
-        >>> generate_new_filename(Path("video_ABC-001_hd.mp4"), "ABC-001")
-        Path("ABC-001-serialId-hd.mp4")
-        
-        >>> generate_new_filename(Path("ABC-001_video.mp4"), "ABC-001")
-        Path("ABC-001_video.mp4")  # 已在开头，不修改
-    """
-    filename = original_path.name
-    stem = original_path.stem
-    suffix = original_path.suffix
-    parent = original_path.parent
-    
-    # 检查番号是否已在开头
-    if filename.upper().startswith(serial_id.upper()):
-        return original_path
-    
-    # 查找番号在文件名中的位置
-    match = re.search(pattern, filename, re.IGNORECASE)
-    if not match:
-        return original_path
-    
-    # 替换番号位置为 -serialId-
-    start, end = match.span()
-    new_stem = filename[:start] + "-serialId-" + filename[end:]
-    new_stem = new_stem.replace(suffix, "")  # 移除扩展名
-    
-    # 将番号添加到开头
-    new_filename = f"{serial_id}_{new_stem}{suffix}"
-    return parent / new_filename
+# 导入文件名生成功能以保持向后兼容
+from .filename_generation import generate_new_filename
 
 
 def find_empty_dirs(root: Path) -> list[Path]:

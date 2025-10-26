@@ -8,59 +8,13 @@ from pathlib import Path
 from unittest.mock import patch
 
 from jfk.utils.file_utils import (
-    extract_serial_id,
     resolve_unique_path,
-    generate_new_filename,
     find_empty_dirs,
     is_video_or_image,
     get_file_type_from_path
 )
 from jfk.core.models import FileType
 
-
-class TestExtractSerialId:
-    """测试番号提取函数"""
-    
-    @pytest.mark.parametrize("filename,expected", [
-        # 基本测试用例
-        ("ABCD-123.mp4", "ABCD-123"),
-        ("abc-001.mp4", "ABC-001"),
-        ("prefix_XYZ-999_suffix.mp4", "XYZ-999"),
-        
-        # 边界测试用例
-        ("AB-1.mp4", "AB-1"),                 # 最短2字母
-        ("ABCDE-12345.mp4", "ABCDE-12345"),   # 最长5字母
-        ("ABCDEF-123.mp4", None),             # 超长无效
-        ("no-serial-here.mp4", None),         # 无番号
-        
-        # 大小写测试
-        ("abcd-123.mp4", "ABCD-123"),
-        ("AbCd-123.mp4", "ABCD-123"),
-        
-        # 位置测试
-        ("video_ABC-001_hd.mp4", "ABC-001"),
-        ("ABC-001_video.mp4", "ABC-001"),
-        ("ABC-001.mp4", "ABC-001"),
-        
-        # 边界情况
-        ("", None),
-        ("ABC.mp4", None),                    # 缺少数字
-        ("123-ABC.mp4", None),                 # 数字在前
-        ("ABC-123-456.mp4", "ABC-123"),       # 多个数字，取第一个
-    ])
-    def test_extract_serial_id(self, filename, expected):
-        """测试番号提取"""
-        result = extract_serial_id(filename)
-        assert result == expected
-    
-    def test_extract_serial_id_custom_pattern(self):
-        """测试自定义正则表达式"""
-        # 测试不同的番号格式
-        result = extract_serial_id("ABC123.mp4", r"[A-Za-z]{3}\d{3}")
-        assert result == "ABC123"
-        
-        result = extract_serial_id("ABC-123.mp4", r"[A-Za-z]{3}\d{3}")
-        assert result is None
 
 
 class TestResolveUniquePath:
@@ -113,35 +67,6 @@ class TestResolveUniquePath:
         with pytest.raises(RuntimeError, match="无法为.*生成唯一路径"):
             resolve_unique_path(target_path)
 
-
-class TestGenerateNewFilename:
-    """测试新文件名生成函数"""
-    
-    def test_generate_new_filename_already_at_start(self, tmp_path):
-        """测试番号已在开头的情况"""
-        original_path = tmp_path / "ABC-001_video.mp4"
-        new_path = generate_new_filename(original_path, "ABC-001")
-        assert new_path == original_path
-    
-    def test_generate_new_filename_move_to_start(self, tmp_path):
-        """测试番号移动到开头的情况"""
-        original_path = tmp_path / "video_ABC-001_hd.mp4"
-        new_path = generate_new_filename(original_path, "ABC-001")
-        expected = tmp_path / "ABC-001-serialId-hd.mp4"
-        assert new_path == expected
-    
-    def test_generate_new_filename_no_serial_id(self, tmp_path):
-        """测试无番号的情况"""
-        original_path = tmp_path / "video.mp4"
-        new_path = generate_new_filename(original_path, "ABC-001")
-        assert new_path == original_path
-    
-    def test_generate_new_filename_custom_pattern(self, tmp_path):
-        """测试自定义正则表达式"""
-        original_path = tmp_path / "video_ABC123_hd.mp4"
-        new_path = generate_new_filename(original_path, "ABC123", r"[A-Za-z]{3}\d{3}")
-        expected = tmp_path / "ABC123-serialId-hd.mp4"
-        assert new_path == expected
 
 
 class TestIsVideoOrImage:

@@ -36,7 +36,7 @@ class TestPipeline:
         
         # 添加分析器
         classifier = FileClassifier({".mp4", ".avi"}, {".jpg", ".png"})
-        extractor = SerialIdExtractor()
+        extractor = SerialIdExtractor(r"[A-Za-z]{2,5}-\d+")  # 使用配置文件中的默认模式
         
         pipeline.add_analyzer(classifier)
         pipeline.add_analyzer(extractor)

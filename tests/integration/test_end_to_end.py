@@ -312,7 +312,7 @@ class TestEndToEndPipeline:
         
         # 添加处理器
         pipeline.add_analyzer(FileClassifier({".mp4", ".avi"}, {".jpg", ".png"}))
-        pipeline.add_analyzer(SerialIdExtractor())
+        pipeline.add_analyzer(SerialIdExtractor(r"[A-Za-z]{2,5}-\d+"))  # 使用配置文件中的默认模式
         pipeline.add_executor(FileRenamer(pipeline.transaction_log))
         pipeline.add_executor(FileMover(temp_dir / "todo_non_vidpic", pipeline.transaction_log))
         pipeline.add_executor(FileMover(temp_dir / "todo_vidpic", pipeline.transaction_log))
@@ -349,7 +349,7 @@ class TestEndToEndPipeline:
         
         # 添加处理器
         pipeline.add_analyzer(FileClassifier({".mp4", ".avi"}, {".jpg", ".png"}))
-        pipeline.add_analyzer(SerialIdExtractor())
+        pipeline.add_analyzer(SerialIdExtractor(r"[A-Za-z]{2,5}-\d+"))  # 使用配置文件中的默认模式
         
         # 运行预览模式
         report = pipeline.run_dry()
@@ -381,7 +381,7 @@ class TestEndToEndPipeline:
         
         # 添加处理器
         pipeline.add_analyzer(FileClassifier({".mp4"}, {".jpg"}))
-        pipeline.add_analyzer(SerialIdExtractor())
+        pipeline.add_analyzer(SerialIdExtractor(r"[A-Za-z]{2,5}-\d+"))  # 使用配置文件中的默认模式
         pipeline.add_executor(FileRenamer(pipeline.transaction_log))
         
         # 运行管道

@@ -41,7 +41,7 @@ tasks:
         - .tiff
       
       # 番号配置
-      serial_id_pattern: "[A-Za-z]{2,5}-\\d+"        # 番号正则表达式
+      serial_id_pattern: "(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\\d{2,5})(?![0-9])"        # 番号正则表达式（分隔符可选）
       
       # 可选配置
       dry_run: false                                 # 是否预览模式（不实际执行操作）

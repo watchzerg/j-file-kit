@@ -56,7 +56,7 @@ class TestAnalyzers:
     
     def test_serial_id_extractor_integration(self, sample_file_structure: Path):
         """测试番号提取器集成"""
-        extractor = SerialIdExtractor()
+        extractor = SerialIdExtractor(r"[A-Za-z]{2,5}-\d+")  # 使用配置文件中的默认模式
         
         # 测试有番号的视频文件
         video_file = sample_file_structure / "ABCD-001_video.mp4"
@@ -357,7 +357,7 @@ class TestProcessorChain:
         
         # 添加分析器
         classifier = FileClassifier({".mp4"}, {".jpg"})
-        extractor = SerialIdExtractor()
+        extractor = SerialIdExtractor(r"[A-Za-z]{2,5}-\d+")  # 使用配置文件中的默认模式
         
         chain.add_analyzer(classifier)
         chain.add_analyzer(extractor)

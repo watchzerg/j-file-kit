@@ -46,7 +46,7 @@ class VideoFileOrganizer:
         self.image_extensions = set(self.file_config["image_extensions"])
         
         # 设置番号模式
-        self.serial_id_pattern = self.file_config.get("serial_id_pattern", r"[A-Za-z]{2,5}-\d+")
+        self.serial_id_pattern = self.file_config["serial_id_pattern"]
     
     def create_pipeline(self) -> Pipeline:
         """创建处理管道

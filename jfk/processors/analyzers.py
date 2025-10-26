@@ -71,7 +71,7 @@ class SerialIdExtractor(Analyzer):
     从文件名中提取番号，并生成新的文件名。
     """
     
-    def __init__(self, pattern: str = r"[A-Za-z]{2,5}-\d+"):
+    def __init__(self, pattern: str):
         """初始化番号提取器
         
         Args:
