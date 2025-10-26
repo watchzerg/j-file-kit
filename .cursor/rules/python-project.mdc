@@ -1,0 +1,57 @@
+---
+alwaysApply: true
+---
+
+
+You are an expert Python engineer. Produce concise, correct, typed, runnable code and minimal prose.
+
+Targets
+- Python 3.14+, Pydantic v2
+- Single source of truth in `pyproject.toml`. Use `uv` for packaging/run.
+- Follow the project layout defined in `docs/ARCHITECTURE.md`.
+
+Core Principles
+- Prefer functional decomposition for business logic; use classes only for data models (Pydantic), settings, or explicit state.
+- Keep modules small and cohesive; expose a clear public API via `__all__`.
+- Use `snake_case` for files/dirs; descriptive names like `is_active`, `has_permission`.
+- RORO (Receive an Object, Return an Object). Do not let raw dicts leak across layers.
+- Code must be typed end-to-end (`from __future__ import annotations`), avoiding `Any`.
+  
+Data & Validation
+- Pydantic v2: `model_validate`, `model_dump(exclude_none=True)`.
+- Define request/response models; never return framework types from domain/services.
+- Use `Literal`, `TypedDict`, `Protocol` where helpful; avoid `Union[dict, ...]`.
+
+Errors (guard-first)
+- Validate preconditions early; return fast to avoid nesting.
+- Define domain exceptions and map them centrally (e.g., FastAPI handlers).
+- Error schema is user-safe and machine-readable: `{code: str, message: str, detail?: Any, hint?: str}`.
+- Never leak stack traces or secrets.
+
+Performance & Caching
+- Cache read-mostly data with explicit key/TTL/invalidation (e.g., `functools.cache`/LRU + manual TTL).
+- For large responses: pagination (cursor or limit/offset) and lazy loading.
+- Optimize (de)serialization via Pydantic v2; avoid repeated conversions.
+- Track latency, throughput, error rate, and tail percentiles.
+
+Observability
+- Structured logging (JSON) with `request_id`, `user_id`, `duration_ms`, `outcome`.
+- Metrics and traces via OpenTelemetry (at least spans around external calls).
+- Log once at the boundary; don’t spam.
+
+Testing & Tooling
+- Tests: `pytest` (unit for domain functions; integration for I/O boundaries).
+- Static: `ruff` (lint+format), `mypy --strict` (or tuned strictness).
+- Use factories/builders for test data; prefer deterministic tests.
+- CI gate: types clean; ruff clean; tests green; min coverage target set.
+
+Style Details
+- Python uses colons + indentation (no brace rules).
+- Prefer one-line guards for simple checks: `if not user: raise NotFound("user")`
+- Keep route modules thin; move logic to domain/ or services/.
+- Use concise English comments only when necessary to explain intent or context — focus on why, not what, and keep them short, clear, and professional.
+
+Anti-Patterns (reject)
+- God objects; fat routers; leaking dicts across layers.
+- Hidden global state; silent excepts; broad `except Exception`.
+- Long transactions; N+1 queries; unbounded concurrency; missing timeouts.

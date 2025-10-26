@@ -1,0 +1,90 @@
+# j-file-kit 任务配置文件示例
+# 复制此文件为 task_config.yaml 并修改相应路径
+
+# 全局配置
+global:
+  scan_root: /path/to/your/files                    # 扫描根目录（必须修改）
+  log_dir: ./logs                                   # 日志目录
+  report_dir: ./reports                             # 报告目录
+
+# 任务列表
+tasks:
+  # 任务1: 视频文件整理任务
+  - name: video_file_organizer
+    type: file_organize
+    enabled: true
+    config:
+      # 目标目录配置
+      todo_non_vidpic_dir: /path/to/todo-non-vidpic  # 非视频图片文件目录（必须修改）
+      todo_vidpic_dir: /path/to/todo-vidpic          # 无番号视频图片文件目录（必须修改）
+      
+      # 文件类型配置
+      video_extensions:
+        - .mp4
+        - .avi
+        - .mkv
+        - .mov
+        - .wmv
+        - .flv
+        - .webm
+      
+      image_extensions:
+        - .jpg
+        - .jpeg
+        - .png
+        - .webp
+        - .bmp
+        - .gif
+        - .tiff
+      
+      # 番号配置
+      serial_id_pattern: "[A-Za-z]{2,5}-\\d+"        # 番号正则表达式
+      
+      # 可选配置
+      dry_run: false                                 # 是否预览模式（不实际执行操作）
+      backup: false                                  # 是否备份原文件
+      max_file_size: 1073741824                      # 最大文件大小（字节，1GB）
+      min_file_size: 1048576                         # 最小文件大小（字节，1MB）
+
+  # 任务2: 数据库更新任务（未来扩展示例）
+  - name: db_updater
+    type: db_update
+    enabled: false
+    config:
+      db_connection: postgresql://localhost/mydb
+      update_fields:
+        - file_path
+        - file_size
+        - last_modified
+        - file_type
+        - serial_id
+      batch_size: 1000
+      timeout: 30
+
+  # 任务3: 文件清理任务（示例）
+  - name: file_cleaner
+    type: file_cleanup
+    enabled: false
+    config:
+      delete_empty_dirs: true
+      delete_duplicates: false
+      min_age_days: 30
+      file_patterns:
+        - "*.tmp"
+        - "*.temp"
+        - "*.bak"
+        - "*.old"
+
+# 高级配置（可选）
+advanced:
+  # 重试设置
+  max_retries: 3                                     # 最大重试次数
+  retry_delay: 1                                     # 重试延迟（秒）
+  
+  # 日志设置
+  log_level: "INFO"                                  # 日志级别：DEBUG, INFO, WARNING, ERROR
+  log_format: "json"                                 # 日志格式：json, text
+  
+  # 性能设置
+  batch_size: 100                                    # 批处理大小
+  progress_interval: 10                               # 进度报告间隔（秒）
