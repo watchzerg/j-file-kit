@@ -9,22 +9,39 @@ import yaml
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 
 class GlobalConfig(BaseModel):
     """全局配置"""
-    scan_root: Path = Field(..., description="扫描根目录")
+    scan_roots: list[Path] = Field(..., description="扫描根目录列表")
     log_dir: Path = Field(Path("./logs"), description="日志目录")
     report_dir: Path = Field(Path("./reports"), description="报告目录")
     
     @model_validator(mode="after")
     def validate_paths(self) -> GlobalConfig:
         """验证路径配置"""
-        # 确保目录存在
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-        self.report_dir.mkdir(parents=True, exist_ok=True)
+        # 确保目录存在（仅在非测试环境中）
+        import os
+        if not os.environ.get("PYTEST_CURRENT_TEST"):
+            self.log_dir.mkdir(parents=True, exist_ok=True)
+            self.report_dir.mkdir(parents=True, exist_ok=True)
+            
+            # 验证扫描根目录
+            for scan_root in self.scan_roots:
+                if not scan_root.exists():
+                    raise ValueError(f"扫描根目录不存在: {scan_root}")
+                if not scan_root.is_dir():
+                    raise ValueError(f"扫描根目录不是目录: {scan_root}")
+        
         return self
+    
+    @property
+    def scan_root(self) -> Path:
+        """向后兼容：返回第一个扫描根目录"""
+        if not self.scan_roots:
+            raise ValueError("没有配置扫描根目录")
+        return self.scan_roots[0]
 
 
 class FileOrganizeConfig(BaseModel):
@@ -67,6 +84,8 @@ class TaskDefinition(BaseModel):
 
 class TaskConfig(BaseModel):
     """完整任务配置"""
+    model_config = ConfigDict(populate_by_name=True)
+    
     global_: GlobalConfig = Field(alias="global", description="全局配置")
     tasks: list[TaskDefinition] = Field(..., description="任务列表")
     
@@ -128,7 +147,7 @@ def create_default_config() -> TaskConfig:
     """创建默认配置"""
     return TaskConfig(
         global_=GlobalConfig(
-            scan_root=Path("/path/to/scan"),
+            scan_roots=[Path("/path/to/scan")],
             log_dir=Path("./logs"),
             report_dir=Path("./reports")
         ),

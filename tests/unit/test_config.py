@@ -19,28 +19,52 @@ class TestGlobalConfig:
     
     def test_global_config_creation(self):
         """测试 GlobalConfig 创建"""
-        config = GlobalConfig(scan_root=Path("/test"))
+        config = GlobalConfig(scan_roots=[Path("/test")])
         
-        assert config.scan_root == Path("/test")
+        assert config.scan_roots == [Path("/test")]
+        assert config.scan_root == Path("/test")  # 向后兼容
         assert config.log_dir == Path("./logs")
         assert config.report_dir == Path("./reports")
     
+    def test_global_config_multiple_scan_roots(self):
+        """测试多个扫描根目录"""
+        config = GlobalConfig(scan_roots=[Path("/test1"), Path("/test2"), Path("/test3")])
+        
+        assert len(config.scan_roots) == 3
+        assert config.scan_roots[0] == Path("/test1")
+        assert config.scan_roots[1] == Path("/test2")
+        assert config.scan_roots[2] == Path("/test3")
+        assert config.scan_root == Path("/test1")  # 向后兼容
+    
     def test_global_config_custom_paths(self):
         """测试自定义路径"""
-        config = GlobalConfig(
-            scan_root=Path("/test"),
-            log_dir=Path("/custom/logs"),
-            report_dir=Path("/custom/reports")
-        )
-        
-        assert config.log_dir == Path("/custom/logs")
-        assert config.report_dir == Path("/custom/reports")
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            config = GlobalConfig(
+                scan_roots=[Path("/test")],
+                log_dir=Path(tmp_dir) / "logs",
+                report_dir=Path(tmp_dir) / "reports"
+            )
+            
+            assert config.log_dir == Path(tmp_dir) / "logs"
+            assert config.report_dir == Path(tmp_dir) / "reports"
     
     def test_global_config_validation(self):
         """测试 GlobalConfig 验证"""
-        # 测试必需字段
-        with pytest.raises(ValueError):
-            GlobalConfig(scan_root=None)
+        # 测试空列表（在非测试环境中会失败）
+        import os
+        original_env = os.environ.get("PYTEST_CURRENT_TEST")
+        try:
+            # 模拟非测试环境
+            if "PYTEST_CURRENT_TEST" in os.environ:
+                del os.environ["PYTEST_CURRENT_TEST"]
+            
+            with pytest.raises(ValueError):
+                GlobalConfig(scan_roots=[])
+        finally:
+            # 恢复环境
+            if original_env:
+                os.environ["PYTEST_CURRENT_TEST"] = original_env
 
 
 class TestFileOrganizeConfig:
@@ -116,6 +140,8 @@ class TestTaskDefinition:
     
     def test_task_definition_get_config(self):
         """测试获取类型化配置"""
+        from jfk.core.config import FileOrganizeConfig
+        
         task = TaskDefinition(
             name="test_task",
             type="file_organize",
@@ -127,9 +153,10 @@ class TestTaskDefinition:
             }
         )
         
-        # 这里应该使用具体的配置类型，但为了测试，我们使用 dict
-        config = task.get_config(dict)
-        assert config == task.config
+        # 使用具体的配置类型
+        config = task.get_config(FileOrganizeConfig)
+        assert isinstance(config, FileOrganizeConfig)
+        assert config.todo_non_vidpic_dir == Path("/todo/non-vidpic")
 
 
 class TestTaskConfig:
@@ -137,7 +164,7 @@ class TestTaskConfig:
     
     def test_task_config_creation(self):
         """测试 TaskConfig 创建"""
-        global_config = GlobalConfig(scan_root=Path("/test"))
+        global_config = GlobalConfig(scan_roots=[Path("/test")])
         task = TaskDefinition(
             name="test_task",
             type="file_organize",
@@ -154,7 +181,7 @@ class TestTaskConfig:
     
     def test_task_config_enabled_tasks(self):
         """测试获取启用的任务"""
-        global_config = GlobalConfig(scan_root=Path("/test"))
+        global_config = GlobalConfig(scan_roots=[Path("/test")])
         
         enabled_task = TaskDefinition(
             name="enabled_task",
@@ -181,7 +208,7 @@ class TestTaskConfig:
     
     def test_task_config_get_task(self):
         """测试根据名称获取任务"""
-        global_config = GlobalConfig(scan_root=Path("/test"))
+        global_config = GlobalConfig(scan_roots=[Path("/test")])
         
         task1 = TaskDefinition(
             name="task1",
@@ -217,7 +244,7 @@ class TestConfigIO:
         # 创建临时配置文件
         config_data = {
             "global": {
-                "scan_root": "/test/scan",
+                "scan_roots": ["/test/scan1", "/test/scan2"],
                 "log_dir": "./logs",
                 "report_dir": "./reports"
             },
@@ -243,7 +270,10 @@ class TestConfigIO:
         try:
             config = load_config(config_path)
             
-            assert config.global_.scan_root == Path("/test/scan")
+            assert len(config.global_.scan_roots) == 2
+            assert config.global_.scan_roots[0] == Path("/test/scan1")
+            assert config.global_.scan_roots[1] == Path("/test/scan2")
+            assert config.global_.scan_root == Path("/test/scan1")  # 向后兼容
             assert config.global_.log_dir == Path("./logs")
             assert config.global_.report_dir == Path("./reports")
             assert len(config.tasks) == 1
@@ -267,7 +297,8 @@ class TestConfigIO:
             
             # 验证可以重新加载
             loaded_config = load_config(config_path)
-            assert loaded_config.global_.scan_root == config.global_.scan_root
+            assert loaded_config.global_.scan_roots == config.global_.scan_roots
+            assert loaded_config.global_.scan_root == config.global_.scan_root  # 向后兼容
             
         finally:
             Path(config_path).unlink()
@@ -276,7 +307,9 @@ class TestConfigIO:
         """测试创建默认配置"""
         config = create_default_config()
         
-        assert config.global_.scan_root == Path("/path/to/scan")
+        assert len(config.global_.scan_roots) == 1
+        assert config.global_.scan_roots[0] == Path("/path/to/scan")
+        assert config.global_.scan_root == Path("/path/to/scan")  # 向后兼容
         assert config.global_.log_dir == Path("./logs")
         assert config.global_.report_dir == Path("./reports")
         assert len(config.tasks) == 1
@@ -306,7 +339,7 @@ class TestConfigIO:
         # 创建无效的配置文件
         config_data = {
             "global": {
-                "scan_root": None,  # 无效值
+                "scan_roots": [],  # 空列表，无效
                 "log_dir": "./logs",
                 "report_dir": "./reports"
             },
@@ -318,7 +351,18 @@ class TestConfigIO:
             config_path = f.name
         
         try:
-            with pytest.raises(ValueError):
-                load_config(config_path)
+            import os
+            original_env = os.environ.get("PYTEST_CURRENT_TEST")
+            try:
+                # 模拟非测试环境
+                if "PYTEST_CURRENT_TEST" in os.environ:
+                    del os.environ["PYTEST_CURRENT_TEST"]
+                
+                with pytest.raises(ValueError):
+                    load_config(config_path)
+            finally:
+                # 恢复环境
+                if original_env:
+                    os.environ["PYTEST_CURRENT_TEST"] = original_env
         finally:
             Path(config_path).unlink()

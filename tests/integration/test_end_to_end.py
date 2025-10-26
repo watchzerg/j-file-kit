@@ -215,7 +215,7 @@ class TestEndToEndVideoOrganizer:
         """创建测试配置文件"""
         config_data = {
             "global": {
-                "scan_root": str(temp_dir),
+                "scan_roots": [str(temp_dir)],
                 "log_dir": str(temp_dir / "logs"),
                 "report_dir": str(temp_dir / "reports")
             },
@@ -416,7 +416,7 @@ class TestEndToEndPipeline:
     
     def _create_test_config(self, temp_dir: Path) -> TaskConfig:
         """创建测试配置"""
-        global_config = GlobalConfig(scan_root=temp_dir)
+        global_config = GlobalConfig(scan_roots=[temp_dir])
         
         task = TaskDefinition(
             name="test_task",

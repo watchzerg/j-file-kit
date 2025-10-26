@@ -3,9 +3,12 @@
 
 # 全局配置
 global:
-  scan_root: /path/to/your/files                    # 扫描根目录（必须修改）
-  log_dir: ./logs                                   # 日志目录
-  report_dir: ./reports                             # 报告目录
+  scan_roots:                                    # 扫描根目录列表（支持多个目录）
+    - /path/to/your/files1                       # 第一个扫描目录（必须修改）
+    - /path/to/your/files2                       # 第二个扫描目录（可选）
+    - /path/to/your/files3                       # 第三个扫描目录（可选）
+  log_dir: ./logs                                # 日志目录
+  report_dir: ./reports                          # 报告目录
 
 # 任务列表
 tasks:

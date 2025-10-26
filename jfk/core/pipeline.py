@@ -35,7 +35,7 @@ class Pipeline:
         self.task_config = self._get_task_config()
         
         # 初始化组件
-        self.scanner = FileScanner(config.global_.scan_root)
+        self.scanner = FileScanner(config.global_.scan_roots)
         self.processor_chain = ProcessorChain()
         self.logger = StructuredLogger(config.global_.log_dir, self.task_name)
         self.transaction_log = TransactionLog(config.global_.log_dir, self.task_name)
@@ -130,7 +130,8 @@ class Pipeline:
             total_files = len(files)
             
             # 记录任务开始
-            self.logger.log_task_start(self.config.global_.scan_root, total_files)
+            scan_roots_str = ", ".join(str(p) for p in self.config.global_.scan_roots)
+            self.logger.log_task_start(scan_roots_str, total_files)
             self.progress_logger.start_progress(total_files)
             
             # 处理每个文件
@@ -210,7 +211,8 @@ class Pipeline:
         total_files = len(files)
         
         # 记录任务开始
-        self.logger.log_task_start(self.config.global_.scan_root, total_files)
+        scan_roots_str = ", ".join(str(p) for p in self.config.global_.scan_roots)
+        self.logger.log_task_start(scan_roots_str, total_files)
         self.logger.info("运行在干模式（预览模式）")
         
         # 处理每个文件（仅分析，不执行）

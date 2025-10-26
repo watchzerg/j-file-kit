@@ -70,7 +70,7 @@ class TestPipeline:
     def test_pipeline_dry_run(self, sample_file_structure: Path):
         """测试管道预览模式"""
         # 创建配置
-        global_config = GlobalConfig(scan_root=sample_file_structure)
+        global_config = GlobalConfig(scan_roots=[sample_file_structure])
         task = TaskDefinition(
             name="test_task",
             type="file_organize",
@@ -112,7 +112,7 @@ class TestPipeline:
         todo_vidpic_dir.mkdir()
         
         # 创建配置
-        global_config = GlobalConfig(scan_root=sample_file_structure)
+        global_config = GlobalConfig(scan_roots=[sample_file_structure])
         task = TaskDefinition(
             name="test_task",
             type="file_organize",
@@ -161,7 +161,7 @@ class TestPipeline:
     def test_pipeline_error_handling(self, sample_file_structure: Path):
         """测试管道错误处理"""
         # 创建配置
-        global_config = GlobalConfig(scan_root=sample_file_structure)
+        global_config = GlobalConfig(scan_roots=[sample_file_structure])
         task = TaskDefinition(
             name="test_task",
             type="file_organize",
@@ -197,7 +197,7 @@ class TestPipeline:
     def test_pipeline_skip_remaining(self, sample_file_structure: Path):
         """测试管道短路机制"""
         # 创建配置
-        global_config = GlobalConfig(scan_root=sample_file_structure)
+        global_config = GlobalConfig(scan_roots=[sample_file_structure])
         task = TaskDefinition(
             name="test_task",
             type="file_organize",
@@ -238,7 +238,7 @@ class TestPipeline:
         todo_dir.mkdir()
         
         # 创建配置
-        global_config = GlobalConfig(scan_root=sample_file_structure)
+        global_config = GlobalConfig(scan_roots=[sample_file_structure])
         task = TaskDefinition(
             name="test_task",
             type="file_organize",
@@ -277,7 +277,7 @@ class TestPipeline:
         todo_dir.mkdir()
         
         # 创建配置
-        global_config = GlobalConfig(scan_root=sample_file_structure)
+        global_config = GlobalConfig(scan_roots=[sample_file_structure])
         task = TaskDefinition(
             name="test_task",
             type="file_organize",

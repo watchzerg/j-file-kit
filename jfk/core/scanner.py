@@ -110,16 +110,20 @@ class CustomFilter(FileFilter):
 class FileScanner:
     """文件扫描器
     
-    提供文件目录扫描功能，支持多种过滤器。
+    提供文件目录扫描功能，支持多个根目录和多种过滤器。
     """
     
-    def __init__(self, root_path: Path):
+    def __init__(self, root_paths: list[Path] | Path):
         """初始化扫描器
         
         Args:
-            root_path: 扫描根目录
+            root_paths: 扫描根目录列表或单个根目录（向后兼容）
         """
-        self.root_path = root_path
+        if isinstance(root_paths, Path):
+            # 向后兼容：单个路径
+            self.root_paths = [root_paths]
+        else:
+            self.root_paths = root_paths
         self.filters: list[FileFilter] = []
     
     def add_filter(self, filter_obj: FileFilter) -> FileScanner:
@@ -196,18 +200,19 @@ class FileScanner:
         Yields:
             FileInfo: 匹配过滤器的文件信息
         """
-        if not self.root_path.exists():
-            raise FileNotFoundError(f"扫描目录不存在: {self.root_path}")
-        
-        if not self.root_path.is_dir():
-            raise NotADirectoryError(f"路径不是目录: {self.root_path}")
-        
-        for file_path in self.root_path.rglob("*"):
-            if file_path.is_file():
-                file_info = FileInfo.from_path(file_path)
-                
-                if self._matches_all_filters(file_info):
-                    yield file_info
+        for root_path in self.root_paths:
+            if not root_path.exists():
+                raise FileNotFoundError(f"扫描目录不存在: {root_path}")
+            
+            if not root_path.is_dir():
+                raise NotADirectoryError(f"路径不是目录: {root_path}")
+            
+            for file_path in root_path.rglob("*"):
+                if file_path.is_file():
+                    file_info = FileInfo.from_path(file_path)
+                    
+                    if self._matches_all_filters(file_info):
+                        yield file_info
     
     def scan_files_list(self) -> list[FileInfo]:
         """扫描文件并返回列表

@@ -63,7 +63,7 @@ def sample_task_result(sample_file_info: FileInfo, sample_processing_context: Pr
 @pytest.fixture
 def sample_config() -> TaskConfig:
     """示例配置 fixture"""
-    global_config = GlobalConfig(scan_root=Path("/test/scan"))
+    global_config = GlobalConfig(scan_roots=[Path("/test/scan")])
     
     task = TaskDefinition(
         name="test_task",
