@@ -9,7 +9,9 @@ from pathlib import Path
 
 from ..core.models import FileType, ProcessingContext, ProcessorResult
 from ..core.processor import Analyzer
-from ..utils.file_utils import extract_serial_id, get_file_type_from_path
+from ..utils.file_utils import get_file_type_from_path
+from ..utils.regex_patterns import extract_serial_id
+from ..utils.filename_generation import generate_new_filename
 
 
 class FileClassifier(Analyzer):
@@ -94,16 +96,18 @@ class SerialIdExtractor(Analyzer):
             if ctx.file_type not in [FileType.VIDEO, FileType.IMAGE]:
                 return ProcessorResult.skip("非视频/图片文件，跳过番号提取")
             
-            # 提取番号
-            serial_id = extract_serial_id(ctx.file_info.name, self.pattern)
+            # 生成新文件名并提取番号
+            new_path, serial_id = generate_new_filename(ctx.file_info.path, self.pattern)
             
             if serial_id:
+                # 检查新路径是否与原路径相同
+                if new_path == ctx.file_info.path:
+                    # 即使路径相同，也要设置番号信息
+                    ctx.serial_id = serial_id
+                    return ProcessorResult.skip("文件名已经是标准格式，无需重命名")
+                
                 # 更新上下文
                 ctx.serial_id = serial_id
-                
-                # 生成新文件名
-                from ..utils.file_utils import generate_new_filename
-                new_path = generate_new_filename(ctx.file_info.path, serial_id, self.pattern)
                 ctx.target_path = new_path
                 
                 return ProcessorResult.success(

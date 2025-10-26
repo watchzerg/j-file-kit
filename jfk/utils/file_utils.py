@@ -1,6 +1,6 @@
 """文件工具函数
 
-提供文件操作相关的工具函数，如番号提取、路径冲突处理等。
+提供文件操作相关的工具函数，如路径冲突处理、空目录清理等。
 """
 
 from __future__ import annotations
@@ -12,16 +12,12 @@ from typing import Literal
 from ..core.models import FileType
 
 
-# 导入番号提取功能
-from .regex_patterns import extract_serial_id
-
-
-def is_video_or_image(
+def get_file_type(
     path: Path, 
     video_exts: set[str], 
     image_exts: set[str]
-) -> Literal["video", "image", "other"]:
-    """判断文件类型
+) -> FileType:
+    """判断文件类型并返回枚举
     
     Args:
         path: 文件路径
@@ -29,16 +25,16 @@ def is_video_or_image(
         image_exts: 图片文件扩展名集合
         
     Returns:
-        文件类型：video、image 或 other
+        文件类型枚举
     """
     suffix = path.suffix.lower()
     
     if suffix in video_exts:
-        return "video"
+        return FileType.VIDEO
     elif suffix in image_exts:
-        return "image"
+        return FileType.IMAGE
     else:
-        return "other"
+        return FileType.OTHER
 
 
 def resolve_unique_path(target_path: Path) -> Path:
@@ -83,54 +79,39 @@ def resolve_unique_path(target_path: Path) -> Path:
     raise RuntimeError(f"无法为 {target_path} 生成唯一路径，已尝试 {max_attempts} 次")
 
 
-# 导入文件名生成功能以保持向后兼容
-from .filename_generation import generate_new_filename
 
 
 def find_empty_dirs(root: Path) -> list[Path]:
     """递归查找空目录
     
-    自底向上查找所有空目录，返回需要删除的目录列表。
+    查找所有空目录，返回需要删除的目录列表。
     
     Args:
         root: 根目录
         
     Returns:
-        空目录列表（自底向上排序）
+        空目录列表
     """
     empty_dirs = []
     
-    def _find_empty_dirs(path: Path) -> bool:
-        """递归查找空目录
-        
-        Returns:
-            目录是否为空
-        """
+    def _find_empty_dirs(path: Path) -> None:
+        """递归查找空目录"""
         if not path.is_dir():
-            return False
+            return
         
         # 检查目录是否为空
         try:
             items = list(path.iterdir())
             if not items:
                 empty_dirs.append(path)
-                return True
+                return
         except (PermissionError, OSError):
-            return False
+            return
         
         # 递归检查子目录
-        all_empty = True
         for item in items:
             if item.is_dir():
-                if not _find_empty_dirs(item):
-                    all_empty = False
-        
-        # 如果所有子目录都为空，则当前目录也为空
-        if all_empty:
-            empty_dirs.append(path)
-            return True
-        
-        return False
+                _find_empty_dirs(item)
     
     _find_empty_dirs(root)
     return empty_dirs
@@ -162,7 +143,7 @@ def safe_remove_empty_dirs(dirs: list[Path]) -> list[Path]:
 
 
 def get_file_type_from_path(path: Path, video_exts: set[str], image_exts: set[str]) -> FileType:
-    """从路径获取文件类型枚举
+    """从路径获取文件类型枚举（向后兼容函数）
     
     Args:
         path: 文件路径
@@ -172,11 +153,4 @@ def get_file_type_from_path(path: Path, video_exts: set[str], image_exts: set[st
     Returns:
         文件类型枚举
     """
-    file_type = is_video_or_image(path, video_exts, image_exts)
-    
-    if file_type == "video":
-        return FileType.VIDEO
-    elif file_type == "image":
-        return FileType.IMAGE
-    else:
-        return FileType.OTHER
+    return get_file_type(path, video_exts, image_exts)

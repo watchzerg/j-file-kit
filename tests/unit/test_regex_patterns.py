@@ -24,7 +24,15 @@
 import pytest
 from pathlib import Path
 
-from jfk.utils.file_utils import extract_serial_id
+from jfk.utils.regex_patterns import (
+    DEFAULT_SERIAL_PATTERN,
+    extract_serial_id,
+    validate_serial_pattern,
+    get_pattern_info,
+    find_all_serial_ids,
+    is_valid_serial_format,
+    normalize_serial_id
+)
 
 
 class TestSerialIdExtraction:

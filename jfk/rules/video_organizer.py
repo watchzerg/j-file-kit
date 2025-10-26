@@ -13,7 +13,7 @@ from ..core.processor import Analyzer, Executor, Finalizer
 from ..processors.analyzers import FileClassifier, SerialIdExtractor
 from ..processors.executors import FileMover, FileRenamer
 from ..processors.finalizers import EmptyDirCleaner, ReportGenerator
-from ..utils.file_utils import get_file_type_from_path
+from ..utils.file_utils import get_file_type
 
 
 class VideoFileOrganizer:

@@ -10,7 +10,7 @@
 
 拼接规则：
 - 番号在开头（第1部分trim后为空）：
-  - 标准番号 + [空格 + 第3部分] + 扩展名
+  - 标准番号 + [空格 + 第3部分trim后的内容] + 扩展名
   - 如果第3部分trim后为空，则只输出：标准番号 + 扩展名
   
 - 番号不在开头（第1部分trim后不为空）：
@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+
+from .regex_patterns import extract_serial_id
 
 
 def trim_separators(text: str) -> str:
@@ -51,41 +53,54 @@ def trim_separators(text: str) -> str:
 
 def generate_new_filename(
     original_path: Path, 
-    serial_id: str, 
     pattern: str
-) -> Path:
+) -> tuple[Path, str | None]:
     """根据番号生成新文件名
     
-    将文件名分解为4部分，按业务规则重构文件名。
+    内部调用 extract_serial_id 提取番号，然后将文件名分解为4部分，按业务规则重构文件名。
     
     Args:
         original_path: 原文件路径
-        serial_id: 番号（标准化格式：字母-数字）
         pattern: 番号正则表达式
         
     Returns:
-        新文件路径
+        元组：(新文件路径, 提取到的番号)。如果没有找到番号，返回 (原路径, None)
         
     Examples:
-        >>> generate_new_filename(Path("video_ABC-001_hd.mp4"), "ABC-001", pattern)
+        >>> new_path, serial_id = generate_new_filename(Path("video_ABC-001_hd.mp4"), pattern)
+        >>> new_path
         Path("ABC-001 video-serialId-hd.mp4")
+        >>> serial_id
+        "ABC-001"
         
-        >>> generate_new_filename(Path("abc-001_video.mp4"), "ABC-001", pattern)
+        >>> new_path, serial_id = generate_new_filename(Path("ABC-001_video.mp4"), pattern)
+        >>> new_path
         Path("ABC-001 video.mp4")
+        >>> serial_id
+        "ABC-001"
         
-        >>> generate_new_filename(Path("ABC-001.mp4"), "ABC-001", pattern)
-        Path("ABC-001.mp4")
+        >>> new_path, serial_id = generate_new_filename(Path("no_serial.mp4"), pattern)
+        >>> new_path
+        Path("no_serial.mp4")
+        >>> serial_id
+        None
     """
     filename = original_path.name
     stem = original_path.stem
     suffix = original_path.suffix
     parent = original_path.parent
     
-    # 查找番号在文件名中的位置
+    # 提取番号
+    serial_id = extract_serial_id(filename, pattern)
+    if not serial_id:
+        # 未匹配到番号，保持原文件名
+        return original_path, None
+    
+    # 查找番号在文件名中的位置（用于分解文件名）
     match = re.search(pattern, filename, re.IGNORECASE)
     if not match:
-        # 未匹配到番号，保持原文件名
-        return original_path
+        # 这种情况理论上不会发生，因为 extract_serial_id 已经验证过
+        return original_path, None
     
     # 分解文件名为4部分
     start, end = match.span()
@@ -101,8 +116,13 @@ def generate_new_filename(
     
     # 判断番号是否在开头（第1部分trim后为空）
     if not trimmed_part1:
-        # 番号在开头，保持原文件名不变
-        return original_path
+        # 番号在开头，按照规则重构文件名
+        if not trimmed_part3:
+            # 第3部分trim后为空，只输出：标准番号 + 扩展名
+            new_filename = f"{serial_id}{part4}"
+        else:
+            # 第3部分trim后不为空，输出：标准番号 + 空格 + 第3部分 + 扩展名
+            new_filename = f"{serial_id} {trimmed_part3}{part4}"
     else:
         # 番号不在开头
         if not trimmed_part3:
@@ -115,4 +135,4 @@ def generate_new_filename(
         # 拼接：标准番号 + 空格 + 第1部分 + 占位符 + 扩展名
         new_filename = f"{serial_id} {trimmed_part1}{placeholder}{part4}"
     
-    return parent / new_filename
+    return parent / new_filename, serial_id

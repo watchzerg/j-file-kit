@@ -10,7 +10,7 @@ from jfk.core.models import FileInfo, ProcessingContext, FileType
 from jfk.processors.analyzers import FileClassifier, SerialIdExtractor, FileSizeAnalyzer
 from jfk.processors.executors import FileRenamer, FileMover, FileDeleter
 from jfk.processors.finalizers import EmptyDirCleaner, ReportGenerator
-from jfk.utils.file_utils import extract_serial_id
+from jfk.utils.regex_patterns import extract_serial_id
 
 
 @pytest.mark.integration
@@ -54,21 +54,22 @@ class TestAnalyzers:
         assert ctx.file_type == FileType.OTHER
         assert ctx.skip_remaining  # 其他文件应该设置短路标记
     
-    def test_serial_id_extractor_integration(self, sample_file_structure: Path):
-        """测试番号提取器集成"""
-        extractor = SerialIdExtractor(r"[A-Za-z]{2,5}-\d+")  # 使用配置文件中的默认模式
+    def test_serial_id_extractor_already_standard_format(self, sample_file_structure: Path):
+        """测试番号提取器处理已经是标准格式的文件"""
+        extractor = SerialIdExtractor(r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])")
         
-        # 测试有番号的视频文件
-        video_file = sample_file_structure / "ABCD-001_video.mp4"
+        # 测试已经是标准格式的文件
+        video_file = sample_file_structure / "ABC-001.mp4"
         file_info = FileInfo.from_path(video_file)
         ctx = ProcessingContext(file_info=file_info)
         ctx.file_type = FileType.VIDEO
         
         result = extractor.process(ctx)
         
-        assert result.status == "success"
-        assert ctx.serial_id == "ABCD-001"
-        assert ctx.target_path is not None
+        assert result.status == "skip"
+        assert "已经是标准格式" in result.message
+        assert ctx.serial_id == "ABC-001"  # 仍然提取了番号
+        assert ctx.target_path is None  # 没有设置目标路径
         
         # 测试无番号的视频文件
         video_file = sample_file_structure / "no_serial_video.mp4"

@@ -10,7 +10,7 @@ from unittest.mock import patch
 from jfk.utils.file_utils import (
     resolve_unique_path,
     find_empty_dirs,
-    is_video_or_image,
+    get_file_type,
     get_file_type_from_path
 )
 from jfk.core.models import FileType
@@ -41,27 +41,31 @@ class TestResolveUniquePath:
     
     def test_resolve_unique_path_multiple_conflicts(self, tmp_path):
         """测试多次冲突情况"""
-        # 创建多个冲突文件
-        for i in range(5):
+        # 创建目标文件，触发冲突
+        target_path = tmp_path / "test.mp4"
+        target_path.write_text("test")
+        
+        # 创建多个冲突文件，覆盖可能的随机数
+        for i in range(1000, 1006):  # 覆盖 1000-1005
             conflict_file = tmp_path / f"test-Dup{i:04d}.mp4"
             conflict_file.write_text("test")
         
-        target_path = tmp_path / "test.mp4"
-        
         # Mock 随机数生成，模拟冲突重试
-        with patch('jfk.utils.file_utils.random.randint', side_effect=[1000, 1001, 1002, 1003, 1004, 1005]):
+        with patch('jfk.utils.file_utils.random.randint', side_effect=[1000, 1001, 1002, 1003, 1004, 1005, 1006]):
             result = resolve_unique_path(target_path)
-            expected = tmp_path / "test-Dup1005.mp4"
+            expected = tmp_path / "test-Dup1006.mp4"
             assert result == expected
     
     def test_resolve_unique_path_max_attempts(self, tmp_path):
         """测试最大重试次数"""
-        # 创建大量冲突文件
-        for i in range(200):
+        # 创建目标文件，触发冲突
+        target_path = tmp_path / "test.mp4"
+        target_path.write_text("test")
+        
+        # 创建大量冲突文件，覆盖所有可能的随机数
+        for i in range(1000, 10000):  # 覆盖 1000-9999
             conflict_file = tmp_path / f"test-Dup{i:04d}.mp4"
             conflict_file.write_text("test")
-        
-        target_path = tmp_path / "test.mp4"
         
         # 应该抛出异常
         with pytest.raises(RuntimeError, match="无法为.*生成唯一路径"):
@@ -69,44 +73,44 @@ class TestResolveUniquePath:
 
 
 
-class TestIsVideoOrImage:
+class TestGetFileType:
     """测试文件类型判断函数"""
     
-    def test_is_video_or_image_video(self):
+    def test_get_file_type_video(self):
         """测试视频文件"""
         path = Path("test.mp4")
         video_exts = {".mp4", ".avi", ".mkv"}
         image_exts = {".jpg", ".png"}
         
-        result = is_video_or_image(path, video_exts, image_exts)
-        assert result == "video"
+        result = get_file_type(path, video_exts, image_exts)
+        assert result == FileType.VIDEO
     
-    def test_is_video_or_image_image(self):
+    def test_get_file_type_image(self):
         """测试图片文件"""
         path = Path("test.jpg")
         video_exts = {".mp4", ".avi", ".mkv"}
         image_exts = {".jpg", ".png"}
         
-        result = is_video_or_image(path, video_exts, image_exts)
-        assert result == "image"
+        result = get_file_type(path, video_exts, image_exts)
+        assert result == FileType.IMAGE
     
-    def test_is_video_or_image_other(self):
+    def test_get_file_type_other(self):
         """测试其他文件"""
         path = Path("test.txt")
         video_exts = {".mp4", ".avi", ".mkv"}
         image_exts = {".jpg", ".png"}
         
-        result = is_video_or_image(path, video_exts, image_exts)
-        assert result == "other"
+        result = get_file_type(path, video_exts, image_exts)
+        assert result == FileType.OTHER
     
-    def test_is_video_or_image_case_insensitive(self):
+    def test_get_file_type_case_insensitive(self):
         """测试大小写不敏感"""
         path = Path("test.MP4")
         video_exts = {".mp4", ".avi", ".mkv"}
         image_exts = {".jpg", ".png"}
         
-        result = is_video_or_image(path, video_exts, image_exts)
-        assert result == "video"
+        result = get_file_type(path, video_exts, image_exts)
+        assert result == FileType.VIDEO
 
 
 class TestGetFileTypeFromPath:
@@ -174,8 +178,9 @@ class TestFindEmptyDirs:
         (tmp_path / "level1" / "level2" / "level3").mkdir()
         
         result = find_empty_dirs(tmp_path)
-        # 应该找到所有空目录
-        assert len(result) == 3
+        # 应该只找到最底层的空目录
+        assert len(result) == 1
+        assert result[0] == tmp_path / "level1" / "level2" / "level3"
     
     def test_find_empty_dirs_mixed_structure(self, tmp_path):
         """测试混合目录结构"""
