@@ -73,8 +73,7 @@ def sample_config() -> TaskConfig:
             "todo_non_vidpic_dir": "/todo/non-vidpic",
             "todo_vidpic_dir": "/todo/vidpic",
             "video_extensions": [".mp4", ".avi"],
-            "image_extensions": [".jpg", ".png"],
-            "serial_id_pattern": r"[A-Za-z]{2,5}-\d+"
+            "image_extensions": [".jpg", ".png"]
         }
     )
     

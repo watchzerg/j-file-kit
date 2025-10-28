@@ -35,7 +35,7 @@ class VideoFileOrganizer:
             raise ValueError("未找到 video_file_organizer 任务配置")
         
         # 获取任务配置
-        self.file_config = self.task_config.get_config(dict)  # 这里应该使用具体的配置类型
+        self.file_config = self.task_config.config
         
         # 设置路径
         self.todo_non_vidpic_dir = Path(self.file_config["todo_non_vidpic_dir"])
@@ -44,9 +44,6 @@ class VideoFileOrganizer:
         # 设置文件类型
         self.video_extensions = set(self.file_config["video_extensions"])
         self.image_extensions = set(self.file_config["image_extensions"])
-        
-        # 设置番号模式
-        self.serial_id_pattern = self.file_config["serial_id_pattern"]
     
     def create_pipeline(self) -> Pipeline:
         """创建处理管道
@@ -62,7 +59,7 @@ class VideoFileOrganizer:
             FileClassifier(self.video_extensions, self.image_extensions)
         )
         pipeline.add_analyzer(
-            SerialIdExtractor(self.serial_id_pattern)
+            SerialIdExtractor()
         )
         
         # 添加执行器

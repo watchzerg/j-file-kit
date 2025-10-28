@@ -83,7 +83,6 @@ class TestFileOrganizeConfig:
         assert config.todo_vidpic_dir == Path("/todo/vidpic")
         assert config.video_extensions == {".mp4", ".avi"}
         assert config.image_extensions == {".jpg", ".png"}
-        assert config.serial_id_pattern == r"[A-Za-z]{2,5}-\d+"
     
     def test_file_organize_config_extension_validation(self):
         """测试扩展名验证"""
@@ -97,18 +96,6 @@ class TestFileOrganizeConfig:
         # 应该自动添加点号
         assert config.video_extensions == {".mp4", ".avi"}
         assert config.image_extensions == {".jpg", ".png"}
-    
-    def test_file_organize_config_custom_pattern(self):
-        """测试自定义番号模式"""
-        config = FileOrganizeConfig(
-            todo_non_vidpic_dir=Path("/todo/non-vidpic"),
-            todo_vidpic_dir=Path("/todo/vidpic"),
-            video_extensions={".mp4"},
-            image_extensions={".jpg"},
-            serial_id_pattern=r"[A-Z]{3}-\d{4}"
-        )
-        
-        assert config.serial_id_pattern == r"[A-Z]{3}-\d{4}"
 
 
 class TestTaskDefinition:

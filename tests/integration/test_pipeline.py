@@ -36,7 +36,7 @@ class TestPipeline:
         
         # 添加分析器
         classifier = FileClassifier({".mp4", ".avi"}, {".jpg", ".png"})
-        extractor = SerialIdExtractor(r"[A-Za-z]{2,5}-\d+")  # 使用配置文件中的默认模式
+        extractor = SerialIdExtractor()
         
         pipeline.add_analyzer(classifier)
         pipeline.add_analyzer(extractor)
@@ -79,8 +79,7 @@ class TestPipeline:
                 "todo_non_vidpic_dir": str(sample_file_structure / "todo_non_vidpic"),
                 "todo_vidpic_dir": str(sample_file_structure / "todo_vidpic"),
                 "video_extensions": [".mp4", ".avi", ".mkv"],
-                "image_extensions": [".jpg", ".png", ".webp"],
-                "serial_id_pattern": r"[A-Za-z]{2,5}-\d+"
+                "image_extensions": [".jpg", ".png", ".webp"]
             }
         )
         
@@ -121,8 +120,7 @@ class TestPipeline:
                 "todo_non_vidpic_dir": str(todo_non_vidpic_dir),
                 "todo_vidpic_dir": str(todo_vidpic_dir),
                 "video_extensions": [".mp4", ".avi", ".mkv"],
-                "image_extensions": [".jpg", ".png", ".webp"],
-                "serial_id_pattern": r"[A-Za-z]{2,5}-\d+"
+                "image_extensions": [".jpg", ".png", ".webp"]
             }
         )
         

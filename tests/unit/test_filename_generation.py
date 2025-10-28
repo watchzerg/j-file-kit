@@ -18,7 +18,6 @@ import pytest
 from pathlib import Path
 
 from jfk.utils.filename_generation import generate_new_filename
-from jfk.utils.regex_patterns import DEFAULT_SERIAL_PATTERN
 
 
 class TestFilenameGeneration:
@@ -34,7 +33,7 @@ class TestFilenameGeneration:
     def test_generate_new_filename_already_at_start(self, tmp_path):
         """测试番号已在开头的情况"""
         original_path = tmp_path / "ABC-001_video.mp4"
-        new_path, serial_id = generate_new_filename(original_path, DEFAULT_SERIAL_PATTERN)
+        new_path, serial_id = generate_new_filename(original_path)
         expected = tmp_path / "ABC-001 video.mp4"
         assert new_path == expected
         assert serial_id == "ABC-001"
@@ -42,7 +41,7 @@ class TestFilenameGeneration:
     def test_generate_new_filename_move_to_start(self, tmp_path):
         """测试番号移动到开头的情况"""
         original_path = tmp_path / "video_ABC-001_hd.mp4"
-        new_path, serial_id = generate_new_filename(original_path, DEFAULT_SERIAL_PATTERN)
+        new_path, serial_id = generate_new_filename(original_path)
         expected = tmp_path / "ABC-001 video-serialId-hd.mp4"
         assert new_path == expected
         assert serial_id == "ABC-001"
@@ -50,14 +49,14 @@ class TestFilenameGeneration:
     def test_generate_new_filename_no_serial_id(self, tmp_path):
         """测试无番号的情况"""
         original_path = tmp_path / "video.mp4"
-        new_path, serial_id = generate_new_filename(original_path, DEFAULT_SERIAL_PATTERN)
+        new_path, serial_id = generate_new_filename(original_path)
         assert new_path == original_path
         assert serial_id is None
     
     def test_generate_new_filename_already_standard_format(self, tmp_path):
         """测试文件名已经是标准格式的情况"""
         original_path = tmp_path / "ABC-001.mp4"
-        new_path, serial_id = generate_new_filename(original_path, DEFAULT_SERIAL_PATTERN)
+        new_path, serial_id = generate_new_filename(original_path)
         # 文件名已经是标准格式，应该返回相同路径
         assert new_path == original_path
         assert serial_id == "ABC-001"
@@ -76,20 +75,18 @@ class TestFilenameGenerationEdgeCases:
     
     def test_different_file_extensions(self, tmp_path):
         """测试不同文件扩展名"""
-        pattern = DEFAULT_SERIAL_PATTERN
         
         # 测试各种文件扩展名
         extensions = [".mp4", ".avi", ".mkv", ".jpg", ".png", ".txt", ".zip"]
         
         for ext in extensions:
             original_path = tmp_path / f"video_ABC-001_hd{ext}"
-            new_path, serial_id = generate_new_filename(original_path, pattern)
+            new_path, serial_id = generate_new_filename(original_path)
             expected = tmp_path / f"ABC-001 video-serialId-hd{ext}"
             assert new_path == expected, f"Failed for extension: {ext}"
     
     def test_complex_filename_structures(self, tmp_path):
         """测试复杂文件名结构"""
-        pattern = DEFAULT_SERIAL_PATTERN
         
         test_cases = [
             # (原始文件名, 期望的新文件名)
@@ -102,14 +99,13 @@ class TestFilenameGenerationEdgeCases:
         
         for original_name, expected_name in test_cases:
             original_path = tmp_path / original_name
-            new_path, serial_id = generate_new_filename(original_path, pattern)
+            new_path, serial_id = generate_new_filename(original_path)
             expected_path = tmp_path / expected_name
             assert new_path == expected_path, f"Failed for: {original_name}"
             assert serial_id == "ABC-001"
     
     def test_special_characters_in_filename(self, tmp_path):
         """测试文件名中的特殊字符"""
-        pattern = DEFAULT_SERIAL_PATTERN
         
         special_char_tests = [
             ("video_ABC-001@special.mp4", "ABC-001 video-serialId-special.mp4"),
@@ -121,13 +117,12 @@ class TestFilenameGenerationEdgeCases:
         
         for original_name, expected_name in special_char_tests:
             original_path = tmp_path / original_name
-            new_path, serial_id = generate_new_filename(original_path, pattern)
+            new_path, serial_id = generate_new_filename(original_path)
             expected_path = tmp_path / expected_name
             assert new_path == expected_path, f"Failed for special chars: {original_name}"
     
     def test_long_filenames(self, tmp_path):
         """测试长文件名"""
-        pattern = DEFAULT_SERIAL_PATTERN
         
         # 生成长文件名
         long_prefix = "very_long_prefix_" * 20
@@ -135,7 +130,7 @@ class TestFilenameGenerationEdgeCases:
         
         original_name = f"{long_prefix}ABC-001{long_suffix}.mp4"
         original_path = tmp_path / original_name
-        new_path, serial_id = generate_new_filename(original_path, pattern)
+        new_path, serial_id = generate_new_filename(original_path)
         # trim 会去掉下划线，所以期望值中下划线被去掉
         expected_name = f"ABC-001 {long_prefix.rstrip('_')}-serialId-{long_suffix}.mp4"
         expected_path = tmp_path / expected_name
@@ -145,17 +140,15 @@ class TestFilenameGenerationEdgeCases:
     
     def test_no_extension_files(self, tmp_path):
         """测试无扩展名的文件"""
-        pattern = DEFAULT_SERIAL_PATTERN
         
         original_path = tmp_path / "video_ABC-001_hd"
-        new_path, serial_id = generate_new_filename(original_path, pattern)
+        new_path, serial_id = generate_new_filename(original_path)
         expected = tmp_path / "ABC-001 video-serialId-hd"
         assert new_path == expected
         assert serial_id == "ABC-001"
     
     def test_multiple_serial_ids_in_filename(self, tmp_path):
         """测试文件名中包含多个番号的情况"""
-        pattern = DEFAULT_SERIAL_PATTERN
         
         # 当文件名中有多个番号时，应该处理第一个匹配的番号
         test_cases = [
@@ -165,13 +158,12 @@ class TestFilenameGenerationEdgeCases:
         
         for original_name, expected_name in test_cases:
             original_path = tmp_path / original_name
-            new_path, serial_id = generate_new_filename(original_path, pattern)
+            new_path, serial_id = generate_new_filename(original_path)
             expected_path = tmp_path / expected_name
             assert new_path == expected_path, f"Failed for multiple serials: {original_name}"
     
     def test_case_sensitivity(self, tmp_path):
         """测试大小写敏感性"""
-        pattern = DEFAULT_SERIAL_PATTERN
         
         case_tests = [
             ("video_abc-001_hd.mp4", "ABC-001 video-serialId-hd.mp4"),  # 小写番号
@@ -181,7 +173,7 @@ class TestFilenameGenerationEdgeCases:
         
         for original_name, expected_name in case_tests:
             original_path = tmp_path / original_name
-            new_path, serial_id = generate_new_filename(original_path, pattern)
+            new_path, serial_id = generate_new_filename(original_path)
             expected_path = tmp_path / expected_name
             assert new_path == expected_path, f"Failed for case test: {original_name}"
 
@@ -197,7 +189,6 @@ class TestTrimFunctionality:
     
     def test_serial_at_start_with_different_separators(self, tmp_path):
         """测试番号在开头但分隔符不同的情况"""
-        pattern = DEFAULT_SERIAL_PATTERN
         
         test_cases = [
             # (原始文件名, 期望的新文件名) - 番号在开头时也要重构
@@ -212,14 +203,13 @@ class TestTrimFunctionality:
         
         for original_name, expected_name in test_cases:
             original_path = tmp_path / original_name
-            new_path, serial_id = generate_new_filename(original_path, pattern)
+            new_path, serial_id = generate_new_filename(original_path)
             expected_path = tmp_path / expected_name
             assert new_path == expected_path, f"Failed for serial at start: {original_name}"
             assert serial_id == "ABC-001"
     
     def test_serial_not_at_start_with_trim(self, tmp_path):
         """测试番号不在开头的情况，包含 trim 处理"""
-        pattern = DEFAULT_SERIAL_PATTERN
         
         test_cases = [
             # (原始文件名, 期望的新文件名)
@@ -232,14 +222,13 @@ class TestTrimFunctionality:
         
         for original_name, expected_name in test_cases:
             original_path = tmp_path / original_name
-            new_path, serial_id = generate_new_filename(original_path, pattern)
+            new_path, serial_id = generate_new_filename(original_path)
             expected_path = tmp_path / expected_name
             assert new_path == expected_path, f"Failed for serial not at start: {original_name}"
             assert serial_id == "ABC-001"
     
     def test_trim_edge_cases(self, tmp_path):
         """测试 trim 的边界情况"""
-        pattern = DEFAULT_SERIAL_PATTERN
         
         test_cases = [
             # (原始文件名, 期望的新文件名)
@@ -253,14 +242,13 @@ class TestTrimFunctionality:
         
         for original_name, expected_name in test_cases:
             original_path = tmp_path / original_name
-            new_path, serial_id = generate_new_filename(original_path, pattern)
+            new_path, serial_id = generate_new_filename(original_path)
             expected_path = tmp_path / expected_name
             assert new_path == expected_path, f"Failed for trim edge case: {original_name}"
             assert serial_id == "ABC-001"
     
     def test_third_part_empty_vs_not_empty(self, tmp_path):
         """测试第三部分为空和不为空的情况"""
-        pattern = DEFAULT_SERIAL_PATTERN
         
         test_cases = [
             # 第三部分为空的情况
@@ -276,7 +264,7 @@ class TestTrimFunctionality:
         
         for original_name, expected_name in test_cases:
             original_path = tmp_path / original_name
-            new_path, serial_id = generate_new_filename(original_path, pattern)
+            new_path, serial_id = generate_new_filename(original_path)
             expected_path = tmp_path / expected_name
             assert new_path == expected_path, f"Failed for third part test: {original_name}"
             assert serial_id == "ABC-001"

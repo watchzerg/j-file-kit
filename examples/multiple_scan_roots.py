@@ -66,8 +66,7 @@ def main():
                 "todo_non_vidpic_dir": str(Path("./todo_non_vidpic")),
                 "todo_vidpic_dir": str(Path("./todo_vidpic")),
                 "video_extensions": [".mp4", ".avi", ".mkv", ".mov"],
-                "image_extensions": [".jpg", ".jpeg", ".png", ".webp"],
-                "serial_id_pattern": r"[A-Za-z]{2,5}-\d+"
+                "image_extensions": [".jpg", ".jpeg", ".png", ".webp"]
             }
         )
         

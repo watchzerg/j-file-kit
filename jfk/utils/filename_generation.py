@@ -25,7 +25,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from .regex_patterns import extract_serial_id
+from .regex_patterns import extract_serial_id, DEFAULT_SERIAL_PATTERN
 
 
 def trim_separators(text: str) -> str:
@@ -54,34 +54,32 @@ def trim_separators(text: str) -> str:
 
 
 def generate_new_filename(
-    original_path: Path, 
-    pattern: str
+    original_path: Path
 ) -> tuple[Path, str | None]:
     """根据番号生成新文件名
     
-    内部调用 extract_serial_id 提取番号，然后将文件名分解为4部分，按业务规则重构文件名。
+    使用内置的 DEFAULT_SERIAL_PATTERN 进行番号提取和文件名重构。
     
     Args:
         original_path: 原文件路径
-        pattern: 番号正则表达式
         
     Returns:
         元组：(新文件路径, 提取到的番号)。如果没有找到番号，返回 (原路径, None)
         
     Examples:
-        >>> new_path, serial_id = generate_new_filename(Path("video_ABC-001_hd.mp4"), pattern)
+        >>> new_path, serial_id = generate_new_filename(Path("video_ABC-001_hd.mp4"))
         >>> new_path
         Path("ABC-001 video-serialId-hd.mp4")
         >>> serial_id
         "ABC-001"
         
-        >>> new_path, serial_id = generate_new_filename(Path("ABC-001_video.mp4"), pattern)
+        >>> new_path, serial_id = generate_new_filename(Path("ABC-001_video.mp4"))
         >>> new_path
         Path("ABC-001 video.mp4")
         >>> serial_id
         "ABC-001"
         
-        >>> new_path, serial_id = generate_new_filename(Path("no_serial.mp4"), pattern)
+        >>> new_path, serial_id = generate_new_filename(Path("no_serial.mp4"))
         >>> new_path
         Path("no_serial.mp4")
         >>> serial_id
@@ -92,14 +90,14 @@ def generate_new_filename(
     suffix = original_path.suffix
     parent = original_path.parent
     
-    # 提取番号
-    serial_id = extract_serial_id(filename, pattern)
+    # 提取番号（extract_serial_id 内部默认使用 DEFAULT_SERIAL_PATTERN）
+    serial_id = extract_serial_id(filename)
     if not serial_id:
         # 未匹配到番号，保持原文件名
         return original_path, None
     
     # 查找番号在文件名中的位置（用于分解文件名）
-    match = re.search(pattern, filename, re.IGNORECASE)
+    match = re.search(DEFAULT_SERIAL_PATTERN, filename, re.IGNORECASE)
     if not match:
         # 这种情况理论上不会发生，因为 extract_serial_id 已经验证过
         return original_path, None

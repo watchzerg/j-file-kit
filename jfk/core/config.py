@@ -50,10 +50,6 @@ class FileOrganizeConfig(BaseModel):
     todo_vidpic_dir: Path = Field(..., description="无番号视频图片文件目录")
     video_extensions: set[str] = Field(..., description="视频文件扩展名")
     image_extensions: set[str] = Field(..., description="图片文件扩展名")
-    serial_id_pattern: str = Field(
-        r"[A-Za-z]{2,5}-\d+", 
-        description="番号正则表达式"
-    )
     
     @model_validator(mode="after")
     def validate_extensions(self) -> FileOrganizeConfig:
@@ -160,8 +156,7 @@ def create_default_config() -> TaskConfig:
                     "todo_non_vidpic_dir": "/path/to/todo-non-vidpic",
                     "todo_vidpic_dir": "/path/to/todo-vidpic",
                     "video_extensions": [".mp4", ".avi", ".mkv", ".mov"],
-                    "image_extensions": [".jpg", ".jpeg", ".png", ".webp"],
-                    "serial_id_pattern": r"[A-Za-z]{2,5}-\d+"
+                    "image_extensions": [".jpg", ".jpeg", ".png", ".webp"]
                 }
             )
         ]

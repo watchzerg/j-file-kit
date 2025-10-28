@@ -73,14 +73,9 @@ class SerialIdExtractor(Analyzer):
     从文件名中提取番号，并生成新的文件名。
     """
     
-    def __init__(self, pattern: str):
-        """初始化番号提取器
-        
-        Args:
-            pattern: 番号正则表达式模式
-        """
+    def __init__(self):
+        """初始化番号提取器"""
         super().__init__("SerialIdExtractor")
-        self.pattern = pattern
     
     def process(self, ctx: ProcessingContext) -> ProcessorResult:
         """提取番号
@@ -97,7 +92,7 @@ class SerialIdExtractor(Analyzer):
                 return ProcessorResult.skip("非视频/图片文件，跳过番号提取")
             
             # 生成新文件名并提取番号
-            new_path, serial_id = generate_new_filename(ctx.file_info.path, self.pattern)
+            new_path, serial_id = generate_new_filename(ctx.file_info.path)
             
             if serial_id:
                 # 检查新路径是否与原路径相同

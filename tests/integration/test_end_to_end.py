@@ -228,8 +228,7 @@ class TestEndToEndVideoOrganizer:
                         "todo_non_vidpic_dir": str(temp_dir / "todo_non_vidpic"),
                         "todo_vidpic_dir": str(temp_dir / "todo_vidpic"),
                         "video_extensions": [".mp4", ".avi", ".mkv", ".mov"],
-                        "image_extensions": [".jpg", ".png", ".webp"],
-                        "serial_id_pattern": r"[A-Za-z]{2,5}-\d+"
+                        "image_extensions": [".jpg", ".png", ".webp"]
                     }
                 }
             ]
@@ -426,8 +425,7 @@ class TestEndToEndPipeline:
                 "todo_non_vidpic_dir": str(temp_dir / "todo_non_vidpic"),
                 "todo_vidpic_dir": str(temp_dir / "todo_vidpic"),
                 "video_extensions": [".mp4", ".avi"],
-                "image_extensions": [".jpg", ".png"],
-                "serial_id_pattern": r"[A-Za-z]{2,5}-\d+"
+                "image_extensions": [".jpg", ".png"]
             }
         )
         

@@ -56,7 +56,7 @@ class TestAnalyzers:
     
     def test_serial_id_extractor_already_standard_format(self, sample_file_structure: Path):
         """测试番号提取器处理已经是标准格式的文件"""
-        extractor = SerialIdExtractor(r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])")
+        extractor = SerialIdExtractor()
         
         # 测试已经是标准格式的文件
         video_file = sample_file_structure / "ABC-001.mp4"
@@ -358,7 +358,7 @@ class TestProcessorChain:
         
         # 添加分析器
         classifier = FileClassifier({".mp4"}, {".jpg"})
-        extractor = SerialIdExtractor(r"[A-Za-z]{2,5}-\d+")  # 使用配置文件中的默认模式
+        extractor = SerialIdExtractor()
         
         chain.add_analyzer(classifier)
         chain.add_analyzer(extractor)
