@@ -11,6 +11,7 @@ Targets
 - Follow the project layout defined in `docs/ARCHITECTURE.md`.
 
 Core Principles
+- Engineering Principle: Avoid speculative extensibility — design only for current, clearly justified use cases, not hypothetical future needs.
 - Prefer functional decomposition for business logic; use classes only for data models (Pydantic), settings, or explicit state.
 - Keep modules small and cohesive; expose a clear public API via `__all__`.
 - Use `snake_case` for files/dirs; descriptive names like `is_active`, `has_permission`.

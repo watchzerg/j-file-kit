@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Any, Dict
 
 from rich.console import Console
-from rich.logging import RichHandler
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ..core.models import TaskResult, TaskStats
@@ -105,16 +104,15 @@ class StructuredLogger:
         
         self._write_log("FILE_RESULT", f"处理文件: {result.file_info.path.name}", data)
     
-    def log_task_start(self, scan_root: Path, total_files: int) -> None:
+    def log_task_start(self, scan_root: str) -> None:
         """记录任务开始"""
         data = {
-            "scan_root": str(scan_root),
-            "total_files": total_files
+            "scan_root": scan_root
         }
         self._write_log("TASK_START", f"开始任务: {self.task_name}", data)
         self.console.print(f"[bold green]开始任务: {self.task_name}[/bold green]")
         self.console.print(f"扫描目录: {scan_root}")
-        self.console.print(f"预计文件数: {total_files}")
+        self.console.print("流式处理模式")
     
     def log_task_end(self, report: Any) -> None:
         """记录任务结束"""
@@ -154,18 +152,14 @@ class ProgressLogger:
         self.progress: Progress | None = None
         self.task = None
     
-    def start_progress(self, total_files: int) -> None:
-        """开始进度显示
-        
-        Args:
-            total_files: 总文件数
-        """
+    def start_progress(self) -> None:
+        """开始进度显示（未知总数模式）"""
         self.progress = Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
             console=self.logger.console
         )
-        self.task = self.progress.add_task("处理文件", total=total_files)
+        self.task = self.progress.add_task("处理文件", total=None)
         self.progress.start()
     
     def update_progress(self, current_file: str | None = None) -> None:
@@ -180,7 +174,7 @@ class ProgressLogger:
             self.progress.update(
                 self.task,
                 advance=1,
-                description=f"处理文件 ({self.stats.processed_files})"
+                description=f"已处理 {self.stats.processed_files} 个文件"
             )
     
     def stop_progress(self) -> None:

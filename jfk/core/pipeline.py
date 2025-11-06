@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 from .config import TaskConfig
@@ -125,17 +124,13 @@ class Pipeline:
             # 设置扫描器过滤器
             self.setup_scanner_filters()
             
-            # 扫描文件
-            files = self.scanner.scan_files_list()
-            total_files = len(files)
-            
             # 记录任务开始
             scan_roots_str = ", ".join(str(p) for p in self.config.global_.scan_roots)
-            self.logger.log_task_start(scan_roots_str, total_files)
-            self.progress_logger.start_progress(total_files)
+            self.logger.log_task_start(scan_roots_str)
+            self.progress_logger.start_progress()
             
-            # 处理每个文件
-            for file_info in files:
+            # 处理每个文件（使用生成器模式，边扫描边处理）
+            for file_info in self.scanner.scan_files():
                 try:
                     # 创建处理上下文
                     ctx = ProcessingContext(file_info=file_info)
@@ -206,17 +201,13 @@ class Pipeline:
         # 设置扫描器过滤器
         self.setup_scanner_filters()
         
-        # 扫描文件
-        files = self.scanner.scan_files_list()
-        total_files = len(files)
-        
         # 记录任务开始
         scan_roots_str = ", ".join(str(p) for p in self.config.global_.scan_roots)
-        self.logger.log_task_start(scan_roots_str, total_files)
+        self.logger.log_task_start(scan_roots_str)
         self.logger.info("运行在干模式（预览模式）")
         
-        # 处理每个文件（仅分析，不执行）
-        for file_info in files:
+        # 处理每个文件（仅分析，不执行，使用生成器模式）
+        for file_info in self.scanner.scan_files():
             try:
                 # 创建处理上下文
                 ctx = ProcessingContext(file_info=file_info)
