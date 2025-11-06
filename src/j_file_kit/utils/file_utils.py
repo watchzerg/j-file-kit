@@ -62,8 +62,8 @@ def resolve_unique_path(target_path: Path) -> Path:
     # 生成唯一路径
     max_attempts = 100  # 防止无限循环
     for _ in range(max_attempts):
-        # 生成4位随机数
-        random_suffix = f"-Dup{random.randint(1000, 9999)}"
+        # 生成4位随机数（非密码学场景，使用标准随机数生成器即可）
+        random_suffix = f"-Dup{random.randint(1000, 9999)}"  # noqa: S311
         new_name = f"{stem}{random_suffix}{suffix}"
         new_path = parent / new_name
 
