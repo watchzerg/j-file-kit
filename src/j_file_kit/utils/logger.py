@@ -37,6 +37,9 @@ class StructuredLogger:
         # 确保日志目录存在
         self.log_dir.mkdir(parents=True, exist_ok=True)
         
+        # 创建日志文件（如果不存在）
+        self.log_file.touch(exist_ok=True)
+        
         # Rich 控制台
         self.console = Console()
     
