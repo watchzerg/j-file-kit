@@ -28,6 +28,10 @@ from pathlib import Path
 from .regex_patterns import extract_serial_id, DEFAULT_SERIAL_PATTERN
 
 
+# 文件名分隔符常量：用于 trim 操作时去除的字符
+FILENAME_SEPARATORS = " -_@#"
+
+
 def trim_separators(text: str) -> str:
     """去除字符串前后的分隔符
     
@@ -50,7 +54,7 @@ def trim_separators(text: str) -> str:
         >>> trim_separators("")
         ""
     """
-    return text.strip(" -_@#")
+    return text.strip(FILENAME_SEPARATORS)
 
 
 def generate_new_filename(
