@@ -4,20 +4,18 @@
 """
 
 import json
-import pytest
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
-from j_file_kit.utils.logger import StructuredLogger
 from j_file_kit.core.models import (
     FileInfo,
-    ProcessingContext,
-    TaskResult,
-    TaskReport,
-    ProcessorResult,
-    ProcessorStatus,
     FileType,
+    ProcessingContext,
+    ProcessorResult,
+    TaskReport,
+    TaskResult,
 )
+from j_file_kit.utils.logger import StructuredLogger
 
 
 class TestStructuredLogger:
@@ -329,7 +327,7 @@ class TestStructuredLogger:
     def test_special_characters_in_message(self, tmp_path):
         """测试消息中的特殊字符"""
         logger = StructuredLogger(tmp_path, "test_task")
-        logger.info("消息包含\n换行符\t制表符\"引号")
+        logger.info('消息包含\n换行符\t制表符"引号')
 
         entry = json.loads(logger.log_file.read_text(encoding="utf-8").strip())
         assert "\n" in entry["message"]
@@ -344,4 +342,3 @@ class TestStructuredLogger:
         entry = json.loads(logger.log_file.read_text(encoding="utf-8").strip())
         assert "\n" in entry["data"]["path"]
         assert entry["data"]["json"] == '{"key": "value"}'
-

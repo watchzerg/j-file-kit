@@ -4,9 +4,8 @@
 """
 
 import json
-import pytest
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 from j_file_kit.utils.transaction_log import (
     OperationType,
@@ -201,7 +200,7 @@ class TestTransactionLog:
     def test_log_creates_directory(self, tmp_path):
         """测试事务日志自动创建目录"""
         log_dir = tmp_path / "nested" / "logs"
-        log = TransactionLog(log_dir, "test_task")
+        TransactionLog(log_dir, "test_task")
 
         assert log_dir.exists()
         assert log_dir.is_dir()
@@ -392,4 +391,3 @@ class TestTransactionLog:
         # 由于 task_id 是随机生成的，文件应该不同
         assert log1.task_id != log2.task_id
         assert log1.log_file != log2.log_file
-

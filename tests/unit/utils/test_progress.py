@@ -3,12 +3,12 @@
 测试进度追踪器的初始化和进度更新功能。
 """
 
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
 from rich.console import Console
 
-from j_file_kit.utils.progress import ProgressTracker
 from j_file_kit.core.models import TaskStats
+from j_file_kit.utils.progress import ProgressTracker
 
 
 class TestProgressTracker:
@@ -222,4 +222,3 @@ class TestProgressTracker:
 
         assert tracker.stats.processed_files == 10
         assert tracker.stats.current_file == "file9.mp4"
-
