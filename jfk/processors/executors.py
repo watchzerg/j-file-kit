@@ -53,12 +53,12 @@ class FileRenamer(Executor):
             
             # 记录事务日志
             if self.transaction_log:
-                transaction_id = self.transaction_log.log_rename(
+                entry = self.transaction_log.create_rename_entry(
                     ctx.file_info.path, 
                     unique_path,
                     {"serial_id": ctx.serial_id}
                 )
-                self.transaction_log.mark_completed(transaction_id)
+                self.transaction_log.write_entry(entry)
             
             # 更新上下文中的文件信息
             ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
@@ -119,12 +119,12 @@ class FileMover(Executor):
             
             # 记录事务日志
             if self.transaction_log:
-                transaction_id = self.transaction_log.log_move(
+                entry = self.transaction_log.create_move_entry(
                     ctx.file_info.path, 
                     unique_path,
                     {"file_type": ctx.file_type, "serial_id": ctx.serial_id}
                 )
-                self.transaction_log.mark_completed(transaction_id)
+                self.transaction_log.write_entry(entry)
             
             # 更新上下文中的文件信息
             ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
@@ -188,7 +188,7 @@ class FileDeleter(Executor):
             
             # 记录事务日志
             if self.transaction_log:
-                transaction_id = self.transaction_log.log_delete(
+                entry = self.transaction_log.create_delete_entry(
                     ctx.file_info.path,
                     {"file_type": ctx.file_type, "serial_id": ctx.serial_id}
                 )
@@ -198,7 +198,7 @@ class FileDeleter(Executor):
             
             # 标记事务完成
             if self.transaction_log:
-                self.transaction_log.mark_completed(transaction_id)
+                self.transaction_log.write_entry(entry)
             
             return ProcessorResult.success(
                 f"文件删除成功: {ctx.file_info.path.name}"
@@ -246,7 +246,7 @@ class DirectoryCreator(Executor):
             
             # 记录事务日志
             if self.transaction_log:
-                transaction_id = self.transaction_log.log_create_dir(
+                entry = self.transaction_log.create_dir_entry(
                     target_path,
                     {"purpose": ctx.custom_data.get("purpose", "unknown")}
                 )
@@ -256,7 +256,7 @@ class DirectoryCreator(Executor):
             
             # 标记事务完成
             if self.transaction_log:
-                self.transaction_log.mark_completed(transaction_id)
+                self.transaction_log.write_entry(entry)
             
             return ProcessorResult.success(
                 f"目录创建成功: {target_path}"
@@ -310,12 +310,12 @@ class FileCopier(Executor):
             
             # 记录事务日志
             if self.transaction_log:
-                transaction_id = self.transaction_log.log_move(
+                entry = self.transaction_log.create_move_entry(
                     ctx.file_info.path, 
                     unique_path,
                     {"operation": "copy", "file_type": ctx.file_type, "serial_id": ctx.serial_id}
                 )
-                self.transaction_log.mark_completed(transaction_id)
+                self.transaction_log.write_entry(entry)
             
             return ProcessorResult.success(
                 f"文件复制成功: {ctx.file_info.path.name} -> {unique_path}",

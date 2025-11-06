@@ -1,6 +1,6 @@
 """事务日志模块
 
-记录所有文件操作，支持手动回滚。
+记录所有文件操作。
 """
 
 from __future__ import annotations
@@ -47,8 +47,6 @@ class TransactionEntry:
         self.source_path = source_path
         self.target_path = target_path
         self.data = data or {}
-        self.completed = False
-        self.rolled_back = False
     
     def to_dict(self) -> Dict[str, Any]:
         """转换为字典"""
@@ -58,14 +56,12 @@ class TransactionEntry:
             "operation": self.operation,
             "source_path": str(self.source_path),
             "target_path": str(self.target_path) if self.target_path else None,
-            "data": self.data,
-            "completed": self.completed,
-            "rolled_back": self.rolled_back
+            "data": self.data
         }
     
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> TransactionEntry:
-        """从字典创建"""
+        """从字典创建（兼容旧格式）"""
         entry = cls(
             operation=data["operation"],
             source_path=Path(data["source_path"]),
@@ -74,8 +70,7 @@ class TransactionEntry:
         )
         entry.id = data["id"]
         entry.timestamp = datetime.fromisoformat(data["timestamp"])
-        entry.completed = data.get("completed", False)
-        entry.rolled_back = data.get("rolled_back", False)
+        # 忽略旧格式中的 completed 和 rolled_back 字段
         return entry
 
 
@@ -96,17 +91,14 @@ class TransactionLog:
         
         # 确保日志目录存在
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        
-        # 内存中的事务列表
-        self.transactions: List[TransactionEntry] = []
     
     def _write_transaction(self, entry: TransactionEntry) -> None:
         """写入事务记录"""
         with open(self.log_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry.to_dict(), ensure_ascii=False) + "\n")
     
-    def log_rename(self, source_path: Path, target_path: Path, data: Dict[str, Any] | None = None) -> str:
-        """记录重命名操作
+    def create_rename_entry(self, source_path: Path, target_path: Path, data: Dict[str, Any] | None = None) -> TransactionEntry:
+        """创建重命名事务条目
         
         Args:
             source_path: 源路径
@@ -114,7 +106,7 @@ class TransactionLog:
             data: 附加数据
             
         Returns:
-            事务ID
+            事务条目对象
         """
         entry = TransactionEntry(
             operation=OperationType.RENAME,
@@ -122,12 +114,10 @@ class TransactionLog:
             target_path=target_path,
             data=data
         )
-        self.transactions.append(entry)
-        self._write_transaction(entry)
-        return entry.id
+        return entry
     
-    def log_move(self, source_path: Path, target_path: Path, data: Dict[str, Any] | None = None) -> str:
-        """记录移动操作
+    def create_move_entry(self, source_path: Path, target_path: Path, data: Dict[str, Any] | None = None) -> TransactionEntry:
+        """创建移动事务条目
         
         Args:
             source_path: 源路径
@@ -135,7 +125,7 @@ class TransactionLog:
             data: 附加数据
             
         Returns:
-            事务ID
+            事务条目对象
         """
         entry = TransactionEntry(
             operation=OperationType.MOVE,
@@ -143,177 +133,86 @@ class TransactionLog:
             target_path=target_path,
             data=data
         )
-        self.transactions.append(entry)
-        self._write_transaction(entry)
-        return entry.id
+        return entry
     
-    def log_delete(self, path: Path, data: Dict[str, Any] | None = None) -> str:
-        """记录删除操作
+    def create_delete_entry(self, path: Path, data: Dict[str, Any] | None = None) -> TransactionEntry:
+        """创建删除事务条目
         
         Args:
             path: 删除路径
             data: 附加数据
             
         Returns:
-            事务ID
+            事务条目对象
         """
         entry = TransactionEntry(
             operation=OperationType.DELETE,
             source_path=path,
             data=data
         )
-        self.transactions.append(entry)
-        self._write_transaction(entry)
-        return entry.id
+        return entry
     
-    def log_create_dir(self, path: Path, data: Dict[str, Any] | None = None) -> str:
-        """记录创建目录操作
+    def create_dir_entry(self, path: Path, data: Dict[str, Any] | None = None) -> TransactionEntry:
+        """创建目录事务条目
         
         Args:
             path: 目录路径
             data: 附加数据
             
         Returns:
-            事务ID
+            事务条目对象
         """
         entry = TransactionEntry(
             operation=OperationType.CREATE_DIR,
             source_path=path,
             data=data
         )
-        self.transactions.append(entry)
-        self._write_transaction(entry)
-        return entry.id
+        return entry
     
-    def log_delete_dir(self, path: Path, data: Dict[str, Any] | None = None) -> str:
-        """记录删除目录操作
+    def create_delete_dir_entry(self, path: Path, data: Dict[str, Any] | None = None) -> TransactionEntry:
+        """创建删除目录事务条目
         
         Args:
             path: 目录路径
             data: 附加数据
             
         Returns:
-            事务ID
+            事务条目对象
         """
         entry = TransactionEntry(
             operation=OperationType.DELETE_DIR,
             source_path=path,
             data=data
         )
-        self.transactions.append(entry)
+        return entry
+    
+    def write_entry(self, entry: TransactionEntry) -> None:
+        """写入事务条目到日志文件
+        
+        Args:
+            entry: 事务条目对象
+        """
         self._write_transaction(entry)
-        return entry.id
     
-    def mark_completed(self, transaction_id: str) -> None:
-        """标记事务为已完成
-        
-        Args:
-            transaction_id: 事务ID
-        """
-        for entry in self.transactions:
-            if entry.id == transaction_id:
-                entry.completed = True
-                self._write_transaction(entry)
-                break
-    
-    def mark_rolled_back(self, transaction_id: str) -> None:
-        """标记事务为已回滚
-        
-        Args:
-            transaction_id: 事务ID
-        """
-        for entry in self.transactions:
-            if entry.id == transaction_id:
-                entry.rolled_back = True
-                self._write_transaction(entry)
-                break
-    
-    def get_completed_transactions(self) -> List[TransactionEntry]:
-        """获取已完成的事务"""
-        return [entry for entry in self.transactions if entry.completed and not entry.rolled_back]
-    
-    def get_rollback_plan(self) -> List[TransactionEntry]:
-        """获取回滚计划
-        
-        按相反顺序返回已完成的事务，用于回滚操作。
-        """
-        completed = self.get_completed_transactions()
-        return list(reversed(completed))
-    
-    def rollback_all(self) -> List[str]:
-        """回滚所有操作
+    def read_transactions(self) -> List[TransactionEntry]:
+        """从文件流式读取所有事务记录
         
         Returns:
-            回滚的事务ID列表
+            事务条目列表
         """
-        rollback_plan = self.get_rollback_plan()
-        rolled_back_ids = []
-        
-        for entry in rollback_plan:
-            try:
-                if entry.operation == OperationType.RENAME:
-                    # 重命名回滚：将目标路径重命名回源路径
-                    if entry.target_path and entry.target_path.exists():
-                        entry.target_path.rename(entry.source_path)
-                        self.mark_rolled_back(entry.id)
-                        rolled_back_ids.append(entry.id)
-                
-                elif entry.operation == OperationType.MOVE:
-                    # 移动回滚：将目标路径移动回源路径
-                    if entry.target_path and entry.target_path.exists():
-                        entry.target_path.rename(entry.source_path)
-                        self.mark_rolled_back(entry.id)
-                        rolled_back_ids.append(entry.id)
-                
-                elif entry.operation == OperationType.DELETE:
-                    # 删除回滚：无法恢复，只能记录
-                    self.mark_rolled_back(entry.id)
-                    rolled_back_ids.append(entry.id)
-                
-                elif entry.operation == OperationType.CREATE_DIR:
-                    # 创建目录回滚：删除目录
-                    if entry.source_path.exists():
-                        entry.source_path.rmdir()
-                        self.mark_rolled_back(entry.id)
-                        rolled_back_ids.append(entry.id)
-                
-                elif entry.operation == OperationType.DELETE_DIR:
-                    # 删除目录回滚：重新创建目录
-                    entry.source_path.mkdir(parents=True, exist_ok=True)
-                    self.mark_rolled_back(entry.id)
-                    rolled_back_ids.append(entry.id)
-            
-            except Exception as e:
-                # 记录回滚失败，但继续处理其他事务
-                print(f"回滚事务 {entry.id} 失败: {e}")
-        
-        return rolled_back_ids
-    
-    def load_from_file(self) -> None:
-        """从文件加载事务记录"""
         if not self.log_file.exists():
-            return
+            return []
         
-        self.transactions.clear()
-        
+        transactions = []
         with open(self.log_file, "r", encoding="utf-8") as f:
             for line in f:
                 if line.strip():
-                    data = json.loads(line)
-                    entry = TransactionEntry.from_dict(data)
-                    self.transactions.append(entry)
-    
-    def get_summary(self) -> Dict[str, Any]:
-        """获取事务摘要"""
-        total = len(self.transactions)
-        completed = len([t for t in self.transactions if t.completed])
-        rolled_back = len([t for t in self.transactions if t.rolled_back])
+                    try:
+                        data = json.loads(line)
+                        entry = TransactionEntry.from_dict(data)
+                        transactions.append(entry)
+                    except (json.JSONDecodeError, KeyError, ValueError) as e:
+                        # 跳过无效的行，继续处理
+                        continue
         
-        return {
-            "task_name": self.task_name,
-            "task_id": self.task_id,
-            "total_transactions": total,
-            "completed_transactions": completed,
-            "rolled_back_transactions": rolled_back,
-            "pending_transactions": total - completed - rolled_back
-        }
+        return transactions

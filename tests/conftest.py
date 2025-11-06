@@ -168,55 +168,51 @@ def sample_other_files(temp_dir: Path) -> list[Path]:
 @pytest.fixture
 def mock_transaction_log():
     """模拟事务日志 fixture"""
+    class MockEntry:
+        def __init__(self, transaction_id, operation, source_path, target_path=None, data=None):
+            self.id = transaction_id
+            self.operation = operation
+            self.source_path = source_path
+            self.target_path = target_path
+            self.data = data or {}
+    
     class MockTransactionLog:
         def __init__(self):
             self.transactions = []
         
         def log_rename(self, source_path, target_path, data=None):
             transaction_id = f"rename_{len(self.transactions)}"
-            self.transactions.append({
-                "id": transaction_id,
-                "operation": "rename",
-                "source_path": str(source_path),
-                "target_path": str(target_path),
-                "data": data or {}
-            })
-            return transaction_id
+            entry = MockEntry(transaction_id, "rename", source_path, target_path, data)
+            return entry
         
         def log_move(self, source_path, target_path, data=None):
             transaction_id = f"move_{len(self.transactions)}"
-            self.transactions.append({
-                "id": transaction_id,
-                "operation": "move",
-                "source_path": str(source_path),
-                "target_path": str(target_path),
-                "data": data or {}
-            })
-            return transaction_id
+            entry = MockEntry(transaction_id, "move", source_path, target_path, data)
+            return entry
         
         def log_delete(self, path, data=None):
             transaction_id = f"delete_{len(self.transactions)}"
+            entry = MockEntry(transaction_id, "delete", path, None, data)
+            return entry
+        
+        def log_create_dir(self, path, data=None):
+            transaction_id = f"create_dir_{len(self.transactions)}"
+            entry = MockEntry(transaction_id, "create_dir", path, None, data)
+            return entry
+        
+        def log_delete_dir(self, path, data=None):
+            transaction_id = f"delete_dir_{len(self.transactions)}"
+            entry = MockEntry(transaction_id, "delete_dir", path, None, data)
+            return entry
+        
+        def mark_completed(self, entry):
             self.transactions.append({
-                "id": transaction_id,
-                "operation": "delete",
-                "source_path": str(path),
-                "data": data or {}
+                "id": entry.id,
+                "operation": entry.operation,
+                "source_path": str(entry.source_path),
+                "target_path": str(entry.target_path) if entry.target_path else None,
+                "data": entry.data
             })
-            return transaction_id
-        
-        def mark_completed(self, transaction_id):
-            for transaction in self.transactions:
-                if transaction["id"] == transaction_id:
-                    transaction["completed"] = True
-                    break
-        
-        def get_summary(self):
-            return {
-                "total_transactions": len(self.transactions),
-                "completed_transactions": len([t for t in self.transactions if t.get("completed", False)]),
-                "rolled_back_transactions": 0,
-                "pending_transactions": len([t for t in self.transactions if not t.get("completed", False)])
-            }
     
     return MockTransactionLog()
 

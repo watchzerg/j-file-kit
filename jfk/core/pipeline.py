@@ -15,6 +15,7 @@ from .scanner import FileScanner
 from ..utils.logger import StructuredLogger
 from ..utils.progress import ProgressTracker
 from ..utils.transaction_log import TransactionLog
+from ..utils.transaction_rollback import rollback_all
 
 
 class Pipeline:
@@ -269,12 +270,4 @@ class Pipeline:
         Returns:
             回滚的事务ID列表
         """
-        return self.transaction_log.rollback_all()
-    
-    def get_transaction_summary(self) -> dict[str, Any]:
-        """获取事务摘要
-        
-        Returns:
-            事务摘要信息
-        """
-        return self.transaction_log.get_summary()
+        return rollback_all(self.transaction_log)

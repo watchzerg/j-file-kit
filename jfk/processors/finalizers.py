@@ -54,22 +54,17 @@ class EmptyDirCleaner(Finalizer):
             if not empty_dirs:
                 return ProcessorResult.success("没有发现空目录")
             
-            # 记录事务日志
-            if self.transaction_log:
-                for dir_path in empty_dirs:
-                    self.transaction_log.log_delete_dir(
-                        dir_path,
-                        {"purpose": "cleanup_empty_dir"}
-                    )
-            
             # 删除空目录
             removed_dirs = safe_remove_empty_dirs(empty_dirs)
             
-            # 标记事务完成
+            # 记录事务日志（只记录实际删除的目录）
             if self.transaction_log:
                 for dir_path in removed_dirs:
-                    # 这里需要根据实际的事务ID来标记完成
-                    pass
+                    entry = self.transaction_log.create_delete_dir_entry(
+                        dir_path,
+                        {"purpose": "cleanup_empty_dir"}
+                    )
+                    self.transaction_log.write_entry(entry)
             
             return ProcessorResult.success(
                 f"清理了 {len(removed_dirs)} 个空目录",
