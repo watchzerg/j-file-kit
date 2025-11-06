@@ -12,7 +12,8 @@ from .config import TaskConfig
 from .models import ProcessingContext, TaskReport, TaskResult, TaskStats
 from .processor import Analyzer, Executor, Finalizer, ProcessorChain
 from .scanner import FileScanner
-from ..utils.logger import ProgressLogger, StructuredLogger
+from ..utils.logger import StructuredLogger
+from ..utils.progress import ProgressTracker
 from ..utils.transaction_log import TransactionLog
 
 
@@ -38,7 +39,7 @@ class Pipeline:
         self.processor_chain = ProcessorChain()
         self.logger = StructuredLogger(config.global_.log_dir, self.task_name)
         self.transaction_log = TransactionLog(config.global_.log_dir, self.task_name)
-        self.progress_logger = ProgressLogger(self.logger)
+        self.progress_logger = ProgressTracker(self.logger.console)
         
         # 任务报告
         self.report = TaskReport(

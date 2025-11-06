@@ -243,8 +243,8 @@ def mock_logger():
         def log_file_result(self, result):
             self.logs.append({"level": "FILE_RESULT", "result": result})
         
-        def log_task_start(self, scan_root, total_files):
-            self.logs.append({"level": "TASK_START", "scan_root": str(scan_root), "total_files": total_files})
+        def log_task_start(self, scan_root):
+            self.logs.append({"level": "TASK_START", "scan_root": str(scan_root)})
         
         def log_task_end(self, report):
             self.logs.append({"level": "TASK_END", "report": report})

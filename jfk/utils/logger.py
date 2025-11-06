@@ -12,9 +12,8 @@ from pathlib import Path
 from typing import Any, Dict
 
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from ..core.models import TaskResult, TaskStats
+from ..core.models import TaskResult
 
 
 class StructuredLogger:
@@ -133,63 +132,3 @@ class StructuredLogger:
         self.console.print(f"跳过: {report.skipped_files}")
         self.console.print(f"成功率: {report.success_rate:.2%}")
         self.console.print(f"耗时: {report.duration_seconds:.2f}秒")
-
-
-class ProgressLogger:
-    """进度日志记录器
-    
-    提供实时进度显示和统计信息。
-    """
-    
-    def __init__(self, logger: StructuredLogger):
-        """初始化进度记录器
-        
-        Args:
-            logger: 结构化日志记录器
-        """
-        self.logger = logger
-        self.stats = TaskStats()
-        self.progress: Progress | None = None
-        self.task = None
-    
-    def start_progress(self) -> None:
-        """开始进度显示（未知总数模式）"""
-        self.progress = Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=self.logger.console
-        )
-        self.task = self.progress.add_task("处理文件", total=None)
-        self.progress.start()
-    
-    def update_progress(self, current_file: str | None = None) -> None:
-        """更新进度
-        
-        Args:
-            current_file: 当前处理文件
-        """
-        self.stats.update(current_file)
-        
-        if self.progress and self.task is not None:
-            self.progress.update(
-                self.task,
-                advance=1,
-                description=f"已处理 {self.stats.processed_files} 个文件"
-            )
-    
-    def stop_progress(self) -> None:
-        """停止进度显示"""
-        if self.progress:
-            self.progress.stop()
-            self.progress = None
-            self.task = None
-    
-    def log_stats(self) -> None:
-        """记录统计信息"""
-        data = {
-            "processed_files": self.stats.processed_files,
-            "current_file": self.stats.current_file,
-            "elapsed_seconds": self.stats.elapsed_seconds,
-            "last_update": self.stats.last_update.isoformat()
-        }
-        self.logger.debug("统计信息更新", data)
