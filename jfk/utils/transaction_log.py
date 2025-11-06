@@ -193,26 +193,3 @@ class TransactionLog:
             entry: 事务条目对象
         """
         self._write_transaction(entry)
-    
-    def read_transactions(self) -> List[TransactionEntry]:
-        """从文件流式读取所有事务记录
-        
-        Returns:
-            事务条目列表
-        """
-        if not self.log_file.exists():
-            return []
-        
-        transactions = []
-        with open(self.log_file, "r", encoding="utf-8") as f:
-            for line in f:
-                if line.strip():
-                    try:
-                        data = json.loads(line)
-                        entry = TransactionEntry.from_dict(data)
-                        transactions.append(entry)
-                    except (json.JSONDecodeError, KeyError, ValueError) as e:
-                        # 跳过无效的行，继续处理
-                        continue
-        
-        return transactions
