@@ -21,7 +21,6 @@
 - `XABC-123.mp4` → `XABC-123`（XABC-123是有效的4字母+3数字番号）
 """
 
-
 import pytest
 
 from j_file_kit.utils.regex_patterns import DEFAULT_SERIAL_PATTERN, extract_serial_id

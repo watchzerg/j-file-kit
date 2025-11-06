@@ -27,12 +27,19 @@ build-backend = "uv_build"
 target-version = "py314"
 line-length = 88
 
-[tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP", "B"]
-
 [tool.ruff.format]
 quote-style = "double"
-indent-style = "space"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "C90","S"]
+ignore = ["E501"]  # 行长交给 formatter
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["S101"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["j_file_kit"]
 
 [tool.mypy]
 python_version = "3.14"

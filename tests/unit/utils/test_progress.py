@@ -3,7 +3,6 @@
 测试进度追踪器的初始化和进度更新功能。
 """
 
-
 import pytest
 from rich.console import Console
 
