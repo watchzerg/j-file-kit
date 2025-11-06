@@ -8,7 +8,7 @@ from pathlib import Path
 import tempfile
 import yaml
 
-from jfk.core.config import (
+from j_file_kit.core.config import (
     GlobalConfig, FileOrganizeConfig, TaskDefinition, TaskConfig,
     load_config, save_config, create_default_config
 )
@@ -127,7 +127,7 @@ class TestTaskDefinition:
     
     def test_task_definition_get_config(self):
         """测试获取类型化配置"""
-        from jfk.core.config import FileOrganizeConfig
+        from j_file_kit.core.config import FileOrganizeConfig
         
         task = TaskDefinition(
             name="test_task",

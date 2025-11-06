@@ -8,7 +8,7 @@ import pytest
 from pathlib import Path
 from datetime import datetime
 
-from jfk.utils.transaction_log import (
+from j_file_kit.utils.transaction_log import (
     OperationType,
     TransactionEntry,
     TransactionLog,

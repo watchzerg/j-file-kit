@@ -7,8 +7,8 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch
 from rich.console import Console
 
-from jfk.utils.progress import ProgressTracker
-from jfk.core.models import TaskStats
+from j_file_kit.utils.progress import ProgressTracker
+from j_file_kit.core.models import TaskStats
 
 
 class TestProgressTracker:

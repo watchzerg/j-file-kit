@@ -8,8 +8,8 @@ import pytest
 from pathlib import Path
 from datetime import datetime
 
-from jfk.utils.logger import StructuredLogger
-from jfk.core.models import (
+from j_file_kit.utils.logger import StructuredLogger
+from j_file_kit.core.models import (
     FileInfo,
     ProcessingContext,
     TaskResult,

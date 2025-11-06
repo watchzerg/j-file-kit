@@ -7,7 +7,7 @@ import pytest
 from datetime import datetime
 from pathlib import Path
 
-from jfk.core.models import (
+from j_file_kit.core.models import (
     FileInfo, ProcessingContext, ProcessorResult, TaskResult, TaskReport,
     ProcessorStatus, FileType, TaskStats
 )

@@ -76,7 +76,7 @@ tasks:
 #### 方式一：使用内置的视频文件整理器
 
 ```python
-from jfk.rules.video_organizer import VideoFileOrganizer
+from j_file_kit.rules.video_organizer import VideoFileOrganizer
 
 # 创建整理器
 organizer = VideoFileOrganizer("config.yaml")
@@ -93,11 +93,11 @@ print(f"处理完成: 成功 {report.success_files}, 失败 {report.error_files}
 #### 方式二：使用管道 API
 
 ```python
-from jfk.core.pipeline import Pipeline
-from jfk.core.config import load_config
-from jfk.processors.analyzers import FileClassifier, SerialIdExtractor
-from jfk.processors.executors import FileRenamer, FileMover
-from jfk.processors.finalizers import EmptyDirCleaner, ReportGenerator
+from j_file_kit.core.pipeline import Pipeline
+from j_file_kit.core.config import load_config
+from j_file_kit.processors.analyzers import FileClassifier, SerialIdExtractor
+from j_file_kit.processors.executors import FileRenamer, FileMover
+from j_file_kit.processors.finalizers import EmptyDirCleaner, ReportGenerator
 
 # 加载配置
 config = load_config("config.yaml")
@@ -141,8 +141,8 @@ j-file-kit 使用固定的内置番号正则表达式：
 ```python
 from __future__ import annotations
 
-from jfk.core.models import ProcessingContext, ProcessorResult
-from jfk.core.processor import Analyzer
+from j_file_kit.core.models import ProcessingContext, ProcessorResult
+from j_file_kit.core.processor import Analyzer
 
 class CustomAnalyzer(Analyzer):
     """自定义分析器示例"""
@@ -163,8 +163,8 @@ class CustomAnalyzer(Analyzer):
 ### 自定义执行器
 
 ```python
-from jfk.core.models import ProcessingContext, ProcessorResult
-from jfk.core.processor import Executor
+from j_file_kit.core.models import ProcessingContext, ProcessorResult
+from j_file_kit.core.processor import Executor
 
 class CustomExecutor(Executor):
     """自定义执行器示例"""
@@ -189,20 +189,21 @@ class CustomExecutor(Executor):
 
 ```
 j-file-kit/
-├── 📦 jfk/                      # 主包
-│   ├── 🏗️ core/                 # 核心抽象层
-│   │   ├── models.py            # 数据模型
-│   │   ├── config.py            # 配置模型和加载器
-│   │   ├── scanner.py           # 文件扫描器
-│   │   ├── pipeline.py          # 管道协调器
-│   │   └── processor.py         # Processor 协议定义
-│   ├── ⚙️ processors/           # 内置处理器
-│   │   ├── analyzers.py         # 分析器
-│   │   ├── executors.py         # 执行器
-│   │   └── finalizers.py        # 终结器
-│   ├── 🔧 rules/                # 用户扩展点和内置规则
-│   │   └── video_organizer.py   # 视频文件整理器
-│   └── 🛠️ utils/                # 工具函数
+├── 📦 src/
+│   └── j_file_kit/              # 主包
+│       ├── 🏗️ core/             # 核心抽象层
+│       │   ├── models.py        # 数据模型
+│       │   ├── config.py        # 配置模型和加载器
+│       │   ├── scanner.py       # 文件扫描器
+│       │   ├── pipeline.py      # 管道协调器
+│       │   └── processor.py     # Processor 协议定义
+│       ├── ⚙️ processors/       # 内置处理器
+│       │   ├── analyzers.py     # 分析器
+│       │   ├── executors.py     # 执行器
+│       │   └── finalizers.py    # 终结器
+│       ├── 🔧 rules/            # 用户扩展点和内置规则
+│       │   └── video_organizer.py # 视频文件整理器
+│       └── 🛠️ utils/            # 工具函数
 ├── 🧪 tests/                    # 测试套件
 ├── 📊 logs/                    # 日志输出目录
 ├── 📈 reports/                 # 报告输出目录
@@ -223,7 +224,7 @@ pytest
 pytest tests/unit/
 
 # 生成覆盖率报告
-pytest --cov=jfk --cov-report=html
+pytest --cov=j_file_kit --cov-report=html
 ```
 
 ### 🔍 代码质量
@@ -236,10 +237,10 @@ ruff format
 ruff check
 
 # 类型检查
-mypy jfk/
+mypy src/j_file_kit/
 
 # 运行所有检查
-ruff check && mypy jfk/ && pytest
+ruff check && mypy src/j_file_kit/ && pytest
 ```
 
 ### 📦 依赖管理

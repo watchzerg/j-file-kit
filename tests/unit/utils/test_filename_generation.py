@@ -17,7 +17,7 @@
 import pytest
 from pathlib import Path
 
-from jfk.utils.filename_generation import generate_new_filename
+from j_file_kit.utils.filename_generation import generate_new_filename
 
 
 class TestFilenameGeneration:

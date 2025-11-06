@@ -10,11 +10,11 @@ from pathlib import Path
 import tempfile
 import shutil
 
-from jfk.core.config import TaskConfig, GlobalConfig, TaskDefinition
-from jfk.core.pipeline import Pipeline
-from jfk.processors.analyzers import FileClassifier, SerialIdExtractor
-from jfk.processors.executors import FileRenamer
-from jfk.processors.finalizers import EmptyDirCleaner
+from j_file_kit.core.config import TaskConfig, GlobalConfig, TaskDefinition
+from j_file_kit.core.pipeline import Pipeline
+from j_file_kit.processors.analyzers import FileClassifier, SerialIdExtractor
+from j_file_kit.processors.executors import FileRenamer
+from j_file_kit.processors.finalizers import EmptyDirCleaner
 
 
 def create_sample_files():
@@ -22,7 +22,7 @@ def create_sample_files():
     # 创建临时目录
     temp_dirs = []
     for i in range(3):
-        temp_dir = Path(tempfile.mkdtemp(prefix=f"jfk_example_{i}_"))
+        temp_dir = Path(tempfile.mkdtemp(prefix=f"j_file_kit_example_{i}_"))
         temp_dirs.append(temp_dir)
         
         # 在每个目录中创建不同类型的文件

@@ -7,13 +7,13 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch
 
-from jfk.utils.file_utils import (
+from j_file_kit.utils.file_utils import (
     resolve_unique_path,
     find_empty_dirs,
     get_file_type,
     get_file_type_from_path
 )
-from jfk.core.models import FileType
+from j_file_kit.core.models import FileType
 
 
 
@@ -34,7 +34,7 @@ class TestResolveUniquePath:
         
         target_path = tmp_path / "test.mp4"
         
-        with patch('jfk.utils.file_utils.random.randint', return_value=1234):
+        with patch('j_file_kit.utils.file_utils.random.randint', return_value=1234):
             result = resolve_unique_path(target_path)
             expected = tmp_path / "test-Dup1234.mp4"
             assert result == expected
@@ -51,7 +51,7 @@ class TestResolveUniquePath:
             conflict_file.write_text("test")
         
         # Mock 随机数生成，模拟冲突重试
-        with patch('jfk.utils.file_utils.random.randint', side_effect=[1000, 1001, 1002, 1003, 1004, 1005, 1006]):
+        with patch('j_file_kit.utils.file_utils.random.randint', side_effect=[1000, 1001, 1002, 1003, 1004, 1005, 1006]):
             result = resolve_unique_path(target_path)
             expected = tmp_path / "test-Dup1006.mp4"
             assert result == expected
