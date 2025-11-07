@@ -72,29 +72,57 @@ class ProcessorResult(BaseModel):
 
     @classmethod
     def success(
-        cls, message: str = "", data: dict[str, Any] | None = None, duration_ms: float = 0.0
+        cls,
+        message: str = "",
+        data: dict[str, Any] | None = None,
+        duration_ms: float = 0.0,
     ) -> ProcessorResult:
         """创建成功结果"""
-        return cls(status=ProcessorStatus.SUCCESS, message=message, data=data or {}, duration_ms=duration_ms)
+        return cls(
+            status=ProcessorStatus.SUCCESS,
+            message=message,
+            data=data or {},
+            duration_ms=duration_ms,
+        )
 
     @classmethod
-    def error(cls, message: str, data: dict[str, Any] | None = None, duration_ms: float = 0.0) -> ProcessorResult:
+    def error(
+        cls, message: str, data: dict[str, Any] | None = None, duration_ms: float = 0.0
+    ) -> ProcessorResult:
         """创建错误结果"""
-        return cls(status=ProcessorStatus.ERROR, message=message, data=data or {}, duration_ms=duration_ms)
+        return cls(
+            status=ProcessorStatus.ERROR,
+            message=message,
+            data=data or {},
+            duration_ms=duration_ms,
+        )
 
     @classmethod
     def skip(
-        cls, message: str = "", data: dict[str, Any] | None = None, duration_ms: float = 0.0
+        cls,
+        message: str = "",
+        data: dict[str, Any] | None = None,
+        duration_ms: float = 0.0,
     ) -> ProcessorResult:
         """创建跳过结果"""
-        return cls(status=ProcessorStatus.SKIP, message=message, data=data or {}, duration_ms=duration_ms)
+        return cls(
+            status=ProcessorStatus.SKIP,
+            message=message,
+            data=data or {},
+            duration_ms=duration_ms,
+        )
 
     @classmethod
     def warning(
         cls, message: str, data: dict[str, Any] | None = None, duration_ms: float = 0.0
     ) -> ProcessorResult:
         """创建警告结果"""
-        return cls(status=ProcessorStatus.WARNING, message=message, data=data or {}, duration_ms=duration_ms)
+        return cls(
+            status=ProcessorStatus.WARNING,
+            message=message,
+            data=data or {},
+            duration_ms=duration_ms,
+        )
 
 
 class TaskResult(BaseModel):
@@ -181,25 +209,3 @@ class TaskReport(BaseModel):
             self.error_files += 1
 
         self.total_duration_ms += result.total_duration_ms
-
-
-class TaskStats(BaseModel):
-    """任务统计信息"""
-
-    processed_files: int = Field(0, description="已处理文件数")
-    current_file: str | None = Field(None, description="当前处理文件")
-    start_time: datetime = Field(default_factory=datetime.now, description="开始时间")
-    last_update: datetime = Field(
-        default_factory=datetime.now, description="最后更新时间"
-    )
-
-    @property
-    def elapsed_seconds(self) -> float:
-        """已耗时（秒）"""
-        return (datetime.now() - self.start_time).total_seconds()
-
-    def update(self, current_file: str | None = None) -> None:
-        """更新统计信息"""
-        self.processed_files += 1
-        self.current_file = current_file
-        self.last_update = datetime.now()

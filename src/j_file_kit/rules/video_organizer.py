@@ -148,7 +148,9 @@ class CustomFileMover(Executor):
     这是一个自定义执行器示例，展示了如何扩展执行功能。
     """
 
-    def __init__(self, target_dir: Path, file_type: str, transaction_log: Any = None) -> None:
+    def __init__(
+        self, target_dir: Path, file_type: str, transaction_log: Any = None
+    ) -> None:
         """初始化自定义文件移动器
 
         Args:

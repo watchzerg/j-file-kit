@@ -9,10 +9,9 @@ from datetime import datetime
 from typing import Any
 
 from ..utils.logger import StructuredLogger
-from ..utils.progress import ProgressTracker
 from ..utils.transaction_log import TransactionLog
 from .config import TaskConfig
-from .models import ProcessingContext, TaskReport, TaskResult, TaskStats
+from .models import ProcessingContext, TaskReport, TaskResult
 from .processor import Analyzer, Executor, Finalizer, ProcessorChain
 from .scanner import FileScanner
 
@@ -39,7 +38,6 @@ class Pipeline:
         self.processor_chain = ProcessorChain()
         self.logger = StructuredLogger(config.global_.log_dir, self.task_name)
         self.transaction_log = TransactionLog(config.global_.log_dir, self.task_name)
-        self.progress_logger = ProgressTracker(self.logger.console)
 
         # 任务报告
         self.report = TaskReport(
@@ -134,7 +132,6 @@ class Pipeline:
             # 记录任务开始
             scan_roots_str = ", ".join(str(p) for p in self.config.global_.scan_roots)
             self.logger.log_task_start(scan_roots_str)
-            self.progress_logger.start_progress()
 
             # 处理每个文件（使用生成器模式，边扫描边处理）
             for file_info in self.scanner.scan_files():
@@ -171,7 +168,6 @@ class Pipeline:
                     # 记录结果
                     self.report.add_result(task_result)
                     self.logger.log_file_result(task_result)
-                    self.progress_logger.update_progress(file_info.name)
 
                 except Exception as e:
                     # 处理单个文件时的异常
@@ -194,7 +190,6 @@ class Pipeline:
                         total_duration_ms=0.0,
                     )
                     self.report.add_result(error_result)
-                    self.progress_logger.update_progress(file_info.name)
 
             # 执行终结器
             finalizer_results = self.processor_chain.finalize_all()
@@ -208,14 +203,12 @@ class Pipeline:
 
             # 记录任务结束
             self.logger.log_task_end(self.report)
-            self.progress_logger.stop_progress()
 
             return self.report
 
         except Exception as e:
             # 管道级别的异常
             self.logger.error(f"管道执行失败: {str(e)}")
-            self.progress_logger.stop_progress()
             raise
 
     def run_dry(self) -> TaskReport:
@@ -289,11 +282,3 @@ class Pipeline:
         self.logger.info("干模式执行完成")
 
         return self.report
-
-    def get_stats(self) -> TaskStats:
-        """获取当前统计信息
-
-        Returns:
-            任务统计信息
-        """
-        return self.progress_logger.stats

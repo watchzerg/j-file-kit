@@ -11,8 +11,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from rich.console import Console
-
 from ..core.models import TaskResult
 
 
@@ -40,9 +38,6 @@ class StructuredLogger:
         # 创建日志文件（如果不存在）
         self.log_file.touch(exist_ok=True)
 
-        # Rich 控制台
-        self.console = Console()
-
     def _write_log(
         self, level: str, message: str, data: dict[str, Any] | None = None
     ) -> None:
@@ -68,22 +63,18 @@ class StructuredLogger:
     def info(self, message: str, data: dict[str, Any] | None = None) -> None:
         """记录信息日志"""
         self._write_log("INFO", message, data)
-        self.console.print(f"[green]INFO[/green]: {message}")
 
     def warning(self, message: str, data: dict[str, Any] | None = None) -> None:
         """记录警告日志"""
         self._write_log("WARNING", message, data)
-        self.console.print(f"[yellow]WARNING[/yellow]: {message}")
 
     def error(self, message: str, data: dict[str, Any] | None = None) -> None:
         """记录错误日志"""
         self._write_log("ERROR", message, data)
-        self.console.print(f"[red]ERROR[/red]: {message}")
 
     def debug(self, message: str, data: dict[str, Any] | None = None) -> None:
         """记录调试日志"""
         self._write_log("DEBUG", message, data)
-        self.console.print(f"[blue]DEBUG[/blue]: {message}")
 
     def log_file_result(self, result: TaskResult) -> None:
         """记录文件处理结果
@@ -112,9 +103,6 @@ class StructuredLogger:
         """记录任务开始"""
         data = {"scan_root": scan_root}
         self._write_log("TASK_START", f"开始任务: {self.task_name}", data)
-        self.console.print(f"[bold green]开始任务: {self.task_name}[/bold green]")
-        self.console.print(f"扫描目录: {scan_root}")
-        self.console.print("流式处理模式")
 
     def log_task_end(self, report: Any) -> None:
         """记录任务结束"""
@@ -128,10 +116,3 @@ class StructuredLogger:
             "duration_seconds": report.duration_seconds,
         }
         self._write_log("TASK_END", f"任务完成: {self.task_name}", data)
-        self.console.print(f"[bold green]任务完成: {self.task_name}[/bold green]")
-        self.console.print(f"总文件数: {report.total_files}")
-        self.console.print(f"成功: {report.success_files}")
-        self.console.print(f"失败: {report.error_files}")
-        self.console.print(f"跳过: {report.skipped_files}")
-        self.console.print(f"成功率: {report.success_rate:.2%}")
-        self.console.print(f"耗时: {report.duration_seconds:.2f}秒")

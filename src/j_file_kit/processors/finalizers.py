@@ -5,8 +5,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from ..core.models import ProcessingContext, ProcessorResult, TaskReport
 from ..core.processor import Finalizer
@@ -225,7 +226,12 @@ class StatisticsCollector(Finalizer):
     def __init__(self) -> None:
         """初始化统计信息收集器"""
         super().__init__("StatisticsCollector")
-        self.stats: dict[str, Any] = {"file_types": {}, "serial_ids": {}, "errors": [], "warnings": []}
+        self.stats: dict[str, Any] = {
+            "file_types": {},
+            "serial_ids": {},
+            "errors": [],
+            "warnings": [],
+        }
 
     def process(self, ctx: ProcessingContext) -> ProcessorResult:
         """处理单个文件（终结器通常不处理单个文件）
