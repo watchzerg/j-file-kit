@@ -7,6 +7,8 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+import pytest
+
 from j_file_kit.core.models import (
     FileInfo,
     FileType,
@@ -18,6 +20,7 @@ from j_file_kit.core.models import (
 from j_file_kit.utils.logger import StructuredLogger
 
 
+@pytest.mark.unit
 class TestStructuredLogger:
     """测试 StructuredLogger 类"""
 

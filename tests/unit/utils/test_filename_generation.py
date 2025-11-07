@@ -14,9 +14,12 @@
 - 按不同规则拼接新文件名
 """
 
+import pytest
+
 from j_file_kit.utils.filename_generation import generate_new_filename
 
 
+@pytest.mark.unit
 class TestFilenameGeneration:
     """测试文件名生成功能
 
@@ -59,6 +62,7 @@ class TestFilenameGeneration:
         assert serial_id == "ABC-001"
 
 
+@pytest.mark.unit
 class TestFilenameGenerationEdgeCases:
     """测试文件名生成的边界情况
 
@@ -191,6 +195,7 @@ class TestFilenameGenerationEdgeCases:
             assert new_path == expected_path, f"Failed for case test: {original_name}"
 
 
+@pytest.mark.unit
 class TestTrimFunctionality:
     """测试 trim 功能
 

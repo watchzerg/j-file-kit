@@ -8,6 +8,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from j_file_kit.utils.transaction_log import (
     OperationType,
     TransactionEntry,
@@ -15,6 +17,7 @@ from j_file_kit.utils.transaction_log import (
 )
 
 
+@pytest.mark.unit
 class TestOperationType:
     """测试 OperationType 常量类"""
 
@@ -27,6 +30,7 @@ class TestOperationType:
         assert OperationType.DELETE_DIR == "delete_dir"
 
 
+@pytest.mark.unit
 class TestTransactionEntry:
     """测试 TransactionEntry 类"""
 
@@ -182,6 +186,7 @@ class TestTransactionEntry:
         assert restored_entry.data == original_entry.data
 
 
+@pytest.mark.unit
 class TestTransactionLog:
     """测试 TransactionLog 类"""
 

@@ -42,6 +42,7 @@ Observability
 
 Testing & Tooling
 - Tests: `pytest` (unit for domain functions; integration for I/O boundaries).
+- Add clear pytest markers for test classes (e.g. `@pytest.mark.unit`)
 - Static: `ruff` (lint+format), `mypy --strict` (or tuned strictness).
 - Use factories/builders for test data; prefer deterministic tests.
 - CI gate: types clean; ruff clean; tests green; min coverage target set.

@@ -26,6 +26,7 @@ import pytest
 from j_file_kit.utils.regex_patterns import DEFAULT_SERIAL_PATTERN, extract_serial_id
 
 
+@pytest.mark.unit
 class TestSerialIdExtraction:
     """测试番号提取功能
 
@@ -102,6 +103,7 @@ class TestSerialIdExtraction:
         assert result == expected
 
 
+@pytest.mark.unit
 class TestAdvancedEdgeCases:
     """测试高级边界情况
 
@@ -237,6 +239,7 @@ class TestAdvancedEdgeCases:
             assert result == expected, f"Failed for boundary test: {filename}"
 
 
+@pytest.mark.unit
 class TestEdgeCasesAndSpecialScenarios:
     """测试边界情况和特殊场景
 

@@ -17,6 +17,7 @@ from j_file_kit.utils.file_utils import (
 )
 
 
+@pytest.mark.unit
 class TestResolveUniquePath:
     """测试路径冲突处理函数"""
 
@@ -75,6 +76,7 @@ class TestResolveUniquePath:
             resolve_unique_path(target_path)
 
 
+@pytest.mark.unit
 class TestGetFileType:
     """测试文件类型判断函数"""
 
@@ -115,6 +117,7 @@ class TestGetFileType:
         assert result == FileType.VIDEO
 
 
+@pytest.mark.unit
 class TestGetFileTypeFromPath:
     """测试文件类型枚举获取函数"""
 
@@ -146,6 +149,7 @@ class TestGetFileTypeFromPath:
         assert result == FileType.OTHER
 
 
+@pytest.mark.unit
 class TestFindEmptyDirs:
     """测试空目录查找函数"""
 
