@@ -34,3 +34,40 @@ repos:
         language: system
         pass_filenames: false # 不传递文件名，因为 testmon 会自动选择相关测试
 
+      # ----------- pre-push 阶段的钩子（全量检查）-----------
+      - id: ruff-format-push
+        name: ruff format (all files)
+        entry: uv run ruff format
+        args: ["--check", "."]
+        language: system
+        pass_filenames: false # 检查所有文件
+        always_run: true
+        stages: [pre-push]
+
+      - id: ruff-check-push
+        name: ruff check (all files)
+        entry: uv run ruff check
+        args: ["."]
+        language: system
+        pass_filenames: false # 检查所有文件，不自动修复
+        always_run: true
+        stages: [pre-push]
+
+      - id: mypy-push
+        name: mypy (all files)
+        entry: uv run mypy
+        args: ["--no-incremental", "."]
+        language: system
+        pass_filenames: false # 检查所有文件
+        always_run: true
+        stages: [pre-push]
+
+      - id: pytest-push
+        name: pytest (all tests)
+        entry: uv run pytest
+        args: ["-m", "unit or integration and not slow"]
+        language: system
+        pass_filenames: false # 运行所有测试，不使用增量模式
+        always_run: true
+        stages: [pre-push]
+

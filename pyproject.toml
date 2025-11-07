@@ -25,6 +25,9 @@ dev = [
 requires = ["uv_build>=0.9.6,<0.10.0"]
 build-backend = "uv_build"
 
+[tool.ruff]
+force-exclude = true
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "C90","S"]
 ignore = ["E501"]  # 不按79检查行长，而是让formatter按照88检查
