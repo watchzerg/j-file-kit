@@ -1,9 +1,12 @@
 # Pre-commit 配置
-# 使用 uv run pre-commit run --all-files 手动运行所有检查
+# 安装HOOK： uv run pre-commit install --hook-type pre-commit --hook-type pre-push
+# 手工运行 commit检查： uv run pre-commit run --hook-stage pre-commit --all-files
+# 手工运行 push检查： uv run pre-commit run --hook-stage pre-push --all-files
 
 repos:
   - repo: local
     hooks:
+      # ----------- pre-commit 阶段的钩子 -----------
       - id: ruff-format
         name: ruff format
         entry: uv run ruff format
@@ -25,9 +28,9 @@ repos:
         pass_filenames: false # 不传递文件名，因为 mypy 会自动选择相关模块
 
       - id: pytest
-        name: pytest (testmon)
+        name: pytest (unit + testmon)
         entry: uv run pytest
-        args: ["--testmon"]
+        args: ["--testmon", "-m", "unit"]
         language: system
         pass_filenames: false # 不传递文件名，因为 testmon 会自动选择相关测试
 
