@@ -1,0 +1,33 @@
+# Pre-commit 配置
+# 使用 uv run pre-commit run --all-files 手动运行所有检查
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types_or: [python]
+      
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check
+        args: ["--fix"]
+        language: system
+        types_or: [python]
+        
+      - id: mypy
+        name: mypy
+        entry: uv run mypy
+        args: ["."]
+        language: system
+        pass_filenames: false # 不传递文件名，因为 mypy 会自动选择相关模块
+
+      - id: pytest
+        name: pytest (testmon)
+        entry: uv run pytest
+        args: ["--testmon"]
+        language: system
+        pass_filenames: false # 不传递文件名，因为 testmon 会自动选择相关测试
+
