@@ -114,7 +114,7 @@ class ProcessorChain:
     管理一组处理器的执行顺序和结果。
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化处理器链"""
         self.analyzers: list[Analyzer] = []
         self.executors: list[Executor] = []

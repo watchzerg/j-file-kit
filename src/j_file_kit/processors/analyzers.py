@@ -66,7 +66,7 @@ class SerialIdExtractor(Analyzer):
     从文件名中提取番号，并生成新的文件名。
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化番号提取器"""
         super().__init__("SerialIdExtractor")
 
@@ -214,10 +214,10 @@ class DuplicateDetector(Analyzer):
     检测可能的重复文件。
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化重复文件检测器"""
         super().__init__("DuplicateDetector")
-        self.seen_files = set()
+        self.seen_files: set[tuple[str, int]] = set()
 
     def process(self, ctx: ProcessingContext) -> ProcessorResult:
         """检测重复文件

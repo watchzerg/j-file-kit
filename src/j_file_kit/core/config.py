@@ -6,10 +6,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, TypeVar
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class GlobalConfig(BaseModel):
@@ -75,9 +77,9 @@ class TaskDefinition(BaseModel):
     enabled: bool = Field(True, description="是否启用")
     config: dict[str, Any] = Field(..., description="任务特定配置")
 
-    def get_config(self, config_type: type[BaseModel]) -> BaseModel:
+    def get_config(self, config_type: type[T]) -> T:  # type: ignore[valid-type]
         """获取类型化的配置对象"""
-        return config_type.model_validate(self.config)
+        return config_type.model_validate(self.config)  # type: ignore[no-any-return, attr-defined]
 
 
 class TaskConfig(BaseModel):
@@ -145,7 +147,7 @@ def save_config(config: TaskConfig, config_path: str | Path) -> None:
 def create_default_config() -> TaskConfig:
     """创建默认配置"""
     return TaskConfig(
-        global_=GlobalConfig(
+        global_=GlobalConfig(  # type: ignore[call-arg]
             scan_roots=[Path("/path/to/scan")],
             log_dir=Path("./logs"),
             report_dir=Path("./reports"),

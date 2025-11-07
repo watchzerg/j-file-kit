@@ -88,6 +88,8 @@ class TestStructuredLogger:
             file_info=file_info,
             file_type=FileType.VIDEO,
             serial_id="ABC-123",
+            target_path=None,
+            skip_remaining=False,
         )
         result = TaskResult(
             file_info=file_info,
@@ -98,6 +100,7 @@ class TestStructuredLogger:
             ],
             total_duration_ms=123.45,
             success=True,
+            error_message=None,
         )
 
         logger.log_file_result(result)
@@ -120,12 +123,19 @@ class TestStructuredLogger:
         logger = StructuredLogger(tmp_path, "test_task")
 
         file_info = FileInfo.from_path(Path("/test/file.mp4"))
-        context = ProcessingContext(file_info=file_info)
+        context = ProcessingContext(
+            file_info=file_info,
+            file_type=None,
+            serial_id=None,
+            target_path=None,
+            skip_remaining=False,
+        )
         result = TaskResult(
             file_info=file_info,
             context=context,
             success=False,
             error_message="处理失败",
+            total_duration_ms=0.0,
         )
 
         logger.log_file_result(result)
@@ -139,12 +149,20 @@ class TestStructuredLogger:
         logger = StructuredLogger(tmp_path, "test_task")
 
         file_info = FileInfo.from_path(Path("/test/file.mp4"))
-        context = ProcessingContext(file_info=file_info)
+        context = ProcessingContext(
+            file_info=file_info,
+            file_type=None,
+            serial_id=None,
+            target_path=None,
+            skip_remaining=False,
+        )
         result = TaskResult(
             file_info=file_info,
             context=context,
             processor_results=[ProcessorResult.skip("文件已存在")],
             success=True,
+            total_duration_ms=0.0,
+            error_message=None,
         )
 
         logger.log_file_result(result)
@@ -290,11 +308,15 @@ class TestStructuredLogger:
             file_info=file_info,
             file_type=None,
             serial_id=None,
+            target_path=None,
+            skip_remaining=False,
         )
         result = TaskResult(
             file_info=file_info,
             context=context,
             success=True,
+            total_duration_ms=0.0,
+            error_message=None,
         )
 
         logger.log_file_result(result)

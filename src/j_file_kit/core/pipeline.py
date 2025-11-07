@@ -43,7 +43,15 @@ class Pipeline:
 
         # 任务报告
         self.report = TaskReport(
-            task_name=self.task_name, start_time=datetime.now(), end_time=datetime.now()
+            task_name=self.task_name,
+            start_time=datetime.now(),
+            end_time=datetime.now(),
+            total_files=0,
+            success_files=0,
+            error_files=0,
+            skipped_files=0,
+            warning_files=0,
+            total_duration_ms=0.0,
         )
 
     def _get_default_task_name(self) -> str:
@@ -132,7 +140,13 @@ class Pipeline:
             for file_info in self.scanner.scan_files():
                 try:
                     # 创建处理上下文
-                    ctx = ProcessingContext(file_info=file_info)
+                    ctx = ProcessingContext(
+                        file_info=file_info,
+                        file_type=None,
+                        serial_id=None,
+                        target_path=None,
+                        skip_remaining=False,
+                    )
 
                     # 执行处理器链
                     processor_results = self.processor_chain.process_file(ctx)
@@ -168,9 +182,16 @@ class Pipeline:
                     # 创建错误结果
                     error_result = TaskResult(
                         file_info=file_info,
-                        context=ProcessingContext(file_info=file_info),
+                        context=ProcessingContext(
+                            file_info=file_info,
+                            file_type=None,
+                            serial_id=None,
+                            target_path=None,
+                            skip_remaining=False,
+                        ),
                         success=False,
                         error_message=str(e),
+                        total_duration_ms=0.0,
                     )
                     self.report.add_result(error_result)
                     self.progress_logger.update_progress(file_info.name)
@@ -217,7 +238,13 @@ class Pipeline:
         for file_info in self.scanner.scan_files():
             try:
                 # 创建处理上下文
-                ctx = ProcessingContext(file_info=file_info)
+                ctx = ProcessingContext(
+                    file_info=file_info,
+                    file_type=None,
+                    serial_id=None,
+                    target_path=None,
+                    skip_remaining=False,
+                )
 
                 # 只执行分析器
                 analyzer_results = []

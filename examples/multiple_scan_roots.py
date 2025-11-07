@@ -17,7 +17,7 @@ from j_file_kit.processors.executors import FileRenamer
 from j_file_kit.processors.finalizers import EmptyDirCleaner
 
 
-def create_sample_files():
+def create_sample_files() -> list[Path]:
     """创建示例文件结构"""
     # 创建临时目录
     temp_dirs = []
@@ -40,7 +40,7 @@ def create_sample_files():
     return temp_dirs
 
 
-def main():
+def main() -> None:
     """主函数"""
     print("🚀 j-file-kit 多扫描根目录示例")
     print("=" * 50)
@@ -70,7 +70,7 @@ def main():
             },
         )
 
-        config = TaskConfig(global_=global_config, tasks=[task])
+        config = TaskConfig(global_=global_config, tasks=[task])  # type: ignore[call-arg]
 
         # 创建管道
         print("🔧 创建处理管道...")

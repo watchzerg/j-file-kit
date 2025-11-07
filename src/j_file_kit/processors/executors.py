@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from ..core.models import FileType, ProcessingContext, ProcessorResult
 from ..core.processor import Executor
@@ -18,7 +19,7 @@ class FileRenamer(Executor):
     根据分析结果执行文件重命名操作。
     """
 
-    def __init__(self, transaction_log=None):
+    def __init__(self, transaction_log: Any = None) -> None:
         """初始化文件重命名器
 
         Args:
@@ -76,7 +77,7 @@ class FileMover(Executor):
     根据分析结果执行文件移动操作。
     """
 
-    def __init__(self, target_dir: Path, transaction_log=None):
+    def __init__(self, target_dir: Path, transaction_log: Any = None) -> None:
         """初始化文件移动器
 
         Args:
@@ -161,7 +162,7 @@ class FileDeleter(Executor):
     执行文件删除操作。
     """
 
-    def __init__(self, transaction_log=None):
+    def __init__(self, transaction_log: Any = None) -> None:
         """初始化文件删除器
 
         Args:
@@ -210,7 +211,7 @@ class DirectoryCreator(Executor):
     创建必要的目录结构。
     """
 
-    def __init__(self, transaction_log=None):
+    def __init__(self, transaction_log: Any = None) -> None:
         """初始化目录创建器
 
         Args:
@@ -265,7 +266,7 @@ class FileCopier(Executor):
     执行文件复制操作。
     """
 
-    def __init__(self, target_dir: Path, transaction_log=None):
+    def __init__(self, target_dir: Path, transaction_log: Any = None) -> None:
         """初始化文件复制器
 
         Args:

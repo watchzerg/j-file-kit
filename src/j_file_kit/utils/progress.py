@@ -25,9 +25,9 @@ class ProgressTracker:
             console: Rich 控制台实例
         """
         self.console = console
-        self.stats = TaskStats()
+        self.stats = TaskStats(processed_files=0, current_file=None)
         self.progress: Progress | None = None
-        self.task = None
+        self.task: int | None = None
 
     def start_progress(self) -> None:
         """开始进度显示（未知总数模式）"""
@@ -49,7 +49,7 @@ class ProgressTracker:
 
         if self.progress and self.task is not None:
             self.progress.update(
-                self.task,
+                self.task,  # type: ignore[arg-type]
                 advance=1,
                 description=f"已处理 {self.stats.processed_files} 个文件",
             )

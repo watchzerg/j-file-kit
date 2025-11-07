@@ -6,6 +6,7 @@
 import json
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 from j_file_kit.utils.transaction_log import (
     OperationType,
@@ -141,7 +142,7 @@ class TestTransactionEntry:
         entry_id = "test-id-456"
         timestamp = datetime.now()
 
-        dict_data = {
+        dict_data: dict[str, Any] = {
             "id": entry_id,
             "timestamp": timestamp.isoformat(),
             "operation": OperationType.DELETE,

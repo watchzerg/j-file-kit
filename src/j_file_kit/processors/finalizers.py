@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, Callable
 
 from ..core.models import ProcessingContext, ProcessorResult, TaskReport
 from ..core.processor import Finalizer
@@ -18,7 +19,7 @@ class EmptyDirCleaner(Finalizer):
     清理处理过程中产生的空目录。
     """
 
-    def __init__(self, root_path: Path, transaction_log=None):
+    def __init__(self, root_path: Path, transaction_log: Any = None) -> None:
         """初始化空目录清理器
 
         Args:
@@ -221,10 +222,10 @@ class StatisticsCollector(Finalizer):
     收集和汇总处理统计信息。
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化统计信息收集器"""
         super().__init__("StatisticsCollector")
-        self.stats = {"file_types": {}, "serial_ids": {}, "errors": [], "warnings": []}
+        self.stats: dict[str, Any] = {"file_types": {}, "serial_ids": {}, "errors": [], "warnings": []}
 
     def process(self, ctx: ProcessingContext) -> ProcessorResult:
         """处理单个文件（终结器通常不处理单个文件）
@@ -259,7 +260,7 @@ class CleanupFinalizer(Finalizer):
     执行各种清理操作。
     """
 
-    def __init__(self, cleanup_actions: list[callable]):
+    def __init__(self, cleanup_actions: list[Callable[[], None]]) -> None:
         """初始化清理终结器
 
         Args:
@@ -291,10 +292,12 @@ class CleanupFinalizer(Finalizer):
             for action in self.cleanup_actions:
                 try:
                     action()
-                    executed_actions.append(action.__name__)
+                    action_name = getattr(action, "__name__", str(action))
+                    executed_actions.append(action_name)
                 except Exception as e:
                     # 记录清理操作失败，但继续执行其他操作
-                    print(f"清理操作 {action.__name__} 失败: {e}")
+                    action_name = getattr(action, "__name__", str(action))
+                    print(f"清理操作 {action_name} 失败: {e}")
 
             return ProcessorResult.success(
                 f"执行了 {len(executed_actions)} 个清理操作",

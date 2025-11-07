@@ -72,29 +72,29 @@ class ProcessorResult(BaseModel):
 
     @classmethod
     def success(
-        cls, message: str = "", data: dict[str, Any] | None = None
+        cls, message: str = "", data: dict[str, Any] | None = None, duration_ms: float = 0.0
     ) -> ProcessorResult:
         """创建成功结果"""
-        return cls(status=ProcessorStatus.SUCCESS, message=message, data=data or {})
+        return cls(status=ProcessorStatus.SUCCESS, message=message, data=data or {}, duration_ms=duration_ms)
 
     @classmethod
-    def error(cls, message: str, data: dict[str, Any] | None = None) -> ProcessorResult:
+    def error(cls, message: str, data: dict[str, Any] | None = None, duration_ms: float = 0.0) -> ProcessorResult:
         """创建错误结果"""
-        return cls(status=ProcessorStatus.ERROR, message=message, data=data or {})
+        return cls(status=ProcessorStatus.ERROR, message=message, data=data or {}, duration_ms=duration_ms)
 
     @classmethod
     def skip(
-        cls, message: str = "", data: dict[str, Any] | None = None
+        cls, message: str = "", data: dict[str, Any] | None = None, duration_ms: float = 0.0
     ) -> ProcessorResult:
         """创建跳过结果"""
-        return cls(status=ProcessorStatus.SKIP, message=message, data=data or {})
+        return cls(status=ProcessorStatus.SKIP, message=message, data=data or {}, duration_ms=duration_ms)
 
     @classmethod
     def warning(
-        cls, message: str, data: dict[str, Any] | None = None
+        cls, message: str, data: dict[str, Any] | None = None, duration_ms: float = 0.0
     ) -> ProcessorResult:
         """创建警告结果"""
-        return cls(status=ProcessorStatus.WARNING, message=message, data=data or {})
+        return cls(status=ProcessorStatus.WARNING, message=message, data=data or {}, duration_ms=duration_ms)
 
 
 class TaskResult(BaseModel):

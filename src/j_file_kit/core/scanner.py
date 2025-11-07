@@ -242,7 +242,7 @@ class FileScanner:
         Returns:
             文件类型统计字典
         """
-        type_counts = {}
+        type_counts: dict[str, int] = {}
 
         for file_info in self.scan_files():
             suffix = file_info.suffix.lower()
