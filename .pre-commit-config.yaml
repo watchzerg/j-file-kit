@@ -35,6 +35,22 @@ repos:
         pass_filenames: false # 不传递文件名，因为 testmon 会自动选择相关测试
 
       # ----------- pre-push 阶段的钩子（全量检查）-----------
+      - id: uv-pip-check-push
+        name: uv pip check (dependency compatibility)
+        entry: uv pip check
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: pip-audit-push
+        name: pip audit (security check)
+        entry: uv run pip-audit
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
       - id: ruff-format-push
         name: ruff format (all files)
         entry: uv run ruff format
@@ -65,9 +81,19 @@ repos:
       - id: pytest-push
         name: pytest (all tests)
         entry: uv run pytest
-        args: ["-m", "unit or integration and not slow"]
+        args: ["-n", "auto", "-m", "unit or integration and not slow",
+          "--maxfail=1", "--durations=10"]
         language: system
         pass_filenames: false # 运行所有测试，不使用增量模式
         always_run: true
         stages: [pre-push]
 
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+        name: check YAML syntax
+        stages: [pre-push]
+      - id: check-json
+        name: check JSON syntax
+        stages: [pre-push]
