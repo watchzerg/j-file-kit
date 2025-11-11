@@ -46,32 +46,71 @@ class TestSerialIdExtraction:
             ("ABC_123.mp4", SerialId(prefix="ABC", number="123")),  # 下划线分隔
             ("ABC123.mp4", SerialId(prefix="ABC", number="123")),  # 无分隔符
             ("abc-001.mp4", SerialId(prefix="ABC", number="001")),  # 小写字母
-            ("prefix_XYZ-999_suffix.mp4", SerialId(prefix="XYZ", number="999")),  # 复杂文件名
+            (
+                "prefix_XYZ-999_suffix.mp4",
+                SerialId(prefix="XYZ", number="999"),
+            ),  # 复杂文件名
             ("video_ABC-001_hd.mp4", SerialId(prefix="ABC", number="001")),  # 中间位置
             ("ABC-001_video.mp4", SerialId(prefix="ABC", number="001")),  # 开头位置
             ("ABC-001.mp4", SerialId(prefix="ABC", number="001")),  # 只有番号
             # === 长度边界测试 - 应该匹配 ===
             ("AB-12.mp4", SerialId(prefix="AB", number="12")),  # 最短：2字母+2数字
-            ("ABCDE-12345.mp4", SerialId(prefix="ABCDE", number="12345")),  # 最长：5字母+5数字
-            ("AB_12.mp4", SerialId(prefix="AB", number="12")),  # 最短：2字母+2数字，下划线
-            ("AB123.mp4", SerialId(prefix="AB", number="123")),  # 最短：2字母+2数字，无分隔符
-            ("ABC1234.mp4", SerialId(prefix="ABC", number="1234")),  # 3字母+4数字，无分隔符
+            (
+                "ABCDE-12345.mp4",
+                SerialId(prefix="ABCDE", number="12345"),
+            ),  # 最长：5字母+5数字
+            (
+                "AB_12.mp4",
+                SerialId(prefix="AB", number="12"),
+            ),  # 最短：2字母+2数字，下划线
+            (
+                "AB123.mp4",
+                SerialId(prefix="AB", number="123"),
+            ),  # 最短：2字母+2数字，无分隔符
+            (
+                "ABC1234.mp4",
+                SerialId(prefix="ABC", number="1234"),
+            ),  # 3字母+4数字，无分隔符
             # === 大小写测试 - 应该匹配 ===
             ("abcd-123.mp4", SerialId(prefix="ABCD", number="123")),  # 全小写
             ("AbCd-123.mp4", SerialId(prefix="ABCD", number="123")),  # 混合大小写
-            ("abcd123.mp4", SerialId(prefix="ABCD", number="123")),  # 无分隔符，混合大小写
+            (
+                "abcd123.mp4",
+                SerialId(prefix="ABCD", number="123"),
+            ),  # 无分隔符，混合大小写
             # === 多个匹配 - 应该匹配第一个 ===
-            ("ABC-123_DEF-456.mp4", SerialId(prefix="ABC", number="123")),  # 多个番号，取第一个
+            (
+                "ABC-123_DEF-456.mp4",
+                SerialId(prefix="ABC", number="123"),
+            ),  # 多个番号，取第一个
             # === 特殊字符测试 - 应该匹配 ===
             ("ABC-123[HD].mp4", SerialId(prefix="ABC", number="123")),  # 方括号
             ("ABC-123(1080p).mp4", SerialId(prefix="ABC", number="123")),  # 圆括号
-            ("ABC-123_uncensored.mp4", SerialId(prefix="ABC", number="123")),  # 下划线后缀
-            ("ABC123[HD].mp4", SerialId(prefix="ABC", number="123")),  # 无分隔符+特殊字符
+            (
+                "ABC-123_uncensored.mp4",
+                SerialId(prefix="ABC", number="123"),
+            ),  # 下划线后缀
+            (
+                "ABC123[HD].mp4",
+                SerialId(prefix="ABC", number="123"),
+            ),  # 无分隔符+特殊字符
             # === 边界条件测试 - 应该匹配 ===
-            ("ABC-123ABC.mp4", SerialId(prefix="ABC", number="123")),  # 后面是字母（允许）
-            ("ABC123-456.mp4", SerialId(prefix="ABC", number="123")),  # 前面是数字（允许）
-            ("XABC-123.mp4", SerialId(prefix="XABC", number="123")),  # XABC-123是有效的4字母+3数字番号
-            ("ABC-1234.mp4", SerialId(prefix="ABC", number="1234")),  # ABC-1234是有效的3字母+4数字番号
+            (
+                "ABC-123ABC.mp4",
+                SerialId(prefix="ABC", number="123"),
+            ),  # 后面是字母（允许）
+            (
+                "ABC123-456.mp4",
+                SerialId(prefix="ABC", number="123"),
+            ),  # 前面是数字（允许）
+            (
+                "XABC-123.mp4",
+                SerialId(prefix="XABC", number="123"),
+            ),  # XABC-123是有效的4字母+3数字番号
+            (
+                "ABC-1234.mp4",
+                SerialId(prefix="ABC", number="1234"),
+            ),  # ABC-1234是有效的3字母+4数字番号
             # === 不应该匹配的情况 ===
             ("", None),  # 空字符串
             ("ABC.mp4", None),  # 缺少数字部分
@@ -153,7 +192,10 @@ class TestAdvancedEdgeCases:
                 assert result is not None, (
                     f"Failed for filename: {filename}, expected: {expected}, got: None"
                 )
-                assert result.prefix == expected.prefix and result.number == expected.number, (
+                assert (
+                    result.prefix == expected.prefix
+                    and result.number == expected.number
+                ), (
                     f"Failed for filename: {filename}, expected: {expected}, got: {result}"
                 )
 
@@ -166,16 +208,22 @@ class TestAdvancedEdgeCases:
             ("ABC-123.mp4", SerialId(prefix="ABC", number="123")),  # 连字符
             ("ABC_123.mp4", SerialId(prefix="ABC", number="123")),  # 下划线
             ("ABC123.mp4", SerialId(prefix="ABC", number="123")),  # 无分隔符
-            ("ABC-123_456.mp4", SerialId(prefix="ABC", number="123")),  # 混合分隔符，取第一个
-            ("ABC_123-456.mp4", SerialId(prefix="ABC", number="123")),  # 混合分隔符，取第一个
+            (
+                "ABC-123_456.mp4",
+                SerialId(prefix="ABC", number="123"),
+            ),  # 混合分隔符，取第一个
+            (
+                "ABC_123-456.mp4",
+                SerialId(prefix="ABC", number="123"),
+            ),  # 混合分隔符，取第一个
         ]
 
         for filename, expected in separator_tests:
             result = extract_serial_id(filename, pattern)
             assert result is not None
-            assert result.prefix == expected.prefix and result.number == expected.number, (
-                f"Failed for separator test: {filename}"
-            )
+            assert (
+                result.prefix == expected.prefix and result.number == expected.number
+            ), f"Failed for separator test: {filename}"
 
     def test_length_boundary_validation(self):
         """测试长度边界验证"""
@@ -193,10 +241,16 @@ class TestAdvancedEdgeCases:
             ("ABC-12.mp4", SerialId(prefix="ABC", number="12")),  # 3个字母
             ("ABCD-12.mp4", SerialId(prefix="ABCD", number="12")),  # 4个字母
             ("ABCDE-12.mp4", SerialId(prefix="ABCDE", number="12")),  # 5个字母（最大）
-            ("AB12.mp4", SerialId(prefix="AB", number="12")),  # 2个字母（最小），无分隔符
+            (
+                "AB12.mp4",
+                SerialId(prefix="AB", number="12"),
+            ),  # 2个字母（最小），无分隔符
             ("ABC12.mp4", SerialId(prefix="ABC", number="12")),  # 3个字母，无分隔符
             ("ABCD12.mp4", SerialId(prefix="ABCD", number="12")),  # 4个字母，无分隔符
-            ("ABCDE12.mp4", SerialId(prefix="ABCDE", number="12")),  # 5个字母（最大），无分隔符
+            (
+                "ABCDE12.mp4",
+                SerialId(prefix="ABCDE", number="12"),
+            ),  # 5个字母（最大），无分隔符
         ]
 
         for filename, expected in letter_length_tests:
@@ -205,9 +259,10 @@ class TestAdvancedEdgeCases:
                 assert result is None, f"Failed for letter length test: {filename}"
             else:
                 assert result is not None
-                assert result.prefix == expected.prefix and result.number == expected.number, (
-                    f"Failed for letter length test: {filename}"
-                )
+                assert (
+                    result.prefix == expected.prefix
+                    and result.number == expected.number
+                ), f"Failed for letter length test: {filename}"
 
         # 测试数字长度边界
         digit_length_tests = [
@@ -220,11 +275,20 @@ class TestAdvancedEdgeCases:
             ("ABC-12.mp4", SerialId(prefix="ABC", number="12")),  # 2个数字（最小）
             ("ABC-123.mp4", SerialId(prefix="ABC", number="123")),  # 3个数字
             ("ABC-1234.mp4", SerialId(prefix="ABC", number="1234")),  # 4个数字
-            ("ABC-12345.mp4", SerialId(prefix="ABC", number="12345")),  # 5个数字（最大）
-            ("ABC12.mp4", SerialId(prefix="ABC", number="12")),  # 2个数字（最小），无分隔符
+            (
+                "ABC-12345.mp4",
+                SerialId(prefix="ABC", number="12345"),
+            ),  # 5个数字（最大）
+            (
+                "ABC12.mp4",
+                SerialId(prefix="ABC", number="12"),
+            ),  # 2个数字（最小），无分隔符
             ("ABC123.mp4", SerialId(prefix="ABC", number="123")),  # 3个数字，无分隔符
             ("ABC1234.mp4", SerialId(prefix="ABC", number="1234")),  # 4个数字，无分隔符
-            ("ABC12345.mp4", SerialId(prefix="ABC", number="12345")),  # 5个数字（最大），无分隔符
+            (
+                "ABC12345.mp4",
+                SerialId(prefix="ABC", number="12345"),
+            ),  # 5个数字（最大），无分隔符
         ]
 
         for filename, expected in digit_length_tests:
@@ -233,9 +297,10 @@ class TestAdvancedEdgeCases:
                 assert result is None, f"Failed for digit length test: {filename}"
             else:
                 assert result is not None
-                assert result.prefix == expected.prefix and result.number == expected.number, (
-                    f"Failed for digit length test: {filename}"
-                )
+                assert (
+                    result.prefix == expected.prefix
+                    and result.number == expected.number
+                ), f"Failed for digit length test: {filename}"
 
     def test_context_boundary_validation(self):
         """测试上下文边界验证"""
@@ -249,9 +314,18 @@ class TestAdvancedEdgeCases:
             ("_ABC-123.mp4", SerialId(prefix="ABC", number="123")),  # 前面是下划线
             ("-ABC-123.mp4", SerialId(prefix="ABC", number="123")),  # 前面是连字符
             (" ABC-123.mp4", SerialId(prefix="ABC", number="123")),  # 前面是空格
-            ("XABC-123.mp4", SerialId(prefix="XABC", number="123")),  # XABC-123是有效的番号（4字母+3数字）
-            ("ABC-123X.mp4", SerialId(prefix="ABC", number="123")),  # 后面是字母（允许）
-            ("ABC-1234.mp4", SerialId(prefix="ABC", number="1234")),  # ABC-1234是有效的番号（3字母+4数字）
+            (
+                "XABC-123.mp4",
+                SerialId(prefix="XABC", number="123"),
+            ),  # XABC-123是有效的番号（4字母+3数字）
+            (
+                "ABC-123X.mp4",
+                SerialId(prefix="ABC", number="123"),
+            ),  # 后面是字母（允许）
+            (
+                "ABC-1234.mp4",
+                SerialId(prefix="ABC", number="1234"),
+            ),  # ABC-1234是有效的番号（3字母+4数字）
             ("ABC-123_.mp4", SerialId(prefix="ABC", number="123")),  # 后面是下划线
             ("ABC-123-.mp4", SerialId(prefix="ABC", number="123")),  # 后面是连字符
             ("ABC-123 .mp4", SerialId(prefix="ABC", number="123")),  # 后面是空格
@@ -269,9 +343,10 @@ class TestAdvancedEdgeCases:
                 assert result is None, f"Failed for boundary test: {filename}"
             else:
                 assert result is not None
-                assert result.prefix == expected.prefix and result.number == expected.number, (
-                    f"Failed for boundary test: {filename}"
-                )
+                assert (
+                    result.prefix == expected.prefix
+                    and result.number == expected.number
+                ), f"Failed for boundary test: {filename}"
 
 
 @pytest.mark.unit
@@ -310,9 +385,10 @@ class TestEdgeCasesAndSpecialScenarios:
                 assert result is None, f"Failed for extension test: {filename}"
             else:
                 assert result is not None
-                assert result.prefix == expected.prefix and result.number == expected.number, (
-                    f"Failed for extension test: {filename}"
-                )
+                assert (
+                    result.prefix == expected.prefix
+                    and result.number == expected.number
+                ), f"Failed for extension test: {filename}"
 
     def test_special_characters_and_unicode(self):
         """测试特殊字符和Unicode字符"""
@@ -338,9 +414,10 @@ class TestEdgeCasesAndSpecialScenarios:
                 assert result is None, f"Failed for special char test: {filename}"
             else:
                 assert result is not None
-                assert result.prefix == expected.prefix and result.number == expected.number, (
-                    f"Failed for special char test: {filename}"
-                )
+                assert (
+                    result.prefix == expected.prefix
+                    and result.number == expected.number
+                ), f"Failed for special char test: {filename}"
 
     def test_performance_with_long_filenames(self):
         """测试长文件名的性能"""
@@ -352,8 +429,14 @@ class TestEdgeCasesAndSpecialScenarios:
 
         long_filename_tests = [
             # === 应该匹配的情况 ===
-            (f"{long_prefix}ABC-123{long_suffix}.mp4", SerialId(prefix="ABC", number="123")),
-            (f"{long_prefix}XYZ-999{long_suffix}.mp4", SerialId(prefix="XYZ", number="999")),
+            (
+                f"{long_prefix}ABC-123{long_suffix}.mp4",
+                SerialId(prefix="ABC", number="123"),
+            ),
+            (
+                f"{long_prefix}XYZ-999{long_suffix}.mp4",
+                SerialId(prefix="XYZ", number="999"),
+            ),
             # === 不应该匹配的情况 ===
             (f"{long_prefix}no_serial_here{long_suffix}.mp4", None),
         ]
@@ -364,9 +447,10 @@ class TestEdgeCasesAndSpecialScenarios:
                 assert result is None, "Failed for long filename test"
             else:
                 assert result is not None
-                assert result.prefix == expected.prefix and result.number == expected.number, (
-                    "Failed for long filename test"
-                )
+                assert (
+                    result.prefix == expected.prefix
+                    and result.number == expected.number
+                ), "Failed for long filename test"
 
     def test_multiple_serial_ids_in_filename(self):
         """测试文件名中包含多个番号的情况"""
@@ -374,17 +458,26 @@ class TestEdgeCasesAndSpecialScenarios:
 
         multiple_serial_tests = [
             # === 应该匹配第一个番号 ===
-            ("ABC-123_DEF-456.mp4", SerialId(prefix="ABC", number="123")),  # 两个番号，取第一个
-            ("XYZ-999_ABC-123_GHI-789.mp4", SerialId(prefix="XYZ", number="999")),  # 三个番号，取第一个
-            ("ABC-123-456_DEF-789.mp4", SerialId(prefix="ABC", number="123")),  # 混合分隔符，取第一个
+            (
+                "ABC-123_DEF-456.mp4",
+                SerialId(prefix="ABC", number="123"),
+            ),  # 两个番号，取第一个
+            (
+                "XYZ-999_ABC-123_GHI-789.mp4",
+                SerialId(prefix="XYZ", number="999"),
+            ),  # 三个番号，取第一个
+            (
+                "ABC-123-456_DEF-789.mp4",
+                SerialId(prefix="ABC", number="123"),
+            ),  # 混合分隔符，取第一个
         ]
 
         for filename, expected in multiple_serial_tests:
             result = extract_serial_id(filename, pattern)
             assert result is not None
-            assert result.prefix == expected.prefix and result.number == expected.number, (
-                f"Failed for multiple serial test: {filename}"
-            )
+            assert (
+                result.prefix == expected.prefix and result.number == expected.number
+            ), f"Failed for multiple serial test: {filename}"
 
     def test_case_insensitive_matching(self):
         """测试大小写不敏感的匹配"""
@@ -396,16 +489,24 @@ class TestEdgeCasesAndSpecialScenarios:
             ("ABC-123.mp4", SerialId(prefix="ABC", number="123")),  # 全大写
             ("AbC-123.mp4", SerialId(prefix="ABC", number="123")),  # 混合大小写
             ("aBc-123.mp4", SerialId(prefix="ABC", number="123")),  # 混合大小写
-            ("AbCdE-12345.mp4", SerialId(prefix="ABCDE", number="12345")),  # 长混合大小写
+            (
+                "AbCdE-12345.mp4",
+                SerialId(prefix="ABCDE", number="12345"),
+            ),  # 长混合大小写
             ("abc123.mp4", SerialId(prefix="ABC", number="123")),  # 无分隔符，小写
             ("ABC123.mp4", SerialId(prefix="ABC", number="123")),  # 无分隔符，大写
-            ("AbC123.mp4", SerialId(prefix="ABC", number="123")),  # 无分隔符，混合大小写
+            (
+                "AbC123.mp4",
+                SerialId(prefix="ABC", number="123"),
+            ),  # 无分隔符，混合大小写
         ]
 
         for filename, expected in case_tests:
             result = extract_serial_id(filename, pattern)
             assert result is not None
-            assert result.prefix == expected.prefix and result.number == expected.number, (
-                f"Failed for case test: {filename}"
+            assert (
+                result.prefix == expected.prefix and result.number == expected.number
+            ), f"Failed for case test: {filename}"
+            assert result.prefix.isupper(), (
+                f"Prefix should be uppercase: {result.prefix}"
             )
-            assert result.prefix.isupper(), f"Prefix should be uppercase: {result.prefix}"

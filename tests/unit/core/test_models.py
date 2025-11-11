@@ -137,4 +137,3 @@ class TestSerialId:
 
         # 不同系列
         assert serial_id1.prefix != serial_id3.prefix
-
