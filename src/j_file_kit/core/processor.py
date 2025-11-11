@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import time
 from abc import ABC, abstractmethod
 
 from .models import ProcessingContext, ProcessorResult
@@ -36,24 +35,6 @@ class Processor(ABC):
             处理结果
         """
         pass
-
-    def _timed_process(self, ctx: ProcessingContext) -> ProcessorResult:
-        """带计时的处理方法
-
-        自动记录处理耗时，子类应该重写 process 方法而不是这个方法。
-        """
-        start_time = time.time()
-
-        try:
-            result = self.process(ctx)
-            duration_ms = (time.time() - start_time) * 1000
-            result.duration_ms = duration_ms
-            return result
-        except Exception as e:
-            duration_ms = (time.time() - start_time) * 1000
-            return ProcessorResult.error(f"{self.name} 处理失败: {str(e)}").model_copy(
-                update={"duration_ms": duration_ms}
-            )
 
 
 class Analyzer(Processor):
@@ -148,7 +129,7 @@ class ProcessorChain:
 
         # 执行分析器
         for analyzer in self.analyzers:
-            result = analyzer._timed_process(ctx)
+            result = analyzer.process(ctx)
             results.append(result)
 
             # 如果分析器返回错误，跳过后续处理器
@@ -162,7 +143,7 @@ class ProcessorChain:
         # 如果前面没有错误且未短路，执行执行器
         if not ctx.skip_remaining and not any(r.status == "error" for r in results):
             for executor in self.executors:
-                result = executor._timed_process(ctx)
+                result = executor.process(ctx)
                 results.append(result)
 
                 # 如果执行器返回错误，跳过后续处理器

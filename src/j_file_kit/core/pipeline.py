@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import time
 from datetime import datetime
 from typing import Any
 
@@ -136,6 +137,9 @@ class Pipeline:
             # 处理每个文件（使用生成器模式，边扫描边处理）
             for file_info in self.scanner.scan_files():
                 try:
+                    # 记录文件处理开始时间
+                    file_start_time = time.time()
+
                     # 创建处理上下文
                     ctx = ProcessingContext(
                         file_info=file_info,
@@ -148,12 +152,15 @@ class Pipeline:
                     # 执行处理器链
                     processor_results = self.processor_chain.process_file(ctx)
 
+                    # 计算文件处理总耗时
+                    file_duration_ms = (time.time() - file_start_time) * 1000
+
                     # 创建任务结果
                     task_result = TaskResult(
                         file_info=file_info,
                         context=ctx,
                         processor_results=processor_results,
-                        total_duration_ms=sum(r.duration_ms for r in processor_results),
+                        total_duration_ms=file_duration_ms,
                         success=not any(r.status == "error" for r in processor_results),
                         error_message=next(
                             (
@@ -230,6 +237,9 @@ class Pipeline:
         # 处理每个文件（仅分析，不执行，使用生成器模式）
         for file_info in self.scanner.scan_files():
             try:
+                # 记录文件处理开始时间
+                file_start_time = time.time()
+
                 # 创建处理上下文
                 ctx = ProcessingContext(
                     file_info=file_info,
@@ -242,7 +252,7 @@ class Pipeline:
                 # 只执行分析器
                 analyzer_results = []
                 for analyzer in self.processor_chain.analyzers:
-                    result = analyzer._timed_process(ctx)
+                    result = analyzer.process(ctx)
                     analyzer_results.append(result)
 
                     if result.status == "error":
@@ -250,12 +260,15 @@ class Pipeline:
                     if ctx.skip_remaining:
                         break
 
+                # 计算文件处理总耗时
+                file_duration_ms = (time.time() - file_start_time) * 1000
+
                 # 创建任务结果（标记为预览模式）
                 task_result = TaskResult(
                     file_info=file_info,
                     context=ctx,
                     processor_results=analyzer_results,
-                    total_duration_ms=sum(r.duration_ms for r in analyzer_results),
+                    total_duration_ms=file_duration_ms,
                     success=not any(r.status == "error" for r in analyzer_results),
                     error_message=next(
                         (r.message for r in analyzer_results if r.status == "error"),

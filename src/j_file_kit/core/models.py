@@ -147,7 +147,6 @@ class ProcessorResult(BaseModel):
 
     status: ProcessorStatus = Field(..., description="处理状态")
     message: str = Field("", description="处理消息")
-    duration_ms: float = Field(0.0, description="处理耗时（毫秒）")
     data: dict[str, Any] = Field(default_factory=dict, description="附加数据")
 
     @classmethod
@@ -155,26 +154,21 @@ class ProcessorResult(BaseModel):
         cls,
         message: str = "",
         data: dict[str, Any] | None = None,
-        duration_ms: float = 0.0,
     ) -> ProcessorResult:
         """创建成功结果"""
         return cls(
             status=ProcessorStatus.SUCCESS,
             message=message,
             data=data or {},
-            duration_ms=duration_ms,
         )
 
     @classmethod
-    def error(
-        cls, message: str, data: dict[str, Any] | None = None, duration_ms: float = 0.0
-    ) -> ProcessorResult:
+    def error(cls, message: str, data: dict[str, Any] | None = None) -> ProcessorResult:
         """创建错误结果"""
         return cls(
             status=ProcessorStatus.ERROR,
             message=message,
             data=data or {},
-            duration_ms=duration_ms,
         )
 
     @classmethod
@@ -182,26 +176,23 @@ class ProcessorResult(BaseModel):
         cls,
         message: str = "",
         data: dict[str, Any] | None = None,
-        duration_ms: float = 0.0,
     ) -> ProcessorResult:
         """创建跳过结果"""
         return cls(
             status=ProcessorStatus.SKIP,
             message=message,
             data=data or {},
-            duration_ms=duration_ms,
         )
 
     @classmethod
     def warning(
-        cls, message: str, data: dict[str, Any] | None = None, duration_ms: float = 0.0
+        cls, message: str, data: dict[str, Any] | None = None
     ) -> ProcessorResult:
         """创建警告结果"""
         return cls(
             status=ProcessorStatus.WARNING,
             message=message,
             data=data or {},
-            duration_ms=duration_ms,
         )
 
 
