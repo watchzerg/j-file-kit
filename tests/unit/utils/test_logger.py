@@ -87,10 +87,12 @@ class TestStructuredLogger:
         logger = StructuredLogger(tmp_path, "test_task")
 
         file_info = FileInfo.from_path(Path("/test/video.mp4"))
+        from j_file_kit.core.models import SerialId
+
         context = ProcessingContext(
             file_info=file_info,
             file_type=FileType.VIDEO,
-            serial_id="ABC-123",
+            serial_id=SerialId(prefix="ABC", number="123"),
             target_path=None,
             skip_remaining=False,
         )

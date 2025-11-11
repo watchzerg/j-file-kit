@@ -25,6 +25,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from j_file_kit.core.models import SerialId
+
 from .regex_patterns import DEFAULT_SERIAL_PATTERN, extract_serial_id
 
 # 文件名分隔符常量：用于 trim 操作时去除的字符
@@ -56,7 +58,7 @@ def trim_separators(text: str) -> str:
     return text.strip(FILENAME_SEPARATORS)
 
 
-def generate_new_filename(original_path: Path) -> tuple[Path, str | None]:
+def generate_new_filename(original_path: Path) -> tuple[Path, SerialId | None]:
     """根据番号生成新文件名
 
     使用内置的 DEFAULT_SERIAL_PATTERN 进行番号提取和文件名重构。
@@ -72,13 +74,13 @@ def generate_new_filename(original_path: Path) -> tuple[Path, str | None]:
         >>> new_path
         Path("ABC-001 video-serialId-hd.mp4")
         >>> serial_id
-        "ABC-001"
+        SerialId(prefix='ABC', number='001')
 
         >>> new_path, serial_id = generate_new_filename(Path("ABC-001_video.mp4"))
         >>> new_path
         Path("ABC-001 video.mp4")
         >>> serial_id
-        "ABC-001"
+        SerialId(prefix='ABC', number='001')
 
         >>> new_path, serial_id = generate_new_filename(Path("no_serial.mp4"))
         >>> new_path
@@ -114,15 +116,18 @@ def generate_new_filename(original_path: Path) -> tuple[Path, str | None]:
     trim_separators(part2)  # part2 是番号本身，标准化后不再需要
     trimmed_part3 = trim_separators(part3)
 
+    # 将 serial_id 转换为字符串用于文件名拼接
+    serial_id_str = str(serial_id)
+
     # 判断番号是否在开头（第1部分trim后为空）
     if not trimmed_part1:
         # 番号在开头，按照规则重构文件名
         if not trimmed_part3:
             # 第3部分trim后为空，只输出：标准番号 + 扩展名
-            new_filename = f"{serial_id}{part4}"
+            new_filename = f"{serial_id_str}{part4}"
         else:
             # 第3部分trim后不为空，输出：标准番号 + 空格 + 第3部分 + 扩展名
-            new_filename = f"{serial_id} {trimmed_part3}{part4}"
+            new_filename = f"{serial_id_str} {trimmed_part3}{part4}"
     else:
         # 番号不在开头
         if not trimmed_part3:
@@ -133,6 +138,6 @@ def generate_new_filename(original_path: Path) -> tuple[Path, str | None]:
             placeholder = f"-serialId-{trimmed_part3}"
 
         # 拼接：标准番号 + 空格 + 第1部分 + 占位符 + 扩展名
-        new_filename = f"{serial_id} {trimmed_part1}{placeholder}{part4}"
+        new_filename = f"{serial_id_str} {trimmed_part1}{placeholder}{part4}"
 
     return parent / new_filename, serial_id

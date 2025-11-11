@@ -26,13 +26,15 @@ from __future__ import annotations
 
 import re
 
+from j_file_kit.core.models import SerialId
+
 # 默认番号提取正则表达式模式
 DEFAULT_SERIAL_PATTERN = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
 
 
 def extract_serial_id(
     filename: str, pattern: str = DEFAULT_SERIAL_PATTERN
-) -> str | None:
+) -> SerialId | None:
     """从文件名提取番号
 
     番号规则：
@@ -47,17 +49,17 @@ def extract_serial_id(
             `(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\\d{2,5})(?![0-9])`）
 
     Returns:
-        提取到的番号（统一大写，标准化格式：字母-数字），如果没有找到则返回 None
+        提取到的番号（SerialId 对象），如果没有找到则返回 None
 
     Examples:
         >>> extract_serial_id("ABCD-123.mp4")
-        "ABCD-123"
+        SerialId(prefix='ABCD', number='123')
         >>> extract_serial_id("video_ABC-001_hd.mp4")
-        "ABC-001"
+        SerialId(prefix='ABC', number='001')
         >>> extract_serial_id("ABC123.mp4")
-        "ABC-123"
+        SerialId(prefix='ABC', number='123')
         >>> extract_serial_id("ABC_123.mp4")
-        "ABC-123"
+        SerialId(prefix='ABC', number='123')
         >>> extract_serial_id("no_serial.mp4")
         None
     """
@@ -69,8 +71,8 @@ def extract_serial_id(
     letters = match.group(1).upper()
     digits = match.group(2)
 
-    # 标准化格式：字母-数字
-    return f"{letters}-{digits}"
+    # 构造 SerialId 对象
+    return SerialId(prefix=letters, number=digits)
 
 
 # 导出所有公共函数和常量

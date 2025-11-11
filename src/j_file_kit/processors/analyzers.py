@@ -100,7 +100,7 @@ class SerialIdExtractor(Analyzer):
 
                 return ProcessorResult.success(
                     f"提取到番号: {serial_id}",
-                    {"serial_id": serial_id, "new_path": str(new_path)},
+                    {"serial_id": str(serial_id), "new_path": str(new_path)},
                 )
             else:
                 # 没有番号，设置目标路径为待处理目录

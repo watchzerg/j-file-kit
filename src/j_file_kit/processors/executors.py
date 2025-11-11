@@ -55,7 +55,9 @@ class FileRenamer(Executor):
             # 记录事务日志
             if self.transaction_log:
                 entry = self.transaction_log.create_rename_entry(
-                    ctx.file_info.path, unique_path, {"serial_id": ctx.serial_id}
+                    ctx.file_info.path,
+                    unique_path,
+                    {"serial_id": str(ctx.serial_id) if ctx.serial_id else None},
                 )
                 self.transaction_log.write_entry(entry)
 
@@ -121,7 +123,10 @@ class FileMover(Executor):
                 entry = self.transaction_log.create_move_entry(
                     ctx.file_info.path,
                     unique_path,
-                    {"file_type": ctx.file_type, "serial_id": ctx.serial_id},
+                    {
+                        "file_type": ctx.file_type,
+                        "serial_id": str(ctx.serial_id) if ctx.serial_id else None,
+                    },
                 )
                 self.transaction_log.write_entry(entry)
 
@@ -189,7 +194,10 @@ class FileDeleter(Executor):
             if self.transaction_log:
                 entry = self.transaction_log.create_delete_entry(
                     ctx.file_info.path,
-                    {"file_type": ctx.file_type, "serial_id": ctx.serial_id},
+                    {
+                        "file_type": ctx.file_type,
+                        "serial_id": str(ctx.serial_id) if ctx.serial_id else None,
+                    },
                 )
 
             # 执行删除
@@ -311,7 +319,7 @@ class FileCopier(Executor):
                     {
                         "operation": "copy",
                         "file_type": ctx.file_type,
-                        "serial_id": ctx.serial_id,
+                        "serial_id": str(ctx.serial_id) if ctx.serial_id else None,
                     },
                 )
                 self.transaction_log.write_entry(entry)

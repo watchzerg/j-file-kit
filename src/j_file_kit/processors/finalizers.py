@@ -200,7 +200,9 @@ class ReportGenerator(Finalizer):
                     "file_path": str(result.file_info.path),
                     "file_name": result.file_info.name,
                     "file_type": result.context.file_type,
-                    "serial_id": result.context.serial_id,
+                    "serial_id": str(result.context.serial_id)
+                    if result.context.serial_id
+                    else None,
                     "success": result.success,
                     "has_errors": result.has_errors,
                     "has_warnings": result.has_warnings,
