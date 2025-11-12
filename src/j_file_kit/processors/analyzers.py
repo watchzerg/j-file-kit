@@ -206,39 +206,3 @@ class FileNameAnalyzer(Analyzer):
 
         except Exception as e:
             return ProcessorResult.error(f"文件名分析失败: {str(e)}")
-
-
-class DuplicateDetector(Analyzer):
-    """重复文件检测器
-
-    检测可能的重复文件。
-    """
-
-    def __init__(self) -> None:
-        """初始化重复文件检测器"""
-        super().__init__("DuplicateDetector")
-        self.seen_files: set[tuple[str, int]] = set()
-
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
-        """检测重复文件
-
-        Args:
-            ctx: 处理上下文
-
-        Returns:
-            分析结果
-        """
-        try:
-            # 使用文件名和大小作为重复检测的依据
-            file_key = (ctx.file_info.name, ctx.file_info.path.stat().st_size)
-
-            if file_key in self.seen_files:
-                ctx.custom_data["is_duplicate"] = True
-                return ProcessorResult.warning("检测到可能的重复文件")
-            else:
-                self.seen_files.add(file_key)
-                ctx.custom_data["is_duplicate"] = False
-                return ProcessorResult.success("文件唯一性检查通过")
-
-        except Exception as e:
-            return ProcessorResult.error(f"重复文件检测失败: {str(e)}")

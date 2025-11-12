@@ -245,17 +245,13 @@ class DirectoryCreator(Executor):
 
             target_path = Path(target_dir)
 
-            # 检查目录是否已存在
-            if target_path.exists():
-                return ProcessorResult.skip("目录已存在")
-
             # 记录事务日志
             if self.transaction_log:
                 entry = self.transaction_log.create_dir_entry(
                     target_path, {"purpose": ctx.custom_data.get("purpose", "unknown")}
                 )
 
-            # 创建目录
+            # 创建目录（exist_ok=True 处理目录已存在和并发情况）
             target_path.mkdir(parents=True, exist_ok=True)
 
             # 标记事务完成
@@ -266,71 +262,3 @@ class DirectoryCreator(Executor):
 
         except Exception as e:
             return ProcessorResult.error(f"目录创建失败: {str(e)}")
-
-
-class FileCopier(Executor):
-    """文件复制执行器
-
-    执行文件复制操作。
-    """
-
-    def __init__(self, target_dir: Path, transaction_log: Any = None) -> None:
-        """初始化文件复制器
-
-        Args:
-            target_dir: 目标目录
-            transaction_log: 事务日志记录器
-        """
-        super().__init__("FileCopier")
-        self.target_dir = target_dir
-        self.transaction_log = transaction_log
-
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
-        """执行文件复制
-
-        Args:
-            ctx: 处理上下文
-
-        Returns:
-            执行结果
-        """
-        try:
-            # 检查源文件是否存在
-            if not ctx.file_info.path.exists():
-                return ProcessorResult.error("源文件不存在")
-
-            # 确保目标目录存在
-            self.target_dir.mkdir(parents=True, exist_ok=True)
-
-            # 生成目标路径
-            target_path = self.target_dir / ctx.file_info.path.name
-            unique_path = resolve_unique_path(target_path)
-
-            # 执行复制
-            import shutil
-
-            shutil.copy2(ctx.file_info.path, unique_path)
-
-            # 记录事务日志
-            if self.transaction_log:
-                entry = self.transaction_log.create_move_entry(
-                    ctx.file_info.path,
-                    unique_path,
-                    {
-                        "operation": "copy",
-                        "file_type": ctx.file_type,
-                        "serial_id": str(ctx.serial_id) if ctx.serial_id else None,
-                    },
-                )
-                self.transaction_log.write_entry(entry)
-
-            return ProcessorResult.success(
-                f"文件复制成功: {ctx.file_info.path.name} -> {unique_path}",
-                {
-                    "source_path": str(ctx.file_info.path),
-                    "target_path": str(unique_path),
-                },
-            )
-
-        except Exception as e:
-            return ProcessorResult.error(f"文件复制失败: {str(e)}")
