@@ -51,10 +51,17 @@ class GlobalConfig(BaseModel):
 class FileOrganizeConfig(BaseModel):
     """文件整理任务配置"""
 
-    todo_non_vidpic_dir: Path = Field(..., description="非视频图片文件目录")
-    todo_vidpic_dir: Path = Field(..., description="无番号视频图片文件目录")
+    organized_dir: Path = Field(..., description="整理后的视频图片存储目录（B类）")
+    unorganized_dir: Path = Field(..., description="无番号视频图片存储目录（C类）")
+    archive_dir: Path = Field(..., description="压缩文件存储目录")
+    misc_dir: Path = Field(..., description="其他文件存储目录（D类）")
     video_extensions: set[str] = Field(..., description="视频文件扩展名")
     image_extensions: set[str] = Field(..., description="图片文件扩展名")
+    archive_extensions: set[str] = Field(..., description="压缩文件扩展名")
+    delete_rules: dict[str, Any] = Field(
+        default_factory=dict,
+        description="删除规则配置（keywords, extensions, max_size）",
+    )
 
     @model_validator(mode="after")
     def validate_extensions(self) -> FileOrganizeConfig:
@@ -65,6 +72,9 @@ class FileOrganizeConfig(BaseModel):
         }
         self.image_extensions = {
             ext if ext.startswith(".") else f".{ext}" for ext in self.image_extensions
+        }
+        self.archive_extensions = {
+            ext if ext.startswith(".") else f".{ext}" for ext in self.archive_extensions
         }
         return self
 

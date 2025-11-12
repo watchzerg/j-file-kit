@@ -131,6 +131,9 @@ class Pipeline:
                         serial_id=None,
                         target_path=None,
                         skip_remaining=False,
+                        action=None,
+                        target_dir=None,
+                        should_delete=False,
                     )
 
                     # 根据模式执行不同的处理器
@@ -181,6 +184,9 @@ class Pipeline:
                             serial_id=None,
                             target_path=None,
                             skip_remaining=False,
+                            action=None,
+                            target_dir=None,
+                            should_delete=False,
                         ),
                         success=False,
                         error_message=str(e),

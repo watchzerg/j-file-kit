@@ -5,31 +5,57 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
-from ..core.models import FileType, ProcessingContext, ProcessorResult
+from ..core.models import FileAction, ProcessingContext, ProcessorResult
 from ..core.processor import Executor
 from ..utils.file_utils import resolve_unique_path
 
 
-class FileRenamer(Executor):
-    """文件重命名执行器
+class UnifiedFileExecutor(Executor):
+    """统一文件执行器
 
-    根据分析结果执行文件重命名操作。
+    根据 ProcessingContext 中的 action 决策，执行相应的操作。
     """
 
     def __init__(self, transaction_log: Any = None) -> None:
-        """初始化文件重命名器
+        """初始化统一文件执行器
 
         Args:
             transaction_log: 事务日志记录器
         """
-        super().__init__("FileRenamer")
+        super().__init__("UnifiedFileExecutor")
         self.transaction_log = transaction_log
 
     def process(self, ctx: ProcessingContext) -> ProcessorResult:
-        """执行文件重命名
+        """根据动作类型执行操作
+
+        Args:
+            ctx: 处理上下文
+
+        Returns:
+            执行结果
+        """
+        if not ctx.action:
+            return ProcessorResult.skip("未决策动作")
+
+        if ctx.action == FileAction.MOVE_TO_ORGANIZED:
+            return self._move_to_organized(ctx)
+        elif ctx.action == FileAction.MOVE_TO_UNORGANIZED:
+            return self._move_to_static_dir(ctx)
+        elif ctx.action == FileAction.MOVE_TO_ARCHIVE:
+            return self._move_to_static_dir(ctx)
+        elif ctx.action == FileAction.MOVE_TO_MISC:
+            return self._move_to_static_dir(ctx)
+        elif ctx.action == FileAction.DELETE:
+            return self._delete(ctx)
+        elif ctx.action == FileAction.SKIP:
+            return ProcessorResult.skip("跳过处理")
+        else:
+            return ProcessorResult.error(f"未知动作类型: {ctx.action}")
+
+    def _move_to_organized(self, ctx: ProcessingContext) -> ProcessorResult:
+        """移动到整理目录（需要创建动态目录结构）
 
         Args:
             ctx: 处理上下文
@@ -38,146 +64,106 @@ class FileRenamer(Executor):
             执行结果
         """
         try:
-            # 检查是否需要重命名
-            if not ctx.target_path or ctx.target_path == ctx.file_info.path:
-                return ProcessorResult.skip("无需重命名")
+            if not ctx.target_dir:
+                return ProcessorResult.error("目标路径未设置")
 
             # 检查源文件是否存在
             if not ctx.file_info.path.exists():
                 return ProcessorResult.error("源文件不存在")
 
-            # 解析唯一路径（处理重名冲突）
-            unique_path = resolve_unique_path(ctx.target_path)
+            # 直接创建目录（不需要检查是否存在）
+            ctx.target_dir.parent.mkdir(parents=True, exist_ok=True)
 
-            # 执行重命名
-            ctx.file_info.path.rename(unique_path)
+            # 处理重名冲突
+            unique_path = resolve_unique_path(ctx.target_dir)
 
-            # 记录事务日志
-            if self.transaction_log:
-                entry = self.transaction_log.create_rename_entry(
-                    ctx.file_info.path,
-                    unique_path,
-                    {"serial_id": str(ctx.serial_id) if ctx.serial_id else None},
-                )
-                self.transaction_log.write_entry(entry)
-
-            # 更新上下文中的文件信息
-            ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
-
-            return ProcessorResult.success(
-                f"文件重命名成功: {ctx.file_info.path.name} -> {unique_path.name}",
-                {"old_path": str(ctx.file_info.path), "new_path": str(unique_path)},
-            )
-
-        except Exception as e:
-            return ProcessorResult.error(f"文件重命名失败: {str(e)}")
-
-
-class FileMover(Executor):
-    """文件移动执行器
-
-    根据分析结果执行文件移动操作。
-    """
-
-    def __init__(self, target_dir: Path, transaction_log: Any = None) -> None:
-        """初始化文件移动器
-
-        Args:
-            target_dir: 目标目录
-            transaction_log: 事务日志记录器
-        """
-        super().__init__("FileMover")
-        self.target_dir = target_dir
-        self.transaction_log = transaction_log
-
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
-        """执行文件移动
-
-        Args:
-            ctx: 处理上下文
-
-        Returns:
-            执行结果
-        """
-        try:
-            # 检查是否需要移动
-            if not self._should_move(ctx):
-                return ProcessorResult.skip("无需移动")
-
-            # 检查源文件是否存在
-            if not ctx.file_info.path.exists():
-                return ProcessorResult.error("源文件不存在")
-
-            # 确保目标目录存在
-            self.target_dir.mkdir(parents=True, exist_ok=True)
-
-            # 生成目标路径
-            target_path = self.target_dir / ctx.file_info.path.name
-            unique_path = resolve_unique_path(target_path)
+            # 保存原始路径（用于事务日志）
+            old_path = ctx.file_info.path
 
             # 执行移动
-            ctx.file_info.path.rename(unique_path)
+            old_path.rename(unique_path)
+
+            # 更新上下文
+            ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
 
             # 记录事务日志
             if self.transaction_log:
                 entry = self.transaction_log.create_move_entry(
-                    ctx.file_info.path,
+                    old_path,
                     unique_path,
                     {
-                        "file_type": ctx.file_type,
+                        "action": FileAction.MOVE_TO_ORGANIZED.value,
                         "serial_id": str(ctx.serial_id) if ctx.serial_id else None,
+                        "file_type": ctx.file_type.value if ctx.file_type else None,
                     },
                 )
                 self.transaction_log.write_entry(entry)
 
-            # 更新上下文中的文件信息
-            ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
-
             return ProcessorResult.success(
-                f"文件移动成功: {ctx.file_info.path.name} -> {unique_path}",
-                {"old_path": str(ctx.file_info.path), "new_path": str(unique_path)},
+                f"移动到整理目录: {unique_path}",
+                {"old_path": str(old_path), "new_path": str(unique_path)},
             )
 
         except Exception as e:
-            return ProcessorResult.error(f"文件移动失败: {str(e)}")
+            return ProcessorResult.error(f"移动到整理目录失败: {str(e)}")
 
-    def _should_move(self, ctx: ProcessingContext) -> bool:
-        """判断是否需要移动文件
+    def _move_to_static_dir(self, ctx: ProcessingContext) -> ProcessorResult:
+        """移动到静态目录（通用方法）
 
         Args:
             ctx: 处理上下文
 
         Returns:
-            是否需要移动
+            执行结果
         """
-        # 非视频/图片文件需要移动
-        if ctx.file_type == FileType.OTHER:
-            return True
+        if not ctx.action:
+            return ProcessorResult.error("动作未设置")
 
-        # 视频/图片文件但没有番号需要移动
-        if ctx.file_type in [FileType.VIDEO, FileType.IMAGE] and not ctx.serial_id:
-            return True
+        try:
+            if not ctx.target_dir:
+                return ProcessorResult.error("目标目录未设置")
 
-        return False
+            # 检查源文件是否存在
+            if not ctx.file_info.path.exists():
+                return ProcessorResult.error("源文件不存在")
 
+            # 生成目标路径
+            target_path = ctx.target_dir / ctx.file_info.path.name
+            unique_path = resolve_unique_path(target_path)
 
-class FileDeleter(Executor):
-    """文件删除执行器
+            # 保存原始路径（用于事务日志）
+            old_path = ctx.file_info.path
 
-    执行文件删除操作。
-    """
+            # 执行移动
+            old_path.rename(unique_path)
 
-    def __init__(self, transaction_log: Any = None) -> None:
-        """初始化文件删除器
+            # 更新上下文
+            ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
 
-        Args:
-            transaction_log: 事务日志记录器
-        """
-        super().__init__("FileDeleter")
-        self.transaction_log = transaction_log
+            # 记录事务日志
+            if self.transaction_log:
+                entry = self.transaction_log.create_move_entry(
+                    old_path,
+                    unique_path,
+                    {
+                        "action": ctx.action.value,
+                        "file_type": ctx.file_type.value if ctx.file_type else None,
+                    },
+                )
+                self.transaction_log.write_entry(entry)
 
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
-        """执行文件删除
+            description = ctx.action.description
+            return ProcessorResult.success(
+                f"移动到{description}: {unique_path}",
+                {"old_path": str(old_path), "new_path": str(unique_path)},
+            )
+
+        except Exception as e:
+            description = ctx.action.description if ctx.action else "目标目录"
+            return ProcessorResult.error(f"移动到{description}失败: {str(e)}")
+
+    def _delete(self, ctx: ProcessingContext) -> ProcessorResult:
+        """删除文件
 
         Args:
             ctx: 处理上下文
@@ -186,22 +172,18 @@ class FileDeleter(Executor):
             执行结果
         """
         try:
-            # 检查源文件是否存在
-            if not ctx.file_info.path.exists():
-                return ProcessorResult.skip("文件不存在，无需删除")
-
             # 记录事务日志
             if self.transaction_log:
                 entry = self.transaction_log.create_delete_entry(
                     ctx.file_info.path,
                     {
-                        "file_type": ctx.file_type,
-                        "serial_id": str(ctx.serial_id) if ctx.serial_id else None,
+                        "action": "delete",
+                        "file_type": ctx.file_type.value if ctx.file_type else None,
                     },
                 )
 
-            # 执行删除
-            ctx.file_info.path.unlink()
+            # 执行删除（文件不存在时静默成功）
+            ctx.file_info.path.unlink(missing_ok=True)
 
             # 标记事务完成
             if self.transaction_log:
@@ -211,54 +193,3 @@ class FileDeleter(Executor):
 
         except Exception as e:
             return ProcessorResult.error(f"文件删除失败: {str(e)}")
-
-
-class DirectoryCreator(Executor):
-    """目录创建执行器
-
-    创建必要的目录结构。
-    """
-
-    def __init__(self, transaction_log: Any = None) -> None:
-        """初始化目录创建器
-
-        Args:
-            transaction_log: 事务日志记录器
-        """
-        super().__init__("DirectoryCreator")
-        self.transaction_log = transaction_log
-
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
-        """执行目录创建
-
-        Args:
-            ctx: 处理上下文
-
-        Returns:
-            执行结果
-        """
-        try:
-            # 检查是否需要创建目录
-            target_dir = ctx.custom_data.get("target_dir")
-            if not target_dir:
-                return ProcessorResult.skip("无需创建目录")
-
-            target_path = Path(target_dir)
-
-            # 记录事务日志
-            if self.transaction_log:
-                entry = self.transaction_log.create_dir_entry(
-                    target_path, {"purpose": ctx.custom_data.get("purpose", "unknown")}
-                )
-
-            # 创建目录（exist_ok=True 处理目录已存在和并发情况）
-            target_path.mkdir(parents=True, exist_ok=True)
-
-            # 标记事务完成
-            if self.transaction_log:
-                self.transaction_log.write_entry(entry)
-
-            return ProcessorResult.success(f"目录创建成功: {target_path}")
-
-        except Exception as e:
-            return ProcessorResult.error(f"目录创建失败: {str(e)}")

@@ -9,16 +9,19 @@ import random
 import string
 from pathlib import Path
 
-from ..core.models import FileType
+from ..core.models import FileType, SerialId
 
 
-def get_file_type(path: Path, video_exts: set[str], image_exts: set[str]) -> FileType:
+def get_file_type(
+    path: Path, video_exts: set[str], image_exts: set[str], archive_exts: set[str]
+) -> FileType:
     """判断文件类型并返回枚举
 
     Args:
         path: 文件路径
         video_exts: 视频文件扩展名集合
         image_exts: 图片文件扩展名集合
+        archive_exts: 压缩文件扩展名集合
 
     Returns:
         文件类型枚举
@@ -29,6 +32,8 @@ def get_file_type(path: Path, video_exts: set[str], image_exts: set[str]) -> Fil
         return FileType.VIDEO
     elif suffix in image_exts:
         return FileType.IMAGE
+    elif suffix in archive_exts:
+        return FileType.ARCHIVE
     else:
         return FileType.OTHER
 
@@ -74,3 +79,37 @@ def resolve_unique_path(target_path: Path) -> Path:
 
     # 如果100次尝试后仍有冲突，抛出异常
     raise RuntimeError(f"无法为 {target_path} 生成唯一路径，已尝试 {max_attempts} 次")
+
+
+def generate_organized_path(
+    organized_dir: Path, serial_id: SerialId, suffix: str
+) -> Path:
+    """生成整理目录路径：A/ABCD/ABCD-123.ext
+
+    根据番号生成整理目录的完整路径，格式为：organized_dir/首字母/完整前缀/番号.扩展名
+
+    Args:
+        organized_dir: 整理目录根路径
+        serial_id: 番号对象
+        suffix: 文件扩展名（含点号）
+
+    Returns:
+        完整的目标路径
+
+    Examples:
+        >>> from j_file_kit.core.models import SerialId
+        >>> generate_organized_path(Path("/organized"), SerialId(prefix="ABCD", number="123"), ".mp4")
+        Path("/organized/A/ABCD/ABCD-123.mp4")
+
+        >>> generate_organized_path(Path("/organized"), SerialId(prefix="XYZ", number="456"), ".jpg")
+        Path("/organized/X/XYZ/XYZ-456.jpg")
+    """
+    # 提取前缀首字母（A）和完整前缀（ABCD）
+    prefix = serial_id.prefix
+    first_letter = prefix[0]
+    full_prefix = prefix
+
+    # 构建路径：organized_dir/A/ABCD/ABCD-123.ext
+    target_dir = organized_dir / first_letter / full_prefix
+    filename = f"{serial_id}{suffix}"
+    return target_dir / filename

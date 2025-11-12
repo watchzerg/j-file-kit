@@ -99,8 +99,9 @@ class TestGetFileType:
         path = Path("test.mp4")
         video_exts = {".mp4", ".avi", ".mkv"}
         image_exts = {".jpg", ".png"}
+        archive_exts = {".zip", ".rar", ".7z"}
 
-        result = get_file_type(path, video_exts, image_exts)
+        result = get_file_type(path, video_exts, image_exts, archive_exts)
         assert result == FileType.VIDEO
 
     def test_get_file_type_image(self):
@@ -108,8 +109,9 @@ class TestGetFileType:
         path = Path("test.jpg")
         video_exts = {".mp4", ".avi", ".mkv"}
         image_exts = {".jpg", ".png"}
+        archive_exts = {".zip", ".rar", ".7z"}
 
-        result = get_file_type(path, video_exts, image_exts)
+        result = get_file_type(path, video_exts, image_exts, archive_exts)
         assert result == FileType.IMAGE
 
     def test_get_file_type_other(self):
@@ -117,8 +119,9 @@ class TestGetFileType:
         path = Path("test.txt")
         video_exts = {".mp4", ".avi", ".mkv"}
         image_exts = {".jpg", ".png"}
+        archive_exts = {".zip", ".rar", ".7z"}
 
-        result = get_file_type(path, video_exts, image_exts)
+        result = get_file_type(path, video_exts, image_exts, archive_exts)
         assert result == FileType.OTHER
 
     def test_get_file_type_case_insensitive(self):
@@ -126,6 +129,7 @@ class TestGetFileType:
         path = Path("test.MP4")
         video_exts = {".mp4", ".avi", ".mkv"}
         image_exts = {".jpg", ".png"}
+        archive_exts = {".zip", ".rar", ".7z"}
 
-        result = get_file_type(path, video_exts, image_exts)
+        result = get_file_type(path, video_exts, image_exts, archive_exts)
         assert result == FileType.VIDEO

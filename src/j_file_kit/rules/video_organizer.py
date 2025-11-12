@@ -6,10 +6,10 @@
 from pathlib import Path
 from typing import Any
 
-from ..core.config import load_config
+from ..core.config import FileOrganizeConfig, load_config
 from ..core.pipeline import Pipeline
-from ..processors.analyzers import FileClassifier, SerialIdExtractor
-from ..processors.executors import FileMover, FileRenamer
+from ..processors.analyzers import ActionDecider, FileClassifier, SerialIdExtractor
+from ..processors.executors import UnifiedFileExecutor
 from ..processors.finalizers import ReportGenerator
 
 
@@ -31,16 +31,24 @@ class VideoFileOrganizer:
         if not self.task_config:
             raise ValueError("未找到 video_file_organizer 任务配置")
 
-        # 获取任务配置
-        self.file_config = self.task_config.config
+        # 获取类型化的配置对象
+        self.file_config: FileOrganizeConfig = self.task_config.get_config(
+            FileOrganizeConfig
+        )
 
-        # 设置路径
-        self.todo_non_vidpic_dir = Path(self.file_config["todo_non_vidpic_dir"])
-        self.todo_vidpic_dir = Path(self.file_config["todo_vidpic_dir"])
+        # 设置目录路径
+        self.organized_dir: Path = self.file_config.organized_dir
+        self.unorganized_dir: Path = self.file_config.unorganized_dir
+        self.archive_dir: Path = self.file_config.archive_dir
+        self.misc_dir: Path = self.file_config.misc_dir
 
-        # 设置文件类型
-        self.video_extensions = set(self.file_config["video_extensions"])
-        self.image_extensions = set(self.file_config["image_extensions"])
+        # 设置文件类型扩展名
+        self.video_extensions: set[str] = self.file_config.video_extensions
+        self.image_extensions: set[str] = self.file_config.image_extensions
+        self.archive_extensions: set[str] = self.file_config.archive_extensions
+
+        # 设置删除规则
+        self.delete_rules: dict[str, Any] = self.file_config.delete_rules
 
     def create_pipeline(self) -> Pipeline:
         """创建处理管道
@@ -53,16 +61,25 @@ class VideoFileOrganizer:
 
         # 添加分析器
         pipeline.add_analyzer(
-            FileClassifier(self.video_extensions, self.image_extensions)
+            FileClassifier(
+                self.video_extensions,
+                self.image_extensions,
+                self.archive_extensions,
+            )
         )
         pipeline.add_analyzer(SerialIdExtractor())
+        pipeline.add_analyzer(
+            ActionDecider(
+                self.organized_dir,
+                self.unorganized_dir,
+                self.archive_dir,
+                self.misc_dir,
+                self.delete_rules,
+            )
+        )
 
         # 添加执行器
-        pipeline.add_executor(FileRenamer(pipeline.transaction_log))
-        pipeline.add_executor(
-            FileMover(self.todo_non_vidpic_dir, pipeline.transaction_log)
-        )
-        pipeline.add_executor(FileMover(self.todo_vidpic_dir, pipeline.transaction_log))
+        pipeline.add_executor(UnifiedFileExecutor(pipeline.transaction_log))
 
         # 添加终结器
         pipeline.add_finalizer(

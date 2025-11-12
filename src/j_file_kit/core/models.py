@@ -28,7 +28,32 @@ class FileType(str, Enum):
 
     VIDEO = "video"
     IMAGE = "image"
+    ARCHIVE = "archive"
     OTHER = "other"
+
+
+class FileAction(str, Enum):
+    """文件动作类型枚举"""
+
+    MOVE_TO_ORGANIZED = "move_to_organized"  # 移动到整理目录（B/ABCD/...）
+    MOVE_TO_UNORGANIZED = "move_to_unorganized"  # 移动到无番号目录（C）
+    MOVE_TO_ARCHIVE = "move_to_archive"  # 移动到压缩文件目录
+    MOVE_TO_MISC = "move_to_misc"  # 移动到其他目录（D）
+    DELETE = "delete"  # 删除文件
+    SKIP = "skip"  # 跳过处理
+
+    @property
+    def description(self) -> str:
+        """获取动作的中文描述"""
+        descriptions = {
+            FileAction.MOVE_TO_ORGANIZED: "整理目录",
+            FileAction.MOVE_TO_UNORGANIZED: "无番号目录",
+            FileAction.MOVE_TO_ARCHIVE: "压缩文件目录",
+            FileAction.MOVE_TO_MISC: "其他文件目录",
+            FileAction.DELETE: "删除",
+            FileAction.SKIP: "跳过",
+        }
+        return descriptions.get(self, self.value)
 
 
 class SerialId(BaseModel):
@@ -133,10 +158,15 @@ class ProcessingContext(BaseModel):
     """
 
     file_info: FileInfo = Field(..., description="文件基础信息")
-    file_type: FileType | None = Field(None, description="文件类型（视频/图片/其他）")
+    file_type: FileType | None = Field(
+        None, description="文件类型（视频/图片/压缩/其他）"
+    )
     serial_id: SerialId | None = Field(None, description="提取的番号")
     target_path: Path | None = Field(None, description="计划的目标路径")
     skip_remaining: bool = Field(False, description="短路标记，跳过后续处理器")
+    action: FileAction | None = Field(None, description="决策的动作类型")
+    target_dir: Path | None = Field(None, description="目标目录（用于移动）")
+    should_delete: bool = Field(False, description="是否应该删除")
 
     # 扩展字段，用于携带自定义状态
     custom_data: dict[str, Any] = Field(default_factory=dict, description="自定义数据")

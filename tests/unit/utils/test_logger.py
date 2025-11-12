@@ -95,6 +95,9 @@ class TestStructuredLogger:
             serial_id=SerialId(prefix="ABC", number="123"),
             target_path=None,
             skip_remaining=False,
+            action=None,
+            target_dir=None,
+            should_delete=False,
         )
         result = TaskResult(
             file_info=file_info,
@@ -134,6 +137,9 @@ class TestStructuredLogger:
             serial_id=None,
             target_path=None,
             skip_remaining=False,
+            action=None,
+            target_dir=None,
+            should_delete=False,
         )
         result = TaskResult(
             file_info=file_info,
@@ -160,6 +166,9 @@ class TestStructuredLogger:
             serial_id=None,
             target_path=None,
             skip_remaining=False,
+            action=None,
+            target_dir=None,
+            should_delete=False,
         )
         result = TaskResult(
             file_info=file_info,
@@ -315,6 +324,9 @@ class TestStructuredLogger:
             serial_id=None,
             target_path=None,
             skip_remaining=False,
+            action=None,
+            target_dir=None,
+            should_delete=False,
         )
         result = TaskResult(
             file_info=file_info,
