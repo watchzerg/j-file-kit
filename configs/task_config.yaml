@@ -68,7 +68,6 @@ tasks:
     type: file_cleanup
     enabled: false
     config:
-      delete_empty_dirs: true
       delete_duplicates: false
       min_age_days: 30
       file_patterns:

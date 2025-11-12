@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from ..core.models import FileType, ProcessingContext, ProcessorResult
 from ..core.processor import Analyzer
-from ..utils.file_utils import get_file_type_from_path
+from ..utils.file_utils import get_file_type
 from ..utils.filename_generation import generate_new_filename
 
 
@@ -39,7 +39,7 @@ class FileClassifier(Analyzer):
         """
         try:
             # 获取文件类型
-            file_type = get_file_type_from_path(
+            file_type = get_file_type(
                 ctx.file_info.path, self.video_extensions, self.image_extensions
             )
 

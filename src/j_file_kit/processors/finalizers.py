@@ -1,6 +1,6 @@
 """终结器模块
 
-实现全局后处理功能，如清理空目录、生成报告等。
+实现全局后处理功能，如生成报告等。
 """
 
 from __future__ import annotations
@@ -11,68 +11,6 @@ from typing import Any
 
 from ..core.models import ProcessingContext, ProcessorResult, TaskReport
 from ..core.processor import Finalizer
-from ..utils.file_utils import find_empty_dirs, safe_remove_empty_dirs
-
-
-class EmptyDirCleaner(Finalizer):
-    """空目录清理器
-
-    清理处理过程中产生的空目录。
-    """
-
-    def __init__(self, root_path: Path, transaction_log: Any = None) -> None:
-        """初始化空目录清理器
-
-        Args:
-            root_path: 根目录路径
-            transaction_log: 事务日志记录器
-        """
-        super().__init__("EmptyDirCleaner")
-        self.root_path = root_path
-        self.transaction_log = transaction_log
-
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
-        """处理单个文件（终结器通常不处理单个文件）
-
-        Args:
-            ctx: 处理上下文
-
-        Returns:
-            处理结果
-        """
-        return ProcessorResult.skip("终结器不处理单个文件")
-
-    def finalize(self) -> ProcessorResult:
-        """执行全局终结处理
-
-        Returns:
-            处理结果
-        """
-        try:
-            # 查找空目录
-            empty_dirs = find_empty_dirs(self.root_path)
-
-            if not empty_dirs:
-                return ProcessorResult.success("没有发现空目录")
-
-            # 删除空目录
-            removed_dirs = safe_remove_empty_dirs(empty_dirs)
-
-            # 记录事务日志（只记录实际删除的目录）
-            if self.transaction_log:
-                for dir_path in removed_dirs:
-                    entry = self.transaction_log.create_delete_dir_entry(
-                        dir_path, {"purpose": "cleanup_empty_dir"}
-                    )
-                    self.transaction_log.write_entry(entry)
-
-            return ProcessorResult.success(
-                f"清理了 {len(removed_dirs)} 个空目录",
-                {"removed_dirs": [str(d) for d in removed_dirs]},
-            )
-
-        except Exception as e:
-            return ProcessorResult.error(f"空目录清理失败: {str(e)}")
 
 
 class ReportGenerator(Finalizer):

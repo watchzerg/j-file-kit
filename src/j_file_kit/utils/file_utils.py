@@ -1,11 +1,12 @@
 """文件工具函数
 
-提供文件操作相关的工具函数，如路径冲突处理、空目录清理等。
+提供文件操作相关的工具函数，如路径冲突处理等。
 """
 
 from __future__ import annotations
 
 import random
+import string
 from pathlib import Path
 
 from ..core.models import FileType
@@ -35,7 +36,7 @@ def get_file_type(path: Path, video_exts: set[str], image_exts: set[str]) -> Fil
 def resolve_unique_path(target_path: Path) -> Path:
     """处理路径冲突，生成唯一路径
 
-    如果目标路径已存在，自动追加 `-Dup1234` 后缀（4位随机数），
+    如果目标路径已存在，自动追加 `-a3b2` 后缀（连字符加4个小写字母或数字），
     重试直到找到不冲突的路径。
 
     Args:
@@ -49,7 +50,7 @@ def resolve_unique_path(target_path: Path) -> Path:
         Path("test.mp4")  # 如果文件不存在
 
         >>> resolve_unique_path(Path("test.mp4"))
-        Path("test-Dup1234.mp4")  # 如果 test.mp4 已存在
+        Path("test-a3b2.mp4")  # 如果 test.mp4 已存在
     """
     if not target_path.exists():
         return target_path
@@ -61,9 +62,10 @@ def resolve_unique_path(target_path: Path) -> Path:
 
     # 生成唯一路径
     max_attempts = 100  # 防止无限循环
+    chars = string.ascii_lowercase + string.digits
     for _ in range(max_attempts):
-        # 生成4位随机数（非密码学场景，使用标准随机数生成器即可）
-        random_suffix = f"-Dup{random.randint(1000, 9999)}"  # noqa: S311
+        # 生成4个小写字母或数字（非密码学场景，使用标准随机数生成器即可）
+        random_suffix = "-" + "".join(random.choices(chars, k=4))  # noqa: S311
         new_name = f"{stem}{random_suffix}{suffix}"
         new_path = parent / new_name
 
@@ -72,80 +74,3 @@ def resolve_unique_path(target_path: Path) -> Path:
 
     # 如果100次尝试后仍有冲突，抛出异常
     raise RuntimeError(f"无法为 {target_path} 生成唯一路径，已尝试 {max_attempts} 次")
-
-
-def find_empty_dirs(root: Path) -> list[Path]:
-    """递归查找空目录
-
-    查找所有空目录，返回需要删除的目录列表。
-
-    Args:
-        root: 根目录
-
-    Returns:
-        空目录列表
-    """
-    empty_dirs = []
-
-    def _find_empty_dirs(path: Path) -> None:
-        """递归查找空目录"""
-        if not path.is_dir():
-            return
-
-        # 检查目录是否为空
-        try:
-            items = list(path.iterdir())
-            if not items:
-                empty_dirs.append(path)
-                return
-        except (PermissionError, OSError):
-            return
-
-        # 递归检查子目录
-        for item in items:
-            if item.is_dir():
-                _find_empty_dirs(item)
-
-    _find_empty_dirs(root)
-    return empty_dirs
-
-
-def safe_remove_empty_dirs(dirs: list[Path]) -> list[Path]:
-    """安全删除空目录
-
-    Args:
-        dirs: 要删除的目录列表（自底向上排序）
-
-    Returns:
-        成功删除的目录列表
-    """
-    removed_dirs = []
-
-    for dir_path in dirs:
-        try:
-            if dir_path.exists() and dir_path.is_dir():
-                # 再次检查是否为空（防止并发删除）
-                if not any(dir_path.iterdir()):
-                    dir_path.rmdir()
-                    removed_dirs.append(dir_path)
-        except (PermissionError, OSError) as e:
-            # 记录错误但继续处理其他目录
-            print(f"无法删除目录 {dir_path}: {e}")
-
-    return removed_dirs
-
-
-def get_file_type_from_path(
-    path: Path, video_exts: set[str], image_exts: set[str]
-) -> FileType:
-    """从路径获取文件类型枚举（向后兼容函数）
-
-    Args:
-        path: 文件路径
-        video_exts: 视频文件扩展名集合
-        image_exts: 图片文件扩展名集合
-
-    Returns:
-        文件类型枚举
-    """
-    return get_file_type(path, video_exts, image_exts)

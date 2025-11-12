@@ -97,7 +97,7 @@ from j_file_kit.core.pipeline import Pipeline
 from j_file_kit.core.config import load_config
 from j_file_kit.processors.analyzers import FileClassifier, SerialIdExtractor
 from j_file_kit.processors.executors import FileRenamer, FileMover
-from j_file_kit.processors.finalizers import EmptyDirCleaner, ReportGenerator
+from j_file_kit.processors.finalizers import ReportGenerator
 
 # 加载配置
 config = load_config("config.yaml")
@@ -110,7 +110,6 @@ pipeline.add_analyzer(FileClassifier({".mp4", ".avi"}, {".jpg", ".png"}))
 pipeline.add_analyzer(SerialIdExtractor())
 pipeline.add_executor(FileRenamer(pipeline.transaction_log))
 pipeline.add_executor(FileMover("/path/to/todo_vidpic", pipeline.transaction_log))
-pipeline.add_finalizer(EmptyDirCleaner(config.global_.scan_roots[0], pipeline.transaction_log))
 pipeline.add_finalizer(ReportGenerator("./reports", pipeline.report))
 
 # 执行任务

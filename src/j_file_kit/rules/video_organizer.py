@@ -12,7 +12,7 @@ from ..core.pipeline import Pipeline
 from ..core.processor import Analyzer, Executor
 from ..processors.analyzers import FileClassifier, SerialIdExtractor
 from ..processors.executors import FileMover, FileRenamer
-from ..processors.finalizers import EmptyDirCleaner, ReportGenerator
+from ..processors.finalizers import ReportGenerator
 
 
 class VideoFileOrganizer:
@@ -67,9 +67,6 @@ class VideoFileOrganizer:
         pipeline.add_executor(FileMover(self.todo_vidpic_dir, pipeline.transaction_log))
 
         # 添加终结器
-        pipeline.add_finalizer(
-            EmptyDirCleaner(self.config.global_.scan_root, pipeline.transaction_log)
-        )
         pipeline.add_finalizer(
             ReportGenerator(self.config.global_.report_dir, pipeline.report)
         )
