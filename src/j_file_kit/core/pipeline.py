@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import threading
 import time
 from datetime import datetime
 from typing import Any
@@ -102,11 +103,14 @@ class Pipeline:
         self.processor_chain.add_finalizer(finalizer)
         return self
 
-    def run(self, dry_run: bool = False) -> TaskReport:
+    def run(
+        self, dry_run: bool = False, cancelled_event: threading.Event | None = None
+    ) -> TaskReport:
         """运行管道
 
         Args:
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
+            cancelled_event: 取消事件，用于检查任务是否被取消
 
         Returns:
             任务报告
@@ -120,6 +124,10 @@ class Pipeline:
 
             # 处理每个文件（使用生成器模式，边扫描边处理）
             for file_info in self.scanner.scan_files():
+                # 检查是否被取消
+                if cancelled_event and cancelled_event.is_set():
+                    self.logger.info("任务已被取消")
+                    break
                 try:
                     # 记录文件处理开始时间
                     file_start_time = time.time()

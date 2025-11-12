@@ -310,3 +310,59 @@ class TaskReport(BaseModel):
             self.error_files += 1
 
         self.total_duration_ms += result.total_duration_ms
+
+
+class TaskStatus(str, Enum):
+    """任务状态枚举"""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class Task(BaseModel):
+    """任务模型
+
+    表示一个执行中的任务实例。
+    """
+
+    task_id: str = Field(..., description="任务ID")
+    task_name: str = Field(..., description="任务名称")
+    status: TaskStatus = Field(..., description="任务状态")
+    start_time: datetime = Field(..., description="开始时间")
+    end_time: datetime | None = Field(None, description="结束时间")
+    error_message: str | None = Field(None, description="错误消息")
+    report: TaskReport | None = Field(None, description="任务报告")
+
+
+# 领域异常
+class TaskError(Exception):
+    """任务相关异常基类"""
+
+    pass
+
+
+class TaskNotFoundError(TaskError):
+    """任务不存在异常"""
+
+    def __init__(self, task_id: str):
+        self.task_id = task_id
+        super().__init__(f"任务不存在: {task_id}")
+
+
+class TaskAlreadyRunningError(TaskError):
+    """任务已在运行异常"""
+
+    def __init__(self, running_task_id: str):
+        self.running_task_id = running_task_id
+        super().__init__(f"已有任务正在运行: {running_task_id}")
+
+
+class TaskCancelledError(TaskError):
+    """任务已取消异常"""
+
+    def __init__(self, task_id: str):
+        self.task_id = task_id
+        super().__init__(f"任务已取消: {task_id}")
