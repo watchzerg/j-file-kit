@@ -82,7 +82,7 @@ from j_file_kit.rules.video_organizer import VideoFileOrganizer
 organizer = VideoFileOrganizer("config.yaml")
 
 # 预览模式（推荐先运行）
-preview_report = organizer.run_dry()
+preview_report = organizer.run(dry_run=True)
 print(f"预览模式将处理 {preview_report.total_files} 个文件")
 
 # 实际执行
@@ -103,7 +103,7 @@ from j_file_kit.processors.finalizers import ReportGenerator
 config = load_config("config.yaml")
 
 # 创建管道
-pipeline = Pipeline(config)
+pipeline = Pipeline(config, "video_file_organizer")
 
 # 添加处理器
 pipeline.add_analyzer(FileClassifier({".mp4", ".avi"}, {".jpg", ".png"}))
@@ -112,7 +112,11 @@ pipeline.add_executor(FileRenamer(pipeline.transaction_log))
 pipeline.add_executor(FileMover("/path/to/todo_vidpic", pipeline.transaction_log))
 pipeline.add_finalizer(ReportGenerator("./reports", pipeline.report))
 
-# 执行任务
+# 执行任务（预览模式）
+preview_report = pipeline.run(dry_run=True)
+print(f"预览完成: {preview_report.total_files} 个文件将被处理")
+
+# 实际执行
 report = pipeline.run()
 print(f"任务完成: {report.success_rate:.2%} 成功率")
 ```

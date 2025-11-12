@@ -73,23 +73,25 @@ class VideoFileOrganizer:
 
         return pipeline
 
-    def run(self) -> Any:
+    def run(self, dry_run: bool = False) -> Any:
         """运行文件整理
 
+        Args:
+            dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
+
         Returns:
             任务报告
         """
         pipeline = self.create_pipeline()
-        return pipeline.run()
+        return pipeline.run(dry_run=dry_run)
 
     def run_dry(self) -> Any:
-        """运行预览模式
+        """运行预览模式（已废弃，请使用 run(dry_run=True)）
 
         Returns:
             任务报告
         """
-        pipeline = self.create_pipeline()
-        return pipeline.run_dry()
+        return self.run(dry_run=True)
 
 
 class CustomVideoAnalyzer(Analyzer):
@@ -224,11 +226,7 @@ def run_video_organizer(config_path: str | Path, dry_run: bool = False) -> Any:
         任务报告
     """
     organizer = create_video_organizer_rule(config_path)
-
-    if dry_run:
-        return organizer.run_dry()
-    else:
-        return organizer.run()
+    return organizer.run(dry_run=dry_run)
 
 
 # 使用示例
@@ -241,7 +239,7 @@ if __name__ == "__main__":
 
     # 运行整理（预览模式）
     print("运行预览模式...")
-    report = organizer.run_dry()
+    report = organizer.run(dry_run=True)
     print(f"预览完成，处理了 {report.total_files} 个文件")
 
     # 如果预览结果满意，可以运行实际整理

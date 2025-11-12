@@ -12,7 +12,13 @@ from typing import Any
 from ..utils.logger import StructuredLogger
 from ..utils.transaction_log import TransactionLog
 from .config import TaskConfig
-from .models import ProcessingContext, ProcessorStatus, TaskReport, TaskResult
+from .models import (
+    ProcessingContext,
+    ProcessorResult,
+    ProcessorStatus,
+    TaskReport,
+    TaskResult,
+)
 from .processor import Analyzer, Executor, Finalizer, ProcessorChain
 from .scanner import FileScanner
 
@@ -23,15 +29,15 @@ class Pipeline:
     协调整个文件处理流程：扫描 → 分析 → 执行 → 终结。
     """
 
-    def __init__(self, config: TaskConfig, task_name: str | None = None):
+    def __init__(self, config: TaskConfig, task_name: str):
         """初始化管道
 
         Args:
             config: 任务配置
-            task_name: 任务名称，如果为 None 则使用第一个启用的任务
+            task_name: 任务名称
         """
         self.config = config
-        self.task_name = task_name or self._get_default_task_name()
+        self.task_name = task_name
         self.task_config = self._get_task_config()
 
         # 初始化组件
@@ -52,13 +58,6 @@ class Pipeline:
             warning_files=0,
             total_duration_ms=0.0,
         )
-
-    def _get_default_task_name(self) -> str:
-        """获取默认任务名称"""
-        enabled_tasks = self.config.enabled_tasks
-        if not enabled_tasks:
-            raise ValueError("没有启用的任务")
-        return enabled_tasks[0].name
 
     def _get_task_config(self) -> Any:
         """获取任务配置"""
@@ -103,8 +102,11 @@ class Pipeline:
         self.processor_chain.add_finalizer(finalizer)
         return self
 
-    def run(self) -> TaskReport:
+    def run(self, dry_run: bool = False) -> TaskReport:
         """运行管道
+
+        Args:
+            dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
 
         Returns:
             任务报告
@@ -113,6 +115,8 @@ class Pipeline:
             # 记录任务开始
             scan_roots_str = ", ".join(str(p) for p in self.config.global_.scan_roots)
             self.logger.log_task_start(scan_roots_str)
+            if dry_run:
+                self.logger.info("运行在干模式（预览模式）")
 
             # 处理每个文件（使用生成器模式，边扫描边处理）
             for file_info in self.scanner.scan_files():
@@ -129,8 +133,11 @@ class Pipeline:
                         skip_remaining=False,
                     )
 
-                    # 执行处理器链
-                    processor_results = self.processor_chain.process_file(ctx)
+                    # 根据模式执行不同的处理器
+                    if dry_run:
+                        processor_results = self._run_analyzers_only(ctx)
+                    else:
+                        processor_results = self.processor_chain.process_file(ctx)
 
                     # 计算文件处理总耗时
                     file_duration_ms = (time.time() - file_start_time) * 1000
@@ -160,8 +167,9 @@ class Pipeline:
 
                 except Exception as e:
                     # 处理单个文件时的异常
+                    error_msg = "分析文件失败" if dry_run else "处理文件失败"
                     self.logger.error(
-                        f"处理文件失败: {file_info.path}", {"error": str(e)}
+                        f"{error_msg}: {file_info.path}", {"error": str(e)}
                     )
 
                     # 创建错误结果
@@ -180,9 +188,10 @@ class Pipeline:
                     )
                     self.report.add_result(error_result)
 
-            # 执行终结器
-            finalizer_results = self.processor_chain.finalize_all()
-            self.logger.info(f"执行了 {len(finalizer_results)} 个终结器")
+            # 执行终结器（仅在非预览模式）
+            if not dry_run:
+                finalizer_results = self.processor_chain.finalize_all()
+                self.logger.info(f"执行了 {len(finalizer_results)} 个终结器")
 
             # 完成报告
             self.report.end_time = datetime.now()
@@ -192,6 +201,8 @@ class Pipeline:
 
             # 记录任务结束
             self.logger.log_task_end(self.report)
+            if dry_run:
+                self.logger.info("干模式执行完成")
 
             return self.report
 
@@ -200,83 +211,23 @@ class Pipeline:
             self.logger.error(f"管道执行失败: {str(e)}")
             raise
 
-    def run_dry(self) -> TaskReport:
-        """运行干模式（预览模式）
+    def _run_analyzers_only(self, ctx: ProcessingContext) -> list[ProcessorResult]:
+        """仅执行分析器（用于预览模式）
 
-        不执行实际的文件操作，只进行分析和报告生成。
+        Args:
+            ctx: 处理上下文
 
         Returns:
-            任务报告
+            分析器结果列表
         """
-        # 记录任务开始
-        scan_roots_str = ", ".join(str(p) for p in self.config.global_.scan_roots)
-        self.logger.log_task_start(scan_roots_str)
-        self.logger.info("运行在干模式（预览模式）")
+        results = []
+        for analyzer in self.processor_chain.analyzers:
+            result = analyzer.process(ctx)
+            results.append(result)
 
-        # 处理每个文件（仅分析，不执行，使用生成器模式）
-        for file_info in self.scanner.scan_files():
-            try:
-                # 记录文件处理开始时间
-                file_start_time = time.time()
+            if result.status == ProcessorStatus.ERROR:
+                break
+            if ctx.skip_remaining:
+                break
 
-                # 创建处理上下文
-                ctx = ProcessingContext(
-                    file_info=file_info,
-                    file_type=None,
-                    serial_id=None,
-                    target_path=None,
-                    skip_remaining=False,
-                )
-
-                # 只执行分析器
-                analyzer_results = []
-                for analyzer in self.processor_chain.analyzers:
-                    result = analyzer.process(ctx)
-                    analyzer_results.append(result)
-
-                    if result.status == ProcessorStatus.ERROR:
-                        break
-                    if ctx.skip_remaining:
-                        break
-
-                # 计算文件处理总耗时
-                file_duration_ms = (time.time() - file_start_time) * 1000
-
-                # 创建任务结果（标记为预览模式）
-                task_result = TaskResult(
-                    file_info=file_info,
-                    context=ctx,
-                    processor_results=analyzer_results,
-                    total_duration_ms=file_duration_ms,
-                    success=not any(
-                        r.status == ProcessorStatus.ERROR for r in analyzer_results
-                    ),
-                    error_message=next(
-                        (
-                            r.message
-                            for r in analyzer_results
-                            if r.status == ProcessorStatus.ERROR
-                        ),
-                        None,
-                    ),
-                )
-
-                # 记录结果
-                self.report.add_result(task_result)
-                self.logger.log_file_result(task_result)
-
-            except Exception as e:
-                # 处理单个文件时的异常
-                self.logger.error(f"分析文件失败: {file_info.path}", {"error": str(e)})
-
-        # 完成报告
-        self.report.end_time = datetime.now()
-        self.report.total_duration_ms = (
-            self.report.end_time - self.report.start_time
-        ).total_seconds() * 1000
-
-        # 记录任务结束
-        self.logger.log_task_end(self.report)
-        self.logger.info("干模式执行完成")
-
-        return self.report
+        return results
