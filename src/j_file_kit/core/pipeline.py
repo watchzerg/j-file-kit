@@ -103,23 +103,6 @@ class Pipeline:
         self.processor_chain.add_finalizer(finalizer)
         return self
 
-    def setup_scanner_filters(self) -> Pipeline:
-        """设置扫描器过滤器
-
-        根据任务配置设置相应的过滤器。
-
-        Returns:
-            管道实例
-        """
-        if self.task_config.type == "file_organize":
-            # 文件整理任务：扫描所有文件
-            pass  # 不添加过滤器，扫描所有文件
-        elif self.task_config.type == "db_update":
-            # 数据库更新任务：可能需要特定过滤器
-            pass  # 根据具体需求添加过滤器
-
-        return self
-
     def run(self) -> TaskReport:
         """运行管道
 
@@ -127,9 +110,6 @@ class Pipeline:
             任务报告
         """
         try:
-            # 设置扫描器过滤器
-            self.setup_scanner_filters()
-
             # 记录任务开始
             scan_roots_str = ", ".join(str(p) for p in self.config.global_.scan_roots)
             self.logger.log_task_start(scan_roots_str)
@@ -228,9 +208,6 @@ class Pipeline:
         Returns:
             任务报告
         """
-        # 设置扫描器过滤器
-        self.setup_scanner_filters()
-
         # 记录任务开始
         scan_roots_str = ", ".join(str(p) for p in self.config.global_.scan_roots)
         self.logger.log_task_start(scan_roots_str)
