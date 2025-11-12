@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -59,3 +60,35 @@ class TaskListResponse(BaseModel):
     """任务列表响应"""
 
     tasks: list[TaskListItem] = Field(..., description="任务列表")
+
+
+class UpdateGlobalConfigRequest(BaseModel):
+    """更新全局配置请求（部分更新）"""
+
+    scan_roots: list[str] | None = Field(None, description="扫描根目录列表")
+    log_dir: str | None = Field(None, description="日志目录")
+    report_dir: str | None = Field(None, description="报告目录")
+
+
+class UpdateTaskConfigRequest(BaseModel):
+    """更新任务配置请求（部分更新）"""
+
+    name: str | None = Field(None, description="任务名称")
+    enabled: bool | None = Field(None, description="是否启用")
+    config: dict[str, Any] | None = Field(None, description="任务特定配置")
+
+
+class UpdateConfigRequest(BaseModel):
+    """更新配置请求（部分更新）"""
+
+    global_: UpdateGlobalConfigRequest | None = Field(
+        None, alias="global", description="全局配置"
+    )
+    tasks: list[UpdateTaskConfigRequest] | None = Field(None, description="任务列表")
+
+
+class UpdateConfigResponse(BaseModel):
+    """更新配置响应"""
+
+    message: str = Field(..., description="成功消息")
+    code: str = Field("SUCCESS", description="响应代码")

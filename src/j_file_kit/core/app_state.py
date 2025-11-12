@@ -8,7 +8,13 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from .config import TaskConfig, load_config
+from .config import (
+    TaskConfig,
+    create_default_config,
+    ensure_directories_exist,
+    load_config,
+    save_config,
+)
 from .task_manager import TaskManager
 
 
@@ -27,5 +33,30 @@ class AppState:
         if config_path is None:
             config_path = os.getenv("J_FILE_KIT_CONFIG", "configs/task_config.yaml")
 
+        config_path = Path(config_path)
+
+        # 如果配置文件不存在，创建默认配置文件
+        if not config_path.exists():
+            default_config = create_default_config()
+            save_config(default_config, config_path)
+
+        # 加载配置
         self.config: TaskConfig = load_config(config_path)
+        self._config_path = config_path
+
+        # 确保所有目录存在
+        ensure_directories_exist(self.config)
+
         self.task_manager: TaskManager = TaskManager()
+
+    def reload_config(self) -> None:
+        """重新加载配置文件并更新内存中的配置
+
+        Raises:
+            FileNotFoundError: 配置文件不存在
+            yaml.YAMLError: YAML 解析错误
+            ValidationError: 配置验证失败
+            OSError: 目录创建失败
+        """
+        self.config = load_config(self._config_path)
+        ensure_directories_exist(self.config)

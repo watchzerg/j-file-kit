@@ -18,6 +18,7 @@ from ..core.models import (
     TaskError,
     TaskNotFoundError,
 )
+from .config_routes import router as config_router
 from .routes import router
 
 
@@ -124,3 +125,4 @@ async def task_error_handler(request: Request, exc: TaskError) -> JSONResponse:
 
 # 注册路由
 app.include_router(router)
+app.include_router(config_router)

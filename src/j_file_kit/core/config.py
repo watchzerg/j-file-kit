@@ -24,14 +24,10 @@ class GlobalConfig(BaseModel):
     @model_validator(mode="after")
     def validate_paths(self) -> GlobalConfig:
         """验证路径配置"""
-        # 确保目录存在（仅在非测试环境中）
+        # 验证扫描根目录（仅在非测试环境中）
         import os
 
         if not os.environ.get("PYTEST_CURRENT_TEST"):
-            self.log_dir.mkdir(parents=True, exist_ok=True)
-            self.report_dir.mkdir(parents=True, exist_ok=True)
-
-            # 验证扫描根目录
             for scan_root in self.scan_roots:
                 if not scan_root.exists():
                     raise ValueError(f"扫描根目录不存在: {scan_root}")
@@ -147,6 +143,9 @@ def save_config(config: TaskConfig, config_path: str | Path) -> None:
     """
     config_path = Path(config_path)
 
+    # 确保配置文件所在目录存在
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+
     # 转换为字典并处理别名
     data = config.model_dump(by_alias=True)
 
@@ -154,11 +153,43 @@ def save_config(config: TaskConfig, config_path: str | Path) -> None:
         yaml.dump(data, f, default_flow_style=False, allow_unicode=True, indent=2)
 
 
+def ensure_directories_exist(config: TaskConfig) -> None:
+    """确保配置中的所有目录存在
+
+    直接创建目录，不检查是否已存在。如果目录已存在，则继续执行。
+    如果创建失败，则抛出异常。
+
+    Args:
+        config: 配置对象
+
+    Raises:
+        OSError: 如果目录创建失败
+    """
+    # 创建全局配置中的目录
+    try:
+        config.global_.log_dir.mkdir(parents=True, exist_ok=True)
+        config.global_.report_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        raise OSError(f"创建全局目录失败: {e}") from e
+
+    # 创建任务配置中的目录
+    for task in config.tasks:
+        if task.type == "file_organize":
+            try:
+                task_config: FileOrganizeConfig = task.get_config(FileOrganizeConfig)
+                task_config.organized_dir.mkdir(parents=True, exist_ok=True)
+                task_config.unorganized_dir.mkdir(parents=True, exist_ok=True)
+                task_config.archive_dir.mkdir(parents=True, exist_ok=True)
+                task_config.misc_dir.mkdir(parents=True, exist_ok=True)
+            except OSError as e:
+                raise OSError(f"创建任务 '{task.name}' 的目录失败: {e}") from e
+
+
 def create_default_config() -> TaskConfig:
     """创建默认配置"""
     return TaskConfig(
         global_=GlobalConfig(  # type: ignore[call-arg]
-            scan_roots=[Path("/path/to/scan")],
+            scan_roots=[Path("./scan")],
             log_dir=Path("./logs"),
             report_dir=Path("./reports"),
         ),
@@ -168,10 +199,42 @@ def create_default_config() -> TaskConfig:
                 type="file_organize",
                 enabled=True,
                 config={
-                    "todo_non_vidpic_dir": "/path/to/todo-non-vidpic",
-                    "todo_vidpic_dir": "/path/to/todo-vidpic",
-                    "video_extensions": [".mp4", ".avi", ".mkv", ".mov"],
-                    "image_extensions": [".jpg", ".jpeg", ".png", ".webp"],
+                    "organized_dir": "./organized",
+                    "unorganized_dir": "./unorganized",
+                    "archive_dir": "./archives",
+                    "misc_dir": "./misc",
+                    "video_extensions": [
+                        ".mp4",
+                        ".avi",
+                        ".mkv",
+                        ".mov",
+                        ".wmv",
+                        ".flv",
+                        ".webm",
+                    ],
+                    "image_extensions": [
+                        ".jpg",
+                        ".jpeg",
+                        ".png",
+                        ".webp",
+                        ".bmp",
+                        ".gif",
+                        ".tiff",
+                    ],
+                    "archive_extensions": [
+                        ".zip",
+                        ".rar",
+                        ".7z",
+                        ".tar",
+                        ".gz",
+                        ".bz2",
+                        ".xz",
+                    ],
+                    "delete_rules": {
+                        "keywords": [".tmp", ".temp", ".bak", ".old"],
+                        "extensions": [".tmp", ".temp", ".bak", ".old"],
+                        "max_size": 1048576,
+                    },
                 },
             )
         ],
