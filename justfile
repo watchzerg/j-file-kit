@@ -27,3 +27,20 @@ clean:
     find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
     find . -type f -name "*.pyc" -delete
     @echo "清理完成"
+
+# 同步依赖
+sync-deps:
+	uv sync --all-groups
+
+# 升级依赖
+up-deps:
+    uv lock --upgrade
+    uv sync --all-groups
+    
+# 升级python并重建venv
+up-python:
+    brew upgrade python
+    version=$(python3 --version | awk '{print $2}' | cut -d. -f1,2)
+    uv python pin "$version"
+    uv venv --refresh
+    uv sync --all-groups
