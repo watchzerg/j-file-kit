@@ -12,7 +12,7 @@ from typing import Any
 from ..utils.logger import StructuredLogger
 from ..utils.transaction_log import TransactionLog
 from .config import TaskConfig
-from .models import ProcessingContext, TaskReport, TaskResult
+from .models import ProcessingContext, ProcessorStatus, TaskReport, TaskResult
 from .processor import Analyzer, Executor, Finalizer, ProcessorChain
 from .scanner import FileScanner
 
@@ -161,12 +161,14 @@ class Pipeline:
                         context=ctx,
                         processor_results=processor_results,
                         total_duration_ms=file_duration_ms,
-                        success=not any(r.status == "error" for r in processor_results),
+                        success=not any(
+                            r.status == ProcessorStatus.ERROR for r in processor_results
+                        ),
                         error_message=next(
                             (
                                 r.message
                                 for r in processor_results
-                                if r.status == "error"
+                                if r.status == ProcessorStatus.ERROR
                             ),
                             None,
                         ),
@@ -255,7 +257,7 @@ class Pipeline:
                     result = analyzer.process(ctx)
                     analyzer_results.append(result)
 
-                    if result.status == "error":
+                    if result.status == ProcessorStatus.ERROR:
                         break
                     if ctx.skip_remaining:
                         break
@@ -269,9 +271,15 @@ class Pipeline:
                     context=ctx,
                     processor_results=analyzer_results,
                     total_duration_ms=file_duration_ms,
-                    success=not any(r.status == "error" for r in analyzer_results),
+                    success=not any(
+                        r.status == ProcessorStatus.ERROR for r in analyzer_results
+                    ),
                     error_message=next(
-                        (r.message for r in analyzer_results if r.status == "error"),
+                        (
+                            r.message
+                            for r in analyzer_results
+                            if r.status == ProcessorStatus.ERROR
+                        ),
                         None,
                     ),
                 )

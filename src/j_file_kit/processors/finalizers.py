@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -198,57 +197,3 @@ class StatisticsCollector(Finalizer):
 
         except Exception as e:
             return ProcessorResult.error(f"统计信息收集失败: {str(e)}")
-
-
-class CleanupFinalizer(Finalizer):
-    """清理终结器
-
-    执行各种清理操作。
-    """
-
-    def __init__(self, cleanup_actions: list[Callable[[], None]]) -> None:
-        """初始化清理终结器
-
-        Args:
-            cleanup_actions: 清理操作列表
-        """
-        super().__init__("CleanupFinalizer")
-        self.cleanup_actions = cleanup_actions
-
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
-        """处理单个文件（终结器通常不处理单个文件）
-
-        Args:
-            ctx: 处理上下文
-
-        Returns:
-            处理结果
-        """
-        return ProcessorResult.skip("终结器不处理单个文件")
-
-    def finalize(self) -> ProcessorResult:
-        """执行全局终结处理
-
-        Returns:
-            处理结果
-        """
-        try:
-            executed_actions = []
-
-            for action in self.cleanup_actions:
-                try:
-                    action()
-                    action_name = getattr(action, "__name__", str(action))
-                    executed_actions.append(action_name)
-                except Exception as e:
-                    # 记录清理操作失败，但继续执行其他操作
-                    action_name = getattr(action, "__name__", str(action))
-                    print(f"清理操作 {action_name} 失败: {e}")
-
-            return ProcessorResult.success(
-                f"执行了 {len(executed_actions)} 个清理操作",
-                {"executed_actions": executed_actions},
-            )
-
-        except Exception as e:
-            return ProcessorResult.error(f"清理操作失败: {str(e)}")

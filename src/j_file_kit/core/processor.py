@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from .models import ProcessingContext, ProcessorResult
+from .models import ProcessingContext, ProcessorResult, ProcessorStatus
 
 
 class Processor(ABC):
@@ -133,7 +133,7 @@ class ProcessorChain:
             results.append(result)
 
             # 如果分析器返回错误，跳过后续处理器
-            if result.status == "error":
+            if result.status == ProcessorStatus.ERROR:
                 break
 
             # 如果设置了短路标记，跳过后续处理器
@@ -141,13 +141,15 @@ class ProcessorChain:
                 break
 
         # 如果前面没有错误且未短路，执行执行器
-        if not ctx.skip_remaining and not any(r.status == "error" for r in results):
+        if not ctx.skip_remaining and not any(
+            r.status == ProcessorStatus.ERROR for r in results
+        ):
             for executor in self.executors:
                 result = executor.process(ctx)
                 results.append(result)
 
                 # 如果执行器返回错误，跳过后续处理器
-                if result.status == "error":
+                if result.status == ProcessorStatus.ERROR:
                     break
 
                 # 如果设置了短路标记，跳过后续处理器
