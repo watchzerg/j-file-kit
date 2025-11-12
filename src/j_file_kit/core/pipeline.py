@@ -13,6 +13,7 @@ from typing import Any
 from ..utils.logger import StructuredLogger
 from ..utils.transaction_log import TransactionLog
 from .config import TaskConfig
+from .db import DatabaseManager
 from .models import (
     ProcessingContext,
     ProcessorResult,
@@ -30,22 +31,31 @@ class Pipeline:
     协调整个文件处理流程：扫描 → 分析 → 执行 → 终结。
     """
 
-    def __init__(self, config: TaskConfig, task_name: str):
+    def __init__(
+        self,
+        config: TaskConfig,
+        task_name: str,
+        task_id: str,
+        db_manager: DatabaseManager,
+    ):
         """初始化管道
 
         Args:
             config: 任务配置
             task_name: 任务名称
+            task_id: 任务ID
+            db_manager: 数据库管理器实例
         """
         self.config = config
         self.task_name = task_name
+        self.task_id = task_id
         self.task_config = self._get_task_config()
 
         # 初始化组件
         self.scanner = FileScanner(config.global_.scan_roots)
         self.processor_chain = ProcessorChain()
         self.logger = StructuredLogger(config.global_.log_dir, self.task_name)
-        self.transaction_log = TransactionLog(config.global_.log_dir, self.task_name)
+        self.transaction_log = TransactionLog(db_manager, task_id)
 
         # 任务报告
         self.report = TaskReport(

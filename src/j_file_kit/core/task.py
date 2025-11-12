@@ -8,6 +8,7 @@ from __future__ import annotations
 import threading
 from abc import ABC, abstractmethod
 
+from .db import DatabaseManager
 from .models import TaskReport
 
 
@@ -25,11 +26,17 @@ class BaseTask(ABC):
 
     @abstractmethod
     def run(
-        self, dry_run: bool = False, cancelled_event: threading.Event | None = None
+        self,
+        task_id: str,
+        db_manager: DatabaseManager,
+        dry_run: bool = False,
+        cancelled_event: threading.Event | None = None,
     ) -> TaskReport:
         """运行任务
 
         Args:
+            task_id: 任务ID
+            db_manager: 数据库管理器实例
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancelled_event: 取消事件，用于检查任务是否被取消
 

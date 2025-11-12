@@ -15,6 +15,7 @@ from .config import (
     load_config,
     save_config,
 )
+from .db import DatabaseManager
 from .task_manager import TaskManager
 
 
@@ -47,7 +48,11 @@ class AppState:
         # 确保所有目录存在
         ensure_directories_exist(self.config)
 
-        self.task_manager: TaskManager = TaskManager()
+        # 创建数据库管理器（表结构在 __init__ 中自动创建）
+        self.db_manager = DatabaseManager(self.config.global_.db_path)
+
+        # 创建任务管理器
+        self.task_manager: TaskManager = TaskManager(self.db_manager)
 
     def reload_config(self) -> None:
         """重新加载配置文件并更新内存中的配置

@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from ..core.config import FileOrganizeConfig, TaskConfig
+from ..core.db import DatabaseManager
 from ..core.models import TaskReport
 from ..core.pipeline import Pipeline
 from ..core.task import BaseTask
@@ -60,14 +61,18 @@ class VideoFileOrganizer(BaseTask):
         """任务名称"""
         return "video_file_organizer"
 
-    def create_pipeline(self) -> Pipeline:
+    def create_pipeline(self, task_id: str, db_manager: DatabaseManager) -> Pipeline:
         """创建处理管道
+
+        Args:
+            task_id: 任务ID
+            db_manager: 数据库管理器实例
 
         Returns:
             配置好的处理管道
         """
         # 创建管道
-        pipeline = Pipeline(self.config, "video_file_organizer")
+        pipeline = Pipeline(self.config, "video_file_organizer", task_id, db_manager)
 
         # 添加分析器
         pipeline.add_analyzer(
@@ -99,16 +104,22 @@ class VideoFileOrganizer(BaseTask):
         return pipeline
 
     def run(
-        self, dry_run: bool = False, cancelled_event: threading.Event | None = None
+        self,
+        task_id: str,
+        db_manager: DatabaseManager,
+        dry_run: bool = False,
+        cancelled_event: threading.Event | None = None,
     ) -> TaskReport:
         """运行文件整理
 
         Args:
+            task_id: 任务ID
+            db_manager: 数据库管理器实例
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancelled_event: 取消事件，用于检查任务是否被取消
 
         Returns:
             任务报告
         """
-        pipeline = self.create_pipeline()
+        pipeline = self.create_pipeline(task_id, db_manager)
         return pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)

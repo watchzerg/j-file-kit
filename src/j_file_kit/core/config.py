@@ -20,6 +20,7 @@ class GlobalConfig(BaseModel):
     scan_roots: list[Path] = Field(..., description="扫描根目录列表")
     log_dir: Path = Field(Path("./logs"), description="日志目录")
     report_dir: Path = Field(Path("./reports"), description="报告目录")
+    db_path: Path = Field(Path("./data/j_file_kit.db"), description="数据库文件路径")
 
     @model_validator(mode="after")
     def validate_paths(self) -> GlobalConfig:
@@ -169,6 +170,7 @@ def ensure_directories_exist(config: TaskConfig) -> None:
     try:
         config.global_.log_dir.mkdir(parents=True, exist_ok=True)
         config.global_.report_dir.mkdir(parents=True, exist_ok=True)
+        config.global_.db_path.parent.mkdir(parents=True, exist_ok=True)
     except OSError as e:
         raise OSError(f"创建全局目录失败: {e}") from e
 
@@ -192,6 +194,7 @@ def create_default_config() -> TaskConfig:
             scan_roots=[Path("./scan")],
             log_dir=Path("./logs"),
             report_dir=Path("./reports"),
+            db_path=Path("./data/j_file_kit.db"),
         ),
         tasks=[
             TaskDefinition(

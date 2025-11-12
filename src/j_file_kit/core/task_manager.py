@@ -9,6 +9,7 @@ import threading
 import uuid
 from datetime import datetime
 
+from .db import DatabaseManager
 from .models import (
     Task,
     TaskAlreadyRunningError,
@@ -26,9 +27,13 @@ class TaskManager:
     同一时间只允许一个任务运行。
     """
 
-    def __init__(self) -> None:
-        """初始化任务管理器"""
-        self._tasks: dict[str, Task] = {}
+    def __init__(self, db_manager: DatabaseManager) -> None:
+        """初始化任务管理器
+
+        Args:
+            db_manager: 数据库管理器实例
+        """
+        self.db_manager = db_manager
         self._lock = threading.Lock()
         self._running_task_id: str | None = None
         self._cancelled_events: dict[str, threading.Event] = {}
@@ -47,27 +52,26 @@ class TaskManager:
             TaskAlreadyRunningError: 如果已有任务正在运行
         """
         with self._lock:
-            # 检查是否有运行中的任务
-            if self._running_task_id is not None:
-                running_task = self._tasks.get(self._running_task_id)
-                if running_task and running_task.status == TaskStatus.RUNNING:
-                    raise TaskAlreadyRunningError(self._running_task_id)
+            # 检查是否有运行中的任务（从数据库查询，更可靠）
+            running_task = self.db_manager.get_running_task()
+            if running_task:
+                raise TaskAlreadyRunningError(running_task.task_id)
 
             # 创建新任务
             task_id = str(uuid.uuid4())
             cancelled_event = threading.Event()
             self._cancelled_events[task_id] = cancelled_event
 
-            task_model = Task(
+            start_time = datetime.now()
+
+            # 写入数据库
+            self.db_manager.create_task(
                 task_id=task_id,
                 task_name=task.task_name,
                 status=TaskStatus.PENDING,
-                start_time=datetime.now(),
-                end_time=None,
-                error_message=None,
-                report=None,
+                start_time=start_time,
             )
-            self._tasks[task_id] = task_model
+
             self._running_task_id = task_id
 
             # 在后台线程中执行任务
@@ -97,39 +101,40 @@ class TaskManager:
         """
         try:
             # 更新状态为运行中
-            with self._lock:
-                task_model = self._tasks.get(task_id)
-                if task_model:
-                    task_model.status = TaskStatus.RUNNING
+            self.db_manager.update_task(task_id, status=TaskStatus.RUNNING)
 
             # 执行任务
-            report = task.run(dry_run=dry_run, cancelled_event=cancelled_event)
+            task.run(
+                task_id=task_id,
+                db_manager=self.db_manager,
+                dry_run=dry_run,
+                cancelled_event=cancelled_event,
+            )
 
             # 检查是否被取消
             if cancelled_event.is_set():
-                with self._lock:
-                    task_model = self._tasks.get(task_id)
-                    if task_model:
-                        task_model.status = TaskStatus.CANCELLED
-                        task_model.end_time = datetime.now()
+                self.db_manager.update_task(
+                    task_id,
+                    status=TaskStatus.CANCELLED,
+                    end_time=datetime.now(),
+                )
                 return
 
             # 任务完成
-            with self._lock:
-                task_model = self._tasks.get(task_id)
-                if task_model:
-                    task_model.status = TaskStatus.COMPLETED
-                    task_model.end_time = datetime.now()
-                    task_model.report = report
+            self.db_manager.update_task(
+                task_id,
+                status=TaskStatus.COMPLETED,
+                end_time=datetime.now(),
+            )
 
         except Exception as e:
             # 任务失败
-            with self._lock:
-                task_model = self._tasks.get(task_id)
-                if task_model:
-                    task_model.status = TaskStatus.FAILED
-                    task_model.end_time = datetime.now()
-                    task_model.error_message = str(e)
+            self.db_manager.update_task(
+                task_id,
+                status=TaskStatus.FAILED,
+                end_time=datetime.now(),
+                error_message=str(e),
+            )
         finally:
             # 清理运行中的任务ID
             with self._lock:
@@ -149,7 +154,7 @@ class TaskManager:
             TaskCancelledError: 如果任务已完成、失败或已取消
         """
         with self._lock:
-            task_model = self._tasks.get(task_id)
+            task_model = self.db_manager.get_task(task_id)
             if not task_model:
                 raise TaskNotFoundError(task_id)
 
@@ -166,12 +171,18 @@ class TaskManager:
                 cancelled_event = self._cancelled_events.get(task_id)
                 if cancelled_event:
                     cancelled_event.set()
-                task_model.status = TaskStatus.CANCELLED
-                task_model.end_time = datetime.now()
+                self.db_manager.update_task(
+                    task_id,
+                    status=TaskStatus.CANCELLED,
+                    end_time=datetime.now(),
+                )
             elif task_model.status == TaskStatus.PENDING:
                 # 如果任务还在等待，直接标记为取消
-                task_model.status = TaskStatus.CANCELLED
-                task_model.end_time = datetime.now()
+                self.db_manager.update_task(
+                    task_id,
+                    status=TaskStatus.CANCELLED,
+                    end_time=datetime.now(),
+                )
 
     def get_task(self, task_id: str) -> Task:
         """获取任务信息
@@ -185,11 +196,10 @@ class TaskManager:
         Raises:
             TaskNotFoundError: 如果任务不存在
         """
-        with self._lock:
-            task_model = self._tasks.get(task_id)
-            if not task_model:
-                raise TaskNotFoundError(task_id)
-            return task_model
+        task_model = self.db_manager.get_task(task_id)
+        if not task_model:
+            raise TaskNotFoundError(task_id)
+        return task_model
 
     def list_tasks(self) -> list[Task]:
         """列出所有任务
@@ -197,5 +207,4 @@ class TaskManager:
         Returns:
             任务列表
         """
-        with self._lock:
-            return list(self._tasks.values())
+        return self.db_manager.list_tasks()

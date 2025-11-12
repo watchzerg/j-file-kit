@@ -88,7 +88,7 @@ class UnifiedFileExecutor(Executor):
 
             # 记录事务日志
             if self.transaction_log:
-                entry = self.transaction_log.create_move_entry(
+                self.transaction_log.log_move(
                     old_path,
                     unique_path,
                     {
@@ -97,7 +97,6 @@ class UnifiedFileExecutor(Executor):
                         "file_type": ctx.file_type.value if ctx.file_type else None,
                     },
                 )
-                self.transaction_log.write_entry(entry)
 
             return ProcessorResult.success(
                 f"移动到整理目录: {unique_path}",
@@ -142,7 +141,7 @@ class UnifiedFileExecutor(Executor):
 
             # 记录事务日志
             if self.transaction_log:
-                entry = self.transaction_log.create_move_entry(
+                self.transaction_log.log_move(
                     old_path,
                     unique_path,
                     {
@@ -150,7 +149,6 @@ class UnifiedFileExecutor(Executor):
                         "file_type": ctx.file_type.value if ctx.file_type else None,
                     },
                 )
-                self.transaction_log.write_entry(entry)
 
             description = ctx.action.description
             return ProcessorResult.success(
@@ -172,22 +170,18 @@ class UnifiedFileExecutor(Executor):
             执行结果
         """
         try:
+            # 执行删除（文件不存在时静默成功）
+            ctx.file_info.path.unlink(missing_ok=True)
+
             # 记录事务日志
             if self.transaction_log:
-                entry = self.transaction_log.create_delete_entry(
+                self.transaction_log.log_delete(
                     ctx.file_info.path,
                     {
                         "action": "delete",
                         "file_type": ctx.file_type.value if ctx.file_type else None,
                     },
                 )
-
-            # 执行删除（文件不存在时静默成功）
-            ctx.file_info.path.unlink(missing_ok=True)
-
-            # 标记事务完成
-            if self.transaction_log:
-                self.transaction_log.write_entry(entry)
 
             return ProcessorResult.success(f"文件删除成功: {ctx.file_info.path.name}")
 
