@@ -36,7 +36,7 @@ class Pipeline:
         self,
         config: TaskConfig,
         task_name: str,
-        task_id: str,
+        task_id: int,
         db_manager: DatabaseManager,
     ):
         """初始化管道

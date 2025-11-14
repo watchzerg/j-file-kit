@@ -10,7 +10,7 @@ import threading
 from abc import ABC, abstractmethod
 
 from ..infrastructure.persistence.db import DatabaseManager
-from .models import TaskReport
+from .models import TaskReport, TaskType
 
 
 class BaseTask(ABC):
@@ -21,14 +21,14 @@ class BaseTask(ABC):
 
     @property
     @abstractmethod
-    def task_name(self) -> str:
-        """任务名称"""
+    def task_type(self) -> TaskType:
+        """任务类型"""
         pass
 
     @abstractmethod
     def run(
         self,
-        task_id: str,
+        task_id: int,
         db_manager: DatabaseManager,
         dry_run: bool = False,
         cancelled_event: threading.Event | None = None,

@@ -28,7 +28,7 @@ class TransactionLog:
     记录文件操作到 SQLite 数据库。
     """
 
-    def __init__(self, db_manager: DatabaseManager, task_id: str) -> None:
+    def __init__(self, db_manager: DatabaseManager, task_id: int) -> None:
         """初始化事务日志
 
         Args:

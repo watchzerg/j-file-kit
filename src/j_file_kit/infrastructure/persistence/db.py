@@ -14,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ...domain.models import Task, TaskStatus
+from ...domain.models import Task, TaskStatus, TaskType, TriggerType
 
 
 class DatabaseManager:
@@ -49,6 +49,8 @@ class DatabaseManager:
         return Task(
             task_id=row["task_id"],
             task_name=row["task_name"],
+            task_type=TaskType(row["task_type"]),
+            trigger_type=TriggerType(row["trigger_type"]),
             status=TaskStatus(row["status"]),
             start_time=datetime.fromisoformat(row["start_time"]),
             end_time=datetime.fromisoformat(row["end_time"])
@@ -67,8 +69,10 @@ class DatabaseManager:
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS tasks (
-                    task_id TEXT PRIMARY KEY,
+                    task_id INTEGER PRIMARY KEY,
                     task_name TEXT NOT NULL,
+                    task_type TEXT NOT NULL,
+                    trigger_type TEXT NOT NULL,
                     status TEXT NOT NULL,
                     start_time TEXT NOT NULL,
                     end_time TEXT,
@@ -82,7 +86,7 @@ class DatabaseManager:
                 """
                 CREATE TABLE IF NOT EXISTS operations (
                     id TEXT PRIMARY KEY,
-                    task_id TEXT NOT NULL,
+                    task_id INTEGER NOT NULL,
                     timestamp TEXT NOT NULL,
                     operation TEXT NOT NULL,
                     source_path TEXT NOT NULL,
@@ -105,29 +109,35 @@ class DatabaseManager:
 
     def create_task(
         self,
-        task_id: str,
         task_name: str,
+        task_type: TaskType,
+        trigger_type: TriggerType,
         status: TaskStatus,
         start_time: datetime,
-    ) -> None:
+    ) -> int:
         """创建任务记录
 
         Args:
-            task_id: 任务ID
             task_name: 任务名称
+            task_type: 任务类型
+            trigger_type: 触发类型
             status: 任务状态
             start_time: 开始时间
+
+        Returns:
+            生成的任务ID
         """
         with self._lock:
             cursor = self._conn.cursor()
             cursor.execute(
                 """
-                INSERT INTO tasks (task_id, task_name, status, start_time, end_time, error_message)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO tasks (task_name, task_type, trigger_type, status, start_time, end_time, error_message)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    task_id,
                     task_name,
+                    task_type.value,
+                    trigger_type.value,
                     status.value,
                     start_time.isoformat(),
                     None,
@@ -135,10 +145,14 @@ class DatabaseManager:
                 ),
             )
             self._conn.commit()
+            task_id = cursor.lastrowid
+            if task_id is None:
+                raise RuntimeError("无法获取生成的任务ID")
+            return task_id
 
     def update_task(
         self,
-        task_id: str,
+        task_id: int,
         status: TaskStatus | None = None,
         end_time: datetime | None = None,
         error_message: str | None = None,
@@ -154,8 +168,8 @@ class DatabaseManager:
         with self._lock:
             cursor = self._conn.cursor()
 
-            updates = []
-            params = []
+            updates: list[str] = []
+            params: list[str | int] = []
 
             if status is not None:
                 updates.append("status = ?")
@@ -178,7 +192,7 @@ class DatabaseManager:
             cursor.execute(query, params)
             self._conn.commit()
 
-    def get_task(self, task_id: str) -> Task | None:
+    def get_task(self, task_id: int) -> Task | None:
         """获取任务记录
 
         Args:
@@ -231,7 +245,7 @@ class DatabaseManager:
 
     def log_operation(
         self,
-        task_id: str,
+        task_id: int,
         operation: str,
         source_path: Path,
         target_path: Path | None = None,
@@ -268,7 +282,7 @@ class DatabaseManager:
             )
             self._conn.commit()
 
-    def get_operations(self, task_id: str) -> list[dict[str, Any]]:
+    def get_operations(self, task_id: int) -> list[dict[str, Any]]:
         """获取任务的操作记录
 
         Args:
@@ -290,7 +304,7 @@ class DatabaseManager:
                 operations.append(
                     {
                         "id": row["id"],
-                        "task_id": row["task_id"],
+                        "task_id": int(row["task_id"]),
                         "timestamp": row["timestamp"],
                         "operation": row["operation"],
                         "source_path": row["source_path"],

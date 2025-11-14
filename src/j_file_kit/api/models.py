@@ -18,12 +18,13 @@ class StartTaskRequest(BaseModel):
     """启动任务请求"""
 
     dry_run: bool = Field(False, description="是否为预览模式")
+    trigger_type: str | None = Field(None, description="触发类型（manual/auto）")
 
 
 class StartTaskResponse(BaseModel):
     """启动任务响应"""
 
-    task_id: str = Field(..., description="任务ID")
+    task_id: int = Field(..., description="任务ID")
     task_name: str = Field(..., description="任务名称")
     status: TaskStatus = Field(..., description="任务状态")
 
@@ -31,7 +32,7 @@ class StartTaskResponse(BaseModel):
 class TaskStatusResponse(BaseModel):
     """任务状态响应"""
 
-    task_id: str = Field(..., description="任务ID")
+    task_id: int = Field(..., description="任务ID")
     task_name: str = Field(..., description="任务名称")
     status: TaskStatus = Field(..., description="任务状态")
     start_time: datetime = Field(..., description="开始时间")
@@ -43,14 +44,14 @@ class TaskStatusResponse(BaseModel):
 class CancelTaskResponse(BaseModel):
     """取消任务响应"""
 
-    task_id: str = Field(..., description="任务ID")
+    task_id: int = Field(..., description="任务ID")
     message: str = Field(..., description="消息")
 
 
 class TaskListItem(BaseModel):
     """任务列表项"""
 
-    task_id: str = Field(..., description="任务ID")
+    task_id: int = Field(..., description="任务ID")
     task_name: str = Field(..., description="任务名称")
     status: TaskStatus = Field(..., description="任务状态")
     start_time: datetime = Field(..., description="开始时间")

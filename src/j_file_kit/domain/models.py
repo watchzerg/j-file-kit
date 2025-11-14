@@ -323,14 +323,29 @@ class TaskStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class TaskType(str, Enum):
+    """任务类型枚举"""
+
+    VIDEO_ORGANIZER = "video_organizer"
+
+
+class TriggerType(str, Enum):
+    """触发类型枚举"""
+
+    MANUAL = "manual"
+    AUTO = "auto"
+
+
 class Task(BaseModel):
     """任务模型
 
     表示一个执行中的任务实例。
     """
 
-    task_id: str = Field(..., description="任务ID")
+    task_id: int = Field(..., description="任务ID")
     task_name: str = Field(..., description="任务名称")
+    task_type: TaskType = Field(..., description="任务类型")
+    trigger_type: TriggerType = Field(..., description="触发类型")
     status: TaskStatus = Field(..., description="任务状态")
     start_time: datetime = Field(..., description="开始时间")
     end_time: datetime | None = Field(None, description="结束时间")
@@ -348,7 +363,7 @@ class TaskError(Exception):
 class TaskNotFoundError(TaskError):
     """任务不存在异常"""
 
-    def __init__(self, task_id: str):
+    def __init__(self, task_id: int):
         self.task_id = task_id
         super().__init__(f"任务不存在: {task_id}")
 
@@ -356,7 +371,7 @@ class TaskNotFoundError(TaskError):
 class TaskAlreadyRunningError(TaskError):
     """任务已在运行异常"""
 
-    def __init__(self, running_task_id: str):
+    def __init__(self, running_task_id: int):
         self.running_task_id = running_task_id
         super().__init__(f"已有任务正在运行: {running_task_id}")
 
@@ -364,6 +379,6 @@ class TaskAlreadyRunningError(TaskError):
 class TaskCancelledError(TaskError):
     """任务已取消异常"""
 
-    def __init__(self, task_id: str):
+    def __init__(self, task_id: int):
         self.task_id = task_id
         super().__init__(f"任务已取消: {task_id}")

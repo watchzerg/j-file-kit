@@ -7,7 +7,6 @@
 from __future__ import annotations
 
 import threading
-import uuid
 from datetime import datetime
 
 from ..domain.models import (
@@ -16,9 +15,34 @@ from ..domain.models import (
     TaskCancelledError,
     TaskNotFoundError,
     TaskStatus,
+    TaskType,
+    TriggerType,
 )
 from ..domain.task import BaseTask
 from ..infrastructure.persistence.db import DatabaseManager
+
+
+def generate_task_name(
+    task_type: TaskType,
+    trigger_type: TriggerType,
+    start_time: datetime,
+) -> str:
+    """生成任务可读名称
+
+    格式: {task_type}-{trigger_type}-{YYYYMMDDHHMMSSmmm}
+    示例: video_organizer-manual-20241215143052123
+
+    Args:
+        task_type: 任务类型
+        trigger_type: 触发类型
+        start_time: 开始时间
+
+    Returns:
+        任务名称
+    """
+    date_time_str = start_time.strftime("%Y%m%d%H%M%S")
+    millisecond = f"{start_time.microsecond // 1000:03d}"
+    return f"{task_type.value}-{trigger_type.value}-{date_time_str}{millisecond}"
 
 
 class TaskManager:
@@ -36,14 +60,20 @@ class TaskManager:
         """
         self.db_manager = db_manager
         self._lock = threading.Lock()
-        self._running_task_id: str | None = None
-        self._cancelled_events: dict[str, threading.Event] = {}
+        self._running_task_id: int | None = None
+        self._cancellation_event: threading.Event | None = None
 
-    def start_task(self, task: BaseTask, dry_run: bool = False) -> str:
+    def start_task(
+        self,
+        task: BaseTask,
+        trigger_type: TriggerType = TriggerType.MANUAL,
+        dry_run: bool = False,
+    ) -> int:
         """启动任务
 
         Args:
             task: 要执行的任务
+            trigger_type: 触发类型，默认为手动
             dry_run: 是否为预览模式
 
         Returns:
@@ -58,21 +88,26 @@ class TaskManager:
             if running_task:
                 raise TaskAlreadyRunningError(running_task.task_id)
 
-            # 创建新任务
-            task_id = str(uuid.uuid4())
-            cancelled_event = threading.Event()
-            self._cancelled_events[task_id] = cancelled_event
-
             start_time = datetime.now()
 
-            # 写入数据库
-            self.db_manager.create_task(
-                task_id=task_id,
-                task_name=task.task_name,
+            # 在插入前生成完整的 task_name
+            task_name = generate_task_name(
+                task_type=task.task_type,
+                trigger_type=trigger_type,
+                start_time=start_time,
+            )
+
+            # 创建新任务并获取生成的 task_id
+            task_id = self.db_manager.create_task(
+                task_name=task_name,
+                task_type=task.task_type,
+                trigger_type=trigger_type,
                 status=TaskStatus.PENDING,
                 start_time=start_time,
             )
 
+            cancelled_event = threading.Event()
+            self._cancellation_event = cancelled_event
             self._running_task_id = task_id
 
             # 在后台线程中执行任务
@@ -87,7 +122,7 @@ class TaskManager:
 
     def _execute_task(
         self,
-        task_id: str,
+        task_id: int,
         task: BaseTask,
         dry_run: bool,
         cancelled_event: threading.Event,
@@ -141,10 +176,9 @@ class TaskManager:
             with self._lock:
                 if self._running_task_id == task_id:
                     self._running_task_id = None
-                # 清理取消事件
-                self._cancelled_events.pop(task_id, None)
+                    self._cancellation_event = None
 
-    def cancel_task(self, task_id: str) -> None:
+    def cancel_task(self, task_id: int) -> None:
         """取消任务
 
         Args:
@@ -169,9 +203,8 @@ class TaskManager:
 
             # 如果任务正在运行，设置取消事件
             if task_model.status == TaskStatus.RUNNING:
-                cancelled_event = self._cancelled_events.get(task_id)
-                if cancelled_event:
-                    cancelled_event.set()
+                if self._cancellation_event:
+                    self._cancellation_event.set()
                 self.db_manager.update_task(
                     task_id,
                     status=TaskStatus.CANCELLED,
@@ -185,7 +218,7 @@ class TaskManager:
                     end_time=datetime.now(),
                 )
 
-    def get_task(self, task_id: str) -> Task:
+    def get_task(self, task_id: int) -> Task:
         """获取任务信息
 
         Args:

@@ -10,7 +10,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from ..domain.models import TaskReport
+from ..domain.models import TaskReport, TaskType
 from ..domain.processors.analyzers import (
     ActionDecider,
     FileClassifier,
@@ -61,11 +61,11 @@ class VideoFileOrganizer(BaseTask):
         self.delete_rules: dict[str, Any] = self.file_config.delete_rules
 
     @property
-    def task_name(self) -> str:
-        """任务名称"""
-        return "video_file_organizer"
+    def task_type(self) -> TaskType:
+        """任务类型"""
+        return TaskType.VIDEO_ORGANIZER
 
-    def create_pipeline(self, task_id: str, db_manager: DatabaseManager) -> Pipeline:
+    def create_pipeline(self, task_id: int, db_manager: DatabaseManager) -> Pipeline:
         """创建处理管道
 
         Args:
@@ -76,7 +76,7 @@ class VideoFileOrganizer(BaseTask):
             配置好的处理管道
         """
         # 创建管道
-        pipeline = Pipeline(self.config, "video_file_organizer", task_id, db_manager)
+        pipeline = Pipeline(self.config, self.task_type.value, task_id, db_manager)
 
         # 添加分析器
         pipeline.add_analyzer(
@@ -109,7 +109,7 @@ class VideoFileOrganizer(BaseTask):
 
     def run(
         self,
-        task_id: str,
+        task_id: int,
         db_manager: DatabaseManager,
         dry_run: bool = False,
         cancelled_event: threading.Event | None = None,
