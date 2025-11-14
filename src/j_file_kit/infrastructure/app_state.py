@@ -27,16 +27,12 @@ class AppState:
     管理应用的全局状态，包括配置和任务管理器。
     """
 
-    def __init__(self, config_path: str | Path | None = None):
+    def __init__(self) -> None:
         """初始化应用状态
 
-        Args:
-            config_path: 配置文件路径，如果为 None 则从环境变量或默认路径加载
+        从环境变量 J_FILE_KIT_CONFIG 或默认路径 configs/task_config.yaml 加载配置。
         """
-        if config_path is None:
-            config_path = os.getenv("J_FILE_KIT_CONFIG", "configs/task_config.yaml")
-
-        config_path = Path(config_path)
+        config_path = Path(os.getenv("J_FILE_KIT_CONFIG", "configs/task_config.yaml"))
 
         # 如果配置文件不存在，创建默认配置文件
         if not path_exists(config_path):

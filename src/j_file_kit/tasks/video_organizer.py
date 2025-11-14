@@ -16,7 +16,6 @@ from ..domain.processors.analyzers import (
     FileClassifier,
     SerialIdExtractor,
 )
-from ..domain.processors.executors import UnifiedFileExecutor
 from ..domain.processors.finalizers import ReportGenerator
 from ..domain.task import BaseTask
 from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
@@ -99,7 +98,7 @@ class VideoFileOrganizer(BaseTask):
         )
 
         # 添加执行器
-        pipeline.add_executor(UnifiedFileExecutor(pipeline.transaction_log))
+        pipeline.add_executor(pipeline.create_unified_executor())
 
         # 添加终结器
         pipeline.add_finalizer(

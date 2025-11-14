@@ -114,6 +114,16 @@ class Pipeline:
         self.processor_chain.add_finalizer(finalizer)
         return self
 
+    def create_unified_executor(self) -> Executor:
+        """创建统一文件执行器（自动注入 transaction_log）
+
+        Returns:
+            配置好的统一文件执行器
+        """
+        from ..domain.processors.executors import UnifiedFileExecutor
+
+        return UnifiedFileExecutor(self.transaction_log)
+
     def run(
         self, dry_run: bool = False, cancelled_event: threading.Event | None = None
     ) -> TaskReport:

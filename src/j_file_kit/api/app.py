@@ -31,11 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         app: FastAPI应用实例
     """
     # 启动时初始化应用状态
-    import os
-    from pathlib import Path
-
-    config_path = os.getenv("J_FILE_KIT_CONFIG", "configs/task_config.yaml")
-    app.state.app_state = AppState(config_path=Path(config_path))
+    app.state.app_state = AppState()
 
     yield
 

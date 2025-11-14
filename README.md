@@ -110,7 +110,7 @@ from j_file_kit.infrastructure.app_state import AppState
 from j_file_kit.tasks.video_organizer import VideoFileOrganizer
 
 # 创建应用状态（会自动加载配置）
-app_state = AppState("configs/task_config.yaml")
+app_state = AppState()
 
 # 创建任务实例
 task = VideoFileOrganizer(app_state.config)
