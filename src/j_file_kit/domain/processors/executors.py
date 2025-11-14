@@ -25,14 +25,14 @@ class UnifiedFileExecutor(Executor):
     根据 ProcessingContext 中的 action 决策，执行相应的操作。
     """
 
-    def __init__(self, transaction_log: Any = None) -> None:
+    def __init__(self, operation_repository: Any = None) -> None:
         """初始化统一文件执行器
 
         Args:
-            transaction_log: 事务日志记录器
+            operation_repository: 操作记录仓储
         """
         super().__init__("UnifiedFileExecutor")
-        self.transaction_log = transaction_log
+        self.operation_repository = operation_repository
 
     def process(self, ctx: ProcessingContext) -> ProcessorResult:
         """根据动作类型执行操作
@@ -93,9 +93,9 @@ class UnifiedFileExecutor(Executor):
             # 更新上下文
             ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
 
-            # 记录事务日志
-            if self.transaction_log:
-                self.transaction_log.log_move(
+            # 记录操作日志
+            if self.operation_repository:
+                self.operation_repository.log_move(
                     old_path,
                     unique_path,
                     {
@@ -146,9 +146,9 @@ class UnifiedFileExecutor(Executor):
             # 更新上下文
             ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
 
-            # 记录事务日志
-            if self.transaction_log:
-                self.transaction_log.log_move(
+            # 记录操作日志
+            if self.operation_repository:
+                self.operation_repository.log_move(
                     old_path,
                     unique_path,
                     {
@@ -180,9 +180,9 @@ class UnifiedFileExecutor(Executor):
             # 执行删除（文件不存在时静默成功）
             delete_file(ctx.file_info.path, missing_ok=True)
 
-            # 记录事务日志
-            if self.transaction_log:
-                self.transaction_log.log_delete(
+            # 记录操作日志
+            if self.operation_repository:
+                self.operation_repository.log_delete(
                     ctx.file_info.path,
                     {
                         "action": "delete",

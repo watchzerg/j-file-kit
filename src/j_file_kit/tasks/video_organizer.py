@@ -19,7 +19,7 @@ from ..domain.processors.analyzers import (
 from ..domain.processors.finalizers import ReportGenerator
 from ..domain.task import BaseTask
 from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
-from ..infrastructure.persistence.db import DatabaseManager
+from ..infrastructure.persistence import OperationRepository, TaskRepository
 from ..services.pipeline import Pipeline
 
 
@@ -65,18 +65,26 @@ class VideoFileOrganizer(BaseTask):
         """任务类型"""
         return TaskType.VIDEO_ORGANIZER
 
-    def create_pipeline(self, task_id: int, db_manager: DatabaseManager) -> Pipeline:
+    def create_pipeline(
+        self,
+        task_id: int,
+        task_repository: TaskRepository,
+        operation_repository: OperationRepository,
+    ) -> Pipeline:
         """创建处理管道
 
         Args:
             task_id: 任务ID
-            db_manager: 数据库管理器实例
+            task_repository: 任务仓储实例
+            operation_repository: 操作记录仓储实例
 
         Returns:
             配置好的处理管道
         """
         # 创建管道
-        pipeline = Pipeline(self.config, self.task_type.value, task_id, db_manager)
+        pipeline = Pipeline(
+            self.config, self.task_type.value, task_id, operation_repository
+        )
 
         # 添加分析器
         pipeline.add_analyzer(
@@ -110,7 +118,8 @@ class VideoFileOrganizer(BaseTask):
     def run(
         self,
         task_id: int,
-        db_manager: DatabaseManager,
+        task_repository: TaskRepository,
+        operation_repository: OperationRepository,
         dry_run: bool = False,
         cancelled_event: threading.Event | None = None,
     ) -> TaskReport:
@@ -118,12 +127,13 @@ class VideoFileOrganizer(BaseTask):
 
         Args:
             task_id: 任务ID
-            db_manager: 数据库管理器实例
+            task_repository: 任务仓储实例
+            operation_repository: 操作记录仓储实例
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancelled_event: 取消事件，用于检查任务是否被取消
 
         Returns:
             任务报告
         """
-        pipeline = self.create_pipeline(task_id, db_manager)
+        pipeline = self.create_pipeline(task_id, task_repository, operation_repository)
         return pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)

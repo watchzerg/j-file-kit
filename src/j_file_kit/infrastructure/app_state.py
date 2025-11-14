@@ -18,7 +18,7 @@ from .config.config import (
     save_config,
 )
 from .filesystem.operations import path_exists
-from .persistence.db import DatabaseManager
+from .persistence import SQLiteConnectionManager, TaskRepository
 
 
 class AppState:
@@ -46,11 +46,16 @@ class AppState:
         # 确保所有目录存在
         ensure_directories_exist(self.config)
 
-        # 创建数据库管理器（表结构在 __init__ 中自动创建）
-        self.db_manager = DatabaseManager(self.config.global_.db_path)
+        # 创建 SQLite 连接管理器（表结构在 __init__ 中自动创建）
+        self.sqlite_conn = SQLiteConnectionManager(self.config.global_.db_path)
+
+        # 创建任务仓储
+        self.task_repository = TaskRepository(self.sqlite_conn)
 
         # 创建任务管理器
-        self.task_manager: TaskManager = TaskManager(self.db_manager)
+        self.task_manager: TaskManager = TaskManager(
+            self.task_repository, self.sqlite_conn
+        )
 
     def reload_config(self) -> None:
         """重新加载配置文件并更新内存中的配置

@@ -21,8 +21,7 @@ from ..domain.models import (
 from ..domain.processor import Analyzer, Executor, Finalizer, ProcessorChain
 from ..infrastructure.config.config import TaskConfig
 from ..infrastructure.logging.logger import StructuredLogger
-from ..infrastructure.persistence.db import DatabaseManager
-from ..infrastructure.persistence.transaction_log import TransactionLog
+from ..infrastructure.persistence import OperationRepository
 from .scanner import FileScanner
 
 
@@ -37,7 +36,7 @@ class Pipeline:
         config: TaskConfig,
         task_name: str,
         task_id: int,
-        db_manager: DatabaseManager,
+        operation_repository: OperationRepository,
     ):
         """初始化管道
 
@@ -45,7 +44,7 @@ class Pipeline:
             config: 任务配置
             task_name: 任务名称
             task_id: 任务ID
-            db_manager: 数据库管理器实例
+            operation_repository: 操作记录仓储实例
         """
         self.config = config
         self.task_name = task_name
@@ -56,7 +55,7 @@ class Pipeline:
         self.scanner = FileScanner(config.global_.scan_roots)
         self.processor_chain = ProcessorChain()
         self.logger = StructuredLogger(config.global_.log_dir, self.task_name)
-        self.transaction_log = TransactionLog(db_manager, task_id)
+        self.operation_repository = operation_repository
 
         # 任务报告
         self.report = TaskReport(
@@ -115,14 +114,14 @@ class Pipeline:
         return self
 
     def create_unified_executor(self) -> Executor:
-        """创建统一文件执行器（自动注入 transaction_log）
+        """创建统一文件执行器（自动注入 operation_repository）
 
         Returns:
             配置好的统一文件执行器
         """
         from ..domain.processors.executors import UnifiedFileExecutor
 
-        return UnifiedFileExecutor(self.transaction_log)
+        return UnifiedFileExecutor(self.operation_repository)
 
     def run(
         self, dry_run: bool = False, cancelled_event: threading.Event | None = None

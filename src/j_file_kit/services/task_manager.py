@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import threading
 from datetime import datetime
+from typing import cast
 
 from ..domain.models import (
     Task,
@@ -19,7 +20,11 @@ from ..domain.models import (
     TriggerType,
 )
 from ..domain.task import BaseTask
-from ..infrastructure.persistence.db import DatabaseManager
+from ..infrastructure.persistence import (
+    OperationRepository,
+    SQLiteConnectionManager,
+    TaskRepository,
+)
 
 
 def generate_task_name(
@@ -52,13 +57,17 @@ class TaskManager:
     同一时间只允许一个任务运行。
     """
 
-    def __init__(self, db_manager: DatabaseManager) -> None:
+    def __init__(
+        self, task_repository: TaskRepository, sqlite_conn: SQLiteConnectionManager
+    ) -> None:
         """初始化任务管理器
 
         Args:
-            db_manager: 数据库管理器实例
+            task_repository: 任务仓储实例
+            sqlite_conn: SQLite 连接管理器实例
         """
-        self.db_manager = db_manager
+        self.task_repository = task_repository
+        self._sqlite_conn = sqlite_conn
         self._lock = threading.Lock()
         self._running_task_id: int | None = None
         self._cancellation_event: threading.Event | None = None
@@ -84,7 +93,7 @@ class TaskManager:
         """
         with self._lock:
             # 检查是否有运行中的任务（从数据库查询，更可靠）
-            running_task = self.db_manager.get_running_task()
+            running_task = self.task_repository.get_running_task()
             if running_task:
                 raise TaskAlreadyRunningError(running_task.task_id)
 
@@ -98,7 +107,7 @@ class TaskManager:
             )
 
             # 创建新任务并获取生成的 task_id
-            task_id = self.db_manager.create_task(
+            task_id = self.task_repository.create_task(
                 task_name=task_name,
                 task_type=task.task_type,
                 trigger_type=trigger_type,
@@ -137,19 +146,23 @@ class TaskManager:
         """
         try:
             # 更新状态为运行中
-            self.db_manager.update_task(task_id, status=TaskStatus.RUNNING)
+            self.task_repository.update_task(task_id, status=TaskStatus.RUNNING)
+
+            # 创建操作记录仓储
+            operation_repository = OperationRepository(self._sqlite_conn, task_id)
 
             # 执行任务
             task.run(
                 task_id=task_id,
-                db_manager=self.db_manager,
+                task_repository=self.task_repository,
+                operation_repository=operation_repository,
                 dry_run=dry_run,
                 cancelled_event=cancelled_event,
             )
 
             # 检查是否被取消
             if cancelled_event.is_set():
-                self.db_manager.update_task(
+                self.task_repository.update_task(
                     task_id,
                     status=TaskStatus.CANCELLED,
                     end_time=datetime.now(),
@@ -157,7 +170,7 @@ class TaskManager:
                 return
 
             # 任务完成
-            self.db_manager.update_task(
+            self.task_repository.update_task(
                 task_id,
                 status=TaskStatus.COMPLETED,
                 end_time=datetime.now(),
@@ -165,7 +178,7 @@ class TaskManager:
 
         except Exception as e:
             # 任务失败
-            self.db_manager.update_task(
+            self.task_repository.update_task(
                 task_id,
                 status=TaskStatus.FAILED,
                 end_time=datetime.now(),
@@ -189,7 +202,7 @@ class TaskManager:
             TaskCancelledError: 如果任务已完成、失败或已取消
         """
         with self._lock:
-            task_model = self.db_manager.get_task(task_id)
+            task_model = self.task_repository.get_task(task_id)
             if not task_model:
                 raise TaskNotFoundError(task_id)
 
@@ -205,14 +218,14 @@ class TaskManager:
             if task_model.status == TaskStatus.RUNNING:
                 if self._cancellation_event:
                     self._cancellation_event.set()
-                self.db_manager.update_task(
+                self.task_repository.update_task(
                     task_id,
                     status=TaskStatus.CANCELLED,
                     end_time=datetime.now(),
                 )
             elif task_model.status == TaskStatus.PENDING:
                 # 如果任务还在等待，直接标记为取消
-                self.db_manager.update_task(
+                self.task_repository.update_task(
                     task_id,
                     status=TaskStatus.CANCELLED,
                     end_time=datetime.now(),
@@ -230,10 +243,10 @@ class TaskManager:
         Raises:
             TaskNotFoundError: 如果任务不存在
         """
-        task_model = self.db_manager.get_task(task_id)
-        if not task_model:
+        task_model = self.task_repository.get_task(task_id)
+        if task_model is None:
             raise TaskNotFoundError(task_id)
-        return task_model
+        return cast(Task, task_model)
 
     def list_tasks(self) -> list[Task]:
         """列出所有任务
@@ -241,4 +254,4 @@ class TaskManager:
         Returns:
             任务列表
         """
-        return self.db_manager.list_tasks()
+        return self.task_repository.list_tasks()
