@@ -202,3 +202,18 @@ class TaskRepository:
                 return None
 
             return self._row_to_task(row)
+
+    def get_pending_or_running_tasks(self) -> list[Task]:
+        """获取所有待处理或运行中的任务
+
+        Returns:
+            待处理或运行中的任务列表
+        """
+        with self._get_cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM tasks WHERE status IN (?, ?)",
+                (TaskStatus.PENDING.value, TaskStatus.RUNNING.value),
+            )
+            rows = cursor.fetchall()
+
+            return [self._row_to_task(row) for row in rows]

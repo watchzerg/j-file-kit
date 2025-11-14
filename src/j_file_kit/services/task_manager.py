@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 from datetime import datetime
 from typing import cast
@@ -25,6 +26,8 @@ from ..infrastructure.persistence import (
     SQLiteConnectionManager,
     TaskRepository,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def generate_task_name(
@@ -71,6 +74,9 @@ class TaskManager:
         self._lock = threading.Lock()
         self._running_task_id: int | None = None
         self._cancellation_event: threading.Event | None = None
+
+        # 启动时恢复：清理历史异常状态
+        self._recover_from_crash()
 
     def start_task(
         self,
@@ -255,3 +261,39 @@ class TaskManager:
             任务列表
         """
         return self.task_repository.list_tasks()
+
+    def _recover_from_crash(self) -> None:
+        """从崩溃中恢复：清理历史异常状态的任务
+
+        在系统重启后，将数据库中所有 PENDING 或 RUNNING 状态的任务
+        标记为 FAILED，因为系统已重启，这些任务无法继续执行。
+        """
+        with self._lock:
+            incomplete_tasks = self.task_repository.get_pending_or_running_tasks()
+
+            if not incomplete_tasks:
+                return
+
+            recovery_time = datetime.now()
+            error_message = "Task interrupted due to system restart"
+
+            for task in incomplete_tasks:
+                self.task_repository.update_task(
+                    task_id=task.task_id,
+                    status=TaskStatus.FAILED,
+                    end_time=recovery_time,
+                    error_message=error_message,
+                )
+
+            # 确保内存状态为 None
+            self._running_task_id = None
+            self._cancellation_event = None
+
+            # 记录恢复日志
+            logger.info(
+                "Recovered %d incomplete task(s) from previous session",
+                len(incomplete_tasks),
+                extra={
+                    "recovered_task_ids": [task.task_id for task in incomplete_tasks]
+                },
+            )
