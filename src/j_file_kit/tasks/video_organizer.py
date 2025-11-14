@@ -1,6 +1,7 @@
 """视频文件整理任务
 
-这是一个完整的视频文件整理任务实现。
+完整的视频文件整理任务实现。
+组合使用各种处理器实现文件分类、番号提取、文件移动等功能。
 """
 
 from __future__ import annotations
@@ -9,14 +10,18 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from ..core.config import FileOrganizeConfig, TaskConfig
-from ..core.db import DatabaseManager
-from ..core.models import TaskReport
-from ..core.pipeline import Pipeline
-from ..core.task import BaseTask
-from ..processors.analyzers import ActionDecider, FileClassifier, SerialIdExtractor
-from ..processors.executors import UnifiedFileExecutor
-from ..processors.finalizers import ReportGenerator
+from ..domain.models import TaskReport
+from ..domain.processors.analyzers import (
+    ActionDecider,
+    FileClassifier,
+    SerialIdExtractor,
+)
+from ..domain.processors.executors import UnifiedFileExecutor
+from ..domain.processors.finalizers import ReportGenerator
+from ..domain.task import BaseTask
+from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
+from ..infrastructure.persistence.db import DatabaseManager
+from ..services.pipeline import Pipeline
 
 
 class VideoFileOrganizer(BaseTask):

@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from j_file_kit.core.models import FileType
+from j_file_kit.domain.models import FileType
 from j_file_kit.utils.file_utils import (
     get_file_type,
     resolve_unique_path,

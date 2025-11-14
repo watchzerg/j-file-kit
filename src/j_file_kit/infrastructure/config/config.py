@@ -1,6 +1,7 @@
-"""配置模型
+"""配置管理
 
-处理 YAML 配置文件的解析和验证。
+处理 YAML 配置文件的解析、验证和保存。
+提供配置模型的加载、保存和目录创建功能。
 """
 
 from __future__ import annotations
@@ -10,6 +11,14 @@ from typing import Any, Literal, TypeVar
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from ..filesystem.operations import (
+    create_directory,
+    is_directory,
+    path_exists,
+    read_text_file,
+    write_text_file,
+)
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -30,9 +39,9 @@ class GlobalConfig(BaseModel):
 
         if not os.environ.get("PYTEST_CURRENT_TEST"):
             for scan_root in self.scan_roots:
-                if not scan_root.exists():
+                if not path_exists(scan_root):
                     raise ValueError(f"扫描根目录不存在: {scan_root}")
-                if not scan_root.is_dir():
+                if not is_directory(scan_root):
                     raise ValueError(f"扫描根目录不是目录: {scan_root}")
 
         return self
@@ -126,11 +135,11 @@ def load_config(config_path: str | Path) -> TaskConfig:
     """
     config_path = Path(config_path)
 
-    if not config_path.exists():
+    if not path_exists(config_path):
         raise FileNotFoundError(f"配置文件不存在: {config_path}")
 
-    with open(config_path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
+    content = read_text_file(config_path)
+    data = yaml.safe_load(content)
 
     return TaskConfig.model_validate(data)
 
@@ -145,13 +154,13 @@ def save_config(config: TaskConfig, config_path: str | Path) -> None:
     config_path = Path(config_path)
 
     # 确保配置文件所在目录存在
-    config_path.parent.mkdir(parents=True, exist_ok=True)
+    create_directory(config_path.parent, parents=True, exist_ok=True)
 
     # 转换为字典并处理别名
     data = config.model_dump(by_alias=True)
+    content = yaml.dump(data, default_flow_style=False, allow_unicode=True, indent=2)
 
-    with open(config_path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, indent=2)
+    write_text_file(config_path, content)
 
 
 def ensure_directories_exist(config: TaskConfig) -> None:
@@ -168,9 +177,9 @@ def ensure_directories_exist(config: TaskConfig) -> None:
     """
     # 创建全局配置中的目录
     try:
-        config.global_.log_dir.mkdir(parents=True, exist_ok=True)
-        config.global_.report_dir.mkdir(parents=True, exist_ok=True)
-        config.global_.db_path.parent.mkdir(parents=True, exist_ok=True)
+        create_directory(config.global_.log_dir, parents=True, exist_ok=True)
+        create_directory(config.global_.report_dir, parents=True, exist_ok=True)
+        create_directory(config.global_.db_path.parent, parents=True, exist_ok=True)
     except OSError as e:
         raise OSError(f"创建全局目录失败: {e}") from e
 
@@ -179,10 +188,12 @@ def ensure_directories_exist(config: TaskConfig) -> None:
         if task.type == "file_organize":
             try:
                 task_config: FileOrganizeConfig = task.get_config(FileOrganizeConfig)
-                task_config.organized_dir.mkdir(parents=True, exist_ok=True)
-                task_config.unorganized_dir.mkdir(parents=True, exist_ok=True)
-                task_config.archive_dir.mkdir(parents=True, exist_ok=True)
-                task_config.misc_dir.mkdir(parents=True, exist_ok=True)
+                create_directory(task_config.organized_dir, parents=True, exist_ok=True)
+                create_directory(
+                    task_config.unorganized_dir, parents=True, exist_ok=True
+                )
+                create_directory(task_config.archive_dir, parents=True, exist_ok=True)
+                create_directory(task_config.misc_dir, parents=True, exist_ok=True)
             except OSError as e:
                 raise OSError(f"创建任务 '{task.name}' 的目录失败: {e}") from e
 

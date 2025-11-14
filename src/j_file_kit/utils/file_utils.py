@@ -1,6 +1,7 @@
 """文件工具函数
 
-提供文件操作相关的工具函数，如路径冲突处理等。
+提供文件操作相关的纯函数工具，如路径冲突处理、路径生成、文件类型判断等。
+不包含I/O操作，所有文件系统操作应使用infrastructure/filesystem/operations。
 """
 
 from __future__ import annotations
@@ -9,7 +10,8 @@ import random
 import string
 from pathlib import Path
 
-from ..core.models import FileType, SerialId
+from ..domain.models import FileType, SerialId
+from ..infrastructure.filesystem.operations import path_exists
 
 
 def get_file_type(
@@ -57,7 +59,7 @@ def resolve_unique_path(target_path: Path) -> Path:
         >>> resolve_unique_path(Path("test.mp4"))
         Path("test-a3b2.mp4")  # 如果 test.mp4 已存在
     """
-    if not target_path.exists():
+    if not path_exists(target_path):
         return target_path
 
     # 分离文件名和扩展名
@@ -74,7 +76,7 @@ def resolve_unique_path(target_path: Path) -> Path:
         new_name = f"{stem}{random_suffix}{suffix}"
         new_path = parent / new_name
 
-        if not new_path.exists():
+        if not path_exists(new_path):
             return new_path
 
     # 如果100次尝试后仍有冲突，抛出异常
@@ -97,7 +99,7 @@ def generate_organized_path(
         完整的目标路径
 
     Examples:
-        >>> from j_file_kit.core.models import SerialId
+        >>> from j_file_kit.domain.models import SerialId
         >>> generate_organized_path(Path("/organized"), SerialId(prefix="ABCD", number="123"), ".mp4")
         Path("/organized/A/ABCD/ABCD-123.mp4")
 

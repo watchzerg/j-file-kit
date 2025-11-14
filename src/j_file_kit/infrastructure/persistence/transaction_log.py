@@ -1,6 +1,7 @@
-"""事务日志模块
+"""事务日志
 
 记录所有文件操作到 SQLite 数据库。
+提供文件移动、删除等操作的日志记录功能，支持回滚。
 """
 
 from __future__ import annotations
@@ -8,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ..core.db import DatabaseManager
+from .db import DatabaseManager
 
 
 class OperationType:

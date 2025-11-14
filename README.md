@@ -46,9 +46,10 @@ pip install -e .
 # 全局配置
 global:
   scan_roots:                                    # 扫描根目录列表
-    - /path/to/your/files                       # 修改为你的文件目录
-  log_dir: ./logs                               # 日志目录
-  report_dir: ./reports                         # 报告目录
+    - ./scan                                     # 修改为你的文件目录
+  log_dir: ./logs                                # 日志目录
+  report_dir: ./reports                          # 报告目录
+  db_path: ./data/j_file_kit.db                  # 数据库文件路径
 
 # 任务列表
 tasks:
@@ -57,59 +58,90 @@ tasks:
     enabled: true
     config:
       # 目标目录配置
-      todo_non_vidpic_dir: /path/to/todo-non-vidpic  # 非视频图片文件目录
-      todo_vidpic_dir: /path/to/todo-vidpic          # 无番号视频图片文件目录
+      organized_dir: ./organized                 # 整理后的视频图片存储目录（有番号）
+      unorganized_dir: ./unorganized            # 无番号视频图片存储目录
+      archive_dir: ./archives                    # 压缩文件存储目录
+      misc_dir: ./misc                           # 其他文件存储目录
       
       # 文件类型配置
       video_extensions: [.mp4, .avi, .mkv, .mov, .wmv, .flv, .webm]
       image_extensions: [.jpg, .jpeg, .png, .webp, .bmp, .gif, .tiff]
+      archive_extensions: [.zip, .rar, .7z, .tar, .gz, .bz2, .xz]
       
-      # 可选配置
-      dry_run: false
-      backup: false
-      max_file_size: 1073741824
-      min_file_size: 1048576
+      # 删除规则配置
+      delete_rules:
+        keywords: [.tmp, .temp, .bak, .old]      # 包含这些关键字的文件将被删除
+        extensions: [.tmp, .temp, .bak, .old]    # 这些扩展名的文件将被删除
+        max_size: 1048576                        # 小于此大小的文件将被删除（字节）
 ```
 
 ### 3. 运行任务
 
-#### 方式一：使用内置的视频文件整理器
+#### 方式一：使用HTTP API
 
-```python
-from j_file_kit.rules.video_organizer import VideoFileOrganizer
+```bash
+# 启动HTTP服务
+uv run python -m j_file_kit.main
 
-# 创建整理器
-organizer = VideoFileOrganizer("config.yaml")
-
-# 预览模式（推荐先运行）
-preview_report = organizer.run(dry_run=True)
-print(f"预览模式将处理 {preview_report.total_files} 个文件")
-
-# 实际执行
-report = organizer.run()
-print(f"处理完成: 成功 {report.success_files}, 失败 {report.error_files}")
+# 或使用uvicorn直接运行
+uvicorn j_file_kit.api.app:app --reload
 ```
 
-#### 方式二：使用管道 API
+然后通过HTTP API调用：
+
+```bash
+# 启动任务
+curl -X POST http://localhost:8000/api/tasks/video_file_organizer/start \
+  -H "Content-Type: application/json" \
+  -d '{"dry_run": true}'
+
+# 查看任务状态
+curl http://localhost:8000/api/tasks/{task_id}
+
+# 列出所有任务
+curl http://localhost:8000/api/tasks
+```
+
+#### 方式二：使用内置的视频文件整理任务
 
 ```python
-from j_file_kit.core.pipeline import Pipeline
-from j_file_kit.core.config import load_config
-from j_file_kit.processors.analyzers import FileClassifier, SerialIdExtractor
-from j_file_kit.processors.executors import FileRenamer, FileMover
-from j_file_kit.processors.finalizers import ReportGenerator
+from j_file_kit.infrastructure.config.config import load_config
+from j_file_kit.infrastructure.app_state import AppState
+from j_file_kit.tasks.video_organizer import VideoFileOrganizer
+
+# 创建应用状态（会自动加载配置）
+app_state = AppState("configs/task_config.yaml")
+
+# 创建任务实例
+task = VideoFileOrganizer(app_state.config)
+
+# 启动任务（通过任务管理器）
+task_id = app_state.task_manager.start_task(task, dry_run=True)
+
+# 查看任务状态
+task_model = app_state.task_manager.get_task(task_id)
+print(f"任务状态: {task_model.status}")
+```
+
+#### 方式三：使用管道 API（高级用法）
+
+```python
+from j_file_kit.services.pipeline import Pipeline
+from j_file_kit.infrastructure.config.config import load_config
+from j_file_kit.domain.processors.analyzers import FileClassifier, SerialIdExtractor
+from j_file_kit.domain.processors.executors import UnifiedFileExecutor
+from j_file_kit.domain.processors.finalizers import ReportGenerator
 
 # 加载配置
 config = load_config("config.yaml")
 
 # 创建管道
-pipeline = Pipeline(config, "video_file_organizer")
+pipeline = Pipeline(config, "video_file_organizer", "task_id", db_manager)
 
 # 添加处理器
 pipeline.add_analyzer(FileClassifier({".mp4", ".avi"}, {".jpg", ".png"}))
 pipeline.add_analyzer(SerialIdExtractor())
-pipeline.add_executor(FileRenamer(pipeline.transaction_log))
-pipeline.add_executor(FileMover("/path/to/todo_vidpic", pipeline.transaction_log))
+pipeline.add_executor(UnifiedFileExecutor(pipeline.transaction_log))
 pipeline.add_finalizer(ReportGenerator("./reports", pipeline.report))
 
 # 执行任务（预览模式）
@@ -144,8 +176,8 @@ j-file-kit 使用固定的内置番号正则表达式：
 ```python
 from __future__ import annotations
 
-from j_file_kit.core.models import ProcessingContext, ProcessorResult
-from j_file_kit.core.processor import Analyzer
+from j_file_kit.domain.models import ProcessingContext, ProcessorResult
+from j_file_kit.domain.processor import Analyzer
 
 class CustomAnalyzer(Analyzer):
     """自定义分析器示例"""
@@ -154,20 +186,20 @@ class CustomAnalyzer(Analyzer):
         """处理文件分析逻辑"""
         # 自定义分析逻辑
         if ctx.file_info.suffix == '.custom':
-            ctx.custom_flag = True
-            ctx.custom_data = {"processed": True}
+            ctx.custom_data["processed"] = True
             
-        return ProcessorResult(
-            status='success',
-            message=f"Custom analyzer applied to {ctx.file_info.name}"
+        return ProcessorResult.success(
+            f"Custom analyzer applied to {ctx.file_info.name}"
         )
 ```
 
 ### 自定义执行器
 
 ```python
-from j_file_kit.core.models import ProcessingContext, ProcessorResult
-from j_file_kit.core.processor import Executor
+from __future__ import annotations
+
+from j_file_kit.domain.models import ProcessingContext, ProcessorResult
+from j_file_kit.domain.processor import Executor
 
 class CustomExecutor(Executor):
     """自定义执行器示例"""
@@ -176,17 +208,29 @@ class CustomExecutor(Executor):
         """执行文件操作"""
         try:
             # 自定义操作逻辑
-            if ctx.custom_flag:
+            if ctx.custom_data.get("processed"):
                 # 执行自定义操作
                 pass
                 
-            return ProcessorResult(
-                status='success',
-                message=f"Custom operation completed for {ctx.file_info.name}"
+            return ProcessorResult.success(
+                f"Custom operation completed for {ctx.file_info.name}"
             )
         except Exception as e:
             return ProcessorResult.error(f"Custom operation failed: {str(e)}")
 ```
+
+## 📐 架构设计
+
+项目采用分层架构设计，遵循领域驱动设计（DDD）原则。详细架构说明请参考 [架构设计文档](docs/ARCHITECTURE.md)。
+
+### 核心分层
+
+- **domain/**: 领域层 - 业务模型、协议定义和处理器实现
+- **services/**: 服务层 - 业务编排和流程协调
+- **infrastructure/**: 基础设施层 - I/O操作、持久化、配置管理
+- **api/**: HTTP接口层 - RESTful API适配
+- **tasks/**: 应用层 - 具体任务实现
+- **utils/**: 工具函数 - 纯函数工具
 
 ## 📁 项目结构
 
@@ -194,23 +238,43 @@ class CustomExecutor(Executor):
 j-file-kit/
 ├── 📦 src/
 │   └── j_file_kit/              # 主包
-│       ├── 🏗️ core/             # 核心抽象层
-│       │   ├── models.py        # 数据模型
-│       │   ├── config.py        # 配置模型和加载器
-│       │   ├── scanner.py       # 文件扫描器
+│       ├── 🏗️ domain/           # 领域层（业务模型和协议）
+│       │   ├── models.py        # 领域模型
+│       │   ├── processor.py     # Processor 协议定义
+│       │   ├── task.py          # 任务抽象基类
+│       │   └── processors/      # 处理器实现
+│       │       ├── analyzers.py # 分析器
+│       │       ├── executors.py # 执行器
+│       │       └── finalizers.py # 终结器
+│       ├── ⚙️ services/          # 服务层（业务编排）
 │       │   ├── pipeline.py      # 管道协调器
-│       │   └── processor.py     # Processor 协议定义
-│       ├── ⚙️ processors/       # 内置处理器
-│       │   ├── analyzers.py     # 分析器
-│       │   ├── executors.py     # 执行器
-│       │   └── finalizers.py    # 终结器
-│       ├── 🔧 rules/            # 用户扩展点和内置规则
-│       │   └── video_organizer.py # 视频文件整理器
-│       └── 🛠️ utils/            # 工具函数
+│       │   ├── task_manager.py  # 任务管理器
+│       │   └── scanner.py       # 文件扫描服务
+│       ├── 🔧 infrastructure/   # 基础设施层（I/O和外部依赖）
+│       │   ├── filesystem/      # 文件系统操作
+│       │   │   ├── operations.py # 文件操作封装
+│       │   │   └── scanner.py   # 文件扫描操作
+│       │   ├── persistence/     # 持久化
+│       │   │   ├── db.py        # 数据库管理
+│       │   │   └── transaction_log.py # 事务日志
+│       │   ├── config/          # 配置管理
+│       │   │   └── config.py    # 配置模型和加载器
+│       │   ├── logging/         # 日志
+│       │   │   └── logger.py    # 结构化日志
+│       │   └── app_state.py     # 应用状态管理
+│       ├── 🌐 api/              # HTTP接口层
+│       │   ├── app.py           # FastAPI应用
+│       │   ├── routes.py        # API路由
+│       │   └── models.py        # API请求/响应模型
+│       ├── 📋 tasks/            # 应用层（具体任务实现）
+│       │   └── video_organizer.py # 视频文件整理任务
+│       ├── 🛠️ utils/            # 工具函数
+│       │   ├── file_utils.py    # 文件工具函数
+│       │   ├── regex_patterns.py # 正则表达式模式
+│       │   └── filename_generation.py # 文件名生成
+│       └── main.py              # 主入口文件
 ├── 🧪 tests/                    # 测试套件
-├── 📊 logs/                    # 日志输出目录
-├── 📈 reports/                 # 报告输出目录
-├── 📄 main.py                  # 主入口文件
+├── 📊 configs/                 # 配置文件目录
 ├── 📋 pyproject.toml           # 项目配置
 └── 🔒 uv.lock                  # 依赖锁定文件
 ```

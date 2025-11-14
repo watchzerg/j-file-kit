@@ -1,15 +1,22 @@
-"""执行器模块
+"""执行器实现
 
-实现文件操作功能，如重命名、移动等。
+实现文件操作功能，如文件移动、删除等。
+执行器根据ProcessingContext中的action决策执行相应的文件操作。
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from ..core.models import FileAction, ProcessingContext, ProcessorResult
-from ..core.processor import Executor
-from ..utils.file_utils import resolve_unique_path
+from ...infrastructure.filesystem.operations import (
+    create_directory,
+    delete_file,
+    move_file,
+    path_exists,
+)
+from ...utils.file_utils import resolve_unique_path
+from ..models import FileAction, ProcessingContext, ProcessorResult
+from ..processor import Executor
 
 
 class UnifiedFileExecutor(Executor):
@@ -68,11 +75,11 @@ class UnifiedFileExecutor(Executor):
                 return ProcessorResult.error("目标路径未设置")
 
             # 检查源文件是否存在
-            if not ctx.file_info.path.exists():
+            if not path_exists(ctx.file_info.path):
                 return ProcessorResult.error("源文件不存在")
 
             # 直接创建目录（不需要检查是否存在）
-            ctx.target_dir.parent.mkdir(parents=True, exist_ok=True)
+            create_directory(ctx.target_dir.parent, parents=True, exist_ok=True)
 
             # 处理重名冲突
             unique_path = resolve_unique_path(ctx.target_dir)
@@ -81,7 +88,7 @@ class UnifiedFileExecutor(Executor):
             old_path = ctx.file_info.path
 
             # 执行移动
-            old_path.rename(unique_path)
+            move_file(old_path, unique_path)
 
             # 更新上下文
             ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
@@ -123,7 +130,7 @@ class UnifiedFileExecutor(Executor):
                 return ProcessorResult.error("目标目录未设置")
 
             # 检查源文件是否存在
-            if not ctx.file_info.path.exists():
+            if not path_exists(ctx.file_info.path):
                 return ProcessorResult.error("源文件不存在")
 
             # 生成目标路径
@@ -134,7 +141,7 @@ class UnifiedFileExecutor(Executor):
             old_path = ctx.file_info.path
 
             # 执行移动
-            old_path.rename(unique_path)
+            move_file(old_path, unique_path)
 
             # 更新上下文
             ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
@@ -171,7 +178,7 @@ class UnifiedFileExecutor(Executor):
         """
         try:
             # 执行删除（文件不存在时静默成功）
-            ctx.file_info.path.unlink(missing_ok=True)
+            delete_file(ctx.file_info.path, missing_ok=True)
 
             # 记录事务日志
             if self.transaction_log:

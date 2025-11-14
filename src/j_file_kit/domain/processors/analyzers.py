@@ -1,6 +1,7 @@
-"""分析器模块
+"""分析器实现
 
-实现文件分析功能，如文件类型分类、番号提取等。
+实现文件分析功能，如文件类型分类、番号提取、动作决策等。
+分析器只负责分析，不执行文件操作。
 """
 
 from __future__ import annotations
@@ -8,10 +9,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ..core.models import FileAction, FileType, ProcessingContext, ProcessorResult
-from ..core.processor import Analyzer
-from ..utils.file_utils import generate_organized_path, get_file_type
-from ..utils.filename_generation import generate_new_filename
+from ...utils.file_utils import generate_organized_path, get_file_type
+from ...utils.filename_generation import generate_new_filename
+from ..models import FileAction, FileType, ProcessingContext, ProcessorResult
+from ..processor import Analyzer
 
 
 class FileClassifier(Analyzer):

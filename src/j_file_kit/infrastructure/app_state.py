@@ -1,6 +1,7 @@
 """应用状态管理
 
 管理应用的全局状态，包括配置和任务管理器。
+在应用启动时初始化，提供统一的配置和任务管理接口。
 """
 
 from __future__ import annotations
@@ -8,15 +9,16 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from .config import (
+from ..services.task_manager import TaskManager
+from .config.config import (
     TaskConfig,
     create_default_config,
     ensure_directories_exist,
     load_config,
     save_config,
 )
-from .db import DatabaseManager
-from .task_manager import TaskManager
+from .filesystem.operations import path_exists
+from .persistence.db import DatabaseManager
 
 
 class AppState:
@@ -37,7 +39,7 @@ class AppState:
         config_path = Path(config_path)
 
         # 如果配置文件不存在，创建默认配置文件
-        if not config_path.exists():
+        if not path_exists(config_path):
             default_config = create_default_config()
             save_config(default_config, config_path)
 

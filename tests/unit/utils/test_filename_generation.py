@@ -16,7 +16,7 @@
 
 import pytest
 
-from j_file_kit.core.models import SerialId
+from j_file_kit.domain.models import SerialId
 from j_file_kit.utils.filename_generation import generate_new_filename
 
 

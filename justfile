@@ -29,18 +29,18 @@ clean:
     @echo "清理完成"
 
 # 同步依赖
-sync-deps:
+deps-sync:
 	uv sync --all-groups
 
 # 升级依赖
-up-deps:
+deps-up:
     uv lock --upgrade
     uv sync --all-groups
     
-# 升级python并重建venv
-up-python:
-    brew upgrade python
-    version=$(python3 --version | awk '{print $2}' | cut -d. -f1,2)
-    uv python pin "$version"
+# 升级python版本（例如3.14）
+py-up VERSION:
+    uv python install {{VERSION}}
+    uv python pin {{VERSION}}
     uv venv --refresh
     uv sync --all-groups
+    uv run python -V

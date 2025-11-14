@@ -1,6 +1,7 @@
 """Processor 协议定义
 
 定义分析器、执行器和终结器的基类协议。
+Processor是领域层的核心抽象，定义了文件处理的标准接口。
 """
 
 from __future__ import annotations

@@ -1,6 +1,7 @@
-"""结构化日志模块
+"""结构化日志
 
 提供 JSON Lines 格式的结构化日志功能。
+记录任务执行过程中的所有事件，便于后续分析和调试。
 """
 
 from __future__ import annotations
@@ -11,7 +12,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ..core.models import TaskResult
+from ...domain.models import TaskResult
+from ..filesystem.operations import (
+    append_text_file,
+    create_directory,
+    path_exists,
+    write_text_file,
+)
 
 
 class StructuredLogger:
@@ -33,10 +40,11 @@ class StructuredLogger:
         self.log_file = log_dir / f"{task_name}_{self.task_id}.jsonl"
 
         # 确保日志目录存在
-        self.log_dir.mkdir(parents=True, exist_ok=True)
+        create_directory(self.log_dir, parents=True, exist_ok=True)
 
         # 创建日志文件（如果不存在）
-        self.log_file.touch(exist_ok=True)
+        if not path_exists(self.log_file):
+            write_text_file(self.log_file, "")
 
     def _write_log(
         self, level: str, message: str, data: dict[str, Any] | None = None
@@ -57,8 +65,9 @@ class StructuredLogger:
             "data": data or {},
         }
 
-        with open(self.log_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+        append_text_file(
+            self.log_file, json.dumps(log_entry, ensure_ascii=False) + "\n"
+        )
 
     def info(self, message: str, data: dict[str, Any] | None = None) -> None:
         """记录信息日志"""

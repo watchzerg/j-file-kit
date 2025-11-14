@@ -1,6 +1,7 @@
 """任务管理器
 
 管理任务的执行、状态跟踪和取消。
+负责任务的生命周期管理，同一时间只允许一个任务运行。
 """
 
 from __future__ import annotations
@@ -9,15 +10,15 @@ import threading
 import uuid
 from datetime import datetime
 
-from .db import DatabaseManager
-from .models import (
+from ..domain.models import (
     Task,
     TaskAlreadyRunningError,
     TaskCancelledError,
     TaskNotFoundError,
     TaskStatus,
 )
-from .task import BaseTask
+from ..domain.task import BaseTask
+from ..infrastructure.persistence.db import DatabaseManager
 
 
 class TaskManager:

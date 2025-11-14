@@ -1,6 +1,6 @@
 """主入口文件
 
-启动HTTP服务。
+启动HTTP服务，提供文件管理任务的RESTful API接口。
 """
 
 from __future__ import annotations

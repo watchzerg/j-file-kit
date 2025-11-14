@@ -1,6 +1,7 @@
 """配置API路由
 
 定义配置管理的HTTP API路由处理函数。
+提供配置的查询和更新功能，支持部分更新。
 """
 
 from __future__ import annotations
@@ -10,8 +11,8 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from ..core.app_state import AppState
-from ..core.config import (
+from ..infrastructure.app_state import AppState
+from ..infrastructure.config.config import (
     GlobalConfig,
     TaskConfig,
     TaskDefinition,

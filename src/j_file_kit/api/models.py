@@ -1,6 +1,7 @@
 """API请求和响应模型
 
 定义HTTP API的请求和响应数据结构。
+用于API层的数据传输，与领域模型分离。
 """
 
 from __future__ import annotations
@@ -10,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ..core.models import TaskStatus
+from ..domain.models import TaskStatus
 
 
 class StartTaskRequest(BaseModel):

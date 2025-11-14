@@ -1,6 +1,7 @@
-"""数据库管理模块
+"""数据库管理
 
 管理 SQLite 数据库连接和操作。
+提供任务和操作记录的CRUD功能，自动创建表结构。
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .models import Task, TaskStatus
+from ...domain.models import Task, TaskStatus
 
 
 class DatabaseManager:

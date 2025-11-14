@@ -1,6 +1,7 @@
 """管道协调器
 
-协调文件扫描、处理器链执行和结果汇总。
+协调整个文件处理流程：扫描 → 分析 → 执行 → 终结。
+负责文件扫描、处理器链执行和结果汇总。
 """
 
 from __future__ import annotations
@@ -10,18 +11,18 @@ import time
 from datetime import datetime
 from typing import Any
 
-from ..utils.logger import StructuredLogger
-from ..utils.transaction_log import TransactionLog
-from .config import TaskConfig
-from .db import DatabaseManager
-from .models import (
+from ..domain.models import (
     ProcessingContext,
     ProcessorResult,
     ProcessorStatus,
     TaskReport,
     TaskResult,
 )
-from .processor import Analyzer, Executor, Finalizer, ProcessorChain
+from ..domain.processor import Analyzer, Executor, Finalizer, ProcessorChain
+from ..infrastructure.config.config import TaskConfig
+from ..infrastructure.logging.logger import StructuredLogger
+from ..infrastructure.persistence.db import DatabaseManager
+from ..infrastructure.persistence.transaction_log import TransactionLog
 from .scanner import FileScanner
 
 

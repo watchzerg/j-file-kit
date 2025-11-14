@@ -1,6 +1,7 @@
 """FastAPI应用
 
-创建和配置FastAPI应用实例。
+创建和配置FastAPI应用实例，提供HTTP API接口。
+包含应用生命周期管理和异常处理。
 """
 
 from __future__ import annotations
@@ -11,13 +12,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from ..core.app_state import AppState
-from ..core.models import (
+from ..domain.models import (
     TaskAlreadyRunningError,
     TaskCancelledError,
     TaskError,
     TaskNotFoundError,
 )
+from ..infrastructure.app_state import AppState
 from .config_routes import router as config_router
 from .routes import router
 

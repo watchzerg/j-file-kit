@@ -1,14 +1,15 @@
 """API路由
 
-定义HTTP API的路由处理函数。
+定义任务管理的HTTP API路由处理函数。
+提供任务的启动、查询、取消等功能。
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from ..core.app_state import AppState
-from ..core.task import BaseTask
+from ..domain.task import BaseTask
+from ..infrastructure.app_state import AppState
 from ..tasks.video_organizer import VideoFileOrganizer
 from .models import (
     CancelTaskResponse,

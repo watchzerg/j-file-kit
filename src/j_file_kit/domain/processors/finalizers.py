@@ -1,15 +1,21 @@
-"""终结器模块
+"""终结器实现
 
-实现全局后处理功能，如生成报告等。
+实现全局后处理功能，如生成报告、统计信息收集等。
+终结器在所有文件处理完成后执行。
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
-from ..core.models import ProcessingContext, ProcessorResult, TaskReport
-from ..core.processor import Finalizer
+from ...infrastructure.filesystem.operations import (
+    create_directory,
+    write_text_file,
+)
+from ..models import ProcessingContext, ProcessorResult, TaskReport
+from ..processor import Finalizer
 
 
 class ReportGenerator(Finalizer):
@@ -48,7 +54,7 @@ class ReportGenerator(Finalizer):
         """
         try:
             # 确保报告目录存在
-            self.report_dir.mkdir(parents=True, exist_ok=True)
+            create_directory(self.report_dir, parents=True, exist_ok=True)
 
             # 生成 Markdown 报告
             report_file = self.report_dir / f"{self.report.task_name}_report.md"
@@ -72,43 +78,42 @@ class ReportGenerator(Finalizer):
         Args:
             report_file: 报告文件路径
         """
-        with open(report_file, "w", encoding="utf-8") as f:
-            f.write(f"# 任务报告: {self.report.task_name}\n\n")
-            start_time_str = self.report.start_time.strftime("%Y-%m-%d %H:%M:%S")
-            f.write(f"**开始时间**: {start_time_str}\n")
-            f.write(
-                f"**结束时间**: {self.report.end_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
-            )
-            f.write(f"**总耗时**: {self.report.duration_seconds:.2f} 秒\n\n")
+        content = f"# 任务报告: {self.report.task_name}\n\n"
+        start_time_str = self.report.start_time.strftime("%Y-%m-%d %H:%M:%S")
+        content += f"**开始时间**: {start_time_str}\n"
+        content += (
+            f"**结束时间**: {self.report.end_time.strftime('%Y-%m-%d %H:%M:%S')}\n"
+        )
+        content += f"**总耗时**: {self.report.duration_seconds:.2f} 秒\n\n"
 
-            f.write("## 统计信息\n\n")
-            f.write(f"- **总文件数**: {self.report.total_files}\n")
-            f.write(f"- **成功文件数**: {self.report.success_files}\n")
-            f.write(f"- **失败文件数**: {self.report.error_files}\n")
-            f.write(f"- **跳过文件数**: {self.report.skipped_files}\n")
-            f.write(f"- **警告文件数**: {self.report.warning_files}\n")
-            f.write(f"- **成功率**: {self.report.success_rate:.2%}\n")
-            f.write(f"- **错误率**: {self.report.error_rate:.2%}\n\n")
+        content += "## 统计信息\n\n"
+        content += f"- **总文件数**: {self.report.total_files}\n"
+        content += f"- **成功文件数**: {self.report.success_files}\n"
+        content += f"- **失败文件数**: {self.report.error_files}\n"
+        content += f"- **跳过文件数**: {self.report.skipped_files}\n"
+        content += f"- **警告文件数**: {self.report.warning_files}\n"
+        content += f"- **成功率**: {self.report.success_rate:.2%}\n"
+        content += f"- **错误率**: {self.report.error_rate:.2%}\n\n"
 
-            # 详细结果
-            if self.report.results:
-                f.write("## 详细结果\n\n")
-                f.write("| 文件 | 状态 | 耗时(ms) | 消息 |\n")
-                f.write("|------|------|----------|------|\n")
+        # 详细结果
+        if self.report.results:
+            content += "## 详细结果\n\n"
+            content += "| 文件 | 状态 | 耗时(ms) | 消息 |\n"
+            content += "|------|------|----------|------|\n"
 
-                for result in self.report.results:
-                    status = "✅ 成功" if result.success else "❌ 失败"
-                    if result.was_skipped:
-                        status = "⏭️ 跳过"
-                    elif result.has_warnings:
-                        status = "⚠️ 警告"
+            for result in self.report.results:
+                status = "✅ 成功" if result.success else "❌ 失败"
+                if result.was_skipped:
+                    status = "⏭️ 跳过"
+                elif result.has_warnings:
+                    status = "⚠️ 警告"
 
-                    file_name = result.file_info.path.name
-                    duration = result.total_duration_ms
-                    message = result.error_message or "OK"
-                    f.write(
-                        f"| {file_name} | {status} | {duration:.1f} | {message} |\n"
-                    )
+                file_name = result.file_info.path.name
+                duration = result.total_duration_ms
+                message = result.error_message or "OK"
+                content += f"| {file_name} | {status} | {duration:.1f} | {message} |\n"
+
+        write_text_file(report_file, content)
 
     def _generate_json_report(self, json_file: Path) -> None:
         """生成 JSON 报告
@@ -116,8 +121,6 @@ class ReportGenerator(Finalizer):
         Args:
             json_file: JSON 文件路径
         """
-        import json
-
         report_data = {
             "task_name": self.report.task_name,
             "start_time": self.report.start_time.isoformat(),
@@ -152,8 +155,8 @@ class ReportGenerator(Finalizer):
             ],
         }
 
-        with open(json_file, "w", encoding="utf-8") as f:
-            json.dump(report_data, f, ensure_ascii=False, indent=2)
+        content = json.dumps(report_data, ensure_ascii=False, indent=2)
+        write_text_file(json_file, content)
 
 
 class StatisticsCollector(Finalizer):

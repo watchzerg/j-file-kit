@@ -1,6 +1,7 @@
-"""文件扫描器
+"""文件扫描服务
 
-提供文件目录扫描功能。
+提供文件目录扫描功能，支持多个根目录。
+使用infrastructure层的文件系统操作进行实际扫描。
 """
 
 from __future__ import annotations
@@ -8,7 +9,8 @@ from __future__ import annotations
 from collections.abc import Generator
 from pathlib import Path
 
-from .models import FileInfo
+from ..domain.models import FileInfo
+from ..infrastructure.filesystem.scanner import scan_directory_files
 
 
 class FileScanner:
@@ -32,13 +34,6 @@ class FileScanner:
             FileInfo: 文件信息
         """
         for root_path in self.root_paths:
-            if not root_path.exists():
-                raise FileNotFoundError(f"扫描目录不存在: {root_path}")
-
-            if not root_path.is_dir():
-                raise NotADirectoryError(f"路径不是目录: {root_path}")
-
-            for file_path in root_path.rglob("*"):
-                if file_path.is_file():
-                    file_info = FileInfo.from_path(file_path)
-                    yield file_info
+            for file_path in scan_directory_files(root_path):
+                file_info = FileInfo.from_path(file_path)
+                yield file_info

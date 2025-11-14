@@ -1,6 +1,7 @@
 """任务基类
 
 定义任务的抽象接口。
+所有具体任务实现必须继承此类并实现run方法。
 """
 
 from __future__ import annotations
@@ -8,7 +9,7 @@ from __future__ import annotations
 import threading
 from abc import ABC, abstractmethod
 
-from .db import DatabaseManager
+from ..infrastructure.persistence.db import DatabaseManager
 from .models import TaskReport
 
 
