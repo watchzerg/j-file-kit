@@ -18,7 +18,7 @@ from ..processor import Analyzer
 class FileClassifier(Analyzer):
     """文件类型分类器
 
-    根据文件扩展名判断文件类型（视频/图片/压缩/其他）。
+    根据文件扩展名判断文件类型（视频/图片/压缩/Misc）。
     """
 
     def __init__(
@@ -60,15 +60,7 @@ class FileClassifier(Analyzer):
             # 更新上下文
             ctx.file_type = file_type
 
-            # 根据文件类型决定是否短路
-            if file_type == FileType.OTHER:
-                # 非视频/图片/压缩文件，设置短路标记
-                ctx.skip_remaining = True
-                return ProcessorResult.success(
-                    f"文件类型: {file_type.value}，跳过后续处理"
-                )
-            else:
-                return ProcessorResult.success(f"文件类型: {file_type.value}，继续处理")
+            return ProcessorResult.success(f"文件类型: {file_type.value}，继续处理")
 
         except Exception as e:
             return ProcessorResult.error(f"文件类型分析失败: {str(e)}")
@@ -124,22 +116,15 @@ class SerialIdExtractor(Analyzer):
             return ProcessorResult.error(f"番号提取失败: {str(e)}")
 
 
-class FileSizeAnalyzer(Analyzer):
-    """文件大小分析器
+class MiscFileSizeAnalyzer(Analyzer):
+    """Misc文件大小分析器
 
-    分析文件大小，可用于过滤或分类。
+    只分析Misc文件的大小，写入ctx.file_size。
     """
 
-    def __init__(self, min_size: int = 0, max_size: int | None = None):
-        """初始化文件大小分析器
-
-        Args:
-            min_size: 最小文件大小（字节）
-            max_size: 最大文件大小（字节），None 表示无限制
-        """
-        super().__init__("FileSizeAnalyzer")
-        self.min_size = min_size
-        self.max_size = max_size
+    def __init__(self) -> None:
+        """初始化Misc文件大小分析器"""
+        super().__init__("MiscFileSizeAnalyzer")
 
     def process(self, ctx: ProcessingContext) -> ProcessorResult:
         """分析文件大小
@@ -150,27 +135,20 @@ class FileSizeAnalyzer(Analyzer):
         Returns:
             分析结果
         """
+        # 只处理Misc文件
+        if ctx.file_type != FileType.MISC:
+            return ProcessorResult.skip("非Misc文件，跳过大小分析")
+
         try:
             file_size = ctx.file_info.path.stat().st_size
-
-            # 检查大小限制
-            if file_size < self.min_size:
-                ctx.skip_remaining = True
-                return ProcessorResult.skip(f"文件太小: {file_size} 字节")
-
-            if self.max_size is not None and file_size > self.max_size:
-                ctx.skip_remaining = True
-                return ProcessorResult.skip(f"文件太大: {file_size} 字节")
-
-            # 将文件大小信息存储到自定义数据中
-            ctx.custom_data["file_size"] = file_size
+            ctx.file_size = file_size
 
             return ProcessorResult.success(
                 f"文件大小: {file_size} 字节", {"file_size": file_size}
             )
 
         except Exception as e:
-            return ProcessorResult.error(f"文件大小分析失败: {str(e)}")
+            return ProcessorResult.skip(f"无法获取文件大小: {str(e)}")
 
 
 class FileNameAnalyzer(Analyzer):
@@ -222,6 +200,101 @@ class FileNameAnalyzer(Analyzer):
             return ProcessorResult.error(f"文件名分析失败: {str(e)}")
 
 
+class MiscFileDeleteAnalyzer(Analyzer):
+    """Misc文件删除判断器
+
+    根据配置规则判断Misc文件是否应该删除。
+    删除条件：扩展名 or (体积 <= max_size and 文件名包含关键字)
+    """
+
+    def __init__(
+        self,
+        misc_file_delete_rules: dict[str, Any],
+    ):
+        """初始化Misc文件删除判断器
+
+        Args:
+            misc_file_delete_rules: 删除规则配置（keywords, extensions, max_size）
+        """
+        super().__init__("MiscFileDeleteAnalyzer")
+        self.misc_file_delete_rules = misc_file_delete_rules
+
+    def process(self, ctx: ProcessingContext) -> ProcessorResult:
+        """判断Misc文件是否应该删除
+
+        Args:
+            ctx: 处理上下文
+
+        Returns:
+            分析结果
+        """
+        # 只处理Misc文件
+        if ctx.file_type != FileType.MISC:
+            return ProcessorResult.skip("非Misc文件，跳过删除判断")
+
+        try:
+            ctx.should_delete = self._should_delete(ctx)
+
+            if ctx.should_delete:
+                return ProcessorResult.success("Misc文件符合删除条件")
+            else:
+                return ProcessorResult.success(
+                    "Misc文件不符合删除条件，将移动到misc目录"
+                )
+
+        except Exception as e:
+            return ProcessorResult.error(f"Misc文件删除判断失败: {str(e)}")
+
+    def _should_delete(self, ctx: ProcessingContext) -> bool:
+        """判断Misc文件是否应该删除
+
+        删除条件：扩展名 or (体积 <= max_size and 文件名包含关键字)
+
+        Args:
+            ctx: 处理上下文
+
+        Returns:
+            是否应该删除
+        """
+        # 检查扩展名（优先级最高，单独判断）
+        if self.misc_file_delete_rules.get("extensions"):
+            extensions = self.misc_file_delete_rules["extensions"]
+            if isinstance(extensions, list):
+                # 确保扩展名以点号开头
+                extensions_normalized = {
+                    ext if ext.startswith(".") else f".{ext}" for ext in extensions
+                }
+                if ctx.file_info.suffix.lower() in extensions_normalized:
+                    return True
+
+        # 检查体积和文件名的组合条件
+        # 需要同时满足：体积 <= max_size 且 文件名包含关键字
+        max_size = self.misc_file_delete_rules.get("max_size")
+        keywords = self.misc_file_delete_rules.get("keywords")
+
+        # 如果两者都配置了，需要同时满足
+        if max_size is not None and keywords and isinstance(keywords, list):
+            # 检查文件大小
+            if ctx.file_size is None:
+                # 防御性跳过：如果没有文件大小信息，不删除
+                return False
+
+            if not isinstance(max_size, (int, float)) or ctx.file_size > max_size:
+                # 文件大小超过阈值，不删除
+                return False
+
+            # 检查文件名关键字
+            if not any(kw in ctx.file_info.name for kw in keywords):
+                # 文件名不包含关键字，不删除
+                return False
+
+            # 两者都满足，删除
+            return True
+
+        # 如果只配置了其中一个或都没配置，不删除
+        return False
+
+
 class ActionDecider(Analyzer):
     """动作决策器
 
@@ -234,7 +307,6 @@ class ActionDecider(Analyzer):
         unorganized_dir: Path,
         archive_dir: Path,
         misc_dir: Path,
-        delete_rules: dict[str, Any],
     ):
         """初始化动作决策器
 
@@ -242,15 +314,13 @@ class ActionDecider(Analyzer):
             organized_dir: 整理后的视频图片存储目录（B类）
             unorganized_dir: 无番号视频图片存储目录（C类）
             archive_dir: 压缩文件存储目录
-            misc_dir: 其他文件存储目录（D类）
-            delete_rules: 删除规则配置（keywords, extensions, max_size）
+            misc_dir: Misc文件存储目录（D类）
         """
         super().__init__("ActionDecider")
         self.organized_dir = organized_dir
         self.unorganized_dir = unorganized_dir
         self.archive_dir = archive_dir
         self.misc_dir = misc_dir
-        self.delete_rules = delete_rules
 
     def process(self, ctx: ProcessingContext) -> ProcessorResult:
         """决策动作类型
@@ -280,11 +350,10 @@ class ActionDecider(Analyzer):
                 ctx.action = FileAction.MOVE_TO_ARCHIVE
                 ctx.target_dir = self.archive_dir
 
-            # Other文件
-            elif ctx.file_type == FileType.OTHER:
-                if self._should_delete(ctx):
+            # Misc文件
+            elif ctx.file_type == FileType.MISC:
+                if ctx.should_delete:
                     ctx.action = FileAction.DELETE
-                    ctx.should_delete = True
                 else:
                     ctx.action = FileAction.MOVE_TO_MISC
                     ctx.target_dir = self.misc_dir
@@ -301,42 +370,3 @@ class ActionDecider(Analyzer):
 
         except Exception as e:
             return ProcessorResult.error(f"动作决策失败: {str(e)}")
-
-    def _should_delete(self, ctx: ProcessingContext) -> bool:
-        """判断Other文件是否应该删除
-
-        Args:
-            ctx: 处理上下文
-
-        Returns:
-            是否应该删除
-        """
-        # 检查文件名关键字
-        if self.delete_rules.get("keywords"):
-            keywords = self.delete_rules["keywords"]
-            if isinstance(keywords, list):
-                if any(kw in ctx.file_info.name for kw in keywords):
-                    return True
-
-        # 检查扩展名
-        if self.delete_rules.get("extensions"):
-            extensions = self.delete_rules["extensions"]
-            if isinstance(extensions, list):
-                # 确保扩展名以点号开头
-                extensions_normalized = {
-                    ext if ext.startswith(".") else f".{ext}" for ext in extensions
-                }
-                if ctx.file_info.suffix.lower() in extensions_normalized:
-                    return True
-
-        # 检查文件大小
-        if self.delete_rules.get("max_size"):
-            try:
-                file_size = ctx.file_info.path.stat().st_size
-                max_size = self.delete_rules["max_size"]
-                if isinstance(max_size, (int, float)) and file_size <= max_size:
-                    return True
-            except (OSError, ValueError):
-                pass  # 文件不存在或无法获取大小，不删除
-
-        return False

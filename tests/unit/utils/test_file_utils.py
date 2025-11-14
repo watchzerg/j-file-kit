@@ -114,15 +114,15 @@ class TestGetFileType:
         result = get_file_type(path, video_exts, image_exts, archive_exts)
         assert result == FileType.IMAGE
 
-    def test_get_file_type_other(self):
-        """测试其他文件"""
+    def test_get_file_type_misc(self):
+        """测试Misc文件"""
         path = Path("test.txt")
         video_exts = {".mp4", ".avi", ".mkv"}
         image_exts = {".jpg", ".png"}
         archive_exts = {".zip", ".rar", ".7z"}
 
         result = get_file_type(path, video_exts, image_exts, archive_exts)
-        assert result == FileType.OTHER
+        assert result == FileType.MISC
 
     def test_get_file_type_case_insensitive(self):
         """测试大小写不敏感"""

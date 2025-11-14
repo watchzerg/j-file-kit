@@ -30,7 +30,7 @@ class FileType(str, Enum):
     VIDEO = "video"
     IMAGE = "image"
     ARCHIVE = "archive"
-    OTHER = "other"
+    MISC = "misc"
 
 
 class FileAction(str, Enum):
@@ -50,7 +50,7 @@ class FileAction(str, Enum):
             FileAction.MOVE_TO_ORGANIZED: "整理目录",
             FileAction.MOVE_TO_UNORGANIZED: "无番号目录",
             FileAction.MOVE_TO_ARCHIVE: "压缩文件目录",
-            FileAction.MOVE_TO_MISC: "其他文件目录",
+            FileAction.MOVE_TO_MISC: "Misc文件目录",
             FileAction.DELETE: "删除",
             FileAction.SKIP: "跳过",
         }
@@ -168,6 +168,7 @@ class ProcessingContext(BaseModel):
     action: FileAction | None = Field(None, description="决策的动作类型")
     target_dir: Path | None = Field(None, description="目标目录（用于移动）")
     should_delete: bool = Field(False, description="是否应该删除")
+    file_size: int | None = Field(None, description="文件大小（字节）")
 
     # 扩展字段，用于携带自定义状态
     custom_data: dict[str, Any] = Field(default_factory=dict, description="自定义数据")

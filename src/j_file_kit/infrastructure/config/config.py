@@ -60,13 +60,13 @@ class FileOrganizeConfig(BaseModel):
     organized_dir: Path = Field(..., description="整理后的视频图片存储目录（B类）")
     unorganized_dir: Path = Field(..., description="无番号视频图片存储目录（C类）")
     archive_dir: Path = Field(..., description="压缩文件存储目录")
-    misc_dir: Path = Field(..., description="其他文件存储目录（D类）")
+    misc_dir: Path = Field(..., description="Misc文件存储目录（D类）")
     video_extensions: set[str] = Field(..., description="视频文件扩展名")
     image_extensions: set[str] = Field(..., description="图片文件扩展名")
     archive_extensions: set[str] = Field(..., description="压缩文件扩展名")
-    delete_rules: dict[str, Any] = Field(
+    misc_file_delete_rules: dict[str, Any] = Field(
         default_factory=dict,
-        description="删除规则配置（keywords, extensions, max_size）",
+        description="Misc文件删除规则配置（keywords, extensions, max_size）",
     )
 
     @model_validator(mode="after")
@@ -244,7 +244,7 @@ def create_default_config() -> TaskConfig:
                         ".bz2",
                         ".xz",
                     ],
-                    "delete_rules": {
+                    "misc_file_delete_rules": {
                         "keywords": [".tmp", ".temp", ".bak", ".old"],
                         "extensions": [".tmp", ".temp", ".bak", ".old"],
                         "max_size": 1048576,

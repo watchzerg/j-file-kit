@@ -21,7 +21,7 @@ tasks:
       organized_dir: /path/to/organized              # 整理后的视频图片存储目录（B类，按A/ABCD/ABCD-123.mp4格式）
       unorganized_dir: /path/to/unorganized          # 无番号视频图片存储目录（C类）
       archive_dir: /path/to/archives                 # 压缩文件存储目录
-      misc_dir: /path/to/misc                        # 其他文件存储目录（D类，用于后续人工处理）
+      misc_dir: /path/to/misc                        # Misc文件存储目录（D类，用于后续人工处理）
       
       # 文件类型配置
       video_extensions:
@@ -51,8 +51,8 @@ tasks:
         - .bz2
         - .xz
       
-      # 删除规则配置（用于Other文件）
-      delete_rules:
+      # 删除规则配置（用于Misc文件）
+      misc_file_delete_rules:
         keywords:                                    # 文件名包含这些关键字则删除
           - ".tmp"
           - ".temp"

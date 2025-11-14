@@ -61,18 +61,18 @@ tasks:
       organized_dir: ./organized                 # 整理后的视频图片存储目录（有番号）
       unorganized_dir: ./unorganized            # 无番号视频图片存储目录
       archive_dir: ./archives                    # 压缩文件存储目录
-      misc_dir: ./misc                           # 其他文件存储目录
+      misc_dir: ./misc                           # Misc文件存储目录
       
       # 文件类型配置
       video_extensions: [.mp4, .avi, .mkv, .mov, .wmv, .flv, .webm]
       image_extensions: [.jpg, .jpeg, .png, .webp, .bmp, .gif, .tiff]
       archive_extensions: [.zip, .rar, .7z, .tar, .gz, .bz2, .xz]
       
-      # 删除规则配置
-      delete_rules:
+      # 删除规则配置（用于Misc文件）
+      misc_file_delete_rules:
         keywords: [.tmp, .temp, .bak, .old]      # 包含这些关键字的文件将被删除
         extensions: [.tmp, .temp, .bak, .old]    # 这些扩展名的文件将被删除
-        max_size: 1048576                        # 小于此大小的文件将被删除（字节）
+        max_size: 1048576                        # 小于等于此大小的文件将被删除（字节）
 ```
 
 ### 3. 运行任务

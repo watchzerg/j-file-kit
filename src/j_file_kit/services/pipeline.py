@@ -162,6 +162,7 @@ class Pipeline:
                         action=None,
                         target_dir=None,
                         should_delete=False,
+                        file_size=None,
                     )
 
                     # 根据模式执行不同的处理器
@@ -215,6 +216,7 @@ class Pipeline:
                             action=None,
                             target_dir=None,
                             should_delete=False,
+                            file_size=None,
                         ),
                         success=False,
                         error_message=str(e),

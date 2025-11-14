@@ -37,7 +37,7 @@ def get_file_type(
     elif suffix in archive_exts:
         return FileType.ARCHIVE
     else:
-        return FileType.OTHER
+        return FileType.MISC
 
 
 def resolve_unique_path(target_path: Path) -> Path:

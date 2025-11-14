@@ -98,6 +98,7 @@ class TestStructuredLogger:
             action=None,
             target_dir=None,
             should_delete=False,
+            file_size=None,
         )
         result = TaskResult(
             file_info=file_info,
@@ -140,6 +141,7 @@ class TestStructuredLogger:
             action=None,
             target_dir=None,
             should_delete=False,
+            file_size=None,
         )
         result = TaskResult(
             file_info=file_info,
@@ -169,6 +171,7 @@ class TestStructuredLogger:
             action=None,
             target_dir=None,
             should_delete=False,
+            file_size=None,
         )
         result = TaskResult(
             file_info=file_info,
@@ -327,6 +330,7 @@ class TestStructuredLogger:
             action=None,
             target_dir=None,
             should_delete=False,
+            file_size=None,
         )
         result = TaskResult(
             file_info=file_info,

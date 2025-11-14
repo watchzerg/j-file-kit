@@ -14,6 +14,8 @@ from ..domain.models import TaskReport, TaskType
 from ..domain.processors.analyzers import (
     ActionDecider,
     FileClassifier,
+    MiscFileDeleteAnalyzer,
+    MiscFileSizeAnalyzer,
     SerialIdExtractor,
 )
 from ..domain.processors.finalizers import ReportGenerator
@@ -58,7 +60,9 @@ class VideoFileOrganizer(BaseTask):
         self.archive_extensions: set[str] = self.file_config.archive_extensions
 
         # 设置删除规则
-        self.delete_rules: dict[str, Any] = self.file_config.delete_rules
+        self.misc_file_delete_rules: dict[str, Any] = (
+            self.file_config.misc_file_delete_rules
+        )
 
     @property
     def task_type(self) -> TaskType:
@@ -94,6 +98,8 @@ class VideoFileOrganizer(BaseTask):
                 self.archive_extensions,
             )
         )
+        pipeline.add_analyzer(MiscFileSizeAnalyzer())
+        pipeline.add_analyzer(MiscFileDeleteAnalyzer(self.misc_file_delete_rules))
         pipeline.add_analyzer(SerialIdExtractor())
         pipeline.add_analyzer(
             ActionDecider(
@@ -101,7 +107,6 @@ class VideoFileOrganizer(BaseTask):
                 self.unorganized_dir,
                 self.archive_dir,
                 self.misc_dir,
-                self.delete_rules,
             )
         )
 
