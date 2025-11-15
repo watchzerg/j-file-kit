@@ -37,6 +37,7 @@ class SQLiteConnectionManager:
             cursor = self._conn.cursor()
 
             # 创建 tasks 表
+            # statistics 字段使用 JSON 格式存储统计信息，便于扩展支持不同类型的任务统计需求
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS tasks (
@@ -47,7 +48,8 @@ class SQLiteConnectionManager:
                     status TEXT NOT NULL,
                     start_time TEXT NOT NULL,
                     end_time TEXT,
-                    error_message TEXT
+                    error_message TEXT,
+                    statistics TEXT
                 )
                 """
             )

@@ -6,9 +6,11 @@
 from __future__ import annotations
 
 import contextlib
+import json
 import sqlite3
 from collections.abc import Iterator
 from datetime import datetime
+from typing import Any
 
 from ...domain.models import (  # type: ignore[import-untyped]
     Task,
@@ -121,6 +123,7 @@ class TaskRepository:
         status: TaskStatus | None = None,
         end_time: datetime | None = None,
         error_message: str | None = None,
+        statistics: dict[str, Any] | None = None,
     ) -> None:
         """更新任务记录
 
@@ -129,6 +132,8 @@ class TaskRepository:
             status: 任务状态（可选）
             end_time: 结束时间（可选）
             error_message: 错误消息（可选）
+            statistics: 统计信息字典（可选），将被序列化为 JSON 格式存储
+                使用 JSON 格式便于扩展支持不同类型的任务统计需求
         """
         updates: list[str] = []
         params: list[str | int] = []
@@ -144,6 +149,11 @@ class TaskRepository:
         if error_message is not None:
             updates.append("error_message = ?")
             params.append(error_message)
+
+        if statistics is not None:
+            updates.append("statistics = ?")
+            # 使用 ensure_ascii=False 支持中文，便于扩展支持不同类型的任务统计需求
+            params.append(json.dumps(statistics, ensure_ascii=False))
 
         if not updates:
             return

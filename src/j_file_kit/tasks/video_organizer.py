@@ -19,6 +19,7 @@ from ..domain.processors.analyzers import (
     SerialIdExtractor,
 )
 from ..domain.processors.executors import EmptyDirectoryExecutor
+from ..domain.processors.finalizers import TaskStatisticsFinalizer
 from ..domain.task import BaseTask
 from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
 from ..infrastructure.persistence import (
@@ -98,6 +99,7 @@ class VideoFileOrganizer(BaseTask):
             operation_repository,
             file_result_repository,
             task_id,
+            task_repository,
         )
 
         # 添加分析器
@@ -127,6 +129,18 @@ class VideoFileOrganizer(BaseTask):
         # 设计意图：在文件处理完成后，利用自底向上遍历顺序清理空文件夹
         pipeline.add_executor(
             EmptyDirectoryExecutor(self.config.global_.scan_roots, operation_repository)
+        )
+
+        # 添加任务统计信息终结器
+        # finalizer 是全局的，pipeline 会先处理完所有文件的 processors，再执行 finalizers
+        # 所以添加顺序不影响执行顺序
+        pipeline.add_finalizer(
+            TaskStatisticsFinalizer(
+                task_id=task_id,
+                task_repository=task_repository,
+                operation_repository=operation_repository,
+                file_result_repository=file_result_repository,
+            )
         )
 
         return pipeline

@@ -25,6 +25,7 @@ from ..infrastructure.logging.logger import StructuredLogger
 from ..infrastructure.persistence import (
     FileResultRepository,
     OperationRepository,
+    TaskRepository,
 )
 from .scanner import FileScanner
 
@@ -42,6 +43,7 @@ class Pipeline:
         operation_repository: OperationRepository,
         file_result_repository: FileResultRepository,
         task_id: int,
+        task_repository: TaskRepository,
     ):
         """初始化管道
 
@@ -51,6 +53,7 @@ class Pipeline:
             operation_repository: 操作记录仓储实例
             file_result_repository: 文件结果仓储实例
             task_id: 任务ID
+            task_repository: 任务仓储实例，finalizer 需要更新任务统计信息
         """
         self.config = config
         self.task_name = task_name
@@ -62,6 +65,7 @@ class Pipeline:
         self.operation_repository = operation_repository
         self.file_result_repository = file_result_repository
         self.task_id = task_id
+        self.task_repository = task_repository
 
         # 保存EmptyDirectoryExecutor引用（如果存在），用于目录处理
         self.empty_directory_executor: Executor | None = None

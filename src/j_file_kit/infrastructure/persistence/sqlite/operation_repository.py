@@ -213,3 +213,80 @@ class OperationRepository:
                 )
 
             return operations
+
+    def get_operation_statistics(self) -> dict[str, Any]:
+        """获取任务的操作统计信息
+
+        统计操作数量，包含两个维度：
+        - by_operation_type: 按操作类型统计（move, delete, delete_dir, rename, create_dir）
+        - by_file_type: 按文件类型统计操作数量（需要关联 file_results 表获取 file_type）
+
+        使用 SQL JOIN 关联 operations 和 file_results 表，通过 file_result_id 关联。
+        统计时过滤 file_type IS NOT NULL 的操作（目录操作没有 file_type）。
+
+        Returns:
+            操作统计字典，格式：
+            {
+                "by_operation_type": {
+                    "move": 10,
+                    "delete": 5,
+                    "delete_dir": 3,
+                    "rename": 2,
+                    "create_dir": 1
+                },
+                "by_file_type": {
+                    "video": {"move": 8, "delete": 2},
+                    "image": {"move": 2},
+                    ...
+                }
+            }
+        """
+        with self._get_cursor() as cursor:
+            # 按操作类型统计（所有操作）
+            cursor.execute(
+                """
+                SELECT operation, COUNT(*) as count
+                FROM operations
+                WHERE task_id = ?
+                GROUP BY operation
+                """,
+                (self.task_id,),
+            )
+            rows = cursor.fetchall()
+
+            by_operation_type: dict[str, int] = {}
+            for row in rows:
+                by_operation_type[row["operation"]] = row["count"]
+
+            # 按文件类型统计操作数量
+            # 需要 JOIN file_results 表获取 file_type 信息用于分类统计
+            # 过滤 file_type IS NOT NULL 的操作（目录操作没有 file_type）
+            cursor.execute(
+                """
+                SELECT
+                    fr.file_type,
+                    o.operation,
+                    COUNT(*) as count
+                FROM operations o
+                INNER JOIN file_results fr ON o.file_result_id = fr.id
+                WHERE o.task_id = ? AND fr.file_type IS NOT NULL
+                GROUP BY fr.file_type, o.operation
+                """,
+                (self.task_id,),
+            )
+            rows = cursor.fetchall()
+
+            by_file_type: dict[str, dict[str, int]] = {}
+            for row in rows:
+                file_type = row["file_type"]
+                operation = row["operation"]
+                count = row["count"]
+
+                if file_type not in by_file_type:
+                    by_file_type[file_type] = {}
+                by_file_type[file_type][operation] = count
+
+            return {
+                "by_operation_type": by_operation_type,
+                "by_file_type": by_file_type,
+            }
