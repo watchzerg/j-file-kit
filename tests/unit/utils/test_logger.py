@@ -11,11 +11,11 @@ import pytest
 
 from j_file_kit.domain.models import (
     FileInfo,
+    FileResult,
     FileType,
     ProcessingContext,
     ProcessorResult,
     TaskReport,
-    TaskResult,
 )
 from j_file_kit.infrastructure.logging.logger import StructuredLogger
 
@@ -99,8 +99,9 @@ class TestStructuredLogger:
             target_dir=None,
             should_delete=False,
             file_size=None,
+            file_result_id=None,
         )
-        result = TaskResult(
+        result = FileResult(
             file_info=file_info,
             context=context,
             processor_results=[
@@ -142,8 +143,9 @@ class TestStructuredLogger:
             target_dir=None,
             should_delete=False,
             file_size=None,
+            file_result_id=None,
         )
-        result = TaskResult(
+        result = FileResult(
             file_info=file_info,
             context=context,
             success=False,
@@ -172,8 +174,9 @@ class TestStructuredLogger:
             target_dir=None,
             should_delete=False,
             file_size=None,
+            file_result_id=None,
         )
-        result = TaskResult(
+        result = FileResult(
             file_info=file_info,
             context=context,
             processor_results=[ProcessorResult.skip("文件已存在")],
@@ -331,8 +334,9 @@ class TestStructuredLogger:
             target_dir=None,
             should_delete=False,
             file_size=None,
+            file_result_id=None,
         )
-        result = TaskResult(
+        result = FileResult(
             file_info=file_info,
             context=context,
             success=True,

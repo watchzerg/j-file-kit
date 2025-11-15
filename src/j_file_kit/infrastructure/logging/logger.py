@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ...domain.models import TaskResult
+from ...domain.models import FileResult
 from ..filesystem.operations import (
     append_text_file,
     create_directory,
@@ -85,7 +85,7 @@ class StructuredLogger:
         """记录调试日志"""
         self._write_log("DEBUG", message, data)
 
-    def log_file_result(self, result: TaskResult) -> None:
+    def log_file_result(self, result: FileResult) -> None:
         """记录文件处理结果
 
         Args:

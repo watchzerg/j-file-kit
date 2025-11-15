@@ -1,6 +1,6 @@
-"""任务结果仓储
+"""文件结果仓储
 
-提供 task_results 表的 CRUD 操作。
+提供 file_results 表的 CRUD 操作。
 记录文件处理结果，支持流式写入。
 """
 
@@ -15,23 +15,23 @@ from typing import Any
 
 from ...domain.models import (  # type: ignore[import-untyped]
     FileInfo,
+    FileResult,
     ProcessingContext,
     ProcessorResult,
-    TaskResult,
 )
 from .connection import SQLiteConnectionManager
 
 
-class TaskResultRepository:
-    """任务结果仓储
+class FileResultRepository:
+    """文件结果仓储
 
-    提供任务结果的持久化操作，支持流式写入。
+    提供文件结果的持久化操作，支持流式写入。
     """
 
     def __init__(
         self, connection_manager: SQLiteConnectionManager, task_id: int
     ) -> None:
-        """初始化任务结果仓储
+        """初始化文件结果仓储
 
         Args:
             connection_manager: SQLite 连接管理器
@@ -58,11 +58,11 @@ class TaskResultRepository:
                 conn.rollback()
                 raise
 
-    def save_result(self, result: TaskResult) -> int:
-        """保存单个任务结果
+    def save_result(self, result: FileResult) -> int:
+        """保存单个文件结果
 
         Args:
-            result: 任务结果
+            result: 文件结果
 
         Returns:
             生成的结果ID
@@ -71,7 +71,7 @@ class TaskResultRepository:
         with self._get_cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO task_results (
+                INSERT INTO file_results (
                     task_id, file_path, file_name, file_type, serial_id,
                     success, has_errors, has_warnings, was_skipped,
                     error_message, total_duration_ms, processor_count,
@@ -125,7 +125,7 @@ class TaskResultRepository:
                     SUM(CASE WHEN was_skipped = 1 THEN 1 ELSE 0 END) as skipped_files,
                     SUM(CASE WHEN has_warnings = 1 AND was_skipped = 0 THEN 1 ELSE 0 END) as warning_files,
                     SUM(total_duration_ms) as total_duration_ms
-                FROM task_results
+                FROM file_results
                 WHERE task_id = ?
                 """,
                 (self.task_id,),
@@ -150,14 +150,14 @@ class TaskResultRepository:
                 "total_duration_ms": row["total_duration_ms"] or 0.0,
             }
 
-    def _row_to_task_result(self, row: sqlite3.Row) -> TaskResult:
-        """将数据库行转换为 TaskResult 对象
+    def _row_to_file_result(self, row: sqlite3.Row) -> FileResult:
+        """将数据库行转换为 FileResult 对象
 
         Args:
             row: 数据库行
 
         Returns:
-            TaskResult 对象
+            FileResult 对象
         """
         # 反序列化 ProcessingContext
         context_data = json.loads(row["context_data"]) if row["context_data"] else {}
@@ -174,7 +174,7 @@ class TaskResultRepository:
         # 重建 FileInfo
         file_info = FileInfo(path=row["file_path"], name=row["file_name"])
 
-        return TaskResult(
+        return FileResult(
             file_info=file_info,
             context=context,
             processor_results=processor_results,

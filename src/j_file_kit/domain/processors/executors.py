@@ -103,6 +103,7 @@ class UnifiedFileExecutor(Executor):
                         "serial_id": str(ctx.serial_id) if ctx.serial_id else None,
                         "file_type": ctx.file_type.value if ctx.file_type else None,
                     },
+                    file_result_id=ctx.file_result_id,
                 )
 
             return ProcessorResult.success(
@@ -155,6 +156,7 @@ class UnifiedFileExecutor(Executor):
                         "action": ctx.action.value,
                         "file_type": ctx.file_type.value if ctx.file_type else None,
                     },
+                    file_result_id=ctx.file_result_id,
                 )
 
             description = ctx.action.description
@@ -188,6 +190,7 @@ class UnifiedFileExecutor(Executor):
                         "action": "delete",
                         "file_type": ctx.file_type.value if ctx.file_type else None,
                     },
+                    file_result_id=ctx.file_result_id,
                 )
 
             return ProcessorResult.success(f"文件删除成功: {ctx.file_info.path.name}")

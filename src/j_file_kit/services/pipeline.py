@@ -12,18 +12,18 @@ from datetime import datetime
 
 from ..domain.models import (
     FileInfo,
+    FileResult,
     ProcessingContext,
     ProcessorResult,
     ProcessorStatus,
     TaskReport,
-    TaskResult,
 )
 from ..domain.processor import Analyzer, Executor, Finalizer, ProcessorChain
 from ..infrastructure.config.config import TaskConfig
 from ..infrastructure.logging.logger import StructuredLogger
 from ..infrastructure.persistence import (
+    FileResultRepository,
     OperationRepository,
-    TaskResultRepository,
 )
 from .scanner import FileScanner
 
@@ -39,7 +39,7 @@ class Pipeline:
         config: TaskConfig,
         task_name: str,
         operation_repository: OperationRepository,
-        task_result_repository: TaskResultRepository,
+        file_result_repository: FileResultRepository,
         task_id: int,
     ):
         """初始化管道
@@ -48,7 +48,7 @@ class Pipeline:
             config: 任务配置
             task_name: 任务名称
             operation_repository: 操作记录仓储实例
-            task_result_repository: 任务结果仓储实例
+            file_result_repository: 文件结果仓储实例
             task_id: 任务ID
         """
         self.config = config
@@ -59,7 +59,7 @@ class Pipeline:
         self.processor_chain = ProcessorChain()
         self.logger = StructuredLogger(config.global_.log_dir, self.task_name)
         self.operation_repository = operation_repository
-        self.task_result_repository = task_result_repository
+        self.file_result_repository = file_result_repository
         self.task_id = task_id
 
         # 任务报告
@@ -148,7 +148,7 @@ class Pipeline:
             None,
         )
 
-    def _create_error_result(self, file_info: FileInfo, error: Exception) -> TaskResult:
+    def _create_error_result(self, file_info: FileInfo, error: Exception) -> FileResult:
         """创建错误结果
 
         Args:
@@ -156,9 +156,9 @@ class Pipeline:
             error: 异常对象
 
         Returns:
-            错误任务结果
+            错误文件结果
         """
-        return TaskResult(
+        return FileResult(
             file_info=file_info,
             context=self._create_initial_context(file_info),
             success=False,
@@ -166,7 +166,7 @@ class Pipeline:
             total_duration_ms=0.0,
         )
 
-    def _process_single_file(self, file_info: FileInfo, dry_run: bool) -> TaskResult:
+    def _process_single_file(self, file_info: FileInfo, dry_run: bool) -> FileResult:
         """处理单个文件
 
         Args:
@@ -174,7 +174,7 @@ class Pipeline:
             dry_run: 是否为预览模式
 
         Returns:
-            任务结果
+            文件结果
         """
         file_start_time = time.time()
 
@@ -190,8 +190,8 @@ class Pipeline:
         # 计算文件处理总耗时
         file_duration_ms = (time.time() - file_start_time) * 1000
 
-        # 创建任务结果
-        return TaskResult(
+        # 创建文件结果
+        return FileResult(
             file_info=file_info,
             context=ctx,
             processor_results=processor_results,
@@ -229,7 +229,7 @@ class Pipeline:
 
         # 从数据库重新计算统计信息，确保准确性
         # total_duration_ms 是所有文件处理的总耗时，不是任务总耗时
-        stats = self.task_result_repository.get_statistics()
+        stats = self.file_result_repository.get_statistics()
         self.report.update_from_stats(stats)
 
         # 记录任务结束
@@ -260,12 +260,16 @@ class Pipeline:
                     break
 
                 try:
-                    task_result = self._process_single_file(file_info, dry_run)
-                    # 立即保存到数据库
-                    self.task_result_repository.save_result(task_result)
+                    file_result = self._process_single_file(file_info, dry_run)
+                    # 保存到数据库
+                    file_result_id = self.file_result_repository.save_result(
+                        file_result
+                    )
+                    # 设置 file_result_id 到 context（虽然 executor 已执行，但可用于后续查询）
+                    file_result.context.file_result_id = file_result_id
                     # 更新内存中的统计信息
-                    self._update_statistics(task_result)
-                    self.logger.log_file_result(task_result)
+                    self._update_statistics(file_result)
+                    self.logger.log_file_result(file_result)
                 except Exception as e:
                     # 处理单个文件时的异常
                     error_msg = "分析文件失败" if dry_run else "处理文件失败"
@@ -274,7 +278,11 @@ class Pipeline:
                     )
                     error_result = self._create_error_result(file_info, e)
                     # 立即保存到数据库
-                    self.task_result_repository.save_result(error_result)
+                    file_result_id = self.file_result_repository.save_result(
+                        error_result
+                    )
+                    # 设置 file_result_id 到 context 中
+                    error_result.context.file_result_id = file_result_id
                     # 更新内存中的统计信息
                     self._update_statistics(error_result)
 
@@ -286,11 +294,11 @@ class Pipeline:
             self.logger.error(f"管道执行失败: {str(e)}")
             raise
 
-    def _update_statistics(self, result: TaskResult) -> None:
+    def _update_statistics(self, result: FileResult) -> None:
         """更新统计信息
 
         Args:
-            result: 任务结果
+            result: 文件结果
         """
         self.report.total_files += 1
 

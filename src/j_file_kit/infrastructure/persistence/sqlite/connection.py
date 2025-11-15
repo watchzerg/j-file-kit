@@ -52,26 +52,10 @@ class SQLiteConnectionManager:
                 """
             )
 
-            # 创建 operations 表
+            # 创建 file_results 表
             cursor.execute(
                 """
-                CREATE TABLE IF NOT EXISTS operations (
-                    id TEXT PRIMARY KEY,
-                    task_id INTEGER NOT NULL,
-                    timestamp TEXT NOT NULL,
-                    operation TEXT NOT NULL,
-                    source_path TEXT NOT NULL,
-                    target_path TEXT,
-                    data TEXT,
-                    FOREIGN KEY (task_id) REFERENCES tasks(task_id)
-                )
-                """
-            )
-
-            # 创建 task_results 表
-            cursor.execute(
-                """
-                CREATE TABLE IF NOT EXISTS task_results (
+                CREATE TABLE IF NOT EXISTS file_results (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     task_id INTEGER NOT NULL,
                     file_path TEXT NOT NULL,
@@ -93,18 +77,39 @@ class SQLiteConnectionManager:
                 """
             )
 
+            # 创建 operations 表
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS operations (
+                    id TEXT PRIMARY KEY,
+                    task_id INTEGER NOT NULL,
+                    file_result_id INTEGER,
+                    timestamp TEXT NOT NULL,
+                    operation TEXT NOT NULL,
+                    source_path TEXT NOT NULL,
+                    target_path TEXT,
+                    data TEXT,
+                    FOREIGN KEY (task_id) REFERENCES tasks(task_id),
+                    FOREIGN KEY (file_result_id) REFERENCES file_results(id)
+                )
+                """
+            )
+
             # 创建索引
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_file_results_task_id ON file_results(task_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_file_results_success ON file_results(task_id, success)"
+            )
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_operations_task_id ON operations(task_id)"
             )
             cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_operations_file_result_id ON operations(file_result_id)"
+            )
+            cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_operations_timestamp ON operations(timestamp)"
-            )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_task_results_task_id ON task_results(task_id)"
-            )
-            cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_task_results_success ON task_results(task_id, success)"
             )
 
             self._conn.commit()

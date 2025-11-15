@@ -169,6 +169,7 @@ class ProcessingContext(BaseModel):
     target_dir: Path | None = Field(None, description="目标目录（用于移动）")
     should_delete: bool = Field(False, description="是否应该删除")
     file_size: int | None = Field(None, description="文件大小（字节）")
+    file_result_id: int | None = Field(None, description="文件结果ID")
 
     # 扩展字段，用于携带自定义状态
     custom_data: dict[str, Any] = Field(default_factory=dict, description="自定义数据")
@@ -228,7 +229,7 @@ class ProcessorResult(BaseModel):
         )
 
 
-class TaskResult(BaseModel):
+class FileResult(BaseModel):
     """单个文件的完整处理结果"""
 
     file_info: FileInfo = Field(..., description="文件信息")

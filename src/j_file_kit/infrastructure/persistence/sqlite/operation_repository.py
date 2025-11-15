@@ -70,6 +70,7 @@ class OperationRepository:
         source_path: Path,
         target_path: Path | None = None,
         data: dict[str, Any] | None = None,
+        file_result_id: int | None = None,
     ) -> None:
         """记录操作
 
@@ -78,6 +79,7 @@ class OperationRepository:
             source_path: 源路径
             target_path: 目标路径（可选）
             data: 附加数据（可选）
+            file_result_id: 文件结果ID（可选）
         """
         operation_id = str(uuid.uuid4())
         timestamp = datetime.now()
@@ -85,12 +87,13 @@ class OperationRepository:
         with self._get_cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO operations (id, task_id, timestamp, operation, source_path, target_path, data)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO operations (id, task_id, file_result_id, timestamp, operation, source_path, target_path, data)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     operation_id,
                     self.task_id,
+                    file_result_id,
                     timestamp.isoformat(),
                     operation,
                     str(source_path),
@@ -104,6 +107,7 @@ class OperationRepository:
         source_path: Path,
         target_path: Path,
         data: dict[str, Any] | None = None,
+        file_result_id: int | None = None,
     ) -> None:
         """记录重命名操作
 
@@ -111,14 +115,18 @@ class OperationRepository:
             source_path: 源路径
             target_path: 目标路径
             data: 附加数据
+            file_result_id: 文件结果ID（可选）
         """
-        self.log_operation(OperationType.RENAME, source_path, target_path, data)
+        self.log_operation(
+            OperationType.RENAME, source_path, target_path, data, file_result_id
+        )
 
     def log_move(
         self,
         source_path: Path,
         target_path: Path,
         data: dict[str, Any] | None = None,
+        file_result_id: int | None = None,
     ) -> None:
         """记录移动操作
 
@@ -126,35 +134,56 @@ class OperationRepository:
             source_path: 源路径
             target_path: 目标路径
             data: 附加数据
+            file_result_id: 文件结果ID（可选）
         """
-        self.log_operation(OperationType.MOVE, source_path, target_path, data)
+        self.log_operation(
+            OperationType.MOVE, source_path, target_path, data, file_result_id
+        )
 
-    def log_delete(self, path: Path, data: dict[str, Any] | None = None) -> None:
+    def log_delete(
+        self,
+        path: Path,
+        data: dict[str, Any] | None = None,
+        file_result_id: int | None = None,
+    ) -> None:
         """记录删除操作
 
         Args:
             path: 删除路径
             data: 附加数据
+            file_result_id: 文件结果ID（可选）
         """
-        self.log_operation(OperationType.DELETE, path, None, data)
+        self.log_operation(OperationType.DELETE, path, None, data, file_result_id)
 
-    def log_create_dir(self, path: Path, data: dict[str, Any] | None = None) -> None:
+    def log_create_dir(
+        self,
+        path: Path,
+        data: dict[str, Any] | None = None,
+        file_result_id: int | None = None,
+    ) -> None:
         """记录创建目录操作
 
         Args:
             path: 目录路径
             data: 附加数据
+            file_result_id: 文件结果ID（可选）
         """
-        self.log_operation(OperationType.CREATE_DIR, path, None, data)
+        self.log_operation(OperationType.CREATE_DIR, path, None, data, file_result_id)
 
-    def log_delete_dir(self, path: Path, data: dict[str, Any] | None = None) -> None:
+    def log_delete_dir(
+        self,
+        path: Path,
+        data: dict[str, Any] | None = None,
+        file_result_id: int | None = None,
+    ) -> None:
         """记录删除目录操作
 
         Args:
             path: 目录路径
             data: 附加数据
+            file_result_id: 文件结果ID（可选）
         """
-        self.log_operation(OperationType.DELETE_DIR, path, None, data)
+        self.log_operation(OperationType.DELETE_DIR, path, None, data, file_result_id)
 
     def get_operations(self) -> list[dict[str, Any]]:
         """获取任务的操作记录

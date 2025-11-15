@@ -22,10 +22,10 @@ from ..domain.models import (
 )
 from ..domain.task import BaseTask
 from ..infrastructure.persistence import (
+    FileResultRepository,
     OperationRepository,
     SQLiteConnectionManager,
     TaskRepository,
-    TaskResultRepository,
 )
 
 logger = logging.getLogger(__name__)
@@ -158,15 +158,15 @@ class TaskManager:
             # 创建操作记录仓储
             operation_repository = OperationRepository(self._sqlite_conn, task_id)
 
-            # 创建任务结果仓储
-            task_result_repository = TaskResultRepository(self._sqlite_conn, task_id)
+            # 创建文件结果仓储
+            file_result_repository = FileResultRepository(self._sqlite_conn, task_id)
 
             # 执行任务
             task.run(
                 task_id=task_id,
                 task_repository=self.task_repository,
                 operation_repository=operation_repository,
-                task_result_repository=task_result_repository,
+                file_result_repository=file_result_repository,
                 dry_run=dry_run,
                 cancelled_event=cancelled_event,
             )
