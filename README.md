@@ -128,20 +128,24 @@ print(f"任务状态: {task_model.status}")
 ```python
 from j_file_kit.services.pipeline import Pipeline
 from j_file_kit.infrastructure.config.config import load_config
+from j_file_kit.infrastructure.persistence import OperationRepository, SQLiteConnectionManager
 from j_file_kit.domain.processors.analyzers import FileClassifier, SerialIdExtractor
-from j_file_kit.domain.processors.executors import UnifiedFileExecutor
 from j_file_kit.domain.processors.finalizers import ReportGenerator
 
 # 加载配置
 config = load_config("config.yaml")
 
+# 创建数据库连接和操作记录仓储
+sqlite_conn = SQLiteConnectionManager(config.global_.db_path)
+operation_repository = OperationRepository(sqlite_conn, task_id=1)  # task_id 需要从任务管理获取
+
 # 创建管道
-pipeline = Pipeline(config, "video_file_organizer", "task_id", db_manager)
+pipeline = Pipeline(config, "video_file_organizer", operation_repository)
 
 # 添加处理器
 pipeline.add_analyzer(FileClassifier({".mp4", ".avi"}, {".jpg", ".png"}))
 pipeline.add_analyzer(SerialIdExtractor())
-pipeline.add_executor(UnifiedFileExecutor(pipeline.transaction_log))
+pipeline.add_executor(pipeline.create_unified_executor())
 pipeline.add_finalizer(ReportGenerator("./reports", pipeline.report))
 
 # 执行任务（预览模式）

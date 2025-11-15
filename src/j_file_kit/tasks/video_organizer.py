@@ -86,9 +86,7 @@ class VideoFileOrganizer(BaseTask):
             配置好的处理管道
         """
         # 创建管道
-        pipeline = Pipeline(
-            self.config, self.task_type.value, task_id, operation_repository
-        )
+        pipeline = Pipeline(self.config, self.task_type.value, operation_repository)
 
         # 添加分析器
         pipeline.add_analyzer(
