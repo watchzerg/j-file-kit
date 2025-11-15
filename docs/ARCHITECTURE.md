@@ -27,7 +27,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - `processors/`: 处理器实现
   - `analyzers.py`: 分析器（FileClassifier、SerialIdExtractor等）
   - `executors.py`: 执行器（UnifiedFileExecutor）
-  - `finalizers.py`: 终结器（ReportGenerator）
+  - `finalizers.py`: 终结器（用于全局后处理，如清理空目录等）
 
 ### 2. Services Layer (服务层)
 

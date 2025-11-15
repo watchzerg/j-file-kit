@@ -18,7 +18,6 @@ from ..domain.processors.analyzers import (
     MiscFileSizeAnalyzer,
     SerialIdExtractor,
 )
-from ..domain.processors.finalizers import ReportGenerator
 from ..domain.task import BaseTask
 from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
 from ..infrastructure.persistence import (
@@ -122,11 +121,6 @@ class VideoFileOrganizer(BaseTask):
 
         # 添加执行器
         pipeline.add_executor(pipeline.create_unified_executor())
-
-        # 添加终结器
-        pipeline.add_finalizer(
-            ReportGenerator(self.config.global_.report_dir, pipeline.report)
-        )
 
         return pipeline
 

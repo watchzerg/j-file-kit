@@ -130,7 +130,6 @@ from j_file_kit.services.pipeline import Pipeline
 from j_file_kit.infrastructure.config.config import load_config
 from j_file_kit.infrastructure.persistence import OperationRepository, SQLiteConnectionManager
 from j_file_kit.domain.processors.analyzers import FileClassifier, SerialIdExtractor
-from j_file_kit.domain.processors.finalizers import ReportGenerator
 
 # 加载配置
 config = load_config("config.yaml")
@@ -146,7 +145,6 @@ pipeline = Pipeline(config, "video_file_organizer", operation_repository)
 pipeline.add_analyzer(FileClassifier({".mp4", ".avi"}, {".jpg", ".png"}))
 pipeline.add_analyzer(SerialIdExtractor())
 pipeline.add_executor(pipeline.create_unified_executor())
-pipeline.add_finalizer(ReportGenerator("./reports", pipeline.report))
 
 # 执行任务（预览模式）
 preview_report = pipeline.run(dry_run=True)
