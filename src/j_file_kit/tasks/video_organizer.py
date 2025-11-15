@@ -21,7 +21,11 @@ from ..domain.processors.analyzers import (
 from ..domain.processors.finalizers import ReportGenerator
 from ..domain.task import BaseTask
 from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
-from ..infrastructure.persistence import OperationRepository, TaskRepository
+from ..infrastructure.persistence import (
+    OperationRepository,
+    TaskRepository,
+    TaskResultRepository,
+)
 from ..services.pipeline import Pipeline
 
 
@@ -74,6 +78,7 @@ class VideoFileOrganizer(BaseTask):
         task_id: int,
         task_repository: TaskRepository,
         operation_repository: OperationRepository,
+        task_result_repository: TaskResultRepository,
     ) -> Pipeline:
         """创建处理管道
 
@@ -81,12 +86,19 @@ class VideoFileOrganizer(BaseTask):
             task_id: 任务ID
             task_repository: 任务仓储实例
             operation_repository: 操作记录仓储实例
+            task_result_repository: 任务结果仓储实例
 
         Returns:
             配置好的处理管道
         """
         # 创建管道
-        pipeline = Pipeline(self.config, self.task_type.value, operation_repository)
+        pipeline = Pipeline(
+            self.config,
+            self.task_type.value,
+            operation_repository,
+            task_result_repository,
+            task_id,
+        )
 
         # 添加分析器
         pipeline.add_analyzer(
@@ -123,6 +135,7 @@ class VideoFileOrganizer(BaseTask):
         task_id: int,
         task_repository: TaskRepository,
         operation_repository: OperationRepository,
+        task_result_repository: TaskResultRepository,
         dry_run: bool = False,
         cancelled_event: threading.Event | None = None,
     ) -> TaskReport:
@@ -132,11 +145,14 @@ class VideoFileOrganizer(BaseTask):
             task_id: 任务ID
             task_repository: 任务仓储实例
             operation_repository: 操作记录仓储实例
+            task_result_repository: 任务结果仓储实例
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancelled_event: 取消事件，用于检查任务是否被取消
 
         Returns:
             任务报告
         """
-        pipeline = self.create_pipeline(task_id, task_repository, operation_repository)
+        pipeline = self.create_pipeline(
+            task_id, task_repository, operation_repository, task_result_repository
+        )
         return pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)

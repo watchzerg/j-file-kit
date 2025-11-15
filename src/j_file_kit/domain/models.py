@@ -275,7 +275,6 @@ class TaskReport(BaseModel):
     skipped_files: int = Field(0, description="跳过文件数")
     warning_files: int = Field(0, description="警告文件数")
     total_duration_ms: float = Field(0.0, description="总耗时（毫秒）")
-    results: list[TaskResult] = Field(default_factory=list, description="详细结果")
 
     @property
     def success_rate(self) -> float:
@@ -296,22 +295,19 @@ class TaskReport(BaseModel):
         """耗时（秒）"""
         return self.total_duration_ms / 1000.0
 
-    def add_result(self, result: TaskResult) -> None:
-        """添加处理结果"""
-        self.results.append(result)
-        self.total_files += 1
+    def update_from_stats(self, stats: dict[str, Any]) -> None:
+        """从统计信息更新报告
 
-        if result.success:
-            if result.was_skipped:
-                self.skipped_files += 1
-            elif result.has_warnings:
-                self.warning_files += 1
-            else:
-                self.success_files += 1
-        else:
-            self.error_files += 1
-
-        self.total_duration_ms += result.total_duration_ms
+        Args:
+            stats: 统计信息字典，包含 total_files, success_files, error_files,
+                   skipped_files, warning_files, total_duration_ms
+        """
+        self.total_files = stats.get("total_files", 0)
+        self.success_files = stats.get("success_files", 0)
+        self.error_files = stats.get("error_files", 0)
+        self.skipped_files = stats.get("skipped_files", 0)
+        self.warning_files = stats.get("warning_files", 0)
+        self.total_duration_ms = stats.get("total_duration_ms", 0.0)
 
 
 class TaskStatus(str, Enum):

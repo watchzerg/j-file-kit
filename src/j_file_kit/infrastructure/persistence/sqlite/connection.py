@@ -68,12 +68,43 @@ class SQLiteConnectionManager:
                 """
             )
 
+            # 创建 task_results 表
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS task_results (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    task_id INTEGER NOT NULL,
+                    file_path TEXT NOT NULL,
+                    file_name TEXT NOT NULL,
+                    file_type TEXT,
+                    serial_id TEXT,
+                    success BOOLEAN NOT NULL,
+                    has_errors BOOLEAN NOT NULL,
+                    has_warnings BOOLEAN NOT NULL,
+                    was_skipped BOOLEAN NOT NULL,
+                    error_message TEXT,
+                    total_duration_ms REAL NOT NULL,
+                    processor_count INTEGER NOT NULL,
+                    context_data TEXT,
+                    processor_results TEXT,
+                    created_at TEXT NOT NULL,
+                    FOREIGN KEY (task_id) REFERENCES tasks(task_id)
+                )
+                """
+            )
+
             # 创建索引
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_operations_task_id ON operations(task_id)"
             )
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_operations_timestamp ON operations(timestamp)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_task_results_task_id ON task_results(task_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_task_results_success ON task_results(task_id, success)"
             )
 
             self._conn.commit()

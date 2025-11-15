@@ -8,11 +8,13 @@ from .sqlite import (
     OperationType,
     SQLiteConnectionManager,
     TaskRepository,
+    TaskResultRepository,
 )
 
 __all__ = [
     "SQLiteConnectionManager",
     "TaskRepository",
+    "TaskResultRepository",
     "OperationRepository",
     "OperationType",
 ]

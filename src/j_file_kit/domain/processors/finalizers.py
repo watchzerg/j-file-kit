@@ -95,23 +95,9 @@ class ReportGenerator(Finalizer):
         content += f"- **成功率**: {self.report.success_rate:.2%}\n"
         content += f"- **错误率**: {self.report.error_rate:.2%}\n\n"
 
-        # 详细结果
-        if self.report.results:
-            content += "## 详细结果\n\n"
-            content += "| 文件 | 状态 | 耗时(ms) | 消息 |\n"
-            content += "|------|------|----------|------|\n"
-
-            for result in self.report.results:
-                status = "✅ 成功" if result.success else "❌ 失败"
-                if result.was_skipped:
-                    status = "⏭️ 跳过"
-                elif result.has_warnings:
-                    status = "⚠️ 警告"
-
-                file_name = result.file_info.path.name
-                duration = result.total_duration_ms
-                message = result.error_message or "OK"
-                content += f"| {file_name} | {status} | {duration:.1f} | {message} |\n"
+        # 注意：详细结果已存储在数据库中，可通过 API 查询
+        content += "## 说明\n\n"
+        content += "详细结果已存储在数据库中，可通过 HTTP API 查询。\n"
 
         write_text_file(report_file, content)
 
@@ -135,24 +121,7 @@ class ReportGenerator(Finalizer):
                 "success_rate": self.report.success_rate,
                 "error_rate": self.report.error_rate,
             },
-            "results": [
-                {
-                    "file_path": str(result.file_info.path),
-                    "file_name": result.file_info.name,
-                    "file_type": result.context.file_type,
-                    "serial_id": str(result.context.serial_id)
-                    if result.context.serial_id
-                    else None,
-                    "success": result.success,
-                    "has_errors": result.has_errors,
-                    "has_warnings": result.has_warnings,
-                    "was_skipped": result.was_skipped,
-                    "duration_ms": result.total_duration_ms,
-                    "error_message": result.error_message,
-                    "processor_count": len(result.processor_results),
-                }
-                for result in self.report.results
-            ],
+            "note": "详细结果已存储在数据库中，可通过 HTTP API 查询",
         }
 
         content = json.dumps(report_data, ensure_ascii=False, indent=2)

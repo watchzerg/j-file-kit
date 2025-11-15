@@ -9,7 +9,11 @@ from __future__ import annotations
 import threading
 from abc import ABC, abstractmethod
 
-from ..infrastructure.persistence import OperationRepository, TaskRepository
+from ..infrastructure.persistence import (
+    OperationRepository,
+    TaskRepository,
+    TaskResultRepository,
+)
 from .models import TaskReport, TaskType
 
 
@@ -31,6 +35,7 @@ class BaseTask(ABC):
         task_id: int,
         task_repository: TaskRepository,
         operation_repository: OperationRepository,
+        task_result_repository: TaskResultRepository,
         dry_run: bool = False,
         cancelled_event: threading.Event | None = None,
     ) -> TaskReport:
@@ -40,6 +45,7 @@ class BaseTask(ABC):
             task_id: 任务ID
             task_repository: 任务仓储实例
             operation_repository: 操作记录仓储实例
+            task_result_repository: 任务结果仓储实例
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancelled_event: 取消事件，用于检查任务是否被取消
 
