@@ -18,6 +18,7 @@ from ..domain.processors.analyzers import (
     MiscFileSizeAnalyzer,
     SerialIdExtractor,
 )
+from ..domain.processors.executors import EmptyDirectoryExecutor
 from ..domain.task import BaseTask
 from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
 from ..infrastructure.persistence import (
@@ -121,6 +122,12 @@ class VideoFileOrganizer(BaseTask):
 
         # 添加执行器
         pipeline.add_executor(pipeline.create_unified_executor())
+
+        # 添加空目录清理执行器（放在最后，确保文件处理完成后再清理目录）
+        # 设计意图：在文件处理完成后，利用自底向上遍历顺序清理空文件夹
+        pipeline.add_executor(
+            EmptyDirectoryExecutor(self.config.global_.scan_roots, operation_repository)
+        )
 
         return pipeline
 

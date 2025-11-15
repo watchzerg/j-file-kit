@@ -152,6 +152,29 @@ class FileInfo(BaseModel):
         return cls(path=path, name=path.stem, suffix=path.suffix.lower())
 
 
+class DirectoryInfo(BaseModel):
+    """目录基础信息模型
+
+    用于表示目录信息，与FileInfo对应，支持统一的扫描接口。
+    设计意图：在文件处理流程中，需要同时处理文件和目录，DirectoryInfo提供了目录的统一抽象。
+    """
+
+    path: Path = Field(..., description="目录路径")
+    name: str = Field(..., description="目录名")
+
+    @classmethod
+    def from_path(cls, path: Path) -> DirectoryInfo:
+        """从路径创建 DirectoryInfo
+
+        Args:
+            path: 目录路径
+
+        Returns:
+            DirectoryInfo 对象
+        """
+        return cls(path=path, name=path.name)
+
+
 class ProcessingContext(BaseModel):
     """处理上下文模型
 

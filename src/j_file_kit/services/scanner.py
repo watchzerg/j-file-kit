@@ -9,14 +9,15 @@ from __future__ import annotations
 from collections.abc import Generator
 from pathlib import Path
 
-from ..domain.models import FileInfo
-from ..infrastructure.filesystem.scanner import scan_directory_files
+from ..domain.models import DirectoryInfo, FileInfo
+from ..infrastructure.filesystem.scanner import scan_directory_items
 
 
 class FileScanner:
     """文件扫描器
 
     提供文件目录扫描功能，支持多个根目录。
+    统一扫描接口，返回文件和目录的统一抽象，支持在遍历过程中处理两种类型。
     """
 
     def __init__(self, root_paths: list[Path]):
@@ -27,13 +28,18 @@ class FileScanner:
         """
         self.root_paths = root_paths
 
-    def scan_files(self) -> Generator[FileInfo]:
-        """扫描文件
+    def scan_items(self) -> Generator[FileInfo | DirectoryInfo]:
+        """扫描文件和目录
+
+        统一扫描接口，返回文件和目录的统一抽象，支持在遍历过程中处理两种类型。
+        设计意图：在文件处理流程中，需要同时处理文件和目录，此方法提供了统一的扫描接口。
 
         Yields:
-            FileInfo: 文件信息
+            FileInfo | DirectoryInfo: 文件或目录信息
         """
         for root_path in self.root_paths:
-            for file_path in scan_directory_files(root_path):
-                file_info = FileInfo.from_path(file_path)
-                yield file_info
+            for path, is_file in scan_directory_items(root_path):
+                if is_file:
+                    yield FileInfo.from_path(path)
+                else:
+                    yield DirectoryInfo.from_path(path)

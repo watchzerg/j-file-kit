@@ -11,6 +11,7 @@ import time
 from datetime import datetime
 
 from ..domain.models import (
+    DirectoryInfo,
     FileInfo,
     FileResult,
     ProcessingContext,
@@ -62,6 +63,9 @@ class Pipeline:
         self.file_result_repository = file_result_repository
         self.task_id = task_id
 
+        # 保存EmptyDirectoryExecutor引用（如果存在），用于目录处理
+        self.empty_directory_executor: Executor | None = None
+
         # 任务报告
         self.report = TaskReport(
             task_name=self.task_name,
@@ -97,6 +101,9 @@ class Pipeline:
             管道实例（支持链式调用）
         """
         self.processor_chain.add_executor(executor)
+        # 如果是EmptyDirectoryExecutor，保存引用以便直接调用
+        if executor.name == "EmptyDirectoryExecutor":
+            self.empty_directory_executor = executor
         return self
 
     def add_finalizer(self, finalizer: Finalizer) -> Pipeline:
@@ -165,6 +172,42 @@ class Pipeline:
             error_message=str(error),
             total_duration_ms=0.0,
         )
+
+    def _process_single_directory(
+        self, directory_info: DirectoryInfo, dry_run: bool
+    ) -> None:
+        """处理单个目录
+
+        在遍历过程中同步处理目录，利用自底向上遍历顺序确保空文件夹及时清理。
+        直接传递DirectoryInfo给Executor，虽然类型不匹配但运行时安全。
+        目录清理是辅助操作，不需要复杂的统计和持久化，只需简单日志记录。
+
+        Args:
+            directory_info: 目录信息
+            dry_run: 是否为预览模式
+        """
+        # 仅在非dry_run模式下执行
+        if dry_run:
+            return
+
+        # 创建ProcessingContext，将directory_info赋值给ctx.file_info
+        # 虽然类型声明是FileInfo，但EmptyDirectoryExecutor会通过路径判断，运行时安全
+        ctx = ProcessingContext.model_construct(file_info=directory_info)
+
+        # 调用EmptyDirectoryExecutor处理（如果存在）
+        if self.empty_directory_executor:
+            result = self.empty_directory_executor.process(ctx)
+            # 记录日志
+            if result.status == ProcessorStatus.SUCCESS:
+                self.logger.info(f"目录清理成功: {directory_info.path}")
+            elif result.status == ProcessorStatus.SKIP:
+                # 跳过的情况不需要记录日志
+                pass
+            elif result.status == ProcessorStatus.ERROR:
+                self.logger.error(
+                    f"目录清理失败: {directory_info.path}",
+                    {"error": result.message},
+                )
 
     def _process_single_file(self, file_info: FileInfo, dry_run: bool) -> FileResult:
         """处理单个文件
@@ -252,39 +295,45 @@ class Pipeline:
         try:
             self._start_task(dry_run)
 
-            # 处理每个文件（使用生成器模式，边扫描边处理）
-            for file_info in self.scanner.scan_files():
+            # 处理每个文件和目录（使用生成器模式，边扫描边处理）
+            for item in self.scanner.scan_items():
                 # 检查是否被取消
                 if cancelled_event and cancelled_event.is_set():
                     self.logger.info("任务已被取消")
                     break
 
                 try:
-                    file_result = self._process_single_file(file_info, dry_run)
-                    # 保存到数据库
-                    file_result_id = self.file_result_repository.save_result(
-                        file_result
-                    )
-                    # 设置 file_result_id 到 context（虽然 executor 已执行，但可用于后续查询）
-                    file_result.context.file_result_id = file_result_id
-                    # 更新内存中的统计信息
-                    self._update_statistics(file_result)
-                    self.logger.log_file_result(file_result)
+                    # 根据类型判断：文件或目录
+                    if isinstance(item, FileInfo):
+                        file_result = self._process_single_file(item, dry_run)
+                        # 保存到数据库
+                        file_result_id = self.file_result_repository.save_result(
+                            file_result
+                        )
+                        # 设置 file_result_id 到 context（虽然 executor 已执行，但可用于后续查询）
+                        file_result.context.file_result_id = file_result_id
+                        # 更新内存中的统计信息
+                        self._update_statistics(file_result)
+                        self.logger.log_file_result(file_result)
+                    elif isinstance(item, DirectoryInfo):
+                        # 处理目录（清理空文件夹）
+                        self._process_single_directory(item, dry_run)
                 except Exception as e:
-                    # 处理单个文件时的异常
-                    error_msg = "分析文件失败" if dry_run else "处理文件失败"
-                    self.logger.error(
-                        f"{error_msg}: {file_info.path}", {"error": str(e)}
-                    )
-                    error_result = self._create_error_result(file_info, e)
-                    # 立即保存到数据库
-                    file_result_id = self.file_result_repository.save_result(
-                        error_result
-                    )
-                    # 设置 file_result_id 到 context 中
-                    error_result.context.file_result_id = file_result_id
-                    # 更新内存中的统计信息
-                    self._update_statistics(error_result)
+                    # 处理单个文件或目录时的异常
+                    error_msg = "分析失败" if dry_run else "处理失败"
+                    item_path = item.path if hasattr(item, "path") else str(item)
+                    self.logger.error(f"{error_msg}: {item_path}", {"error": str(e)})
+                    # 如果是文件，创建错误结果并保存
+                    if isinstance(item, FileInfo):
+                        error_result = self._create_error_result(item, e)
+                        # 立即保存到数据库
+                        file_result_id = self.file_result_repository.save_result(
+                            error_result
+                        )
+                        # 设置 file_result_id 到 context 中
+                        error_result.context.file_result_id = file_result_id
+                        # 更新内存中的统计信息
+                        self._update_statistics(error_result)
 
             self._finish_task(dry_run)
             return self.report

@@ -132,3 +132,46 @@ def is_directory(path: Path) -> bool:
         是否为目录
     """
     return path.is_dir()
+
+
+def is_directory_empty(path: Path) -> bool:
+    """检查目录是否为空
+
+    判断目录是否为空（无文件和子目录），用于决定是否可以安全删除。
+    设计意图：在清理空文件夹时，需要先判断目录是否为空，避免误删非空目录。
+
+    Args:
+        path: 目录路径
+
+    Returns:
+        目录是否为空。如果目录不存在，返回False。
+
+    Note:
+        使用`next(path.iterdir(), None) is None`判断，高效且Pythonic。
+    """
+    try:
+        return next(path.iterdir(), None) is None
+    except (OSError, FileNotFoundError):
+        # 目录不存在或无法访问时返回False
+        return False
+
+
+def delete_directory(path: Path, missing_ok: bool = True) -> None:
+    """删除目录
+
+    删除空目录，与delete_file保持接口一致性。
+    设计意图：提供统一的目录删除接口，支持missing_ok参数以保持与delete_file的一致性。
+
+    Args:
+        path: 目录路径
+        missing_ok: 如果目录不存在是否静默成功
+
+    Raises:
+        OSError: 删除操作失败（当missing_ok=False时）
+        OSError: 目录不为空时删除失败
+    """
+    try:
+        path.rmdir()
+    except FileNotFoundError:
+        if not missing_ok:
+            raise

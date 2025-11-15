@@ -6,11 +6,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 from ...infrastructure.filesystem.operations import (
     create_directory,
+    delete_directory,
     delete_file,
+    is_directory,
+    is_directory_empty,
     move_file,
     path_exists,
 )
@@ -197,3 +201,72 @@ class UnifiedFileExecutor(Executor):
 
         except Exception as e:
             return ProcessorResult.error(f"文件删除失败: {str(e)}")
+
+
+class EmptyDirectoryExecutor(Executor):
+    """空目录清理执行器
+
+    在文件处理流程中同步清理空文件夹，利用自底向上遍历确保子目录先于父目录被处理。
+    通过路径判断而不是修改ProcessingContext类型，保持类型系统简单。
+    设计意图：在遍历过程中同步清理空文件夹，利用自底向上遍历顺序确保空文件夹及时清理。
+    """
+
+    def __init__(
+        self, scan_roots: list[Path], operation_repository: Any | None = None
+    ) -> None:
+        """初始化空目录清理执行器
+
+        Args:
+            scan_roots: 扫描根目录列表（这些目录本身不会被删除）
+            operation_repository: 操作记录仓储
+        """
+        super().__init__("EmptyDirectoryExecutor")
+        self.scan_roots = scan_roots
+        self.operation_repository = operation_repository
+
+    def process(self, ctx: ProcessingContext) -> ProcessorResult:
+        """处理目录清理
+
+        通过路径判断是否为目录，如果是目录且为空，则删除。
+        目录清理是轻量级操作，不需要完整的上下文信息，因此通过路径判断而不是修改ProcessingContext类型。
+
+        Args:
+            ctx: 处理上下文（通过ctx.file_info.path获取路径）
+
+        Returns:
+            处理结果
+        """
+        path = ctx.file_info.path
+
+        # 检查路径是否为目录（通过路径判断，不修改ProcessingContext类型）
+        if not is_directory(path):
+            return ProcessorResult.skip("不是目录，跳过")
+
+        # 检查目录是否为scan_roots之一（完全匹配，保护扫描根目录不被删除）
+        # 使用resolve()确保规范化路径比较，处理符号链接和相对路径
+        for scan_root in self.scan_roots:
+            if path.resolve() == scan_root.resolve():
+                return ProcessorResult.skip("扫描根目录，跳过")
+
+        # 检查目录是否为空
+        if not is_directory_empty(path):
+            return ProcessorResult.skip("目录不为空，跳过")
+
+        try:
+            # 删除空目录
+            delete_directory(path, missing_ok=True)
+
+            # 记录操作日志
+            if self.operation_repository:
+                self.operation_repository.log_delete_dir(
+                    path,
+                    {"action": "delete_empty_dir"},
+                    file_result_id=ctx.file_result_id,
+                )
+
+            return ProcessorResult.success(f"空目录删除成功: {path.name}")
+
+        except Exception as e:
+            # 目录清理是辅助操作，不应影响主流程（文件处理）
+            # 返回错误但不抛出异常，不中断流程
+            return ProcessorResult.error(f"空目录删除失败: {str(e)}")
