@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ...models import ProcessorResult, TaskStatus
-from ...processor import Initializer
+from ...processors import Initializer
 
 if TYPE_CHECKING:
     from ....infrastructure.config.config import FileOrganizeConfig, TaskConfig

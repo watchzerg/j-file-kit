@@ -20,7 +20,7 @@ from ....infrastructure.filesystem.operations import (
 )
 from ....utils.file_utils import resolve_unique_path
 from ...models import FileAction, FileContext, ProcessorResult
-from ...processor import Executor
+from ...processors import Executor
 
 
 class UnifiedFileExecutor(Executor):

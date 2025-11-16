@@ -12,7 +12,7 @@ from typing import Any
 from ....utils.file_utils import generate_organized_dir, get_file_type
 from ....utils.filename_generation import generate_new_filename
 from ...models import FileAction, FileContext, FileType, ProcessorResult
-from ...processor import Analyzer
+from ...processors import Analyzer
 
 
 class FileClassifier(Analyzer):

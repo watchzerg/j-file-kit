@@ -19,7 +19,7 @@ from ..domain.models import (
     ProcessorStatus,
     TaskReport,
 )
-from ..domain.processor import (
+from ..domain.processors import (
     Analyzer,
     Executor,
     Finalizer,

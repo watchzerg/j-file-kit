@@ -10,7 +10,7 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from ...models import ProcessorResult
-from ...processor import Finalizer
+from ...processors import Finalizer
 
 if TYPE_CHECKING:
     from ....infrastructure.persistence import (
