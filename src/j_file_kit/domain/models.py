@@ -179,6 +179,10 @@ class ProcessingContext(BaseModel):
     """处理上下文模型
 
     贯穿整个处理流程的上下文对象，携带分析结果和中间状态。
+
+    字段说明：
+    - renamed_filename: 重构后的完整文件名（含扩展名，不含路径），由 SerialIdExtractor 设置
+    - target_path: 完整的目标路径（目录+文件名），由 ActionDecider 设置
     """
 
     file_info: FileInfo = Field(..., description="文件基础信息")
@@ -186,10 +190,12 @@ class ProcessingContext(BaseModel):
         None, description="文件类型（视频/图片/压缩/其他）"
     )
     serial_id: SerialId | None = Field(None, description="提取的番号")
-    target_path: Path | None = Field(None, description="计划的目标路径")
+    renamed_filename: str | None = Field(
+        None, description="重构后的完整文件名（含扩展名，不含路径）"
+    )
+    target_path: Path | None = Field(None, description="计划的目标路径（完整路径）")
     skip_remaining: bool = Field(False, description="短路标记，跳过后续处理器")
     action: FileAction | None = Field(None, description="决策的动作类型")
-    target_dir: Path | None = Field(None, description="目标目录（用于移动）")
     should_delete: bool = Field(False, description="是否应该删除")
     file_size: int | None = Field(None, description="文件大小（字节）")
     file_result_id: int | None = Field(None, description="文件结果ID")

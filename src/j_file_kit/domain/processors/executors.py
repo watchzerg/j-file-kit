@@ -27,6 +27,7 @@ class UnifiedFileExecutor(Executor):
     """统一文件执行器
 
     根据 ProcessingContext 中的 action 决策，执行相应的操作。
+    只负责执行，不关心路径如何生成（路径由 analyzer 组装完成）。
     """
 
     def __init__(self, operation_repository: Any = None) -> None:
@@ -50,14 +51,13 @@ class UnifiedFileExecutor(Executor):
         if not ctx.action:
             return ProcessorResult.skip("未决策动作")
 
-        if ctx.action == FileAction.MOVE_TO_ORGANIZED:
-            return self._move_to_organized(ctx)
-        elif ctx.action == FileAction.MOVE_TO_UNORGANIZED:
-            return self._move_to_static_dir(ctx)
-        elif ctx.action == FileAction.MOVE_TO_ARCHIVE:
-            return self._move_to_static_dir(ctx)
-        elif ctx.action == FileAction.MOVE_TO_MISC:
-            return self._move_to_static_dir(ctx)
+        if ctx.action in [
+            FileAction.MOVE_TO_ORGANIZED,
+            FileAction.MOVE_TO_UNORGANIZED,
+            FileAction.MOVE_TO_ARCHIVE,
+            FileAction.MOVE_TO_MISC,
+        ]:
+            return self._move_file(ctx)
         elif ctx.action == FileAction.DELETE:
             return self._delete(ctx)
         elif ctx.action == FileAction.SKIP:
@@ -65,61 +65,10 @@ class UnifiedFileExecutor(Executor):
         else:
             return ProcessorResult.error(f"未知动作类型: {ctx.action}")
 
-    def _move_to_organized(self, ctx: ProcessingContext) -> ProcessorResult:
-        """移动到整理目录（需要创建动态目录结构）
+    def _move_file(self, ctx: ProcessingContext) -> ProcessorResult:
+        """移动文件（统一方法）
 
-        Args:
-            ctx: 处理上下文
-
-        Returns:
-            执行结果
-        """
-        try:
-            if not ctx.target_dir:
-                return ProcessorResult.error("目标路径未设置")
-
-            # 检查源文件是否存在
-            if not path_exists(ctx.file_info.path):
-                return ProcessorResult.error("源文件不存在")
-
-            # 直接创建目录（不需要检查是否存在）
-            create_directory(ctx.target_dir.parent, parents=True, exist_ok=True)
-
-            # 处理重名冲突
-            unique_path = resolve_unique_path(ctx.target_dir)
-
-            # 保存原始路径（用于事务日志）
-            old_path = ctx.file_info.path
-
-            # 执行移动
-            move_file(old_path, unique_path)
-
-            # 更新上下文
-            ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
-
-            # 记录操作日志
-            if self.operation_repository:
-                self.operation_repository.log_move(
-                    old_path,
-                    unique_path,
-                    {
-                        "action": FileAction.MOVE_TO_ORGANIZED.value,
-                        "serial_id": str(ctx.serial_id) if ctx.serial_id else None,
-                        "file_type": ctx.file_type.value if ctx.file_type else None,
-                    },
-                    file_result_id=ctx.file_result_id,
-                )
-
-            return ProcessorResult.success(
-                f"移动到整理目录: {unique_path}",
-                {"old_path": str(old_path), "new_path": str(unique_path)},
-            )
-
-        except Exception as e:
-            return ProcessorResult.error(f"移动到整理目录失败: {str(e)}")
-
-    def _move_to_static_dir(self, ctx: ProcessingContext) -> ProcessorResult:
-        """移动到静态目录（通用方法）
+        所有移动操作都使用此方法，完全无脑执行。
 
         Args:
             ctx: 处理上下文
@@ -131,16 +80,18 @@ class UnifiedFileExecutor(Executor):
             return ProcessorResult.error("动作未设置")
 
         try:
-            if not ctx.target_dir:
-                return ProcessorResult.error("目标目录未设置")
+            if not ctx.target_path:
+                return ProcessorResult.error("目标路径未设置")
 
             # 检查源文件是否存在
             if not path_exists(ctx.file_info.path):
                 return ProcessorResult.error("源文件不存在")
 
-            # 生成目标路径
-            target_path = ctx.target_dir / ctx.file_info.path.name
-            unique_path = resolve_unique_path(target_path)
+            # 创建目录（如果不存在）
+            create_directory(ctx.target_path.parent, parents=True, exist_ok=True)
+
+            # 处理重名冲突
+            unique_path = resolve_unique_path(ctx.target_path)
 
             # 保存原始路径（用于事务日志）
             old_path = ctx.file_info.path
@@ -151,15 +102,21 @@ class UnifiedFileExecutor(Executor):
             # 更新上下文
             ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
 
+            # 构建日志元数据
+            log_metadata = {
+                "action": ctx.action.value,
+                "file_type": ctx.file_type.value if ctx.file_type else None,
+            }
+            # organized 操作额外记录 serial_id
+            if ctx.action == FileAction.MOVE_TO_ORGANIZED and ctx.serial_id:
+                log_metadata["serial_id"] = str(ctx.serial_id)
+
             # 记录操作日志
             if self.operation_repository:
                 self.operation_repository.log_move(
                     old_path,
                     unique_path,
-                    {
-                        "action": ctx.action.value,
-                        "file_type": ctx.file_type.value if ctx.file_type else None,
-                    },
+                    log_metadata,
                     file_result_id=ctx.file_result_id,
                 )
 
@@ -170,7 +127,7 @@ class UnifiedFileExecutor(Executor):
             )
 
         except Exception as e:
-            description = ctx.action.description if ctx.action else "目标目录"
+            description = ctx.action.description
             return ProcessorResult.error(f"移动到{description}失败: {str(e)}")
 
     def _delete(self, ctx: ProcessingContext) -> ProcessorResult:

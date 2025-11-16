@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ...utils.file_utils import generate_organized_path, get_file_type
+from ...utils.file_utils import generate_organized_dir, get_file_type
 from ...utils.filename_generation import generate_new_filename
 from ..models import FileAction, FileType, ProcessingContext, ProcessorResult
 from ..processor import Analyzer
@@ -69,7 +69,8 @@ class FileClassifier(Analyzer):
 class SerialIdExtractor(Analyzer):
     """番号提取器
 
-    从文件名中提取番号，并生成新的文件名。
+    从文件名中提取番号，并生成重构后的文件名。
+    只负责提取番号和生成文件名，不设置完整路径。
     """
 
     def __init__(self) -> None:
@@ -77,7 +78,7 @@ class SerialIdExtractor(Analyzer):
         super().__init__("SerialIdExtractor")
 
     def process(self, ctx: ProcessingContext) -> ProcessorResult:
-        """提取番号
+        """提取番号并生成重构后的文件名
 
         Args:
             ctx: 处理上下文
@@ -98,18 +99,22 @@ class SerialIdExtractor(Analyzer):
                 if new_path == ctx.file_info.path:
                     # 即使路径相同，也要设置番号信息
                     ctx.serial_id = serial_id
+                    ctx.renamed_filename = new_path.name
                     return ProcessorResult.skip("文件名已经是标准格式，无需重命名")
 
-                # 更新上下文
+                # 更新上下文：设置番号和重构后的文件名
                 ctx.serial_id = serial_id
-                ctx.target_path = new_path
+                ctx.renamed_filename = new_path.name
 
                 return ProcessorResult.success(
                     f"提取到番号: {serial_id}",
-                    {"serial_id": str(serial_id), "new_path": str(new_path)},
+                    {
+                        "serial_id": str(serial_id),
+                        "renamed_filename": ctx.renamed_filename,
+                    },
                 )
             else:
-                # 没有番号，设置目标路径为待处理目录
+                # 没有番号
                 return ProcessorResult.success("未找到番号，将移动到待处理目录")
 
         except Exception as e:
@@ -323,7 +328,9 @@ class ActionDecider(Analyzer):
         self.misc_dir = misc_dir
 
     def process(self, ctx: ProcessingContext) -> ProcessorResult:
-        """决策动作类型
+        """决策动作类型并组装完整路径
+
+        根据文件类型、番号等信息，决定应该执行什么动作，并组装完整的目标路径。
 
         Args:
             ctx: 处理上下文
@@ -335,28 +342,43 @@ class ActionDecider(Analyzer):
             # 视频/图片文件
             if ctx.file_type in [FileType.VIDEO, FileType.IMAGE]:
                 if ctx.serial_id:
-                    # 有番号：移动到整理目录，需要动态路径
+                    # 有番号：移动到整理目录，组装完整路径
                     ctx.action = FileAction.MOVE_TO_ORGANIZED
-                    ctx.target_dir = generate_organized_path(
-                        self.organized_dir, ctx.serial_id, ctx.file_info.suffix
+
+                    # 检查 renamed_filename 是否已设置
+                    if not ctx.renamed_filename:
+                        return ProcessorResult.error(
+                            "番号存在但重构后的文件名未设置，请确保 SerialIdExtractor 已执行"
+                        )
+
+                    # 生成3级目录结构
+                    target_dir = generate_organized_dir(
+                        self.organized_dir, ctx.serial_id
                     )
+
+                    # 使用重构后的文件名
+                    filename = ctx.renamed_filename
+
+                    # 组装完整路径
+                    ctx.target_path = target_dir / filename
                 else:
                     # 无番号：移动到C目录
                     ctx.action = FileAction.MOVE_TO_UNORGANIZED
-                    ctx.target_dir = self.unorganized_dir
+                    ctx.target_path = self.unorganized_dir / ctx.file_info.path.name
 
             # 压缩文件
             elif ctx.file_type == FileType.ARCHIVE:
                 ctx.action = FileAction.MOVE_TO_ARCHIVE
-                ctx.target_dir = self.archive_dir
+                ctx.target_path = self.archive_dir / ctx.file_info.path.name
 
             # Misc文件
             elif ctx.file_type == FileType.MISC:
                 if ctx.should_delete:
                     ctx.action = FileAction.DELETE
+                    # DELETE 不需要 target_path
                 else:
                     ctx.action = FileAction.MOVE_TO_MISC
-                    ctx.target_dir = self.misc_dir
+                    ctx.target_path = self.misc_dir / ctx.file_info.path.name
             else:
                 ctx.action = FileAction.SKIP
 
@@ -364,7 +386,7 @@ class ActionDecider(Analyzer):
                 f"决策动作: {ctx.action.value}",
                 {
                     "action": ctx.action.value,
-                    "target_dir": str(ctx.target_dir) if ctx.target_dir else None,
+                    "target_path": str(ctx.target_path) if ctx.target_path else None,
                 },
             )
 

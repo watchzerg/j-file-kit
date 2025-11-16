@@ -83,35 +83,31 @@ def resolve_unique_path(target_path: Path) -> Path:
     raise RuntimeError(f"无法为 {target_path} 生成唯一路径，已尝试 {max_attempts} 次")
 
 
-def generate_organized_path(
-    organized_dir: Path, serial_id: SerialId, suffix: str
-) -> Path:
-    """生成整理目录路径：A/ABCD/ABCD-123.ext
+def generate_organized_dir(organized_dir: Path, serial_id: SerialId) -> Path:
+    """生成整理目录路径：A/AB/ABCD/
 
-    根据番号生成整理目录的完整路径，格式为：organized_dir/首字母/完整前缀/番号.扩展名
+    根据番号生成整理目录路径，格式为：organized_dir/首字母/前两字母/完整前缀/
 
     Args:
         organized_dir: 整理目录根路径
         serial_id: 番号对象
-        suffix: 文件扩展名（含点号）
 
     Returns:
-        完整的目标路径
+        目录路径（不含文件名）
 
     Examples:
         >>> from j_file_kit.domain.models import SerialId
-        >>> generate_organized_path(Path("/organized"), SerialId(prefix="ABCD", number="123"), ".mp4")
-        Path("/organized/A/ABCD/ABCD-123.mp4")
+        >>> generate_organized_dir(Path("/organized"), SerialId(prefix="ABCD", number="123"))
+        Path("/organized/A/AB/ABCD")
 
-        >>> generate_organized_path(Path("/organized"), SerialId(prefix="XYZ", number="456"), ".jpg")
-        Path("/organized/X/XYZ/XYZ-456.jpg")
+        >>> generate_organized_dir(Path("/organized"), SerialId(prefix="XYZ", number="456"))
+        Path("/organized/X/XY/XYZ")
+
+        >>> generate_organized_dir(Path("/organized"), SerialId(prefix="AB", number="789"))
+        Path("/organized/A/AB/AB")
     """
-    # 提取前缀首字母（A）和完整前缀（ABCD）
     prefix = serial_id.prefix
     first_letter = prefix[0]
-    full_prefix = prefix
+    first_two = prefix[:2] if len(prefix) >= 2 else prefix
 
-    # 构建路径：organized_dir/A/ABCD/ABCD-123.ext
-    target_dir = organized_dir / first_letter / full_prefix
-    filename = f"{serial_id}{suffix}"
-    return target_dir / filename
+    return organized_dir / first_letter / first_two / prefix
