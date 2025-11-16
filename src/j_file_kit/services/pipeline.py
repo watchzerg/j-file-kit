@@ -12,14 +12,14 @@ from datetime import datetime
 
 from ..domain.models import (
     DirectoryInfo,
+    FileContext,
     FileInfo,
     FileResult,
-    ProcessingContext,
     ProcessorResult,
     ProcessorStatus,
     TaskReport,
 )
-from ..domain.processor import Analyzer, Executor, Finalizer, ProcessorChain
+from ..domain.processor import Analyzer, Executor, ProcessorChain, TaskProcessor
 from ..infrastructure.config.config import TaskConfig
 from ..infrastructure.logging.logger import StructuredLogger
 from ..infrastructure.persistence import (
@@ -67,7 +67,7 @@ class Pipeline:
         self.task_id = task_id
         self.task_repository = task_repository
 
-        # 保存EmptyDirectoryExecutor引用（如果存在），用于目录处理
+        # 保存FileEmptyDirectoryExecutor引用（如果存在），用于目录处理
         self.empty_directory_executor: Executor | None = None
 
         # 任务报告
@@ -105,21 +105,21 @@ class Pipeline:
             管道实例（支持链式调用）
         """
         self.processor_chain.add_executor(executor)
-        # 如果是EmptyDirectoryExecutor，保存引用以便直接调用
-        if executor.name == "EmptyDirectoryExecutor":
+        # 如果是FileEmptyDirectoryExecutor，保存引用以便直接调用
+        if executor.name == "FileEmptyDirectoryExecutor":
             self.empty_directory_executor = executor
         return self
 
-    def add_finalizer(self, finalizer: Finalizer) -> Pipeline:
-        """添加终结器
+    def add_task_processor(self, processor: TaskProcessor) -> Pipeline:
+        """添加任务处理器
 
         Args:
-            finalizer: 终结器实例
+            processor: 任务处理器实例
 
         Returns:
             管道实例（支持链式调用）
         """
-        self.processor_chain.add_finalizer(finalizer)
+        self.processor_chain.add_task_processor(processor)
         return self
 
     def create_unified_executor(self) -> Executor:
@@ -128,11 +128,11 @@ class Pipeline:
         Returns:
             配置好的统一文件执行器
         """
-        from ..domain.processors.executors import UnifiedFileExecutor
+        from ..domain.file.processors.executors import UnifiedFileExecutor
 
         return UnifiedFileExecutor(self.operation_repository)
 
-    def _create_initial_context(self, file_info: FileInfo) -> ProcessingContext:
+    def _create_initial_context(self, file_info: FileInfo) -> FileContext:
         """创建初始处理上下文
 
         Args:
@@ -141,7 +141,7 @@ class Pipeline:
         Returns:
             初始化的处理上下文
         """
-        return ProcessingContext.model_construct(file_info=file_info)
+        return FileContext.model_construct(file_info=file_info)
 
     def _extract_error_message(
         self, processor_results: list[ProcessorResult]
@@ -194,11 +194,11 @@ class Pipeline:
         if dry_run:
             return
 
-        # 创建ProcessingContext，将directory_info赋值给ctx.file_info
-        # 虽然类型声明是FileInfo，但EmptyDirectoryExecutor会通过路径判断，运行时安全
-        ctx = ProcessingContext.model_construct(file_info=directory_info)
+        # 创建FileContext，将directory_info赋值给ctx.file_info
+        # 虽然类型声明是FileInfo，但FileEmptyDirectoryExecutor会通过路径判断，运行时安全
+        ctx = FileContext.model_construct(file_info=directory_info)
 
-        # 调用EmptyDirectoryExecutor处理（如果存在）
+        # 调用FileEmptyDirectoryExecutor处理（如果存在）
         if self.empty_directory_executor:
             result = self.empty_directory_executor.process(ctx)
             # 记录日志
@@ -232,7 +232,7 @@ class Pipeline:
         if dry_run:
             processor_results = self._run_analyzers_only(ctx)
         else:
-            processor_results = self.processor_chain.process_file(ctx)
+            processor_results = self.processor_chain.process_item(ctx)
 
         # 计算文件处理总耗时
         file_duration_ms = (time.time() - file_start_time) * 1000
@@ -266,10 +266,10 @@ class Pipeline:
         Args:
             dry_run: 是否为预览模式
         """
-        # 执行终结器（仅在非预览模式）
+        # 执行任务处理器（仅在非预览模式）
         if not dry_run:
-            finalizer_results = self.processor_chain.finalize_all()
-            self.logger.info(f"执行了 {len(finalizer_results)} 个终结器")
+            task_results = self.processor_chain.process_task()
+            self.logger.info(f"执行了 {len(task_results)} 个任务处理器")
 
         # 完成报告
         self.report.end_time = datetime.now()
@@ -367,7 +367,7 @@ class Pipeline:
 
         self.report.total_duration_ms += result.total_duration_ms
 
-    def _run_analyzers_only(self, ctx: ProcessingContext) -> list[ProcessorResult]:
+    def _run_analyzers_only(self, ctx: FileContext) -> list[ProcessorResult]:
         """仅执行分析器（用于预览模式）
 
         Args:

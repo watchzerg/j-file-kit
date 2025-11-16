@@ -10,10 +10,10 @@ from pathlib import Path
 import pytest
 
 from j_file_kit.domain.models import (
+    FileContext,
     FileInfo,
     FileResult,
     FileType,
-    ProcessingContext,
     ProcessorResult,
     TaskReport,
 )
@@ -89,7 +89,7 @@ class TestStructuredLogger:
         file_info = FileInfo.from_path(Path("/test/video.mp4"))
         from j_file_kit.domain.models import SerialId
 
-        context = ProcessingContext(
+        context = FileContext(
             file_info=file_info,
             file_type=FileType.VIDEO,
             serial_id=SerialId(prefix="ABC", number="123"),
@@ -133,7 +133,7 @@ class TestStructuredLogger:
         logger = StructuredLogger(tmp_path, "test_task")
 
         file_info = FileInfo.from_path(Path("/test/file.mp4"))
-        context = ProcessingContext(
+        context = FileContext(
             file_info=file_info,
             file_type=None,
             serial_id=None,
@@ -164,7 +164,7 @@ class TestStructuredLogger:
         logger = StructuredLogger(tmp_path, "test_task")
 
         file_info = FileInfo.from_path(Path("/test/file.mp4"))
-        context = ProcessingContext(
+        context = FileContext(
             file_info=file_info,
             file_type=None,
             serial_id=None,
@@ -324,7 +324,7 @@ class TestStructuredLogger:
         logger = StructuredLogger(tmp_path, "test_task")
 
         file_info = FileInfo.from_path(Path("/test/file.mp4"))
-        context = ProcessingContext(
+        context = FileContext(
             file_info=file_info,
             file_type=None,
             serial_id=None,

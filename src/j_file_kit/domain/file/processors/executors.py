@@ -1,7 +1,7 @@
 """执行器实现
 
 实现文件操作功能，如文件移动、删除等。
-执行器根据ProcessingContext中的action决策执行相应的文件操作。
+执行器根据FileContext中的action决策执行相应的文件操作。
 """
 
 from __future__ import annotations
@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ...infrastructure.filesystem.operations import (
+from ....infrastructure.filesystem.operations import (
     create_directory,
     delete_directory,
     delete_file,
@@ -18,15 +18,15 @@ from ...infrastructure.filesystem.operations import (
     move_file,
     path_exists,
 )
-from ...utils.file_utils import resolve_unique_path
-from ..models import FileAction, ProcessingContext, ProcessorResult
-from ..processor import Executor
+from ....utils.file_utils import resolve_unique_path
+from ...models import FileAction, FileContext, ProcessorResult
+from ...processor import Executor
 
 
 class UnifiedFileExecutor(Executor):
     """统一文件执行器
 
-    根据 ProcessingContext 中的 action 决策，执行相应的操作。
+    根据 FileContext 中的 action 决策，执行相应的操作。
     只负责执行，不关心路径如何生成（路径由 analyzer 组装完成）。
     """
 
@@ -39,7 +39,7 @@ class UnifiedFileExecutor(Executor):
         super().__init__("UnifiedFileExecutor")
         self.operation_repository = operation_repository
 
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
+    def process(self, ctx: FileContext) -> ProcessorResult:  # type: ignore[override]
         """根据动作类型执行操作
 
         Args:
@@ -65,7 +65,7 @@ class UnifiedFileExecutor(Executor):
         else:
             return ProcessorResult.error(f"未知动作类型: {ctx.action}")
 
-    def _move_file(self, ctx: ProcessingContext) -> ProcessorResult:
+    def _move_file(self, ctx: FileContext) -> ProcessorResult:
         """移动文件（统一方法）
 
         所有移动操作都使用此方法，完全无脑执行。
@@ -130,7 +130,7 @@ class UnifiedFileExecutor(Executor):
             description = ctx.action.description
             return ProcessorResult.error(f"移动到{description}失败: {str(e)}")
 
-    def _delete(self, ctx: ProcessingContext) -> ProcessorResult:
+    def _delete(self, ctx: FileContext) -> ProcessorResult:
         """删除文件
 
         Args:
@@ -160,11 +160,11 @@ class UnifiedFileExecutor(Executor):
             return ProcessorResult.error(f"文件删除失败: {str(e)}")
 
 
-class EmptyDirectoryExecutor(Executor):
+class FileEmptyDirectoryExecutor(Executor):
     """空目录清理执行器
 
     在文件处理流程中同步清理空文件夹，利用自底向上遍历确保子目录先于父目录被处理。
-    通过路径判断而不是修改ProcessingContext类型，保持类型系统简单。
+    通过路径判断而不是修改FileContext类型，保持类型系统简单。
     设计意图：在遍历过程中同步清理空文件夹，利用自底向上遍历顺序确保空文件夹及时清理。
     """
 
@@ -177,15 +177,15 @@ class EmptyDirectoryExecutor(Executor):
             scan_roots: 扫描根目录列表（这些目录本身不会被删除）
             operation_repository: 操作记录仓储
         """
-        super().__init__("EmptyDirectoryExecutor")
+        super().__init__("FileEmptyDirectoryExecutor")
         self.scan_roots = scan_roots
         self.operation_repository = operation_repository
 
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
+    def process(self, ctx: FileContext) -> ProcessorResult:  # type: ignore[override]
         """处理目录清理
 
         通过路径判断是否为目录，如果是目录且为空，则删除。
-        目录清理是轻量级操作，不需要完整的上下文信息，因此通过路径判断而不是修改ProcessingContext类型。
+        目录清理是轻量级操作，不需要完整的上下文信息，因此通过路径判断而不是修改FileContext类型。
 
         Args:
             ctx: 处理上下文（通过ctx.file_info.path获取路径）
@@ -195,7 +195,7 @@ class EmptyDirectoryExecutor(Executor):
         """
         path = ctx.file_info.path
 
-        # 检查路径是否为目录（通过路径判断，不修改ProcessingContext类型）
+        # 检查路径是否为目录（通过路径判断，不修改FileContext类型）
         if not is_directory(path):
             return ProcessorResult.skip("不是目录，跳过")
 

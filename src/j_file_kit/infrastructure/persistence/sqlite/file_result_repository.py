@@ -14,9 +14,9 @@ from datetime import datetime
 from typing import Any
 
 from ...domain.models import (  # type: ignore[import-untyped]
+    FileContext,
     FileInfo,
     FileResult,
-    ProcessingContext,
     ProcessorResult,
 )
 from .connection import SQLiteConnectionManager
@@ -273,9 +273,9 @@ class FileResultRepository:
         Returns:
             FileResult 对象
         """
-        # 反序列化 ProcessingContext
+        # 反序列化 FileContext
         context_data = json.loads(row["context_data"]) if row["context_data"] else {}
-        context = ProcessingContext.model_validate(context_data)
+        context = FileContext.model_validate(context_data)
 
         # 反序列化 ProcessorResult 列表
         processor_results_data = (

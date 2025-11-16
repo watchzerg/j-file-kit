@@ -10,16 +10,16 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from ..domain.models import TaskReport, TaskType
-from ..domain.processors.analyzers import (
-    ActionDecider,
+from ..domain.file.processors.analyzers import (
+    FileActionDecider,
     FileClassifier,
+    FileSerialIdExtractor,
     MiscFileDeleteAnalyzer,
     MiscFileSizeAnalyzer,
-    SerialIdExtractor,
 )
-from ..domain.processors.executors import EmptyDirectoryExecutor
-from ..domain.processors.finalizers import TaskStatisticsFinalizer
+from ..domain.file.processors.executors import FileEmptyDirectoryExecutor
+from ..domain.file.processors.finalizers import FileTaskStatisticsFinalizer
+from ..domain.models import TaskReport, TaskType
 from ..domain.task import BaseTask
 from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
 from ..infrastructure.persistence import (
@@ -112,9 +112,9 @@ class VideoFileOrganizer(BaseTask):
         )
         pipeline.add_analyzer(MiscFileSizeAnalyzer())
         pipeline.add_analyzer(MiscFileDeleteAnalyzer(self.misc_file_delete_rules))
-        pipeline.add_analyzer(SerialIdExtractor())
+        pipeline.add_analyzer(FileSerialIdExtractor())
         pipeline.add_analyzer(
-            ActionDecider(
+            FileActionDecider(
                 self.organized_dir,
                 self.unorganized_dir,
                 self.archive_dir,
@@ -128,14 +128,16 @@ class VideoFileOrganizer(BaseTask):
         # 添加空目录清理执行器（放在最后，确保文件处理完成后再清理目录）
         # 设计意图：在文件处理完成后，利用自底向上遍历顺序清理空文件夹
         pipeline.add_executor(
-            EmptyDirectoryExecutor(self.config.global_.scan_roots, operation_repository)
+            FileEmptyDirectoryExecutor(
+                self.config.global_.scan_roots, operation_repository
+            )
         )
 
         # 添加任务统计信息终结器
-        # finalizer 是全局的，pipeline 会先处理完所有文件的 processors，再执行 finalizers
+        # task processor 是全局的，pipeline 会先处理完所有文件的 processors，再执行 task processors
         # 所以添加顺序不影响执行顺序
-        pipeline.add_finalizer(
-            TaskStatisticsFinalizer(
+        pipeline.add_task_processor(
+            FileTaskStatisticsFinalizer(
                 task_id=task_id,
                 task_repository=task_repository,
                 operation_repository=operation_repository,

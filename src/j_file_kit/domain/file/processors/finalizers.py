@@ -9,18 +9,18 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from ..models import ProcessorResult
-from ..processor import Finalizer
+from ...models import ProcessorResult
+from ...processor import Finalizer
 
 if TYPE_CHECKING:
-    from ...infrastructure.persistence import (
+    from ....infrastructure.persistence import (
         FileResultRepository,
         OperationRepository,
         TaskRepository,
     )
 
 
-class TaskStatisticsFinalizer(Finalizer):
+class FileTaskStatisticsFinalizer(Finalizer):
     """任务统计信息终结器
 
     在任务完成后统计所有操作和性能指标，更新到 tasks 表。
@@ -46,7 +46,7 @@ class TaskStatisticsFinalizer(Finalizer):
             operation_repository: 操作记录仓储实例
             file_result_repository: 文件结果仓储实例
         """
-        super().__init__("TaskStatisticsFinalizer")
+        super().__init__("FileTaskStatisticsFinalizer")
         self.task_id = task_id
         self.task_repository = task_repository
         self.operation_repository = operation_repository

@@ -9,10 +9,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ...utils.file_utils import generate_organized_dir, get_file_type
-from ...utils.filename_generation import generate_new_filename
-from ..models import FileAction, FileType, ProcessingContext, ProcessorResult
-from ..processor import Analyzer
+from ....utils.file_utils import generate_organized_dir, get_file_type
+from ....utils.filename_generation import generate_new_filename
+from ...models import FileAction, FileContext, FileType, ProcessorResult
+from ...processor import Analyzer
 
 
 class FileClassifier(Analyzer):
@@ -39,7 +39,7 @@ class FileClassifier(Analyzer):
         self.image_extensions = image_extensions
         self.archive_extensions = archive_extensions
 
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
+    def process(self, ctx: FileContext) -> ProcessorResult:  # type: ignore[override]
         """分析文件类型
 
         Args:
@@ -66,7 +66,7 @@ class FileClassifier(Analyzer):
             return ProcessorResult.error(f"文件类型分析失败: {str(e)}")
 
 
-class SerialIdExtractor(Analyzer):
+class FileSerialIdExtractor(Analyzer):
     """番号提取器
 
     从文件名中提取番号，并生成重构后的文件名。
@@ -75,9 +75,9 @@ class SerialIdExtractor(Analyzer):
 
     def __init__(self) -> None:
         """初始化番号提取器"""
-        super().__init__("SerialIdExtractor")
+        super().__init__("FileSerialIdExtractor")
 
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
+    def process(self, ctx: FileContext) -> ProcessorResult:  # type: ignore[override]
         """提取番号并生成重构后的文件名
 
         Args:
@@ -131,7 +131,7 @@ class MiscFileSizeAnalyzer(Analyzer):
         """初始化Misc文件大小分析器"""
         super().__init__("MiscFileSizeAnalyzer")
 
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
+    def process(self, ctx: FileContext) -> ProcessorResult:  # type: ignore[override]
         """分析文件大小
 
         Args:
@@ -171,7 +171,7 @@ class FileNameAnalyzer(Analyzer):
         super().__init__("FileNameAnalyzer")
         self.max_length = max_length
 
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
+    def process(self, ctx: FileContext) -> ProcessorResult:  # type: ignore[override]
         """分析文件名
 
         Args:
@@ -224,7 +224,7 @@ class MiscFileDeleteAnalyzer(Analyzer):
         super().__init__("MiscFileDeleteAnalyzer")
         self.misc_file_delete_rules = misc_file_delete_rules
 
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
+    def process(self, ctx: FileContext) -> ProcessorResult:  # type: ignore[override]
         """判断Misc文件是否应该删除
 
         Args:
@@ -250,7 +250,7 @@ class MiscFileDeleteAnalyzer(Analyzer):
         except Exception as e:
             return ProcessorResult.error(f"Misc文件删除判断失败: {str(e)}")
 
-    def _should_delete(self, ctx: ProcessingContext) -> bool:
+    def _should_delete(self, ctx: FileContext) -> bool:
         """判断Misc文件是否应该删除
 
         删除条件：扩展名 or (体积 <= max_size and 文件名包含关键字)
@@ -300,7 +300,7 @@ class MiscFileDeleteAnalyzer(Analyzer):
         return False
 
 
-class ActionDecider(Analyzer):
+class FileActionDecider(Analyzer):
     """动作决策器
 
     根据文件类型、番号等信息，决定应该执行什么动作。
@@ -321,13 +321,13 @@ class ActionDecider(Analyzer):
             archive_dir: 压缩文件存储目录
             misc_dir: Misc文件存储目录（D类）
         """
-        super().__init__("ActionDecider")
+        super().__init__("FileActionDecider")
         self.organized_dir = organized_dir
         self.unorganized_dir = unorganized_dir
         self.archive_dir = archive_dir
         self.misc_dir = misc_dir
 
-    def process(self, ctx: ProcessingContext) -> ProcessorResult:
+    def process(self, ctx: FileContext) -> ProcessorResult:  # type: ignore[override]
         """决策动作类型并组装完整路径
 
         根据文件类型、番号等信息，决定应该执行什么动作，并组装完整的目标路径。
@@ -348,7 +348,7 @@ class ActionDecider(Analyzer):
                     # 检查 renamed_filename 是否已设置
                     if not ctx.renamed_filename:
                         return ProcessorResult.error(
-                            "番号存在但重构后的文件名未设置，请确保 SerialIdExtractor 已执行"
+                            "番号存在但重构后的文件名未设置，请确保 FileSerialIdExtractor 已执行"
                         )
 
                     # 生成3级目录结构
