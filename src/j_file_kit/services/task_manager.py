@@ -145,6 +145,8 @@ class TaskManager:
     ) -> None:
         """执行任务（内部方法）
 
+        任务状态更新已移至 Pipeline 的 Initializer 中执行。
+
         Args:
             task_id: 任务ID
             task: 要执行的任务
@@ -152,9 +154,6 @@ class TaskManager:
             cancelled_event: 取消事件
         """
         try:
-            # 更新状态为运行中
-            self.task_repository.update_task(task_id, status=TaskStatus.RUNNING)
-
             # 创建操作记录仓储
             operation_repository = OperationRepository(self._sqlite_conn, task_id)
 

@@ -12,7 +12,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 
 **职责**:
 - 定义业务领域模型和核心概念
-- 定义处理器协议（Processor、Analyzer、Executor、Finalizer）
+- 定义处理器协议（Processor、Analyzer、Executor、Initializer、Finalizer）
 - 实现处理器具体逻辑（processors/）
 
 **特点**:
@@ -30,7 +30,8 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - `processors/`: 处理器实现
   - `analyzers.py`: 分析器（FileClassifier、SerialIdExtractor等）
   - `executors.py`: 执行器（UnifiedFileExecutor）
-  - `finalizers.py`: 终结器（用于全局后处理，如清理空目录等）
+  - `initializers.py`: 初始化器（用于任务前置处理，如状态更新、配置验证、资源初始化等）
+  - `finalizers.py`: 终结器（用于全局后处理，如统计信息更新等）
 
 ### 2. Services Layer (服务层)
 
@@ -223,25 +224,42 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 3. services/task_manager启动任务
    ↓
 4. services/pipeline协调执行
+   ├── initializers: 前置处理（状态更新、配置验证、资源初始化）
    ↓
 5. services/scanner扫描文件
    ↓
 6. domain/processors/处理item（文件等）
    ├── analyzers: 分析item
    ├── executors: 执行操作（使用infrastructure/filesystem）
-   └── finalizers: 后处理
    ↓
-7. 生成报告并返回（TaskReport包含item统计信息）
+7. finalizers: 后处理（统计信息更新等）
+   ↓
+8. 生成报告并返回（TaskReport包含item统计信息）
 ```
 
 ## 扩展指南
 
 ### 添加新的处理器
 
+#### Item 级别处理器（Analyzer/Executor）
+
 1. 在 `domain/processors/` 中创建新的处理器类
-2. 继承相应的基类（Analyzer/Executor/Finalizer）
+2. 继承相应的基类（Analyzer 或 Executor）
 3. 实现 `process()` 方法
 4. 在任务中组合使用
+
+#### 任务级别处理器（Initializer/Finalizer）
+
+1. 在 `domain/processors/` 中创建新的处理器类
+2. 继承相应的基类（Initializer 或 Finalizer）
+3. 实现 `initialize()` 或 `finalize()` 方法
+4. 在任务的 `create_pipeline()` 方法中添加：
+   - Initializer: 使用 `pipeline.add_initializer()`
+   - Finalizer: 使用 `pipeline.add_finalizer()`
+
+**注意**:
+- Initializer 在任务开始执行前运行，失败会阻止任务继续执行
+- Finalizer 在任务完成后运行，失败不应影响任务完成状态
 
 ### 添加新的任务类型
 

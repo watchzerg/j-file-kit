@@ -19,7 +19,13 @@ from ..domain.models import (
     ProcessorStatus,
     TaskReport,
 )
-from ..domain.processor import Analyzer, Executor, ProcessorChain, TaskProcessor
+from ..domain.processor import (
+    Analyzer,
+    Executor,
+    Finalizer,
+    Initializer,
+    ProcessorChain,
+)
 from ..infrastructure.config.config import TaskConfig
 from ..infrastructure.logging.logger import StructuredLogger
 from ..infrastructure.persistence import (
@@ -110,16 +116,28 @@ class Pipeline:
             self.empty_directory_executor = executor
         return self
 
-    def add_task_processor(self, processor: TaskProcessor) -> Pipeline:
-        """添加任务处理器
+    def add_initializer(self, initializer: Initializer) -> Pipeline:
+        """添加初始化器
 
         Args:
-            processor: 任务处理器实例
+            initializer: 初始化器实例
 
         Returns:
             管道实例（支持链式调用）
         """
-        self.processor_chain.add_task_processor(processor)
+        self.processor_chain.add_initializer(initializer)
+        return self
+
+    def add_finalizer(self, finalizer: Finalizer) -> Pipeline:
+        """添加终结器
+
+        Args:
+            finalizer: 终结器实例
+
+        Returns:
+            管道实例（支持链式调用）
+        """
+        self.processor_chain.add_finalizer(finalizer)
         return self
 
     def create_unified_executor(self) -> Executor:
@@ -258,11 +276,31 @@ class Pipeline:
 
         Args:
             dry_run: 是否为预览模式
+
+        Raises:
+            RuntimeError: 如果任何 initializer 失败
         """
         scan_roots_str = ", ".join(str(p) for p in self.config.global_.scan_roots)
         self.logger.log_task_start(scan_roots_str)
         if dry_run:
             self.logger.info("运行在干模式（预览模式）")
+
+        # 执行初始化器（仅在非预览模式）
+        if not dry_run:
+            initializer_results = self.processor_chain.process_initializers()
+            self.logger.info(f"执行了 {len(initializer_results)} 个初始化器")
+
+            # 检查是否有初始化器失败
+            failed_initializers = [
+                r for r in initializer_results if r.status == ProcessorStatus.ERROR
+            ]
+            if failed_initializers:
+                error_messages = [r.message for r in failed_initializers]
+                error_msg = "初始化失败:\n" + "\n".join(
+                    f"  - {msg}" for msg in error_messages
+                )
+                self.logger.error(error_msg)
+                raise RuntimeError(error_msg)
 
     def _finish_task(self, dry_run: bool) -> None:
         """任务结束处理
@@ -270,10 +308,10 @@ class Pipeline:
         Args:
             dry_run: 是否为预览模式
         """
-        # 执行任务处理器（仅在非预览模式）
+        # 执行终结器（仅在非预览模式）
         if not dry_run:
-            task_results = self.processor_chain.process_task()
-            self.logger.info(f"执行了 {len(task_results)} 个任务处理器")
+            finalizer_results = self.processor_chain.process_finalizers()
+            self.logger.info(f"执行了 {len(finalizer_results)} 个终结器")
 
         # 完成报告
         self.report.end_time = datetime.now()

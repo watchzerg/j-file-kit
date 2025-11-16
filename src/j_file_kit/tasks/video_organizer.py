@@ -19,6 +19,11 @@ from ..domain.file.processors.analyzers import (
 )
 from ..domain.file.processors.executors import FileEmptyDirectoryExecutor
 from ..domain.file.processors.finalizers import FileTaskStatisticsFinalizer
+from ..domain.file.processors.initializers import (
+    FileConfigValidatorInitializer,
+    FileResourceInitializer,
+    FileTaskStatusInitializer,
+)
 from ..domain.models import TaskReport, TaskType
 from ..domain.task import BaseTask
 from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
@@ -102,6 +107,28 @@ class VideoFileOrganizer(BaseTask):
             task_repository,
         )
 
+        # 添加初始化器（按依赖顺序）
+        # 1. 状态更新：确保任务状态正确
+        pipeline.add_initializer(
+            FileTaskStatusInitializer(
+                task_id=task_id,
+                task_repository=task_repository,
+            )
+        )
+        # 2. 配置验证：验证配置有效性
+        pipeline.add_initializer(
+            FileConfigValidatorInitializer(
+                config=self.config,
+                file_config=self.file_config,
+            )
+        )
+        # 3. 资源初始化：确保目录已准备就绪
+        pipeline.add_initializer(
+            FileResourceInitializer(
+                file_config=self.file_config,
+            )
+        )
+
         # 添加分析器
         pipeline.add_analyzer(
             FileClassifier(
@@ -134,9 +161,9 @@ class VideoFileOrganizer(BaseTask):
         )
 
         # 添加任务统计信息终结器
-        # task processor 是全局的，pipeline 会先处理完所有文件的 processors，再执行 task processors
+        # finalizer 是全局的，pipeline 会先处理完所有文件的 processors，再执行 finalizers
         # 所以添加顺序不影响执行顺序
-        pipeline.add_task_processor(
+        pipeline.add_finalizer(
             FileTaskStatisticsFinalizer(
                 task_id=task_id,
                 task_repository=task_repository,

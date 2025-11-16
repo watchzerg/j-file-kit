@@ -92,6 +92,30 @@ class Executor(ItemProcessor):
         return ProcessorResult.success(f"{self.name} 执行完成")
 
 
+class Initializer(TaskProcessor):
+    """初始化器基类
+
+    用于任务前置处理，如状态更新、配置验证、资源初始化等。
+    初始化器在任务开始执行前调用，如果初始化失败，将阻止任务继续执行。
+    """
+
+    def process_task(self) -> ProcessorResult:
+        """处理任务级别操作（调用 initialize）"""
+        return self.initialize()
+
+    @abstractmethod
+    def initialize(self) -> ProcessorResult:
+        """初始化处理
+
+        在任务开始执行前调用，用于执行前置操作。
+        如果初始化失败，应返回 ERROR 状态的结果，任务将不会继续执行。
+
+        Returns:
+            处理结果，成功或错误
+        """
+        pass
+
+
 class Finalizer(TaskProcessor):
     """终结器基类
 
@@ -115,13 +139,15 @@ class ProcessorChain:
     """处理器链
 
     管理一组处理器的执行顺序和结果。
+    明确区分前置处理（initializers）和后置处理（finalizers）。
     """
 
     def __init__(self) -> None:
         """初始化处理器链"""
         self.analyzers: list[Analyzer] = []
         self.executors: list[Executor] = []
-        self.task_processors: list[TaskProcessor] = []
+        self.initializers: list[Initializer] = []
+        self.finalizers: list[Finalizer] = []
 
     def add_analyzer(self, analyzer: Analyzer) -> ProcessorChain:
         """添加分析器
@@ -162,16 +188,28 @@ class ProcessorChain:
             self.executors.append(processor)
         return self
 
-    def add_task_processor(self, processor: TaskProcessor) -> ProcessorChain:
-        """添加任务处理器
+    def add_initializer(self, initializer: Initializer) -> ProcessorChain:
+        """添加初始化器
 
         Args:
-            processor: 任务处理器实例
+            initializer: 初始化器实例
 
         Returns:
             处理器链实例（支持链式调用）
         """
-        self.task_processors.append(processor)
+        self.initializers.append(initializer)
+        return self
+
+    def add_finalizer(self, finalizer: Finalizer) -> ProcessorChain:
+        """添加终结器
+
+        Args:
+            finalizer: 终结器实例
+
+        Returns:
+            处理器链实例（支持链式调用）
+        """
+        self.finalizers.append(finalizer)
         return self
 
     def process_item(self, ctx: ItemContext) -> list[ProcessorResult]:
@@ -216,16 +254,30 @@ class ProcessorChain:
 
         return results
 
-    def process_task(self) -> list[ProcessorResult]:
-        """执行所有任务处理器
+    def process_initializers(self) -> list[ProcessorResult]:
+        """执行所有初始化器
 
         Returns:
-            所有任务处理器的结果列表
+            所有初始化器的结果列表
         """
         results = []
 
-        for processor in self.task_processors:
-            result = processor.process_task()
+        for initializer in self.initializers:
+            result = initializer.process_task()
+            results.append(result)
+
+        return results
+
+    def process_finalizers(self) -> list[ProcessorResult]:
+        """执行所有终结器
+
+        Returns:
+            所有终结器的结果列表
+        """
+        results = []
+
+        for finalizer in self.finalizers:
+            result = finalizer.process_task()
             results.append(result)
 
         return results
@@ -234,4 +286,5 @@ class ProcessorChain:
         """清空处理器链"""
         self.analyzers.clear()
         self.executors.clear()
-        self.task_processors.clear()
+        self.initializers.clear()
+        self.finalizers.clear()
