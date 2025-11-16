@@ -12,7 +12,7 @@ import pytest
 from j_file_kit.domain.models import (
     FileContext,
     FileInfo,
-    FileResult,
+    FileItemResult,
     FileType,
     ProcessorResult,
     TaskReport,
@@ -99,9 +99,9 @@ class TestStructuredLogger:
             action=None,
             should_delete=False,
             file_size=None,
-            file_result_id=None,
+            item_result_id=None,
         )
-        result = FileResult(
+        result = FileItemResult(
             file_info=file_info,
             context=context,
             processor_results=[
@@ -113,10 +113,10 @@ class TestStructuredLogger:
             error_message=None,
         )
 
-        logger.log_file_result(result)
+        logger.log_item_result(result)
 
         entry = json.loads(logger.log_file.read_text(encoding="utf-8").strip())
-        assert entry["level"] == "FILE_RESULT"
+        assert entry["level"] == "ITEM_RESULT"
         assert entry["message"] == "处理文件: video.mp4"
         assert entry["data"]["file_path"] == "/test/video.mp4"
         assert entry["data"]["file_type"] == "video"
@@ -143,9 +143,9 @@ class TestStructuredLogger:
             action=None,
             should_delete=False,
             file_size=None,
-            file_result_id=None,
+            item_result_id=None,
         )
-        result = FileResult(
+        result = FileItemResult(
             file_info=file_info,
             context=context,
             success=False,
@@ -153,7 +153,7 @@ class TestStructuredLogger:
             total_duration_ms=0.0,
         )
 
-        logger.log_file_result(result)
+        logger.log_item_result(result)
 
         entry = json.loads(logger.log_file.read_text(encoding="utf-8").strip())
         assert entry["data"]["error_message"] == "处理失败"
@@ -174,9 +174,9 @@ class TestStructuredLogger:
             action=None,
             should_delete=False,
             file_size=None,
-            file_result_id=None,
+            item_result_id=None,
         )
-        result = FileResult(
+        result = FileItemResult(
             file_info=file_info,
             context=context,
             processor_results=[ProcessorResult.skip("文件已存在")],
@@ -185,7 +185,7 @@ class TestStructuredLogger:
             error_message=None,
         )
 
-        logger.log_file_result(result)
+        logger.log_item_result(result)
 
         entry = json.loads(logger.log_file.read_text(encoding="utf-8").strip())
         assert entry["data"]["was_skipped"] is True
@@ -209,11 +209,11 @@ class TestStructuredLogger:
             task_name="test_task",
             start_time=datetime.now(),
             end_time=datetime.now(),
-            total_files=100,
-            success_files=90,
-            error_files=5,
-            skipped_files=3,
-            warning_files=2,
+            total_items=100,
+            success_items=90,
+            error_items=5,
+            skipped_items=3,
+            warning_items=2,
             total_duration_ms=123450.0,
         )
 
@@ -222,11 +222,11 @@ class TestStructuredLogger:
         entry = json.loads(logger.log_file.read_text(encoding="utf-8").strip())
         assert entry["level"] == "TASK_END"
         assert entry["message"] == "任务完成: test_task"
-        assert entry["data"]["total_files"] == 100
-        assert entry["data"]["success_files"] == 90
-        assert entry["data"]["error_files"] == 5
-        assert entry["data"]["skipped_files"] == 3
-        assert entry["data"]["warning_files"] == 2
+        assert entry["data"]["total_items"] == 100
+        assert entry["data"]["success_items"] == 90
+        assert entry["data"]["error_items"] == 5
+        assert entry["data"]["skipped_items"] == 3
+        assert entry["data"]["warning_items"] == 2
         assert entry["data"]["success_rate"] == 0.9
         assert entry["data"]["duration_seconds"] == 123.45
 
@@ -334,9 +334,9 @@ class TestStructuredLogger:
             action=None,
             should_delete=False,
             file_size=None,
-            file_result_id=None,
+            item_result_id=None,
         )
-        result = FileResult(
+        result = FileItemResult(
             file_info=file_info,
             context=context,
             success=True,
@@ -344,7 +344,7 @@ class TestStructuredLogger:
             error_message=None,
         )
 
-        logger.log_file_result(result)
+        logger.log_item_result(result)
 
         entry = json.loads(logger.log_file.read_text(encoding="utf-8").strip())
         assert entry["data"]["file_type"] is None

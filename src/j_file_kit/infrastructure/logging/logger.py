@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ...domain.models import FileResult
+from ...domain.models import FileItemResult
 from ..filesystem.operations import (
     append_text_file,
     create_directory,
@@ -85,11 +85,11 @@ class StructuredLogger:
         """记录调试日志"""
         self._write_log("DEBUG", message, data)
 
-    def log_file_result(self, result: FileResult) -> None:
-        """记录文件处理结果
+    def log_item_result(self, result: FileItemResult) -> None:
+        """记录item处理结果
 
         Args:
-            result: 文件处理结果
+            result: 文件item处理结果
         """
         data = {
             "file_path": str(result.file_info.path),
@@ -108,7 +108,7 @@ class StructuredLogger:
         if result.error_message:
             data["error_message"] = result.error_message
 
-        self._write_log("FILE_RESULT", f"处理文件: {result.file_info.path.name}", data)
+        self._write_log("ITEM_RESULT", f"处理文件: {result.file_info.path.name}", data)
 
     def log_task_start(self, scan_root: str) -> None:
         """记录任务开始"""
@@ -118,11 +118,11 @@ class StructuredLogger:
     def log_task_end(self, report: Any) -> None:
         """记录任务结束"""
         data = {
-            "total_files": report.total_files,
-            "success_files": report.success_files,
-            "error_files": report.error_files,
-            "skipped_files": report.skipped_files,
-            "warning_files": report.warning_files,
+            "total_items": report.total_items,
+            "success_items": report.success_items,
+            "error_items": report.error_items,
+            "skipped_items": report.skipped_items,
+            "warning_items": report.warning_items,
             "success_rate": report.success_rate,
             "duration_seconds": report.duration_seconds,
         }

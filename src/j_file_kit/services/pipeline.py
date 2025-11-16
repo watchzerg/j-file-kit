@@ -14,7 +14,7 @@ from ..domain.models import (
     DirectoryInfo,
     FileContext,
     FileInfo,
-    FileResult,
+    FileItemResult,
     ProcessorResult,
     ProcessorStatus,
     TaskReport,
@@ -23,7 +23,7 @@ from ..domain.processor import Analyzer, Executor, ProcessorChain, TaskProcessor
 from ..infrastructure.config.config import TaskConfig
 from ..infrastructure.logging.logger import StructuredLogger
 from ..infrastructure.persistence import (
-    FileResultRepository,
+    ItemResultRepository,
     OperationRepository,
     TaskRepository,
 )
@@ -41,7 +41,7 @@ class Pipeline:
         config: TaskConfig,
         task_name: str,
         operation_repository: OperationRepository,
-        file_result_repository: FileResultRepository,
+        item_result_repository: ItemResultRepository,
         task_id: int,
         task_repository: TaskRepository,
     ):
@@ -51,7 +51,7 @@ class Pipeline:
             config: 任务配置
             task_name: 任务名称
             operation_repository: 操作记录仓储实例
-            file_result_repository: 文件结果仓储实例
+            item_result_repository: Item结果仓储实例
             task_id: 任务ID
             task_repository: 任务仓储实例，finalizer 需要更新任务统计信息
         """
@@ -63,7 +63,7 @@ class Pipeline:
         self.processor_chain = ProcessorChain()
         self.logger = StructuredLogger(config.global_.log_dir, self.task_name)
         self.operation_repository = operation_repository
-        self.file_result_repository = file_result_repository
+        self.item_result_repository = item_result_repository
         self.task_id = task_id
         self.task_repository = task_repository
 
@@ -75,11 +75,11 @@ class Pipeline:
             task_name=self.task_name,
             start_time=datetime.now(),
             end_time=datetime.now(),
-            total_files=0,
-            success_files=0,
-            error_files=0,
-            skipped_files=0,
-            warning_files=0,
+            total_items=0,
+            success_items=0,
+            error_items=0,
+            skipped_items=0,
+            warning_items=0,
             total_duration_ms=0.0,
         )
 
@@ -159,7 +159,9 @@ class Pipeline:
             None,
         )
 
-    def _create_error_result(self, file_info: FileInfo, error: Exception) -> FileResult:
+    def _create_error_result(
+        self, file_info: FileInfo, error: Exception
+    ) -> FileItemResult:
         """创建错误结果
 
         Args:
@@ -169,7 +171,7 @@ class Pipeline:
         Returns:
             错误文件结果
         """
-        return FileResult(
+        return FileItemResult(
             file_info=file_info,
             context=self._create_initial_context(file_info),
             success=False,
@@ -213,7 +215,9 @@ class Pipeline:
                     {"error": result.message},
                 )
 
-    def _process_single_file(self, file_info: FileInfo, dry_run: bool) -> FileResult:
+    def _process_single_file(
+        self, file_info: FileInfo, dry_run: bool
+    ) -> FileItemResult:
         """处理单个文件
 
         Args:
@@ -238,7 +242,7 @@ class Pipeline:
         file_duration_ms = (time.time() - file_start_time) * 1000
 
         # 创建文件结果
-        return FileResult(
+        return FileItemResult(
             file_info=file_info,
             context=ctx,
             processor_results=processor_results,
@@ -275,8 +279,8 @@ class Pipeline:
         self.report.end_time = datetime.now()
 
         # 从数据库重新计算统计信息，确保准确性
-        # total_duration_ms 是所有文件处理的总耗时，不是任务总耗时
-        stats = self.file_result_repository.get_statistics()
+        # total_duration_ms 是所有item处理的总耗时，不是任务总耗时
+        stats = self.item_result_repository.get_statistics()
         self.report.update_from_stats(stats)
 
         # 记录任务结束
@@ -311,14 +315,14 @@ class Pipeline:
                     if isinstance(item, FileInfo):
                         file_result = self._process_single_file(item, dry_run)
                         # 保存到数据库
-                        file_result_id = self.file_result_repository.save_result(
+                        item_result_id = self.item_result_repository.save_result(
                             file_result
                         )
-                        # 设置 file_result_id 到 context（虽然 executor 已执行，但可用于后续查询）
-                        file_result.context.file_result_id = file_result_id
+                        # 设置 item_result_id 到 context（虽然 executor 已执行，但可用于后续查询）
+                        file_result.context.item_result_id = item_result_id
                         # 更新内存中的统计信息
                         self._update_statistics(file_result)
-                        self.logger.log_file_result(file_result)
+                        self.logger.log_item_result(file_result)
                     elif isinstance(item, DirectoryInfo):
                         # 处理目录（清理空文件夹）
                         self._process_single_directory(item, dry_run)
@@ -331,11 +335,11 @@ class Pipeline:
                     if isinstance(item, FileInfo):
                         error_result = self._create_error_result(item, e)
                         # 立即保存到数据库
-                        file_result_id = self.file_result_repository.save_result(
+                        item_result_id = self.item_result_repository.save_result(
                             error_result
                         )
-                        # 设置 file_result_id 到 context 中
-                        error_result.context.file_result_id = file_result_id
+                        # 设置 item_result_id 到 context 中
+                        error_result.context.item_result_id = item_result_id
                         # 更新内存中的统计信息
                         self._update_statistics(error_result)
 
@@ -347,23 +351,23 @@ class Pipeline:
             self.logger.error(f"管道执行失败: {str(e)}")
             raise
 
-    def _update_statistics(self, result: FileResult) -> None:
+    def _update_statistics(self, result: FileItemResult) -> None:
         """更新统计信息
 
         Args:
             result: 文件结果
         """
-        self.report.total_files += 1
+        self.report.total_items += 1
 
         if result.success:
             if result.was_skipped:
-                self.report.skipped_files += 1
+                self.report.skipped_items += 1
             elif result.has_warnings:
-                self.report.warning_files += 1
+                self.report.warning_items += 1
             else:
-                self.report.success_files += 1
+                self.report.success_items += 1
         else:
-            self.report.error_files += 1
+            self.report.error_items += 1
 
         self.report.total_duration_ms += result.total_duration_ms
 

@@ -207,7 +207,7 @@ class FileContext(ItemContext):
     action: FileAction | None = Field(None, description="决策的动作类型")
     should_delete: bool = Field(False, description="是否应该删除")
     file_size: int | None = Field(None, description="文件大小（字节）")
-    file_result_id: int | None = Field(None, description="文件结果ID")
+    item_result_id: int | None = Field(None, description="Item结果ID")
 
 
 class ProcessorResult(BaseModel):
@@ -264,11 +264,14 @@ class ProcessorResult(BaseModel):
         )
 
 
-class FileResult(BaseModel):
-    """单个文件的完整处理结果"""
+class ItemResult(BaseModel):
+    """Item 处理结果基类
 
-    file_info: FileInfo = Field(..., description="文件信息")
-    context: FileContext = Field(..., description="处理上下文")
+    所有 item 处理结果的通用基类，包含通用的处理状态和结果信息。
+    支持未来扩展不同类型的 item（文件、网页、爬虫数据等）。
+    """
+
+    context: ItemContext = Field(..., description="处理上下文")
     processor_results: list[ProcessorResult] = Field(
         default_factory=list, description="各处理器结果"
     )
@@ -299,32 +302,45 @@ class FileResult(BaseModel):
         )
 
 
+class FileItemResult(ItemResult):
+    """文件处理结果
+
+    文件类型的 item 处理结果，继承 ItemResult 并添加文件特定的字段。
+    """
+
+    file_info: FileInfo = Field(..., description="文件信息")
+    context: FileContext = Field(..., description="处理上下文")
+
+
 class TaskReport(BaseModel):
-    """任务汇总报告"""
+    """任务汇总报告
+
+    通用的任务执行报告，适用于所有类型的任务（文件处理、爬虫等）。
+    """
 
     task_name: str = Field(..., description="任务名称")
     start_time: datetime = Field(..., description="开始时间")
     end_time: datetime = Field(..., description="结束时间")
-    total_files: int = Field(0, description="总文件数")
-    success_files: int = Field(0, description="成功文件数")
-    error_files: int = Field(0, description="失败文件数")
-    skipped_files: int = Field(0, description="跳过文件数")
-    warning_files: int = Field(0, description="警告文件数")
+    total_items: int = Field(0, description="总item数")
+    success_items: int = Field(0, description="成功item数")
+    error_items: int = Field(0, description="失败item数")
+    skipped_items: int = Field(0, description="跳过item数")
+    warning_items: int = Field(0, description="警告item数")
     total_duration_ms: float = Field(0.0, description="总耗时（毫秒）")
 
     @property
     def success_rate(self) -> float:
         """成功率"""
-        if self.total_files == 0:
+        if self.total_items == 0:
             return 0.0
-        return self.success_files / self.total_files
+        return self.success_items / self.total_items
 
     @property
     def error_rate(self) -> float:
         """错误率"""
-        if self.total_files == 0:
+        if self.total_items == 0:
             return 0.0
-        return self.error_files / self.total_files
+        return self.error_items / self.total_items
 
     @property
     def duration_seconds(self) -> float:
@@ -335,14 +351,14 @@ class TaskReport(BaseModel):
         """从统计信息更新报告
 
         Args:
-            stats: 统计信息字典，包含 total_files, success_files, error_files,
-                   skipped_files, warning_files, total_duration_ms
+            stats: 统计信息字典，包含 total_items, success_items, error_items,
+                   skipped_items, warning_items, total_duration_ms
         """
-        self.total_files = stats.get("total_files", 0)
-        self.success_files = stats.get("success_files", 0)
-        self.error_files = stats.get("error_files", 0)
-        self.skipped_files = stats.get("skipped_files", 0)
-        self.warning_files = stats.get("warning_files", 0)
+        self.total_items = stats.get("total_items", 0)
+        self.success_items = stats.get("success_items", 0)
+        self.error_items = stats.get("error_items", 0)
+        self.skipped_items = stats.get("skipped_items", 0)
+        self.warning_items = stats.get("warning_items", 0)
         self.total_duration_ms = stats.get("total_duration_ms", 0.0)
 
 

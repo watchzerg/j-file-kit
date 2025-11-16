@@ -117,7 +117,7 @@ class UnifiedFileExecutor(Executor):
                     old_path,
                     unique_path,
                     log_metadata,
-                    file_result_id=ctx.file_result_id,
+                    item_result_id=ctx.item_result_id,
                 )
 
             description = ctx.action.description
@@ -151,7 +151,7 @@ class UnifiedFileExecutor(Executor):
                         "action": "delete",
                         "file_type": ctx.file_type.value if ctx.file_type else None,
                     },
-                    file_result_id=ctx.file_result_id,
+                    item_result_id=ctx.item_result_id,
                 )
 
             return ProcessorResult.success(f"文件删除成功: {ctx.file_info.path.name}")
@@ -218,7 +218,7 @@ class FileEmptyDirectoryExecutor(Executor):
                 self.operation_repository.log_delete_dir(
                     path,
                     {"action": "delete_empty_dir"},
-                    file_result_id=ctx.file_result_id,
+                    item_result_id=ctx.item_result_id,
                 )
 
             return ProcessorResult.success(f"空目录删除成功: {path.name}")

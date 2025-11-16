@@ -23,7 +23,7 @@ from ..domain.models import TaskReport, TaskType
 from ..domain.task import BaseTask
 from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
 from ..infrastructure.persistence import (
-    FileResultRepository,
+    ItemResultRepository,
     OperationRepository,
     TaskRepository,
 )
@@ -79,7 +79,7 @@ class VideoFileOrganizer(BaseTask):
         task_id: int,
         task_repository: TaskRepository,
         operation_repository: OperationRepository,
-        file_result_repository: FileResultRepository,
+        item_result_repository: ItemResultRepository,
     ) -> Pipeline:
         """创建处理管道
 
@@ -87,7 +87,7 @@ class VideoFileOrganizer(BaseTask):
             task_id: 任务ID
             task_repository: 任务仓储实例
             operation_repository: 操作记录仓储实例
-            file_result_repository: 文件结果仓储实例
+            item_result_repository: Item结果仓储实例
 
         Returns:
             配置好的处理管道
@@ -97,7 +97,7 @@ class VideoFileOrganizer(BaseTask):
             self.config,
             self.task_type.value,
             operation_repository,
-            file_result_repository,
+            item_result_repository,
             task_id,
             task_repository,
         )
@@ -141,7 +141,7 @@ class VideoFileOrganizer(BaseTask):
                 task_id=task_id,
                 task_repository=task_repository,
                 operation_repository=operation_repository,
-                file_result_repository=file_result_repository,
+                item_result_repository=item_result_repository,
             )
         )
 
@@ -152,7 +152,7 @@ class VideoFileOrganizer(BaseTask):
         task_id: int,
         task_repository: TaskRepository,
         operation_repository: OperationRepository,
-        file_result_repository: FileResultRepository,
+        item_result_repository: ItemResultRepository,
         dry_run: bool = False,
         cancelled_event: threading.Event | None = None,
     ) -> TaskReport:
@@ -162,7 +162,7 @@ class VideoFileOrganizer(BaseTask):
             task_id: 任务ID
             task_repository: 任务仓储实例
             operation_repository: 操作记录仓储实例
-            file_result_repository: 文件结果仓储实例
+            item_result_repository: Item结果仓储实例
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancelled_event: 取消事件，用于检查任务是否被取消
 
@@ -170,6 +170,6 @@ class VideoFileOrganizer(BaseTask):
             任务报告
         """
         pipeline = self.create_pipeline(
-            task_id, task_repository, operation_repository, file_result_repository
+            task_id, task_repository, operation_repository, item_result_repository
         )
         return pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)

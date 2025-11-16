@@ -1,7 +1,8 @@
-"""文件结果仓储
+"""Item结果仓储
 
-提供 file_results 表的 CRUD 操作。
-记录文件处理结果，支持流式写入。
+提供 item_results 表的 CRUD 操作。
+记录item处理结果，支持流式写入。
+使用JSON字段存储任务类型特定的数据，支持未来扩展不同类型的item。
 """
 
 from __future__ import annotations
@@ -11,27 +12,29 @@ import json
 import sqlite3
 from collections.abc import Iterator
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from ...domain.models import (  # type: ignore[import-untyped]
     FileContext,
     FileInfo,
-    FileResult,
+    FileItemResult,
     ProcessorResult,
 )
 from .connection import SQLiteConnectionManager
 
 
-class FileResultRepository:
-    """文件结果仓储
+class ItemResultRepository:
+    """Item结果仓储
 
-    提供文件结果的持久化操作，支持流式写入。
+    提供item结果的持久化操作，支持流式写入。
+    使用JSON字段存储任务类型特定的数据，当前支持FileItemResult。
     """
 
     def __init__(
         self, connection_manager: SQLiteConnectionManager, task_id: int
     ) -> None:
-        """初始化文件结果仓储
+        """初始化Item结果仓储
 
         Args:
             connection_manager: SQLite 连接管理器
@@ -58,33 +61,43 @@ class FileResultRepository:
                 conn.rollback()
                 raise
 
-    def save_result(self, result: FileResult) -> int:
-        """保存单个文件结果
+    def save_result(self, result: FileItemResult) -> int:
+        """保存单个item结果
 
         Args:
-            result: 文件结果
+            result: 文件item结果
 
         Returns:
             生成的结果ID
         """
         created_at = datetime.now()
+
+        # 构建item_data JSON：存储任务类型特定的数据
+        item_data = {
+            "path": str(result.file_info.path),
+            "name": result.file_info.name,
+            "type": result.context.file_type.value
+            if result.context.file_type
+            else None,
+            "serial_id": str(result.context.serial_id)
+            if result.context.serial_id
+            else None,
+        }
+
         with self._get_cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO file_results (
-                    task_id, file_path, file_name, file_type, serial_id,
+                INSERT INTO item_results (
+                    task_id, item_data,
                     success, has_errors, has_warnings, was_skipped,
                     error_message, total_duration_ms, processor_count,
                     context_data, processor_results, created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     self.task_id,
-                    str(result.file_info.path),
-                    result.file_info.name,
-                    result.context.file_type,
-                    str(result.context.serial_id) if result.context.serial_id else None,
+                    json.dumps(item_data, ensure_ascii=False),
                     result.success,
                     result.has_errors,
                     result.has_warnings,
@@ -112,20 +125,20 @@ class FileResultRepository:
         """获取任务统计信息
 
         Returns:
-            统计信息字典，包含 total_files, success_files, error_files,
-            skipped_files, warning_files, total_duration_ms
+            统计信息字典，包含 total_items, success_items, error_items,
+            skipped_items, warning_items, total_duration_ms
         """
         with self._get_cursor() as cursor:
             cursor.execute(
                 """
                 SELECT
-                    COUNT(*) as total_files,
-                    SUM(CASE WHEN success = 1 AND was_skipped = 0 AND has_warnings = 0 THEN 1 ELSE 0 END) as success_files,
-                    SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as error_files,
-                    SUM(CASE WHEN was_skipped = 1 THEN 1 ELSE 0 END) as skipped_files,
-                    SUM(CASE WHEN has_warnings = 1 AND was_skipped = 0 THEN 1 ELSE 0 END) as warning_files,
+                    COUNT(*) as total_items,
+                    SUM(CASE WHEN success = 1 AND was_skipped = 0 AND has_warnings = 0 THEN 1 ELSE 0 END) as success_items,
+                    SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as error_items,
+                    SUM(CASE WHEN was_skipped = 1 THEN 1 ELSE 0 END) as skipped_items,
+                    SUM(CASE WHEN has_warnings = 1 AND was_skipped = 0 THEN 1 ELSE 0 END) as warning_items,
                     SUM(total_duration_ms) as total_duration_ms
-                FROM file_results
+                FROM item_results
                 WHERE task_id = ?
                 """,
                 (self.task_id,),
@@ -133,20 +146,20 @@ class FileResultRepository:
             row = cursor.fetchone()
             if row is None:
                 return {
-                    "total_files": 0,
-                    "success_files": 0,
-                    "error_files": 0,
-                    "skipped_files": 0,
-                    "warning_files": 0,
+                    "total_items": 0,
+                    "success_items": 0,
+                    "error_items": 0,
+                    "skipped_items": 0,
+                    "warning_items": 0,
                     "total_duration_ms": 0.0,
                 }
 
             return {
-                "total_files": row["total_files"] or 0,
-                "success_files": row["success_files"] or 0,
-                "error_files": row["error_files"] or 0,
-                "skipped_files": row["skipped_files"] or 0,
-                "warning_files": row["warning_files"] or 0,
+                "total_items": row["total_items"] or 0,
+                "success_items": row["success_items"] or 0,
+                "error_items": row["error_items"] or 0,
+                "skipped_items": row["skipped_items"] or 0,
+                "warning_items": row["warning_items"] or 0,
                 "total_duration_ms": row["total_duration_ms"] or 0.0,
             }
 
@@ -154,21 +167,21 @@ class FileResultRepository:
         """获取任务的详细统计信息
 
         包含两个部分：
-        - by_file_type: 按文件类型统计（video, image, archive, misc）
-          每个文件类型包含：total, success, error, skipped, warning
+        - by_item_type: 按item类型统计（从item_data JSON中提取type字段）
+          每个类型包含：total, success, error, skipped, warning
         - performance_metrics: 性能指标
-          - total_duration_ms: 总耗时（所有文件处理耗时之和，单位：毫秒）
-          - avg_duration_ms: 平均处理时间（total_duration_ms / total_files，单位：毫秒）
+          - total_duration_ms: 总耗时（所有item处理耗时之和，单位：毫秒）
+          - avg_duration_ms: 平均处理时间（total_duration_ms / total_items，单位：毫秒）
           - min_duration_ms: 最短处理时间（MIN(total_duration_ms)，单位：毫秒）
           - max_duration_ms: 最长处理时间（MAX(total_duration_ms)，单位：毫秒）
-          - files_per_second: 处理速度（total_files / (total_duration_ms / 1000)，单位：文件/秒）
+          - items_per_second: 处理速度（total_items / (total_duration_ms / 1000)，单位：item/秒）
 
-        使用 SQL 聚合查询（SUM, AVG, MIN, MAX, COUNT）计算性能指标。
+        使用 SQL 聚合查询（SUM, AVG, MIN, MAX, COUNT）和JSON函数计算性能指标。
 
         Returns:
             详细统计字典，格式：
             {
-                "by_file_type": {
+                "by_item_type": {
                     "video": {"total": 10, "success": 8, "error": 1, "skipped": 1, "warning": 0},
                     "image": {"total": 5, "success": 5, "error": 0, "skipped": 0, "warning": 0},
                     ...
@@ -178,75 +191,76 @@ class FileResultRepository:
                     "avg_duration_ms": 123.456,
                     "min_duration_ms": 10.5,
                     "max_duration_ms": 500.0,
-                    "files_per_second": 0.81
+                    "items_per_second": 0.81
                 }
             }
         """
         with self._get_cursor() as cursor:
-            # 按文件类型统计
+            # 按item类型统计（从item_data JSON中提取type字段）
             cursor.execute(
                 """
                 SELECT
-                    file_type,
+                    json_extract(item_data, '$.type') as item_type,
                     COUNT(*) as total,
                     SUM(CASE WHEN success = 1 AND was_skipped = 0 AND has_warnings = 0 THEN 1 ELSE 0 END) as success,
                     SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as error,
                     SUM(CASE WHEN was_skipped = 1 THEN 1 ELSE 0 END) as skipped,
                     SUM(CASE WHEN has_warnings = 1 AND was_skipped = 0 THEN 1 ELSE 0 END) as warning
-                FROM file_results
-                WHERE task_id = ? AND file_type IS NOT NULL
-                GROUP BY file_type
+                FROM item_results
+                WHERE task_id = ? AND json_extract(item_data, '$.type') IS NOT NULL
+                GROUP BY json_extract(item_data, '$.type')
                 """,
                 (self.task_id,),
             )
             rows = cursor.fetchall()
 
-            by_file_type: dict[str, dict[str, int]] = {}
+            by_item_type: dict[str, dict[str, int]] = {}
             for row in rows:
-                file_type = row["file_type"]
-                by_file_type[file_type] = {
-                    "total": row["total"] or 0,
-                    "success": row["success"] or 0,
-                    "error": row["error"] or 0,
-                    "skipped": row["skipped"] or 0,
-                    "warning": row["warning"] or 0,
-                }
+                item_type = row["item_type"]
+                if item_type:
+                    by_item_type[item_type] = {
+                        "total": row["total"] or 0,
+                        "success": row["success"] or 0,
+                        "error": row["error"] or 0,
+                        "skipped": row["skipped"] or 0,
+                        "warning": row["warning"] or 0,
+                    }
 
             # 性能指标
             cursor.execute(
                 """
                 SELECT
-                    COUNT(*) as total_files,
+                    COUNT(*) as total_items,
                     SUM(total_duration_ms) as total_duration_ms,
                     AVG(total_duration_ms) as avg_duration_ms,
                     MIN(total_duration_ms) as min_duration_ms,
                     MAX(total_duration_ms) as max_duration_ms
-                FROM file_results
+                FROM item_results
                 WHERE task_id = ?
                 """,
                 (self.task_id,),
             )
             row = cursor.fetchone()
 
-            if row is None or row["total_files"] == 0:
+            if row is None or row["total_items"] == 0:
                 performance_metrics = {
                     "total_duration_ms": 0.0,
                     "avg_duration_ms": 0.0,
                     "min_duration_ms": 0.0,
                     "max_duration_ms": 0.0,
-                    "files_per_second": 0.0,
+                    "items_per_second": 0.0,
                 }
             else:
-                total_files = row["total_files"] or 0
+                total_items = row["total_items"] or 0
                 total_duration_ms = row["total_duration_ms"] or 0.0
                 avg_duration_ms = row["avg_duration_ms"] or 0.0
                 min_duration_ms = row["min_duration_ms"] or 0.0
                 max_duration_ms = row["max_duration_ms"] or 0.0
 
-                # 计算处理速度：total_files / (total_duration_ms / 1000)
+                # 计算处理速度：total_items / (total_duration_ms / 1000)
                 # 如果总耗时为0，则处理速度为0
-                files_per_second = (
-                    total_files / (total_duration_ms / 1000.0)
+                items_per_second = (
+                    total_items / (total_duration_ms / 1000.0)
                     if total_duration_ms > 0
                     else 0.0
                 )
@@ -256,22 +270,22 @@ class FileResultRepository:
                     "avg_duration_ms": avg_duration_ms,
                     "min_duration_ms": min_duration_ms,
                     "max_duration_ms": max_duration_ms,
-                    "files_per_second": files_per_second,
+                    "items_per_second": items_per_second,
                 }
 
             return {
-                "by_file_type": by_file_type,
+                "by_item_type": by_item_type,
                 "performance_metrics": performance_metrics,
             }
 
-    def _row_to_file_result(self, row: sqlite3.Row) -> FileResult:
-        """将数据库行转换为 FileResult 对象
+    def _row_to_item_result(self, row: sqlite3.Row) -> FileItemResult:
+        """将数据库行转换为 FileItemResult 对象
 
         Args:
             row: 数据库行
 
         Returns:
-            FileResult 对象
+            FileItemResult 对象
         """
         # 反序列化 FileContext
         context_data = json.loads(row["context_data"]) if row["context_data"] else {}
@@ -285,10 +299,19 @@ class FileResultRepository:
             ProcessorResult.model_validate(r) for r in processor_results_data
         ]
 
-        # 重建 FileInfo
-        file_info = FileInfo(path=row["file_path"], name=row["file_name"])
+        # 从item_data JSON中提取文件特定数据
+        item_data = json.loads(row["item_data"]) if row["item_data"] else {}
+        item_path = item_data.get("path", "")
+        if not item_path:
+            raise ValueError(f"item_data 中缺少 path 字段: {row['id']}")
+        path_obj = Path(item_path)
+        file_info = FileInfo(
+            path=path_obj,
+            name=item_data.get("name", path_obj.stem),
+            suffix=path_obj.suffix.lower(),
+        )
 
-        return FileResult(
+        return FileItemResult(
             file_info=file_info,
             context=context,
             processor_results=processor_results,

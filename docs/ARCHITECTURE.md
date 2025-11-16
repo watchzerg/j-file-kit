@@ -21,7 +21,10 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - 可独立测试
 
 **主要模块**:
-- `models.py`: 领域模型（ProcessingContext、TaskReport、SerialId等）
+- `models.py`: 领域模型（ItemResult、FileItemResult、TaskReport、SerialId等）
+  - `ItemResult`: Item处理结果基类，支持未来扩展不同类型的item（文件、爬虫数据等）
+  - `FileItemResult`: 文件类型的item处理结果，继承ItemResult
+  - `TaskReport`: 通用的任务执行报告，字段命名使用"item"术语
 - `processor.py`: Processor协议定义和ProcessorChain
 - `task.py`: BaseTask抽象基类
 - `processors/`: 处理器实现
@@ -67,8 +70,14 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
   - `operations.py`: 文件操作封装（move_file、delete_file、create_directory等）
   - `scanner.py`: 文件扫描操作（scan_directory_files）
 - `persistence/`: 持久化
-  - `db.py`: 数据库管理器（SQLite）
-  - `transaction_log.py`: 事务日志记录器
+  - `sqlite/`: SQLite数据库实现
+    - `connection.py`: 数据库连接管理和表结构定义
+    - `item_result_repository.py`: Item结果仓储（ItemResultRepository）
+    - `operation_repository.py`: 操作记录仓储
+    - `task_repository.py`: 任务仓储
+  - 数据库表结构采用JSON字段设计，完全通用化：
+    - `item_results` 表：使用 `item_data` JSON字段存储任务类型特定的数据（文件路径、名称、类型、番号等）
+    - `operations` 表：使用 `data` JSON字段存储操作相关数据（包括路径信息）
 - `config/`: 配置管理
   - `config.py`: 配置模型和加载器（YAML）
 - `logging/`: 日志
@@ -217,12 +226,12 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
    ↓
 5. services/scanner扫描文件
    ↓
-6. domain/processors/处理文件
-   ├── analyzers: 分析文件
+6. domain/processors/处理item（文件等）
+   ├── analyzers: 分析item
    ├── executors: 执行操作（使用infrastructure/filesystem）
    └── finalizers: 后处理
    ↓
-7. 生成报告并返回
+7. 生成报告并返回（TaskReport包含item统计信息）
 ```
 
 ## 扩展指南

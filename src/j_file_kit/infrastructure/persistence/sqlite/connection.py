@@ -54,16 +54,15 @@ class SQLiteConnectionManager:
                 """
             )
 
-            # 创建 file_results 表
+            # 创建 item_results 表
+            # item_data 字段使用 JSON 格式存储任务类型特定的数据（如文件路径、名称、类型、番号等）
+            # 支持未来扩展不同类型的 item（文件、爬虫数据等）
             cursor.execute(
                 """
-                CREATE TABLE IF NOT EXISTS file_results (
+                CREATE TABLE IF NOT EXISTS item_results (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     task_id INTEGER NOT NULL,
-                    file_path TEXT NOT NULL,
-                    file_name TEXT NOT NULL,
-                    file_type TEXT,
-                    serial_id TEXT,
+                    item_data TEXT,
                     success BOOLEAN NOT NULL,
                     has_errors BOOLEAN NOT NULL,
                     has_warnings BOOLEAN NOT NULL,
@@ -80,35 +79,35 @@ class SQLiteConnectionManager:
             )
 
             # 创建 operations 表
+            # data 字段使用 JSON 格式存储操作相关数据（包括路径信息等）
+            # 支持未来扩展不同类型的操作
             cursor.execute(
                 """
                 CREATE TABLE IF NOT EXISTS operations (
                     id TEXT PRIMARY KEY,
                     task_id INTEGER NOT NULL,
-                    file_result_id INTEGER,
+                    item_result_id INTEGER,
                     timestamp TEXT NOT NULL,
                     operation TEXT NOT NULL,
-                    source_path TEXT NOT NULL,
-                    target_path TEXT,
                     data TEXT,
                     FOREIGN KEY (task_id) REFERENCES tasks(task_id),
-                    FOREIGN KEY (file_result_id) REFERENCES file_results(id)
+                    FOREIGN KEY (item_result_id) REFERENCES item_results(id)
                 )
                 """
             )
 
             # 创建索引
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_file_results_task_id ON file_results(task_id)"
+                "CREATE INDEX IF NOT EXISTS idx_item_results_task_id ON item_results(task_id)"
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_file_results_success ON file_results(task_id, success)"
+                "CREATE INDEX IF NOT EXISTS idx_item_results_success ON item_results(task_id, success)"
             )
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_operations_task_id ON operations(task_id)"
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_operations_file_result_id ON operations(file_result_id)"
+                "CREATE INDEX IF NOT EXISTS idx_operations_item_result_id ON operations(item_result_id)"
             )
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_operations_timestamp ON operations(timestamp)"

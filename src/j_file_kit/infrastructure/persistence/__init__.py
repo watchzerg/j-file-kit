@@ -4,7 +4,7 @@
 """
 
 from .sqlite import (
-    FileResultRepository,
+    ItemResultRepository,
     OperationRepository,
     OperationType,
     SQLiteConnectionManager,
@@ -14,7 +14,7 @@ from .sqlite import (
 __all__ = [
     "SQLiteConnectionManager",
     "TaskRepository",
-    "FileResultRepository",
+    "ItemResultRepository",
     "OperationRepository",
     "OperationType",
 ]

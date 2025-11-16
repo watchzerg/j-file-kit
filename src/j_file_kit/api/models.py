@@ -38,7 +38,7 @@ class TaskStatusResponse(BaseModel):
     start_time: datetime = Field(..., description="开始时间")
     end_time: datetime | None = Field(None, description="结束时间")
     error_message: str | None = Field(None, description="错误消息")
-    total_files: int | None = Field(None, description="已处理文件数")
+    total_items: int | None = Field(None, description="已处理item数")
 
 
 class CancelTaskResponse(BaseModel):

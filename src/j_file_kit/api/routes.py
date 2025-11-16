@@ -132,9 +132,9 @@ async def get_task_status(
     app_state: AppState = request.state.app_state
     task_id_int = parse_task_id(task_id)
     task_model = app_state.task_manager.get_task(task_id_int)
-    total_files = None
+    total_items = None
     if task_model.report:
-        total_files = task_model.report.total_files
+        total_items = task_model.report.total_items
 
     return TaskStatusResponse(
         task_id=task_id_int,
@@ -143,7 +143,7 @@ async def get_task_status(
         start_time=task_model.start_time,
         end_time=task_model.end_time,
         error_message=task_model.error_message,
-        total_files=total_files,
+        total_items=total_items,
     )
 
 

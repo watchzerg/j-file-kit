@@ -148,7 +148,7 @@ pipeline.add_executor(pipeline.create_unified_executor())
 
 # 执行任务（预览模式）
 preview_report = pipeline.run(dry_run=True)
-print(f"预览完成: {preview_report.total_files} 个文件将被处理")
+print(f"预览完成: {preview_report.total_items} 个item将被处理")
 
 # 实际执行
 report = pipeline.run()

@@ -4,14 +4,14 @@
 """
 
 from .connection import SQLiteConnectionManager
-from .file_result_repository import FileResultRepository
+from .item_result_repository import ItemResultRepository
 from .operation_repository import OperationRepository, OperationType
 from .task_repository import TaskRepository
 
 __all__ = [
     "SQLiteConnectionManager",
     "TaskRepository",
-    "FileResultRepository",
+    "ItemResultRepository",
     "OperationRepository",
     "OperationType",
 ]
