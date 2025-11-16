@@ -8,13 +8,16 @@ from __future__ import annotations
 
 import threading
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
-from ..infrastructure.persistence import (
-    ItemResultRepository,
-    OperationRepository,
-    TaskRepository,
-)
 from .models import TaskType
+
+if TYPE_CHECKING:
+    from ..infrastructure.persistence import (
+        ItemResultRepository,
+        OperationRepository,
+        TaskRepository,
+    )
 
 
 class BaseTask(ABC):

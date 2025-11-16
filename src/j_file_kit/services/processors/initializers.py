@@ -2,6 +2,8 @@
 
 实现任务前置处理功能，如状态更新、配置验证、资源初始化等。
 初始化器在任务开始执行前调用，如果初始化失败，将阻止任务继续执行。
+
+这些处理器位于服务层，可以依赖infrastructure层。
 """
 
 from __future__ import annotations
@@ -11,12 +13,12 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ...models import ProcessorResult, TaskStatus
-from ...processors import Initializer
+from ...domain.models import ProcessorResult, TaskStatus
+from ...domain.processors import Initializer
 
 if TYPE_CHECKING:
-    from ....infrastructure.config.config import FileOrganizeConfig, TaskConfig
-    from ....infrastructure.persistence import TaskRepository
+    from ...infrastructure.config.config import FileOrganizeConfig, TaskConfig
+    from ...infrastructure.persistence import TaskRepository
 
 
 class FileTaskStatusInitializer(Initializer):
@@ -175,7 +177,7 @@ class FileResourceInitializer(Initializer):
         Returns:
             处理结果，成功或错误
         """
-        from ....infrastructure.filesystem.operations import (
+        from ...infrastructure.filesystem.operations import (
             create_directory,
             path_exists,
         )

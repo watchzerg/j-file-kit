@@ -12,7 +12,7 @@ from ..domain.models import TaskStatus, TaskType, TriggerType
 from ..domain.task import BaseTask
 from ..infrastructure.app_state import AppState
 from ..infrastructure.persistence import ItemResultRepository
-from ..tasks.video_organizer import VideoFileOrganizer
+from ..services.video_organizer import VideoFileOrganizer
 from .models import (
     CancelTaskResponse,
     StartTaskRequest,

@@ -2,6 +2,8 @@
 
 实现全局后处理功能，如清理空目录等。
 终结器在所有文件处理完成后执行。
+
+这些处理器位于服务层，可以依赖infrastructure层。
 """
 
 from __future__ import annotations
@@ -9,11 +11,11 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from ...models import ProcessorResult
-from ...processors import Finalizer
+from ...domain.models import ProcessorResult
+from ...domain.processors import Finalizer
 
 if TYPE_CHECKING:
-    from ....infrastructure.persistence import (
+    from ...infrastructure.persistence import (
         ItemResultRepository,
         OperationRepository,
         TaskRepository,

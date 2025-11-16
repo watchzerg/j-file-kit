@@ -28,13 +28,13 @@ from ..domain.processors import (
     ProcessorChain,
 )
 from ..infrastructure.config.config import TaskConfig
+from ..infrastructure.filesystem.scanner import scan_directory_items
 from ..infrastructure.logging.logger import StructuredLogger
 from ..infrastructure.persistence import (
     ItemResultRepository,
     OperationRepository,
     TaskRepository,
 )
-from .scanner import FileScanner
 
 
 class Pipeline:
@@ -68,7 +68,7 @@ class Pipeline:
         self.task_name = task_name
 
         # 初始化组件
-        self.scanner = FileScanner(config.global_.scan_roots)
+        self.scan_roots = config.global_.scan_roots
         self.processor_chain = ProcessorChain()
         self.logger = StructuredLogger(log_dir, self.task_name)
         self.operation_repository = operation_repository
@@ -149,7 +149,7 @@ class Pipeline:
         Returns:
             配置好的统一文件执行器
         """
-        from ..domain.file.processors.executors import UnifiedFileExecutor
+        from .processors.executors import UnifiedFileExecutor
 
         return UnifiedFileExecutor(self.operation_repository)
 
@@ -342,44 +342,54 @@ class Pipeline:
             self._start_task(dry_run)
 
             # 处理每个文件和目录（使用生成器模式，边扫描边处理）
-            for item in self.scanner.scan_items():
-                # 检查是否被取消
-                if cancelled_event and cancelled_event.is_set():
-                    self.logger.info("任务已被取消")
-                    break
+            for root_path in self.scan_roots:
+                for path, is_file in scan_directory_items(root_path):
+                    # 检查是否被取消
+                    if cancelled_event and cancelled_event.is_set():
+                        self.logger.info("任务已被取消")
+                        break
 
-                try:
-                    # 根据类型判断：文件或目录
-                    if isinstance(item, FileInfo):
-                        file_result = self._process_single_file(item, dry_run)
-                        # 保存到数据库
-                        item_result_id = self.item_result_repository.save_result(
-                            file_result
+                    try:
+                        # 根据类型判断：文件或目录
+                        if is_file:
+                            file_info = FileInfo.from_path(path)
+                            file_result = self._process_single_file(file_info, dry_run)
+                            # 保存到数据库
+                            item_result_id = self.item_result_repository.save_result(
+                                file_result
+                            )
+                            # 设置 item_result_id 到 context（虽然 executor 已执行，但可用于后续查询）
+                            file_result.context.item_result_id = item_result_id
+                            # 更新内存中的统计信息
+                            self._update_statistics(file_result)
+                            self.logger.log_item_result(file_result)
+                        else:
+                            # 处理目录（清理空文件夹）
+                            directory_info = DirectoryInfo.from_path(path)
+                            self._process_single_directory(directory_info, dry_run)
+                    except Exception as e:
+                        # 处理单个文件或目录时的异常
+                        error_msg = "分析失败" if dry_run else "处理失败"
+                        item_path = path
+                        self.logger.error(
+                            f"{error_msg}: {item_path}", {"error": str(e)}
                         )
-                        # 设置 item_result_id 到 context（虽然 executor 已执行，但可用于后续查询）
-                        file_result.context.item_result_id = item_result_id
-                        # 更新内存中的统计信息
-                        self._update_statistics(file_result)
-                        self.logger.log_item_result(file_result)
-                    elif isinstance(item, DirectoryInfo):
-                        # 处理目录（清理空文件夹）
-                        self._process_single_directory(item, dry_run)
-                except Exception as e:
-                    # 处理单个文件或目录时的异常
-                    error_msg = "分析失败" if dry_run else "处理失败"
-                    item_path = item.path if hasattr(item, "path") else str(item)
-                    self.logger.error(f"{error_msg}: {item_path}", {"error": str(e)})
-                    # 如果是文件，创建错误结果并保存
-                    if isinstance(item, FileInfo):
-                        error_result = self._create_error_result(item, e)
-                        # 立即保存到数据库
-                        item_result_id = self.item_result_repository.save_result(
-                            error_result
-                        )
-                        # 设置 item_result_id 到 context 中
-                        error_result.context.item_result_id = item_result_id
-                        # 更新内存中的统计信息
-                        self._update_statistics(error_result)
+                        # 如果是文件，创建错误结果并保存
+                        if is_file:
+                            file_info = FileInfo.from_path(path)
+                            error_result = self._create_error_result(file_info, e)
+                            # 立即保存到数据库
+                            item_result_id = self.item_result_repository.save_result(
+                                error_result
+                            )
+                            # 设置 item_result_id 到 context 中
+                            error_result.context.item_result_id = item_result_id
+                            # 更新内存中的统计信息
+                            self._update_statistics(error_result)
+
+                # 如果被取消，退出外层循环
+                if cancelled_event and cancelled_event.is_set():
+                    break
 
             self._finish_task(dry_run)
 

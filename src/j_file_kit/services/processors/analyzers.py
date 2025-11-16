@@ -2,6 +2,8 @@
 
 实现文件分析功能，如文件类型分类、番号提取、动作决策等。
 分析器只负责分析，不执行文件操作。
+
+这些处理器位于服务层，可以依赖infrastructure层。
 """
 
 from __future__ import annotations
@@ -9,10 +11,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ....utils.file_utils import generate_organized_dir, get_file_type
-from ....utils.filename_generation import generate_new_filename
-from ...models import FileAction, FileContext, FileType, ProcessorResult
-from ...processors import Analyzer
+from ...domain.models import FileAction, FileContext, FileType, ProcessorResult
+from ...domain.processors import Analyzer
+from ...utils.file_utils import generate_organized_dir, get_file_type
+from ...utils.filename_generation import generate_new_filename
 
 
 class FileClassifier(Analyzer):

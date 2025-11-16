@@ -2,6 +2,8 @@
 
 完整的视频文件整理任务实现。
 组合使用各种处理器实现文件分类、番号提取、文件移动等功能。
+
+这是用例实现，位于services层。
 """
 
 from __future__ import annotations
@@ -10,20 +12,6 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from ..domain.file.processors.analyzers import (
-    FileActionDecider,
-    FileClassifier,
-    FileSerialIdExtractor,
-    MiscFileDeleteAnalyzer,
-    MiscFileSizeAnalyzer,
-)
-from ..domain.file.processors.executors import FileEmptyDirectoryExecutor
-from ..domain.file.processors.finalizers import FileTaskStatisticsFinalizer
-from ..domain.file.processors.initializers import (
-    FileConfigValidatorInitializer,
-    FileResourceInitializer,
-    FileTaskStatusInitializer,
-)
 from ..domain.models import TaskType
 from ..domain.task import BaseTask
 from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
@@ -32,7 +20,21 @@ from ..infrastructure.persistence import (
     OperationRepository,
     TaskRepository,
 )
-from ..services.pipeline import Pipeline
+from .pipeline import Pipeline
+from .processors.analyzers import (
+    FileActionDecider,
+    FileClassifier,
+    FileSerialIdExtractor,
+    MiscFileDeleteAnalyzer,
+    MiscFileSizeAnalyzer,
+)
+from .processors.executors import FileEmptyDirectoryExecutor
+from .processors.finalizers import FileTaskStatisticsFinalizer
+from .processors.initializers import (
+    FileConfigValidatorInitializer,
+    FileResourceInitializer,
+    FileTaskStatusInitializer,
+)
 
 
 class VideoFileOrganizer(BaseTask):

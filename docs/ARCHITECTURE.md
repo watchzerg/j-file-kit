@@ -13,10 +13,9 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 **职责**:
 - 定义业务领域模型和核心概念
 - 定义处理器协议（Processor、Analyzer、Executor、Initializer、Finalizer）
-- 实现处理器具体逻辑（processors/）
 
 **特点**:
-- 无外部依赖（仅标准库和Pydantic）
+- 无外部依赖（仅标准库和Pydantic，类型注解使用TYPE_CHECKING隔离）
 - 纯业务逻辑，不涉及I/O操作
 - 可独立测试
 
@@ -32,16 +31,11 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
   - `contexts.py`: 上下文对象（ItemContext、FileContext）
   - `enums.py`: 枚举类型（TaskStatus、TaskType、FileType、ProcessorStatus等）
   - `exceptions.py`: 领域异常
-- `processors/`: 处理器实现
-  - `base.py`: 处理器基类定义
-  - `item.py`: Item级别处理器（Analyzer、Executor）
-  - `task.py`: 任务级别处理器（Initializer、Finalizer）
+- `processors/`: 处理器协议定义
+  - `base.py`: 处理器基类定义（ItemProcessor、TaskProcessor）
+  - `item.py`: Item级别处理器协议（Analyzer、Executor）
+  - `task.py`: 任务级别处理器协议（Initializer、Finalizer）
   - `chain.py`: ProcessorChain处理器链
-  - `file/`: 文件处理相关处理器
-    - `analyzers.py`: 分析器（FileClassifier、SerialIdExtractor等）
-    - `executors.py`: 执行器（UnifiedFileExecutor）
-    - `initializers.py`: 初始化器（用于任务前置处理，如状态更新、配置验证等）
-    - `finalizers.py`: 终结器（用于全局后处理，如统计信息更新等）
 - `task.py`: BaseTask抽象基类
 
 ### 2. Services Layer (服务层)
@@ -52,16 +46,22 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - 编排领域对象，实现业务用例
 - 协调多个领域对象的交互
 - 管理业务流程
+- 包含具体处理器实现和用例实现
 
 **特点**:
 - 依赖domain层
-- 不直接依赖infrastructure层（通过依赖注入）
-- 包含业务编排逻辑
+- 可以依赖infrastructure层（服务层可以访问基础设施）
+- 包含业务编排逻辑和具体实现
 
 **主要模块**:
 - `pipeline.py`: 管道协调器，协调文件扫描、处理器链执行和结果汇总
 - `task_manager.py`: 任务管理器，管理任务的执行、状态跟踪和取消
-- `scanner.py`: 文件扫描服务，提供文件目录扫描功能
+- `video_organizer.py`: 视频文件整理任务用例实现
+- `processors/`: 具体处理器实现
+  - `analyzers.py`: 分析器实现（FileClassifier、FileSerialIdExtractor、FileActionDecider等）
+  - `executors.py`: 执行器实现（UnifiedFileExecutor、FileEmptyDirectoryExecutor）
+  - `initializers.py`: 初始化器实现（FileTaskStatusInitializer、FileConfigValidatorInitializer等）
+  - `finalizers.py`: 终结器实现（FileTaskStatisticsFinalizer）
 
 ### 3. Infrastructure Layer (基础设施层)
 
@@ -132,22 +132,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - `config_routes.py`: 配置管理API路由
 - `models.py`: API请求/响应模型
 
-### 5. Application Layer (应用层)
-
-**位置**: `src/j_file_kit/tasks/`
-
-**职责**:
-- 实现具体的业务用例
-- 组合使用processors实现完整任务流程
-
-**特点**:
-- 依赖domain层、services层和infrastructure层
-- 负责组装和编排
-
-**主要模块**:
-- `video_organizer.py`: 视频文件整理任务实现
-
-### 6. Utils (工具层)
+### 5. Utils (工具层)
 
 **位置**: `src/j_file_kit/utils/`
 
@@ -172,15 +157,10 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
        │
        ↓
 ┌─────────────┐
-│   tasks/    │  应用层（用例实现）
+│  services/  │  服务层（业务编排+用例实现+处理器实现）
 └──────┬──────┘
        │
        ├──→ ┌─────────────┐
-       │    │  services/  │  服务层（业务编排）
-       │    └──────┬──────┘
-       │           │
-       │           ↓
-       │    ┌─────────────┐
        │    │   domain/   │  领域层（业务模型+协议）
        │    └──────┬──────┘
        │           │
@@ -188,19 +168,17 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
                    │           │
                    ↓           ↓
          ┌─────────────────┐  ┌─────────────┐
-         │ domain/         │  │infrastructure│  基础设施层
-         │ processors/     │  └─────────────┘
-         └─────────────────┘
+         │   utils/         │  │infrastructure│  基础设施层
+         └─────────────────┘  └─────────────┘
 ```
 
 ### 依赖规则
 
-1. **domain/**: 无外部依赖（仅标准库、Pydantic）
-2. **domain/processors/**: 依赖domain/，可依赖utils/，通过依赖注入使用infrastructure/
-3. **services/**: 依赖domain/，不直接依赖infrastructure/（通过依赖注入）
-4. **tasks/**: 依赖domain/、domain/processors/、services/、infrastructure/
-5. **api/**: 依赖services/、tasks/、infrastructure/
-6. **utils/**: 无业务逻辑，纯工具函数
+1. **domain/**: 无外部依赖（仅标准库、Pydantic，类型注解使用TYPE_CHECKING隔离）
+2. **services/**: 依赖domain/、utils/、infrastructure/
+3. **api/**: 依赖services/、infrastructure/
+4. **utils/**: 无业务逻辑，纯工具函数
+5. **infrastructure/**: 依赖domain/（实现持久化等）
 
 ## 设计原则
 
@@ -323,9 +301,9 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
    ├── initializers: 前置处理（状态更新、配置验证、资源初始化）
    │   - 在非预览模式下执行，失败会阻止任务继续
    ↓
-5. services/scanner扫描文件
+5. infrastructure/filesystem/scanner扫描文件
    ↓
-6. domain/processors/处理item（文件等）
+6. services/processors/处理item（文件等）
    ├── analyzers: 分析item（分类、提取番号等）
    ├── executors: 执行操作（使用infrastructure/filesystem）
    │   - 使用 move_file_with_conflict_resolution() 处理路径冲突
@@ -353,15 +331,15 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 
 #### Item 级别处理器（Analyzer/Executor）
 
-1. 在 `domain/processors/` 中创建新的处理器类
-2. 继承相应的基类（Analyzer 或 Executor）
+1. 在 `services/processors/` 中创建新的处理器类
+2. 继承 `domain/processors/` 中相应的基类（Analyzer 或 Executor）
 3. 实现 `process()` 方法
 4. 在任务中组合使用
 
 #### 任务级别处理器（Initializer/Finalizer）
 
-1. 在 `domain/processors/` 中创建新的处理器类
-2. 继承相应的基类（Initializer 或 Finalizer）
+1. 在 `services/processors/` 中创建新的处理器类
+2. 继承 `domain/processors/` 中相应的基类（Initializer 或 Finalizer）
 3. 实现 `initialize()` 或 `finalize()` 方法
 4. 在任务的 `create_pipeline()` 方法中添加：
    - Initializer: 使用 `pipeline.add_initializer()`
@@ -370,10 +348,11 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 **注意**:
 - Initializer 在任务开始执行前运行，失败会阻止任务继续执行
 - Finalizer 在任务完成后运行，失败不应影响任务完成状态
+- 处理器位于services层，可以依赖infrastructure层
 
 ### 添加新的任务类型
 
-1. 在 `tasks/` 中创建新的任务类
+1. 在 `services/` 中创建新的任务类
 2. 继承 `domain/task.py` 中的 `BaseTask`
 3. 实现 `run()` 方法
 4. 在 `api/routes.py` 中注册任务实例获取逻辑

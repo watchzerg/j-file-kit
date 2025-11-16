@@ -2,6 +2,8 @@
 
 实现文件操作功能，如文件移动、删除等。
 执行器根据FileContext中的action决策执行相应的文件操作。
+
+这些处理器位于服务层，可以依赖infrastructure层。
 """
 
 from __future__ import annotations
@@ -9,7 +11,9 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ....infrastructure.filesystem.operations import (
+from ...domain.models import FileAction, FileContext, ProcessorResult
+from ...domain.processors import Executor
+from ...infrastructure.filesystem.operations import (
     create_directory,
     delete_directory,
     delete_file,
@@ -18,8 +22,6 @@ from ....infrastructure.filesystem.operations import (
     move_file_with_conflict_resolution,
     path_exists,
 )
-from ...models import FileAction, FileContext, ProcessorResult
-from ...processors import Executor
 
 
 class UnifiedFileExecutor(Executor):
