@@ -9,6 +9,7 @@ from __future__ import annotations
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 
 from ..domain.models import (
     DirectoryInfo,
@@ -46,6 +47,7 @@ class Pipeline:
         self,
         config: TaskConfig,
         task_name: str,
+        log_dir: Path,
         operation_repository: OperationRepository,
         item_result_repository: ItemResultRepository,
         task_id: int,
@@ -56,6 +58,7 @@ class Pipeline:
         Args:
             config: 任务配置
             task_name: 任务名称
+            log_dir: 日志目录
             operation_repository: 操作记录仓储实例
             item_result_repository: Item结果仓储实例
             task_id: 任务ID
@@ -67,7 +70,7 @@ class Pipeline:
         # 初始化组件
         self.scanner = FileScanner(config.global_.scan_roots)
         self.processor_chain = ProcessorChain()
-        self.logger = StructuredLogger(config.global_.log_dir, self.task_name)
+        self.logger = StructuredLogger(log_dir, self.task_name)
         self.operation_repository = operation_repository
         self.item_result_repository = item_result_repository
         self.task_id = task_id

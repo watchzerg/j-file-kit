@@ -17,6 +17,7 @@ Core Principles
 - Use `snake_case` for files/dirs; descriptive names like `is_active`, `has_permission`.
 - RORO (Receive an Object, Return an Object). Do not let raw dicts leak across layers.
 - Code must be typed end-to-end (`from __future__ import annotations`), avoiding `Any`.
+- Prefer EAFP (Easier to Ask for Forgiveness than Permission) over LBYL (Look Before You Leap): try operations and handle exceptions rather than checking preconditions first.
   
 Data & Validation
 - Pydantic v2: `model_validate`, `model_dump(exclude_none=True)`.

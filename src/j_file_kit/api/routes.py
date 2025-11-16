@@ -59,7 +59,7 @@ def get_task_instance(task_type: str, app_state: AppState) -> BaseTask:
         HTTPException: 如果任务不存在
     """
     if task_type == TaskType.VIDEO_ORGANIZER.value:
-        return VideoFileOrganizer(app_state.config)
+        return VideoFileOrganizer(app_state.config, app_state.log_dir)
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

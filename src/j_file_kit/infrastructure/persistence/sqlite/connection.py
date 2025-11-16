@@ -113,6 +113,30 @@ class SQLiteConnectionManager:
                 "CREATE INDEX IF NOT EXISTS idx_operations_timestamp ON operations(timestamp)"
             )
 
+            # 创建 global_config 表（单行表，存储全局配置）
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS global_config (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    scan_roots TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+
+            # 创建 task_configs 表（存储任务配置）
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS task_configs (
+                    name TEXT PRIMARY KEY,
+                    type TEXT NOT NULL,
+                    enabled BOOLEAN NOT NULL,
+                    config TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+
             self._conn.commit()
 
     def get_connection(self) -> sqlite3.Connection:

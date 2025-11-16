@@ -41,13 +41,15 @@ class VideoFileOrganizer(BaseTask):
     这是一个完整的文件整理任务实现，展示了如何组合使用各种处理器。
     """
 
-    def __init__(self, config: TaskConfig):
+    def __init__(self, config: TaskConfig, log_dir: Path):
         """初始化视频文件整理任务
 
         Args:
             config: 任务配置
+            log_dir: 日志目录
         """
         self.config = config
+        self.log_dir = log_dir
         self.task_config = self.config.get_task("video_file_organizer")
 
         if not self.task_config:
@@ -82,6 +84,7 @@ class VideoFileOrganizer(BaseTask):
     def create_pipeline(
         self,
         task_id: int,
+        log_dir: Path,
         task_repository: TaskRepository,
         operation_repository: OperationRepository,
         item_result_repository: ItemResultRepository,
@@ -90,6 +93,7 @@ class VideoFileOrganizer(BaseTask):
 
         Args:
             task_id: 任务ID
+            log_dir: 日志目录
             task_repository: 任务仓储实例
             operation_repository: 操作记录仓储实例
             item_result_repository: Item结果仓储实例
@@ -101,6 +105,7 @@ class VideoFileOrganizer(BaseTask):
         pipeline = Pipeline(
             self.config,
             self.task_type.value,
+            log_dir,
             operation_repository,
             item_result_repository,
             task_id,
@@ -197,6 +202,10 @@ class VideoFileOrganizer(BaseTask):
             任务报告
         """
         pipeline = self.create_pipeline(
-            task_id, task_repository, operation_repository, item_result_repository
+            task_id,
+            self.log_dir,
+            task_repository,
+            operation_repository,
+            item_result_repository,
         )
         return pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)

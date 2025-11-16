@@ -10,15 +10,9 @@ import os
 from pathlib import Path
 
 from ..services.task_manager import TaskManager
-from .config.config import (
-    TaskConfig,
-    create_default_config,
-    ensure_directories_exist,
-    load_config,
-    save_config,
-)
-from .filesystem.operations import path_exists
-from .persistence import SQLiteConnectionManager, TaskRepository
+from .config.config import TaskConfig, load_config_from_db
+from .filesystem.operations import create_directory
+from .persistence import ConfigRepository, SQLiteConnectionManager, TaskRepository
 
 
 class AppState:
@@ -30,24 +24,29 @@ class AppState:
     def __init__(self) -> None:
         """初始化应用状态
 
-        从环境变量 J_FILE_KIT_CONFIG 或默认路径 configs/task_config.yaml 加载配置。
+        从环境变量 J_FILE_KIT_BASE_DIR 读取基础目录（默认 `.app-data`），
+        确定固定路径，创建配置仓储，从数据库加载配置。
         """
-        config_path = Path(os.getenv("J_FILE_KIT_CONFIG", "configs/task_config.yaml"))
+        # 从环境变量读取基础目录
+        self.base_dir = Path(os.getenv("J_FILE_KIT_BASE_DIR", ".app-data"))
 
-        # 如果配置文件不存在，创建默认配置文件
-        if not path_exists(config_path):
-            default_config = create_default_config()
-            save_config(default_config, config_path)
+        # 确定固定路径
+        self.db_path = self.base_dir / "sqlite" / "j_file_kit.db"
+        self.log_dir = self.base_dir / "logs"
+        self.report_dir = self.base_dir / "reports"
 
-        # 加载配置
-        self.config: TaskConfig = load_config(config_path)
-        self._config_path = config_path
-
-        # 确保所有目录存在
-        ensure_directories_exist(self.config)
+        # 创建必要的目录
+        create_directory(self.base_dir / "sqlite", parents=True, exist_ok=True)
+        create_directory(self.log_dir, parents=True, exist_ok=True)
 
         # 创建 SQLite 连接管理器（表结构在 __init__ 中自动创建）
-        self.sqlite_conn = SQLiteConnectionManager(self.config.global_.db_path)
+        self.sqlite_conn = SQLiteConnectionManager(self.db_path)
+
+        # 创建配置仓储（会自动初始化默认配置）
+        self.config_repository = ConfigRepository(self.sqlite_conn)
+
+        # 从数据库加载配置
+        self.config: TaskConfig = load_config_from_db(self.sqlite_conn)
 
         # 创建任务仓储
         self.task_repository = TaskRepository(self.sqlite_conn)
@@ -58,13 +57,11 @@ class AppState:
         )
 
     def reload_config(self) -> None:
-        """重新加载配置文件并更新内存中的配置
+        """重新加载配置并更新内存中的配置
+
+        从数据库重新加载配置。
 
         Raises:
-            FileNotFoundError: 配置文件不存在
-            yaml.YAMLError: YAML 解析错误
-            ValidationError: 配置验证失败
-            OSError: 目录创建失败
+            ValueError: 如果配置加载失败
         """
-        self.config = load_config(self._config_path)
-        ensure_directories_exist(self.config)
+        self.config = load_config_from_db(self.sqlite_conn)

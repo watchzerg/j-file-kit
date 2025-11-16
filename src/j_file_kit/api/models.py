@@ -68,8 +68,6 @@ class UpdateGlobalConfigRequest(BaseModel):
     """更新全局配置请求（部分更新）"""
 
     scan_roots: list[str] | None = Field(None, description="扫描根目录列表")
-    log_dir: str | None = Field(None, description="日志目录")
-    report_dir: str | None = Field(None, description="报告目录")
 
 
 class UpdateTaskConfigRequest(BaseModel):

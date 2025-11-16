@@ -12,13 +12,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request, status
 
 from ..infrastructure.app_state import AppState
-from ..infrastructure.config.config import (
-    GlobalConfig,
-    TaskConfig,
-    TaskDefinition,
-    ensure_directories_exist,
-    save_config,
-)
+from ..infrastructure.config.config import GlobalConfig, TaskConfig, TaskDefinition
+from ..infrastructure.filesystem.operations import is_directory, path_exists
 from .models import (
     UpdateConfigRequest,
     UpdateConfigResponse,
@@ -44,10 +39,6 @@ def _merge_global_config(
     update_dict: dict[str, Any] = {}
     if update.scan_roots is not None:
         update_dict["scan_roots"] = [Path(p) for p in update.scan_roots]
-    if update.log_dir is not None:
-        update_dict["log_dir"] = Path(update.log_dir)
-    if update.report_dir is not None:
-        update_dict["report_dir"] = Path(update.report_dir)
 
     if not update_dict:
         return current
@@ -158,6 +149,33 @@ def _merge_all_task_configs(
     return merged_tasks
 
 
+def _validate_paths(scan_roots: list[Path]) -> None:
+    """验证路径配置
+
+    Args:
+        scan_roots: 扫描根目录列表
+
+    Raises:
+        HTTPException: 如果路径验证失败
+    """
+    errors: list[str] = []
+    for scan_root in scan_roots:
+        if not path_exists(scan_root):
+            errors.append(f"扫描根目录不存在: {scan_root}")
+        elif not is_directory(scan_root):
+            errors.append(f"扫描根目录不是目录: {scan_root}")
+
+    if errors:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "INVALID_PATHS",
+                "message": "路径验证失败",
+                "errors": errors,
+            },
+        )
+
+
 def _validate_and_save_config(
     merged_global: GlobalConfig,
     merged_tasks: list[TaskDefinition],
@@ -173,32 +191,33 @@ def _validate_and_save_config(
     Raises:
         HTTPException: 如果配置验证或保存失败
     """
+    # 验证配置模型
     try:
-        new_config = TaskConfig.model_validate(
-            {"global": merged_global, "tasks": merged_tasks}
-        )
+        TaskConfig.model_validate({"global": merged_global, "tasks": merged_tasks})
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "INVALID_CONFIG", "message": f"配置验证失败: {str(e)}"},
         ) from e
 
-    try:
-        ensure_directories_exist(new_config)
-    except OSError as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"code": "DIRECTORY_CREATION_FAILED", "message": str(e)},
-        ) from e
+    # 验证路径（HTTP 更新时验证）
+    _validate_paths(merged_global.scan_roots)
 
+    # 更新数据库
     try:
-        save_config(new_config, app_state._config_path)
+        app_state.config_repository.update_global_config(merged_global)
+        for task in merged_tasks:
+            app_state.config_repository.update_task(task)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"code": "CONFIG_SAVE_FAILED", "message": f"保存配置失败: {str(e)}"},
+            detail={
+                "code": "CONFIG_UPDATE_FAILED",
+                "message": f"更新配置失败: {str(e)}",
+            },
         ) from e
 
+    # 重新加载配置到内存
     try:
         app_state.reload_config()
     except Exception as e:
@@ -209,6 +228,20 @@ def _validate_and_save_config(
                 "message": f"重新加载配置失败: {str(e)}",
             },
         ) from e
+
+
+@router.get("", response_model=TaskConfig)
+async def get_config(request: Request) -> TaskConfig:
+    """获取当前配置
+
+    Args:
+        request: HTTP请求对象
+
+    Returns:
+        当前配置对象
+    """
+    app_state: AppState = request.state.app_state
+    return app_state.config
 
 
 @router.patch("", response_model=UpdateConfigResponse)
@@ -226,7 +259,7 @@ async def update_config(
         更新配置响应
 
     Raises:
-        HTTPException: 如果配置更新失败或目录创建失败
+        HTTPException: 如果配置更新失败或路径验证失败
     """
     app_state: AppState = request.state.app_state
     current_config = app_state.config
