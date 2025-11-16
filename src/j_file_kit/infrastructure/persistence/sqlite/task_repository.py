@@ -73,7 +73,6 @@ class TaskRepository:
             if row["end_time"]
             else None,
             error_message=row["error_message"],
-            report=None,
         )
 
     def create_task(

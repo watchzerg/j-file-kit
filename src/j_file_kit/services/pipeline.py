@@ -331,15 +331,12 @@ class Pipeline:
 
     def run(
         self, dry_run: bool = False, cancelled_event: threading.Event | None = None
-    ) -> TaskReport:
+    ) -> None:
         """运行管道
 
         Args:
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancelled_event: 取消事件，用于检查任务是否被取消
-
-        Returns:
-            任务报告
         """
         try:
             self._start_task(dry_run)
@@ -385,7 +382,6 @@ class Pipeline:
                         self._update_statistics(error_result)
 
             self._finish_task(dry_run)
-            return self.report
 
         except Exception as e:
             # 管道级别的异常

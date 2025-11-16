@@ -8,9 +8,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from ..domain.models import TaskType, TriggerType
+from ..domain.models import TaskStatus, TaskType, TriggerType
 from ..domain.task import BaseTask
 from ..infrastructure.app_state import AppState
+from ..infrastructure.persistence import ItemResultRepository
 from ..tasks.video_organizer import VideoFileOrganizer
 from .models import (
     CancelTaskResponse,
@@ -132,9 +133,16 @@ async def get_task_status(
     app_state: AppState = request.state.app_state
     task_id_int = parse_task_id(task_id)
     task_model = app_state.task_manager.get_task(task_id_int)
+
+    # 从数据库查询 total_items
     total_items = None
-    if task_model.report:
-        total_items = task_model.report.total_items
+    if task_model.status in (TaskStatus.COMPLETED, TaskStatus.RUNNING):
+        item_result_repository = ItemResultRepository(
+            app_state.sqlite_conn, task_id_int
+        )
+        stats = item_result_repository.get_statistics()
+        # 如果统计信息存在，返回 total_items（0 也是有效值）
+        total_items = stats.get("total_items")
 
     return TaskStatusResponse(
         task_id=task_id_int,

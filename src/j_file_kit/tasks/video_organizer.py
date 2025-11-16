@@ -24,7 +24,7 @@ from ..domain.file.processors.initializers import (
     FileResourceInitializer,
     FileTaskStatusInitializer,
 )
-from ..domain.models import TaskReport, TaskType
+from ..domain.models import TaskType
 from ..domain.task import BaseTask
 from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
 from ..infrastructure.persistence import (
@@ -187,7 +187,7 @@ class VideoFileOrganizer(BaseTask):
         item_result_repository: ItemResultRepository,
         dry_run: bool = False,
         cancelled_event: threading.Event | None = None,
-    ) -> TaskReport:
+    ) -> None:
         """运行文件整理
 
         Args:
@@ -197,9 +197,6 @@ class VideoFileOrganizer(BaseTask):
             item_result_repository: Item结果仓储实例
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancelled_event: 取消事件，用于检查任务是否被取消
-
-        Returns:
-            任务报告
         """
         pipeline = self.create_pipeline(
             task_id,
@@ -208,4 +205,4 @@ class VideoFileOrganizer(BaseTask):
             operation_repository,
             item_result_repository,
         )
-        return pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)
+        pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)

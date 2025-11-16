@@ -77,4 +77,3 @@ class Task(BaseModel):
     start_time: datetime = Field(..., description="开始时间")
     end_time: datetime | None = Field(None, description="结束时间")
     error_message: str | None = Field(None, description="错误消息")
-    report: TaskReport | None = Field(None, description="任务报告")

@@ -14,7 +14,7 @@ from ..infrastructure.persistence import (
     OperationRepository,
     TaskRepository,
 )
-from .models import TaskReport, TaskType
+from .models import TaskType
 
 
 class BaseTask(ABC):
@@ -38,7 +38,7 @@ class BaseTask(ABC):
         item_result_repository: ItemResultRepository,
         dry_run: bool = False,
         cancelled_event: threading.Event | None = None,
-    ) -> TaskReport:
+    ) -> None:
         """运行任务
 
         Args:
@@ -48,9 +48,6 @@ class BaseTask(ABC):
             item_result_repository: Item结果仓储实例
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancelled_event: 取消事件，用于检查任务是否被取消
-
-        Returns:
-            任务报告
 
         Raises:
             Exception: 任务执行过程中的任何异常
