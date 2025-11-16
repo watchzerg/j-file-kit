@@ -7,11 +7,11 @@
 from __future__ import annotations
 
 import random
+import re
 import string
 from pathlib import Path
 
 from ..domain.models import FileType, SerialId
-from ..infrastructure.filesystem.operations import path_exists
 
 
 def get_file_type(
@@ -40,47 +40,44 @@ def get_file_type(
         return FileType.MISC
 
 
-def resolve_unique_path(target_path: Path) -> Path:
-    """处理路径冲突，生成唯一路径
+def generate_alternative_path(target_path: Path) -> Path:
+    """生成候选路径，用于处理文件移动时的路径冲突
 
-    如果目标路径已存在，自动追加 `-a3b2` 后缀（连字符加4个小写字母或数字），
-    重试直到找到不冲突的路径。
+    如果输入路径已带 `-jfk-xxxx` 后缀，会提取原始路径并基于原始路径生成新候选路径。
+    始终基于原始路径生成，避免路径越来越长。
+    这是纯函数，不执行任何 I/O 操作。
 
     Args:
-        target_path: 目标路径
+        target_path: 目标路径（可能已带 `-jfk-xxxx` 后缀）
 
     Returns:
-        唯一路径
+        新的候选路径，格式为 `{原始stem}-jfk-{4个随机字符}{suffix}`
 
     Examples:
-        >>> resolve_unique_path(Path("test.mp4"))
-        Path("test.mp4")  # 如果文件不存在
+        >>> generate_alternative_path(Path("test.mp4"))
+        Path("test-jfk-a3b2.mp4")
 
-        >>> resolve_unique_path(Path("test.mp4"))
-        Path("test-a3b2.mp4")  # 如果 test.mp4 已存在
+        >>> generate_alternative_path(Path("test-jfk-a3b2.mp4"))
+        Path("test-jfk-xyz1.mp4")  # 基于原始路径 test.mp4 生成
     """
-    if not path_exists(target_path):
-        return target_path
-
-    # 分离文件名和扩展名
+    # 提取 stem 和 suffix
     stem = target_path.stem
     suffix = target_path.suffix
     parent = target_path.parent
 
-    # 生成唯一路径
-    max_attempts = 100  # 防止无限循环
+    # 尝试提取原始路径（如果已带 -jfk-xxxx 后缀）
+    pattern = r"^(.+)-jfk-[a-z0-9]{4}$"
+    match = re.match(pattern, stem)
+    if match:
+        original_stem = match.group(1)
+    else:
+        original_stem = stem
+
+    # 生成新的候选路径
     chars = string.ascii_lowercase + string.digits
-    for _ in range(max_attempts):
-        # 生成4个小写字母或数字（非密码学场景，使用标准随机数生成器即可）
-        random_suffix = "-" + "".join(random.choices(chars, k=4))  # noqa: S311
-        new_name = f"{stem}{random_suffix}{suffix}"
-        new_path = parent / new_name
-
-        if not path_exists(new_path):
-            return new_path
-
-    # 如果100次尝试后仍有冲突，抛出异常
-    raise RuntimeError(f"无法为 {target_path} 生成唯一路径，已尝试 {max_attempts} 次")
+    random_suffix = "-jfk-" + "".join(random.choices(chars, k=4))  # noqa: S311
+    new_name = f"{original_stem}{random_suffix}{suffix}"
+    return parent / new_name
 
 
 def generate_organized_dir(organized_dir: Path, serial_id: SerialId) -> Path:

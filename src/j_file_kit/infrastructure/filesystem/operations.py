@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ...utils.file_utils import generate_alternative_path
+
 
 def move_file(source: Path, target: Path) -> None:
     """移动文件
@@ -175,3 +177,57 @@ def delete_directory(path: Path, missing_ok: bool = True) -> None:
     except FileNotFoundError:
         if not missing_ok:
             raise
+
+
+def move_file_with_conflict_resolution(source: Path, target: Path) -> Path:
+    """移动文件，自动处理路径冲突
+
+    先尝试直接移动，如果目标路径已存在，自动生成唯一路径并重试。
+    生成的路径使用 `-jfk-xxxx` 格式后缀。
+    最多重试10次，超过10次抛出异常。
+    始终基于原始目标路径生成候选路径，避免路径越来越长。
+
+    Args:
+        source: 源文件路径
+        target: 目标文件路径（可能已存在）
+
+    Returns:
+        实际移动到的目标路径（可能与输入的target不同）
+
+    Raises:
+        FileNotFoundError: 源文件不存在
+        RuntimeError: 重试10次后仍无法找到唯一路径
+        OSError: 其他移动操作失败
+
+    Examples:
+        >>> move_file_with_conflict_resolution(Path("a.mp4"), Path("b.mp4"))
+        Path("b.mp4")  # 如果 b.mp4 不存在
+
+        >>> move_file_with_conflict_resolution(Path("a.mp4"), Path("b.mp4"))
+        Path("b-jfk-a3b2.mp4")  # 如果 b.mp4 已存在
+    """
+    # 保存原始目标路径，确保始终基于原始路径生成候选路径
+    original_target = target
+    current_target = target
+    max_attempts = 10
+
+    for attempt in range(max_attempts):
+        try:
+            move_file(source, current_target)
+            return current_target
+        except FileExistsError:
+            # 目标路径已存在，生成新的候选路径
+            if attempt == max_attempts - 1:
+                raise RuntimeError(
+                    f"无法为 {original_target} 生成唯一路径，已尝试 {max_attempts} 次"
+                ) from None
+            # 始终基于原始路径生成候选路径
+            current_target = generate_alternative_path(original_target)
+        except OSError:
+            # 其他错误（如源文件不存在）直接抛出
+            raise
+
+    # 理论上不会执行到这里（循环内会返回或抛出异常），但为了满足类型检查
+    raise RuntimeError(
+        f"无法为 {original_target} 生成唯一路径，已尝试 {max_attempts} 次"
+    )

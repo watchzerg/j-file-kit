@@ -15,10 +15,9 @@ from ....infrastructure.filesystem.operations import (
     delete_file,
     is_directory,
     is_directory_empty,
-    move_file,
+    move_file_with_conflict_resolution,
     path_exists,
 )
-from ....utils.file_utils import resolve_unique_path
 from ...models import FileAction, FileContext, ProcessorResult
 from ...processors import Executor
 
@@ -90,17 +89,14 @@ class UnifiedFileExecutor(Executor):
             # 创建目录（如果不存在）
             create_directory(ctx.target_path.parent, parents=True, exist_ok=True)
 
-            # 处理重名冲突
-            unique_path = resolve_unique_path(ctx.target_path)
-
             # 保存原始路径（用于事务日志）
             old_path = ctx.file_info.path
 
-            # 执行移动
-            move_file(old_path, unique_path)
+            # 执行移动（自动处理路径冲突）
+            final_path = move_file_with_conflict_resolution(old_path, ctx.target_path)
 
             # 更新上下文
-            ctx.file_info = ctx.file_info.model_copy(update={"path": unique_path})
+            ctx.file_info = ctx.file_info.model_copy(update={"path": final_path})
 
             # 构建日志元数据
             log_metadata = {
@@ -115,15 +111,15 @@ class UnifiedFileExecutor(Executor):
             if self.operation_repository:
                 self.operation_repository.log_move(
                     old_path,
-                    unique_path,
+                    final_path,
                     log_metadata,
                     item_result_id=ctx.item_result_id,
                 )
 
             description = ctx.action.description
             return ProcessorResult.success(
-                f"移动到{description}: {unique_path}",
-                {"old_path": str(old_path), "new_path": str(unique_path)},
+                f"移动到{description}: {final_path}",
+                {"old_path": str(old_path), "new_path": str(final_path)},
             )
 
         except Exception as e:

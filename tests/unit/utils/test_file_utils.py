@@ -1,6 +1,6 @@
 """文件工具函数单元测试
 
-测试 extract_serial_id, resolve_unique_path 等工具函数。
+测试 extract_serial_id, generate_alternative_path 等工具函数。
 """
 
 from pathlib import Path
@@ -10,85 +10,80 @@ import pytest
 
 from j_file_kit.domain.models import FileType, SerialId
 from j_file_kit.utils.file_utils import (
+    generate_alternative_path,
     generate_organized_dir,
     get_file_type,
-    resolve_unique_path,
 )
 
 
 @pytest.mark.unit
-class TestResolveUniquePath:
-    """测试路径冲突处理函数"""
+class TestGenerateAlternativePath:
+    """测试路径生成函数"""
 
-    def test_resolve_unique_path_no_conflict(self, tmp_path):
-        """测试无冲突情况"""
-        target_path = tmp_path / "test.mp4"
-        result = resolve_unique_path(target_path)
-        assert result == target_path
-
-    def test_resolve_unique_path_with_conflict(self, tmp_path):
-        """测试有冲突情况"""
-        # 创建冲突文件
-        conflict_file = tmp_path / "test.mp4"
-        conflict_file.write_text("test")
-
-        target_path = tmp_path / "test.mp4"
+    def test_generate_alternative_path_basic(self):
+        """测试基本路径生成"""
+        target_path = Path("test.mp4")
 
         # Mock random.choices 返回固定的随机字符串
         with patch(
             "j_file_kit.utils.file_utils.random.choices",
             return_value=["a", "b", "c", "d"],
         ):
-            result = resolve_unique_path(target_path)
-            expected = tmp_path / "test-abcd.mp4"
+            result = generate_alternative_path(target_path)
+            expected = Path("test-jfk-abcd.mp4")
             assert result == expected
 
-    def test_resolve_unique_path_multiple_conflicts(self, tmp_path):
-        """测试多次冲突情况"""
-        # 创建目标文件，触发冲突
-        target_path = tmp_path / "test.mp4"
-        target_path.write_text("test")
+    def test_generate_alternative_path_with_existing_suffix(self):
+        """测试已带后缀的路径（应提取原始路径）"""
+        target_path = Path("test-jfk-a3b2.mp4")
 
-        # 创建多个冲突文件，使用新格式（-{4个随机字符}）
-        conflict_suffixes = ["abcd", "efgh", "ijkl", "mnop", "qrst"]
-        for suffix in conflict_suffixes:
-            conflict_file = tmp_path / f"test-{suffix}.mp4"
-            conflict_file.write_text("test")
-
-        # Mock random.choices 模拟多次冲突，最后返回一个不冲突的值
+        # Mock random.choices 返回固定的随机字符串
         with patch(
             "j_file_kit.utils.file_utils.random.choices",
-            side_effect=[
-                ["a", "b", "c", "d"],  # 冲突：test-abcd.mp4 已存在
-                ["e", "f", "g", "h"],  # 冲突：test-efgh.mp4 已存在
-                ["i", "j", "k", "l"],  # 冲突：test-ijkl.mp4 已存在
-                ["m", "n", "o", "p"],  # 冲突：test-mnop.mp4 已存在
-                ["q", "r", "s", "t"],  # 冲突：test-qrst.mp4 已存在
-                ["u", "v", "w", "x"],  # 不冲突：test-uvwx.mp4 不存在
-            ],
+            return_value=["x", "y", "z", "1"],
         ):
-            result = resolve_unique_path(target_path)
-            expected = tmp_path / "test-uvwx.mp4"
+            result = generate_alternative_path(target_path)
+            # 应该基于原始路径 test.mp4 生成，而不是 test-jfk-a3b2.mp4
+            expected = Path("test-jfk-xyz1.mp4")
             assert result == expected
 
-    def test_resolve_unique_path_max_attempts(self, tmp_path):
-        """测试最大重试次数"""
-        # 创建目标文件，触发冲突
-        target_path = tmp_path / "test.mp4"
-        target_path.write_text("test")
+    def test_generate_alternative_path_extract_original(self):
+        """测试路径提取逻辑"""
+        # 测试能正确从 test-jfk-xxxx.mp4 提取出 test.mp4
+        target_path = Path("test-jfk-a3b2.mp4")
 
-        # 创建冲突文件
-        conflict_file = tmp_path / "test-abcd.mp4"
-        conflict_file.write_text("test")
-
-        # Mock random.choices 始终返回相同的值（导致冲突），模拟100次尝试都失败
         with patch(
             "j_file_kit.utils.file_utils.random.choices",
-            side_effect=[["a", "b", "c", "d"]] * 100,
+            return_value=["x", "y", "z", "1"],
         ):
-            # 应该抛出异常，因为100次尝试都失败
-            with pytest.raises(RuntimeError, match="无法为.*生成唯一路径"):
-                resolve_unique_path(target_path)
+            result = generate_alternative_path(target_path)
+            # 验证生成的是 test-jfk-xyz1.mp4，而不是 test-jfk-a3b2-jfk-xyz1.mp4
+            assert result == Path("test-jfk-xyz1.mp4")
+            # 确保不会产生越来越长的路径
+            assert "-jfk-" not in result.stem.replace("-jfk-xyz1", "")
+
+    def test_generate_alternative_path_no_suffix(self):
+        """测试不带后缀的路径（正常生成）"""
+        target_path = Path("test.mp4")
+
+        with patch(
+            "j_file_kit.utils.file_utils.random.choices",
+            return_value=["1", "2", "3", "4"],
+        ):
+            result = generate_alternative_path(target_path)
+            assert result == Path("test-jfk-1234.mp4")
+
+    def test_generate_alternative_path_with_path(self):
+        """测试带完整路径的情况"""
+        target_path = Path("/some/dir/test.mp4")
+
+        with patch(
+            "j_file_kit.utils.file_utils.random.choices",
+            return_value=["a", "b", "c", "d"],
+        ):
+            result = generate_alternative_path(target_path)
+            assert result == Path("/some/dir/test-jfk-abcd.mp4")
+            assert result.parent == target_path.parent
 
 
 @pytest.mark.unit
