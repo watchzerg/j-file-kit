@@ -12,13 +12,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from ..domain.models import (
+from ..infrastructure.app_state import AppState
+from ..models import (
     TaskAlreadyRunningError,
     TaskCancelledError,
     TaskError,
     TaskNotFoundError,
 )
-from ..infrastructure.app_state import AppState
 from .config_routes import router as config_router
 from .routes import router
 

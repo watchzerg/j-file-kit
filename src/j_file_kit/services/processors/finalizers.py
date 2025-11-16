@@ -11,8 +11,8 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from ...domain.models import ProcessorResult
-from ...domain.processors import Finalizer
+from ...interfaces.processors import Finalizer
+from ...models import ProcessorResult
 
 if TYPE_CHECKING:
     from ...infrastructure.persistence import (

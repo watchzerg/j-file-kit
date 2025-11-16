@@ -11,8 +11,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ...domain.models import FileAction, FileContext, ProcessorResult
-from ...domain.processors import Executor
 from ...infrastructure.filesystem.operations import (
     create_directory,
     delete_directory,
@@ -22,6 +20,8 @@ from ...infrastructure.filesystem.operations import (
     move_file_with_conflict_resolution,
     path_exists,
 )
+from ...interfaces.processors import Executor
+from ...models import FileAction, FileContext, ProcessorResult
 
 
 class UnifiedFileExecutor(Executor):

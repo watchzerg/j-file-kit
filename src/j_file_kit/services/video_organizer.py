@@ -12,14 +12,14 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from ..domain.models import TaskType
-from ..domain.task import BaseTask
 from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
 from ..infrastructure.persistence import (
     ItemResultRepository,
     OperationRepository,
     TaskRepository,
 )
+from ..interfaces.task import BaseTask
+from ..models import TaskType
 from .pipeline import Pipeline
 from .processors.analyzers import (
     FileActionDecider,

@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ...domain.models import FileItemResult
+from ...models import FileItemResult
 from ..filesystem.operations import (
     append_text_file,
     create_directory,

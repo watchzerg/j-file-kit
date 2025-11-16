@@ -2,43 +2,58 @@
 
 ## 概述
 
-j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，将代码分为领域层、服务层、基础设施层和接口层。
+j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，将代码分为数据模型层、接口层、服务层、基础设施层和API层。
 
 ## 架构分层
 
-### 1. Domain Layer (领域层)
+### 1. Models Layer (数据模型层)
 
-**位置**: `src/j_file_kit/domain/`
+**位置**: `src/j_file_kit/models/`
 
 **职责**:
 - 定义业务领域模型和核心概念
-- 定义处理器协议（Processor、Analyzer、Executor、Initializer、Finalizer）
+- 定义数据结构和状态模型
 
 **特点**:
-- 无外部依赖（仅标准库和Pydantic，类型注解使用TYPE_CHECKING隔离）
-- 纯业务逻辑，不涉及I/O操作
+- 无外部依赖（仅标准库和Pydantic）
+- 纯数据模型，不涉及I/O操作
 - 可独立测试
 
 **主要模块**:
-- `models/`: 领域模型包
-  - `results.py`: 处理结果模型（ItemResult、FileItemResult、ProcessorResult）
-    - `ItemResult`: Item处理结果基类，支持未来扩展不同类型的item（文件、爬虫数据等）
-    - `FileItemResult`: 文件类型的item处理结果，继承ItemResult
-  - `task.py`: 任务模型（Task、TaskReport）
-    - `Task`: 任务实例模型，存储在数据库中
-    - `TaskReport`: 任务执行报告，仅用于内部日志记录，不作为返回值
-  - `value_objects.py`: 值对象（SerialId、FileInfo、DirectoryInfo）
-  - `contexts.py`: 上下文对象（ItemContext、FileContext）
-  - `enums.py`: 枚举类型（TaskStatus、TaskType、FileType、ProcessorStatus等）
-  - `exceptions.py`: 领域异常
+- `results.py`: 处理结果模型（ItemResult、FileItemResult、ProcessorResult）
+  - `ItemResult`: Item处理结果基类，支持未来扩展不同类型的item（文件、爬虫数据等）
+  - `FileItemResult`: 文件类型的item处理结果，继承ItemResult
+- `task.py`: 任务模型（Task、TaskReport）
+  - `Task`: 任务实例模型，存储在数据库中
+  - `TaskReport`: 任务执行报告，仅用于内部日志记录，不作为返回值
+- `value_objects.py`: 值对象（SerialId、FileInfo、DirectoryInfo）
+- `contexts.py`: 上下文对象（ItemContext、FileContext）
+- `enums.py`: 枚举类型（TaskStatus、TaskType、FileType、ProcessorStatus等）
+- `exceptions.py`: 领域异常
+
+### 2. Interfaces Layer (接口层)
+
+**位置**: `src/j_file_kit/interfaces/`
+
+**职责**:
+- 定义所有协议和抽象接口
+- 定义处理器协议（Processor、Analyzer、Executor、Initializer、Finalizer）
+- 定义任务协议（BaseTask）
+
+**特点**:
+- 依赖models层（使用数据模型）
+- 使用TYPE_CHECKING隔离infrastructure依赖
+- 只包含协议定义，不包含具体实现
+
+**主要模块**:
 - `processors/`: 处理器协议定义
   - `base.py`: 处理器基类定义（ItemProcessor、TaskProcessor）
   - `item.py`: Item级别处理器协议（Analyzer、Executor）
   - `task.py`: 任务级别处理器协议（Initializer、Finalizer）
   - `chain.py`: ProcessorChain处理器链
-- `task.py`: BaseTask抽象基类
+- `task.py`: BaseTask抽象基类协议
 
-### 2. Services Layer (服务层)
+### 3. Services Layer (服务层)
 
 **位置**: `src/j_file_kit/services/`
 
@@ -49,7 +64,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - 包含具体处理器实现和用例实现
 
 **特点**:
-- 依赖domain层
+- 依赖models层和interfaces层
 - 可以依赖infrastructure层（服务层可以访问基础设施）
 - 包含业务编排逻辑和具体实现
 
@@ -63,7 +78,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
   - `initializers.py`: 初始化器实现（FileTaskStatusInitializer、FileConfigValidatorInitializer等）
   - `finalizers.py`: 终结器实现（FileTaskStatisticsFinalizer）
 
-### 3. Infrastructure Layer (基础设施层)
+### 4. Infrastructure Layer (基础设施层)
 
 **位置**: `src/j_file_kit/infrastructure/`
 
@@ -74,7 +89,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - 应用状态管理
 
 **特点**:
-- 依赖domain层（实现持久化等）
+- 依赖models层（实现持久化等）
 - 可替换实现（如文件系统操作可替换为云存储）
 
 **主要模块**:
@@ -113,7 +128,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
   - 从环境变量 `J_FILE_KIT_BASE_DIR` 读取基础目录（默认 `.app-data`）
   - 固定目录结构：`{base_dir}/sqlite/j_file_kit.db`、`{base_dir}/logs/`、`{base_dir}/reports/`
 
-### 4. API Layer (接口层)
+### 5. API Layer (HTTP接口层)
 
 **位置**: `src/j_file_kit/api/`
 
@@ -123,7 +138,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - 异常处理
 
 **特点**:
-- 依赖services层和infrastructure层
+- 依赖services层、interfaces层和infrastructure层
 - 使用FastAPI框架
 
 **主要模块**:
@@ -132,7 +147,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - `config_routes.py`: 配置管理API路由
 - `models.py`: API请求/响应模型
 
-### 5. Utils (工具层)
+### 6. Utils (工具层)
 
 **位置**: `src/j_file_kit/utils/`
 
@@ -155,30 +170,34 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 │     API     │  HTTP接口层
 └──────┬──────┘
        │
-       ↓
-┌─────────────┐
-│  services/  │  服务层（业务编排+用例实现+处理器实现）
-└──────┬──────┘
-       │
        ├──→ ┌─────────────┐
-       │    │   domain/   │  领域层（业务模型+协议）
+       │    │  services/  │  服务层（业务编排+用例实现+处理器实现）
        │    └──────┬──────┘
        │           │
-       └───────────┼───────────┐
-                   │           │
-                   ↓           ↓
-         ┌─────────────────┐  ┌─────────────┐
-         │   utils/         │  │infrastructure│  基础设施层
-         └─────────────────┘  └─────────────┘
+       │           ├──→ ┌──────────────┐
+       │           │    │  interfaces/ │  接口层（协议定义）
+       │           │    └──────┬──────┘
+       │           │           │
+       │           └───────────┼───────────┐
+       │                       │           │
+       │                       ↓           ↓
+       │              ┌──────────────┐  ┌─────────────┐
+       │              │    models/   │  │infrastructure│  基础设施层
+       │              └──────────────┘  └─────────────┘
+       │
+       └──→ ┌─────────────┐
+            │   utils/    │  工具层
+            └─────────────┘
 ```
 
 ### 依赖规则
 
-1. **domain/**: 无外部依赖（仅标准库、Pydantic，类型注解使用TYPE_CHECKING隔离）
-2. **services/**: 依赖domain/、utils/、infrastructure/
-3. **api/**: 依赖services/、infrastructure/
-4. **utils/**: 无业务逻辑，纯工具函数
-5. **infrastructure/**: 依赖domain/（实现持久化等）
+1. **models/**: 无外部依赖（仅标准库、Pydantic）
+2. **interfaces/**: 依赖models/（使用数据模型），使用TYPE_CHECKING隔离infrastructure依赖
+3. **services/**: 依赖models/、interfaces/、utils/、infrastructure/
+4. **api/**: 依赖services/、interfaces/、infrastructure/
+5. **utils/**: 依赖models/（使用数据模型），无业务逻辑，纯工具函数
+6. **infrastructure/**: 依赖models/（实现持久化等）
 
 ## 设计原则
 
@@ -186,8 +205,8 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 每个模块、类、函数都有明确的单一职责。
 
 ### 2. 依赖倒置原则
-- 领域层定义抽象，基础设施层实现具体细节
-- 服务层依赖领域抽象，不依赖具体实现
+- 接口层定义抽象，基础设施层和服务层实现具体细节
+- 服务层依赖接口抽象，不依赖具体实现
 
 ### 3. 分层隔离
 - 各层之间通过明确的接口交互
@@ -332,14 +351,14 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 #### Item 级别处理器（Analyzer/Executor）
 
 1. 在 `services/processors/` 中创建新的处理器类
-2. 继承 `domain/processors/` 中相应的基类（Analyzer 或 Executor）
+2. 继承 `interfaces/processors/` 中相应的基类（Analyzer 或 Executor）
 3. 实现 `process()` 方法
 4. 在任务中组合使用
 
 #### 任务级别处理器（Initializer/Finalizer）
 
 1. 在 `services/processors/` 中创建新的处理器类
-2. 继承 `domain/processors/` 中相应的基类（Initializer 或 Finalizer）
+2. 继承 `interfaces/processors/` 中相应的基类（Initializer 或 Finalizer）
 3. 实现 `initialize()` 或 `finalize()` 方法
 4. 在任务的 `create_pipeline()` 方法中添加：
    - Initializer: 使用 `pipeline.add_initializer()`
@@ -353,7 +372,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 ### 添加新的任务类型
 
 1. 在 `services/` 中创建新的任务类
-2. 继承 `domain/task.py` 中的 `BaseTask`
+2. 继承 `interfaces/task.py` 中的 `BaseTask`
 3. 实现 `run()` 方法
 4. 在 `api/routes.py` 中注册任务实例获取逻辑
 

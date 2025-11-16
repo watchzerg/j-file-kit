@@ -13,8 +13,8 @@ import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ...domain.models import ProcessorResult, TaskStatus
-from ...domain.processors import Initializer
+from ...interfaces.processors import Initializer
+from ...models import ProcessorResult, TaskStatus
 
 if TYPE_CHECKING:
     from ...infrastructure.config.config import FileOrganizeConfig, TaskConfig

@@ -11,22 +11,6 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from ..domain.models import (
-    DirectoryInfo,
-    FileContext,
-    FileInfo,
-    FileItemResult,
-    ProcessorResult,
-    ProcessorStatus,
-    TaskReport,
-)
-from ..domain.processors import (
-    Analyzer,
-    Executor,
-    Finalizer,
-    Initializer,
-    ProcessorChain,
-)
 from ..infrastructure.config.config import TaskConfig
 from ..infrastructure.filesystem.scanner import scan_directory_items
 from ..infrastructure.logging.logger import StructuredLogger
@@ -34,6 +18,22 @@ from ..infrastructure.persistence import (
     ItemResultRepository,
     OperationRepository,
     TaskRepository,
+)
+from ..interfaces.processors import (
+    Analyzer,
+    Executor,
+    Finalizer,
+    Initializer,
+    ProcessorChain,
+)
+from ..models import (
+    DirectoryInfo,
+    FileContext,
+    FileInfo,
+    FileItemResult,
+    ProcessorResult,
+    ProcessorStatus,
+    TaskReport,
 )
 
 

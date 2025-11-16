@@ -1,4 +1,4 @@
-"""任务基类
+"""任务基类协议
 
 定义任务的抽象接口。
 所有具体任务实现必须继承此类并实现run方法。
@@ -10,7 +10,7 @@ import threading
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 
-from .models import TaskType
+from ..models import TaskType
 
 if TYPE_CHECKING:
     from ..infrastructure.persistence import (
@@ -21,9 +21,9 @@ if TYPE_CHECKING:
 
 
 class BaseTask(ABC):
-    """任务基类
+    """任务基类协议
 
-    所有任务必须继承此类并实现 run 方法。
+    定义任务的抽象接口，所有任务实现必须继承此类并实现run方法。
     """
 
     @property

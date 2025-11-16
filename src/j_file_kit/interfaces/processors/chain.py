@@ -6,7 +6,7 @@
 
 from __future__ import annotations
 
-from ..models import ItemContext, ProcessorResult, ProcessorStatus
+from ...models import ItemContext, ProcessorResult, ProcessorStatus
 from .item import Analyzer, Executor
 from .task import Finalizer, Initializer
 

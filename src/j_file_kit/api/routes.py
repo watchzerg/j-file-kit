@@ -8,10 +8,10 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from ..domain.models import TaskStatus, TaskType, TriggerType
-from ..domain.task import BaseTask
 from ..infrastructure.app_state import AppState
 from ..infrastructure.persistence import ItemResultRepository
+from ..interfaces.task import BaseTask
+from ..models import TaskStatus, TaskType, TriggerType
 from ..services.video_organizer import VideoFileOrganizer
 from .models import (
     CancelTaskResponse,

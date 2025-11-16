@@ -11,7 +11,7 @@ import re
 import string
 from pathlib import Path
 
-from ..domain.models import FileType, SerialId
+from ..models import FileType, SerialId
 
 
 def get_file_type(
@@ -93,7 +93,7 @@ def generate_organized_dir(organized_dir: Path, serial_id: SerialId) -> Path:
         目录路径（不含文件名）
 
     Examples:
-        >>> from j_file_kit.domain.models import SerialId
+        >>> from j_file_kit.models import SerialId
         >>> generate_organized_dir(Path("/organized"), SerialId(prefix="ABCD", number="123"))
         Path("/organized/A/AB/ABCD")
 

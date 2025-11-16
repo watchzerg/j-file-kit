@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from ..models import ItemContext, ProcessorResult
+from ...models import ItemContext, ProcessorResult
 
 
 class ItemProcessor(ABC):

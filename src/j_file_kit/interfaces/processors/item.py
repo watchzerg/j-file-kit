@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from ..models import ItemContext, ProcessorResult
+from ...models import ItemContext, ProcessorResult
 from .base import ItemProcessor
 
 

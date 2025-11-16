@@ -25,7 +25,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from j_file_kit.domain.models import SerialId
+from j_file_kit.models import SerialId
 
 from .regex_patterns import DEFAULT_SERIAL_PATTERN, extract_serial_id
 

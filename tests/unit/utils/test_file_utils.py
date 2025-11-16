@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from j_file_kit.domain.models import FileType, SerialId
+from j_file_kit.models import FileType, SerialId
 from j_file_kit.utils.file_utils import (
     generate_alternative_path,
     generate_organized_dir,

@@ -11,7 +11,14 @@ import threading
 from datetime import datetime
 from typing import cast
 
-from ..domain.models import (
+from ..infrastructure.persistence import (
+    ItemResultRepository,
+    OperationRepository,
+    SQLiteConnectionManager,
+    TaskRepository,
+)
+from ..interfaces.task import BaseTask
+from ..models import (
     Task,
     TaskAlreadyRunningError,
     TaskCancelledError,
@@ -19,13 +26,6 @@ from ..domain.models import (
     TaskStatus,
     TaskType,
     TriggerType,
-)
-from ..domain.task import BaseTask
-from ..infrastructure.persistence import (
-    ItemResultRepository,
-    OperationRepository,
-    SQLiteConnectionManager,
-    TaskRepository,
 )
 
 logger = logging.getLogger(__name__)

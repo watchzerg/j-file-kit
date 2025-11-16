@@ -5,7 +5,7 @@
 
 import pytest
 
-from j_file_kit.domain.models import SerialId
+from j_file_kit.models import SerialId
 
 
 @pytest.mark.unit

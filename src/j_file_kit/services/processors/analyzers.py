@@ -11,8 +11,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from ...domain.models import FileAction, FileContext, FileType, ProcessorResult
-from ...domain.processors import Analyzer
+from ...interfaces.processors import Analyzer
+from ...models import FileAction, FileContext, FileType, ProcessorResult
 from ...utils.file_utils import generate_organized_dir, get_file_type
 from ...utils.filename_generation import generate_new_filename
 

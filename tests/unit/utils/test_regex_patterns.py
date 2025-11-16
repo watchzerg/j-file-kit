@@ -23,7 +23,7 @@
 
 import pytest
 
-from j_file_kit.domain.models import SerialId
+from j_file_kit.models import SerialId
 from j_file_kit.utils.regex_patterns import DEFAULT_SERIAL_PATTERN, extract_serial_id
 
 

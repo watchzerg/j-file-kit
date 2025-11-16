@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import re
 
-from j_file_kit.domain.models import SerialId
+from j_file_kit.models import SerialId
 
 # 默认番号提取正则表达式模式
 DEFAULT_SERIAL_PATTERN = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"

@@ -12,7 +12,7 @@ from collections.abc import Iterator
 from datetime import datetime
 from typing import Any
 
-from ...domain.models import (  # type: ignore[import-untyped]
+from ...models import (  # type: ignore[import-untyped]
     Task,
     TaskStatus,
     TaskType,

@@ -9,7 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from j_file_kit.domain.models import (
+from j_file_kit.infrastructure.logging.logger import StructuredLogger
+from j_file_kit.models import (
     FileContext,
     FileInfo,
     FileItemResult,
@@ -17,7 +18,6 @@ from j_file_kit.domain.models import (
     ProcessorResult,
     TaskReport,
 )
-from j_file_kit.infrastructure.logging.logger import StructuredLogger
 
 
 @pytest.mark.unit
@@ -87,7 +87,7 @@ class TestStructuredLogger:
         logger = StructuredLogger(tmp_path, "test_task")
 
         file_info = FileInfo.from_path(Path("/test/video.mp4"))
-        from j_file_kit.domain.models import SerialId
+        from j_file_kit.models import SerialId
 
         context = FileContext(
             file_info=file_info,

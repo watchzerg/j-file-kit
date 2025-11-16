@@ -15,7 +15,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ...domain.models import (  # type: ignore[import-untyped]
+from ...models import (  # type: ignore[import-untyped]
     FileContext,
     FileInfo,
     FileItemResult,

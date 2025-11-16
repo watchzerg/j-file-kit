@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from abc import abstractmethod
 
-from ..models import ProcessorResult
+from ...models import ProcessorResult
 from .base import TaskProcessor
 
 

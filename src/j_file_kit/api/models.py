@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ..domain.models import TaskStatus
+from ..models import TaskStatus
 
 
 class StartTaskRequest(BaseModel):
