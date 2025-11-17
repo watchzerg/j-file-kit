@@ -18,7 +18,7 @@ T = TypeVar("T", bound=BaseModel)
 class GlobalConfig(BaseModel):
     """全局配置"""
 
-    scan_roots: list[Path] = Field(..., description="扫描根目录列表")
+    scan_root: Path | None = Field(None, description="扫描根目录")
 
 
 class FileOrganizeConfig(BaseModel):
@@ -90,9 +90,9 @@ def create_default_global_config() -> GlobalConfig:
     """创建默认全局配置
 
     Returns:
-        默认全局配置对象（scan_roots 为空列表）
+        默认全局配置对象（scan_root 为 None）
     """
-    return GlobalConfig(scan_roots=[])
+    return GlobalConfig(scan_root=None)
 
 
 def create_default_task_configs() -> list[TaskDefinition]:

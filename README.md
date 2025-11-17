@@ -45,8 +45,7 @@ pip install -e .
 ```yaml
 # 全局配置
 global:
-  scan_roots:                                    # 扫描根目录列表
-    - ./scan                                     # 修改为你的文件目录
+  scan_root: ./scan                              # 扫描根目录（修改为你的文件目录）
   log_dir: ./logs                                # 日志目录
   report_dir: ./reports                          # 报告目录
   db_path: ./data/j_file_kit.db                  # 数据库文件路径

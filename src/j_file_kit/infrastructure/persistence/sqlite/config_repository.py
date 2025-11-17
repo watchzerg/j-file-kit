@@ -60,15 +60,15 @@ class ConfigRepository:
             global_count = cursor.fetchone()[0]
 
             if global_count == 0:
-                # 插入默认全局配置（scan_roots 为空列表）
-                scan_roots_json = json.dumps([])
+                # 插入默认全局配置（scan_root 为空字符串）
+                scan_root_str = ""
                 updated_at = datetime.now().isoformat()
                 cursor.execute(
                     """
-                    INSERT INTO global_config (id, scan_roots, updated_at)
+                    INSERT INTO global_config (id, scan_root, updated_at)
                     VALUES (1, ?, ?)
                     """,
-                    (scan_roots_json, updated_at),
+                    (scan_root_str, updated_at),
                 )
 
             # 检查 task_configs 表是否为空
@@ -141,16 +141,16 @@ class ConfigRepository:
             ValueError: 如果全局配置不存在
         """
         with self._get_cursor() as cursor:
-            cursor.execute("SELECT scan_roots FROM global_config WHERE id = 1")
+            cursor.execute("SELECT scan_root FROM global_config WHERE id = 1")
             row = cursor.fetchone()
 
             if row is None:
                 raise ValueError("全局配置不存在")
 
-            scan_roots_json = row["scan_roots"]
-            scan_roots = [Path(p) for p in json.loads(scan_roots_json)]
+            scan_root_str = row["scan_root"]
+            scan_root = Path(scan_root_str) if scan_root_str else None
 
-            return GlobalConfig(scan_roots=scan_roots)
+            return GlobalConfig(scan_root=scan_root)
 
     def update_global_config(self, config: GlobalConfig) -> None:
         """更新全局配置
@@ -159,15 +159,15 @@ class ConfigRepository:
             config: 全局配置对象
         """
         with self._get_cursor() as cursor:
-            scan_roots_json = json.dumps([str(p) for p in config.scan_roots])
+            scan_root_str = str(config.scan_root) if config.scan_root else ""
             updated_at = datetime.now().isoformat()
             cursor.execute(
                 """
                 UPDATE global_config
-                SET scan_roots = ?, updated_at = ?
+                SET scan_root = ?, updated_at = ?
                 WHERE id = 1
                 """,
-                (scan_roots_json, updated_at),
+                (scan_root_str, updated_at),
             )
 
     def get_all_tasks(self) -> list[TaskDefinition]:

@@ -67,7 +67,7 @@ class TaskListResponse(BaseModel):
 class UpdateGlobalConfigRequest(BaseModel):
     """更新全局配置请求（部分更新）"""
 
-    scan_roots: list[str] | None = Field(None, description="扫描根目录列表")
+    scan_root: str | None = Field(None, description="扫描根目录")
 
 
 class UpdateTaskConfigRequest(BaseModel):

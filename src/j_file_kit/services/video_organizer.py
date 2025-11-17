@@ -163,7 +163,7 @@ class VideoFileOrganizer(BaseTask):
         # 设计意图：在文件处理完成后，利用自底向上遍历顺序清理空文件夹
         pipeline.add_executor(
             FileEmptyDirectoryExecutor(
-                self.config.global_.scan_roots, operation_repository
+                self.config.global_.scan_root, operation_repository
             )
         )
 

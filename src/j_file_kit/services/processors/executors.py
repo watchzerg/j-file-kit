@@ -167,16 +167,16 @@ class FileEmptyDirectoryExecutor(Executor):
     """
 
     def __init__(
-        self, scan_roots: list[Path], operation_repository: Any | None = None
+        self, scan_root: Path | None, operation_repository: Any | None = None
     ) -> None:
         """初始化空目录清理执行器
 
         Args:
-            scan_roots: 扫描根目录列表（这些目录本身不会被删除）
+            scan_root: 扫描根目录（该目录本身不会被删除）
             operation_repository: 操作记录仓储
         """
         super().__init__("FileEmptyDirectoryExecutor")
-        self.scan_roots = scan_roots
+        self.scan_root = scan_root
         self.operation_repository = operation_repository
 
     def process(self, ctx: FileContext) -> ProcessorResult:  # type: ignore[override]
@@ -197,11 +197,10 @@ class FileEmptyDirectoryExecutor(Executor):
         if not is_directory(path):
             return ProcessorResult.skip("不是目录，跳过")
 
-        # 检查目录是否为scan_roots之一（完全匹配，保护扫描根目录不被删除）
+        # 检查目录是否为scan_root（完全匹配，保护扫描根目录不被删除）
         # 使用resolve()确保规范化路径比较，处理符号链接和相对路径
-        for scan_root in self.scan_roots:
-            if path.resolve() == scan_root.resolve():
-                return ProcessorResult.skip("扫描根目录，跳过")
+        if self.scan_root and path.resolve() == self.scan_root.resolve():
+            return ProcessorResult.skip("扫描根目录，跳过")
 
         # 检查目录是否为空
         if not is_directory_empty(path):

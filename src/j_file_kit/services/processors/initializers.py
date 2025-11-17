@@ -104,13 +104,15 @@ class FileConfigValidatorInitializer(Initializer):
         errors: list[str] = []
 
         # 验证扫描路径
-        for scan_root in self.config.global_.scan_roots:
-            if not scan_root.exists():
-                errors.append(f"扫描路径不存在: {scan_root}")
-            elif not scan_root.is_dir():
-                errors.append(f"扫描路径不是目录: {scan_root}")
-            elif not os.access(scan_root, os.R_OK):
-                errors.append(f"扫描路径不可读: {scan_root}")
+        scan_root = self.config.global_.scan_root
+        if scan_root is None:
+            errors.append("扫描路径未设置")
+        elif not scan_root.exists():
+            errors.append(f"扫描路径不存在: {scan_root}")
+        elif not scan_root.is_dir():
+            errors.append(f"扫描路径不是目录: {scan_root}")
+        elif not os.access(scan_root, os.R_OK):
+            errors.append(f"扫描路径不可读: {scan_root}")
 
         # 验证目标目录路径
         target_dirs = {

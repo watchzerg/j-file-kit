@@ -37,8 +37,8 @@ def _merge_global_config(
         合并后的全局配置
     """
     update_dict: dict[str, Any] = {}
-    if update.scan_roots is not None:
-        update_dict["scan_roots"] = [Path(p) for p in update.scan_roots]
+    if update.scan_root is not None:
+        update_dict["scan_root"] = Path(update.scan_root) if update.scan_root else None
 
     if not update_dict:
         return current
@@ -149,29 +149,39 @@ def _merge_all_task_configs(
     return merged_tasks
 
 
-def _validate_paths(scan_roots: list[Path]) -> None:
+def _validate_path(scan_root: Path | None) -> None:
     """验证路径配置
 
     Args:
-        scan_roots: 扫描根目录列表
+        scan_root: 扫描根目录
 
     Raises:
         HTTPException: 如果路径验证失败
     """
-    errors: list[str] = []
-    for scan_root in scan_roots:
-        if not path_exists(scan_root):
-            errors.append(f"扫描根目录不存在: {scan_root}")
-        elif not is_directory(scan_root):
-            errors.append(f"扫描根目录不是目录: {scan_root}")
-
-    if errors:
+    if scan_root is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
-                "code": "INVALID_PATHS",
-                "message": "路径验证失败",
-                "errors": errors,
+                "code": "INVALID_PATH",
+                "message": "扫描根目录未设置",
+            },
+        )
+
+    if not path_exists(scan_root):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "INVALID_PATH",
+                "message": f"扫描根目录不存在: {scan_root}",
+            },
+        )
+
+    if not is_directory(scan_root):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "INVALID_PATH",
+                "message": f"扫描根目录不是目录: {scan_root}",
             },
         )
 
@@ -201,7 +211,7 @@ def _validate_and_save_config(
         ) from e
 
     # 验证路径（HTTP 更新时验证）
-    _validate_paths(merged_global.scan_roots)
+    _validate_path(merged_global.scan_root)
 
     # 更新数据库
     try:

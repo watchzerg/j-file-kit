@@ -111,7 +111,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
     - `item_result_repository.py`: Item结果仓储（ItemResultRepository），管理item处理结果
     - `operation_repository.py`: 操作记录仓储（OperationRepository），记录文件操作历史
   - 数据库表结构采用JSON字段设计，完全通用化：
-    - `global_config` 表：单行表，存储全局配置（scan_roots）
+    - `global_config` 表：单行表，存储全局配置（scan_root）
     - `task_configs` 表：存储任务配置（name, type, enabled, config JSON）
     - `tasks` 表：存储任务实例（task_id, task_name, status, statistics JSON等）
     - `item_results` 表：使用 `item_data` JSON字段存储任务类型特定的数据（文件路径、名称、类型、番号等）
@@ -266,7 +266,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 
 - **global_config**: 单行表，存储全局配置
   - `id`: 固定为 1（CHECK约束）
-  - `scan_roots`: JSON数组，存储扫描根目录列表
+  - `scan_root`: TEXT字段，存储扫描根目录（单个路径字符串，空字符串表示未设置）
   - `updated_at`: 更新时间
 
 - **task_configs**: 存储任务配置
