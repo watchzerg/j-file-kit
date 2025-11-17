@@ -118,7 +118,12 @@ class SQLiteConnectionManager:
                 """
                 CREATE TABLE IF NOT EXISTS global_config (
                     id INTEGER PRIMARY KEY CHECK (id = 1),
-                    scan_root TEXT NOT NULL,
+                    inbox_dir TEXT NOT NULL,
+                    sorted_dir TEXT NOT NULL,
+                    unsorted_dir TEXT NOT NULL,
+                    archive_dir TEXT NOT NULL,
+                    misc_dir TEXT NOT NULL,
+                    starred_dir TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
                 """

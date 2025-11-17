@@ -67,7 +67,12 @@ class TaskListResponse(BaseModel):
 class UpdateGlobalConfigRequest(BaseModel):
     """更新全局配置请求（部分更新）"""
 
-    scan_root: str | None = Field(None, description="扫描根目录")
+    inbox_dir: str | None = Field(None, description="待处理目录")
+    sorted_dir: str | None = Field(None, description="已整理目录（有番号）")
+    unsorted_dir: str | None = Field(None, description="未整理目录（无番号）")
+    archive_dir: str | None = Field(None, description="归档目录")
+    misc_dir: str | None = Field(None, description="杂项目录")
+    starred_dir: str | None = Field(None, description="精选/收藏目录")
 
 
 class UpdateTaskConfigRequest(BaseModel):

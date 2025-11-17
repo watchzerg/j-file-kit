@@ -310,10 +310,10 @@ class FileActionDecider(Analyzer):
 
     def __init__(
         self,
-        organized_dir: Path,
-        unorganized_dir: Path,
-        archive_dir: Path,
-        misc_dir: Path,
+        organized_dir: Path | None,
+        unorganized_dir: Path | None,
+        archive_dir: Path | None,
+        misc_dir: Path | None,
     ):
         """初始化动作决策器
 
@@ -329,6 +329,72 @@ class FileActionDecider(Analyzer):
         self.archive_dir = archive_dir
         self.misc_dir = misc_dir
 
+    def _process_video_image(self, ctx: FileContext) -> ProcessorResult | None:
+        """处理视频/图片文件
+
+        Args:
+            ctx: 处理上下文
+
+        Returns:
+            处理结果，如果无法处理则返回None
+        """
+        if ctx.serial_id:
+            # 有番号：移动到整理目录
+            if self.organized_dir is None:
+                return ProcessorResult.error("sorted_dir 未设置，无法移动有番号文件")
+
+            if not ctx.renamed_filename:
+                return ProcessorResult.error(
+                    "番号存在但重构后的文件名未设置，请确保 FileSerialIdExtractor 已执行"
+                )
+
+            ctx.action = FileAction.MOVE_TO_ORGANIZED
+            target_dir = generate_organized_dir(self.organized_dir, ctx.serial_id)
+            ctx.target_path = target_dir / ctx.renamed_filename
+        else:
+            # 无番号：移动到C目录
+            if self.unorganized_dir is None:
+                return ProcessorResult.error("unsorted_dir 未设置，无法移动无番号文件")
+
+            ctx.action = FileAction.MOVE_TO_UNORGANIZED
+            ctx.target_path = self.unorganized_dir / ctx.file_info.path.name
+        return None
+
+    def _process_archive(self, ctx: FileContext) -> ProcessorResult | None:
+        """处理压缩文件
+
+        Args:
+            ctx: 处理上下文
+
+        Returns:
+            处理结果，如果无法处理则返回None
+        """
+        if self.archive_dir is None:
+            return ProcessorResult.error("archive_dir 未设置，无法移动压缩文件")
+
+        ctx.action = FileAction.MOVE_TO_ARCHIVE
+        ctx.target_path = self.archive_dir / ctx.file_info.path.name
+        return None
+
+    def _process_misc(self, ctx: FileContext) -> ProcessorResult | None:
+        """处理Misc文件
+
+        Args:
+            ctx: 处理上下文
+
+        Returns:
+            处理结果，如果无法处理则返回None
+        """
+        if ctx.should_delete:
+            ctx.action = FileAction.DELETE
+        else:
+            if self.misc_dir is None:
+                return ProcessorResult.error("misc_dir 未设置，无法移动Misc文件")
+
+            ctx.action = FileAction.MOVE_TO_MISC
+            ctx.target_path = self.misc_dir / ctx.file_info.path.name
+        return None
+
     def process(self, ctx: FileContext) -> ProcessorResult:  # type: ignore[override]
         """决策动作类型并组装完整路径
 
@@ -341,48 +407,24 @@ class FileActionDecider(Analyzer):
             分析结果
         """
         try:
-            # 视频/图片文件
             if ctx.file_type in [FileType.VIDEO, FileType.IMAGE]:
-                if ctx.serial_id:
-                    # 有番号：移动到整理目录，组装完整路径
-                    ctx.action = FileAction.MOVE_TO_ORGANIZED
-
-                    # 检查 renamed_filename 是否已设置
-                    if not ctx.renamed_filename:
-                        return ProcessorResult.error(
-                            "番号存在但重构后的文件名未设置，请确保 FileSerialIdExtractor 已执行"
-                        )
-
-                    # 生成3级目录结构
-                    target_dir = generate_organized_dir(
-                        self.organized_dir, ctx.serial_id
-                    )
-
-                    # 使用重构后的文件名
-                    filename = ctx.renamed_filename
-
-                    # 组装完整路径
-                    ctx.target_path = target_dir / filename
-                else:
-                    # 无番号：移动到C目录
-                    ctx.action = FileAction.MOVE_TO_UNORGANIZED
-                    ctx.target_path = self.unorganized_dir / ctx.file_info.path.name
-
-            # 压缩文件
+                result = self._process_video_image(ctx)
+                if result:
+                    return result
             elif ctx.file_type == FileType.ARCHIVE:
-                ctx.action = FileAction.MOVE_TO_ARCHIVE
-                ctx.target_path = self.archive_dir / ctx.file_info.path.name
-
-            # Misc文件
+                result = self._process_archive(ctx)
+                if result:
+                    return result
             elif ctx.file_type == FileType.MISC:
-                if ctx.should_delete:
-                    ctx.action = FileAction.DELETE
-                    # DELETE 不需要 target_path
-                else:
-                    ctx.action = FileAction.MOVE_TO_MISC
-                    ctx.target_path = self.misc_dir / ctx.file_info.path.name
+                result = self._process_misc(ctx)
+                if result:
+                    return result
             else:
                 ctx.action = FileAction.SKIP
+
+            # 确保action已设置
+            if ctx.action is None:
+                return ProcessorResult.error("未能决策动作类型")
 
             return ProcessorResult.success(
                 f"决策动作: {ctx.action.value}",

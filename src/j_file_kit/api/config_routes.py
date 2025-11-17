@@ -37,8 +37,26 @@ def _merge_global_config(
         合并后的全局配置
     """
     update_dict: dict[str, Any] = {}
-    if update.scan_root is not None:
-        update_dict["scan_root"] = Path(update.scan_root) if update.scan_root else None
+    if update.inbox_dir is not None:
+        update_dict["inbox_dir"] = Path(update.inbox_dir) if update.inbox_dir else None
+    if update.sorted_dir is not None:
+        update_dict["sorted_dir"] = (
+            Path(update.sorted_dir) if update.sorted_dir else None
+        )
+    if update.unsorted_dir is not None:
+        update_dict["unsorted_dir"] = (
+            Path(update.unsorted_dir) if update.unsorted_dir else None
+        )
+    if update.archive_dir is not None:
+        update_dict["archive_dir"] = (
+            Path(update.archive_dir) if update.archive_dir else None
+        )
+    if update.misc_dir is not None:
+        update_dict["misc_dir"] = Path(update.misc_dir) if update.misc_dir else None
+    if update.starred_dir is not None:
+        update_dict["starred_dir"] = (
+            Path(update.starred_dir) if update.starred_dir else None
+        )
 
     if not update_dict:
         return current
@@ -149,39 +167,105 @@ def _merge_all_task_configs(
     return merged_tasks
 
 
-def _validate_path(scan_root: Path | None) -> None:
-    """验证路径配置
+def _validate_single_dir(
+    dir_name: str, dir_path: Path | None, required: bool
+) -> list[str]:
+    """验证单个目录
 
     Args:
-        scan_root: 扫描根目录
+        dir_name: 目录名称
+        dir_path: 目录路径
+        required: 是否必须设置
+
+    Returns:
+        错误列表
+    """
+    errors: list[str] = []
+    if dir_path is None:
+        if required:
+            errors.append(f"{dir_name} 未设置")
+        return errors
+
+    if not path_exists(dir_path):
+        errors.append(f"{dir_name} 不存在: {dir_path}")
+    elif not is_directory(dir_path):
+        errors.append(f"{dir_name} 不是目录: {dir_path}")
+    return errors
+
+
+def _check_dir_conflicts(config: GlobalConfig) -> list[str]:
+    """检查目录路径冲突
+
+    Args:
+        config: 全局配置对象
+
+    Returns:
+        错误列表
+    """
+    errors: list[str] = []
+    all_dirs = [
+        ("inbox_dir", config.inbox_dir),
+        ("sorted_dir", config.sorted_dir),
+        ("unsorted_dir", config.unsorted_dir),
+        ("archive_dir", config.archive_dir),
+        ("misc_dir", config.misc_dir),
+        ("starred_dir", config.starred_dir),
+    ]
+    resolved_paths: dict[Path, list[str]] = {}
+    for dir_name, dir_path in all_dirs:
+        if dir_path is not None:
+            resolved = dir_path.resolve()
+            if resolved in resolved_paths:
+                resolved_paths[resolved].append(dir_name)
+            else:
+                resolved_paths[resolved] = [dir_name]
+
+    for resolved_path, dir_names in resolved_paths.items():
+        if len(dir_names) > 1:
+            errors.append(
+                f"目录路径冲突: {', '.join(dir_names)} 都指向同一路径 {resolved_path}"
+            )
+    return errors
+
+
+def _validate_global_dirs(config: GlobalConfig) -> None:
+    """验证全局目录配置
+
+    Args:
+        config: 全局配置对象
 
     Raises:
         HTTPException: 如果路径验证失败
     """
-    if scan_root is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "code": "INVALID_PATH",
-                "message": "扫描根目录未设置",
-            },
-        )
+    errors: list[str] = []
 
-    if not path_exists(scan_root):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={
-                "code": "INVALID_PATH",
-                "message": f"扫描根目录不存在: {scan_root}",
-            },
-        )
+    # inbox_dir 必须设置
+    errors.extend(
+        _validate_single_dir("待处理目录（inbox_dir）", config.inbox_dir, True)
+    )
 
-    if not is_directory(scan_root):
+    # 验证其他目录（如果已设置）
+    dirs_to_check = {
+        "sorted_dir": config.sorted_dir,
+        "unsorted_dir": config.unsorted_dir,
+        "archive_dir": config.archive_dir,
+        "misc_dir": config.misc_dir,
+        "starred_dir": config.starred_dir,
+    }
+
+    for dir_name, dir_path in dirs_to_check.items():
+        errors.extend(_validate_single_dir(dir_name, dir_path, False))
+
+    # 检查路径冲突
+    errors.extend(_check_dir_conflicts(config))
+
+    if errors:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={
                 "code": "INVALID_PATH",
-                "message": f"扫描根目录不是目录: {scan_root}",
+                "message": "目录配置验证失败:\n"
+                + "\n".join(f"  - {e}" for e in errors),
             },
         )
 
@@ -211,7 +295,7 @@ def _validate_and_save_config(
         ) from e
 
     # 验证路径（HTTP 更新时验证）
-    _validate_path(merged_global.scan_root)
+    _validate_global_dirs(merged_global)
 
     # 更新数据库
     try:

@@ -68,7 +68,7 @@ class Pipeline:
         self.task_name = task_name
 
         # 初始化组件
-        self.scan_root = config.global_.scan_root
+        self.scan_root = config.global_.inbox_dir
         self.processor_chain = ProcessorChain()
         self.logger = StructuredLogger(log_dir, self.task_name)
         self.operation_repository = operation_repository
@@ -284,8 +284,8 @@ class Pipeline:
             RuntimeError: 如果任何 initializer 失败
         """
         scan_root_str = (
-            str(self.config.global_.scan_root)
-            if self.config.global_.scan_root
+            str(self.config.global_.inbox_dir)
+            if self.config.global_.inbox_dir
             else "未设置"
         )
         self.logger.log_task_start(scan_root_str)

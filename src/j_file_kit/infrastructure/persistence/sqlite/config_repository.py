@@ -60,15 +60,14 @@ class ConfigRepository:
             global_count = cursor.fetchone()[0]
 
             if global_count == 0:
-                # 插入默认全局配置（scan_root 为空字符串）
-                scan_root_str = ""
+                # 插入默认全局配置（所有目录字段为空字符串，表示未设置）
                 updated_at = datetime.now().isoformat()
                 cursor.execute(
                     """
-                    INSERT INTO global_config (id, scan_root, updated_at)
-                    VALUES (1, ?, ?)
+                    INSERT INTO global_config (id, inbox_dir, sorted_dir, unsorted_dir, archive_dir, misc_dir, starred_dir, updated_at)
+                    VALUES (1, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    (scan_root_str, updated_at),
+                    ("", "", "", "", "", "", updated_at),
                 )
 
             # 检查 task_configs 表是否为空
@@ -79,10 +78,6 @@ class ConfigRepository:
                 # 插入默认任务配置（video_file_organizer）
                 updated_at = datetime.now().isoformat()
                 default_task_config = {
-                    "organized_dir": "./organized",
-                    "unorganized_dir": "./unorganized",
-                    "archive_dir": "./archives",
-                    "misc_dir": "./misc",
                     "video_extensions": [
                         ".mp4",
                         ".avi",
@@ -141,16 +136,26 @@ class ConfigRepository:
             ValueError: 如果全局配置不存在
         """
         with self._get_cursor() as cursor:
-            cursor.execute("SELECT scan_root FROM global_config WHERE id = 1")
+            cursor.execute(
+                "SELECT inbox_dir, sorted_dir, unsorted_dir, archive_dir, misc_dir, starred_dir FROM global_config WHERE id = 1"
+            )
             row = cursor.fetchone()
 
             if row is None:
                 raise ValueError("全局配置不存在")
 
-            scan_root_str = row["scan_root"]
-            scan_root = Path(scan_root_str) if scan_root_str else None
+            # 将空字符串转为None，非空字符串转为Path对象
+            def to_path(value: str) -> Path | None:
+                return Path(value) if value else None
 
-            return GlobalConfig(scan_root=scan_root)
+            return GlobalConfig(
+                inbox_dir=to_path(row["inbox_dir"]),
+                sorted_dir=to_path(row["sorted_dir"]),
+                unsorted_dir=to_path(row["unsorted_dir"]),
+                archive_dir=to_path(row["archive_dir"]),
+                misc_dir=to_path(row["misc_dir"]),
+                starred_dir=to_path(row["starred_dir"]),
+            )
 
     def update_global_config(self, config: GlobalConfig) -> None:
         """更新全局配置
@@ -159,15 +164,26 @@ class ConfigRepository:
             config: 全局配置对象
         """
         with self._get_cursor() as cursor:
-            scan_root_str = str(config.scan_root) if config.scan_root else ""
+            # 将Path对象转为字符串，None转为空字符串
+            def to_str(path: Path | None) -> str:
+                return str(path) if path else ""
+
             updated_at = datetime.now().isoformat()
             cursor.execute(
                 """
                 UPDATE global_config
-                SET scan_root = ?, updated_at = ?
+                SET inbox_dir = ?, sorted_dir = ?, unsorted_dir = ?, archive_dir = ?, misc_dir = ?, starred_dir = ?, updated_at = ?
                 WHERE id = 1
                 """,
-                (scan_root_str, updated_at),
+                (
+                    to_str(config.inbox_dir),
+                    to_str(config.sorted_dir),
+                    to_str(config.unsorted_dir),
+                    to_str(config.archive_dir),
+                    to_str(config.misc_dir),
+                    to_str(config.starred_dir),
+                    updated_at,
+                ),
             )
 
     def get_all_tasks(self) -> list[TaskDefinition]:

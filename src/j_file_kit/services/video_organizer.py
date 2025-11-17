@@ -62,11 +62,12 @@ class VideoFileOrganizer(BaseTask):
             FileOrganizeConfig
         )
 
-        # 设置目录路径
-        self.organized_dir: Path = self.file_config.organized_dir
-        self.unorganized_dir: Path = self.file_config.unorganized_dir
-        self.archive_dir: Path = self.file_config.archive_dir
-        self.misc_dir: Path = self.file_config.misc_dir
+        # 从 GlobalConfig 获取目录路径
+        self.inbox_dir: Path | None = self.config.global_.inbox_dir
+        self.sorted_dir: Path | None = self.config.global_.sorted_dir
+        self.unsorted_dir: Path | None = self.config.global_.unsorted_dir
+        self.archive_dir: Path | None = self.config.global_.archive_dir
+        self.misc_dir: Path | None = self.config.global_.misc_dir
 
         # 设置文件类型扩展名
         self.video_extensions: set[str] = self.file_config.video_extensions
@@ -126,13 +127,12 @@ class VideoFileOrganizer(BaseTask):
         pipeline.add_initializer(
             FileConfigValidatorInitializer(
                 config=self.config,
-                file_config=self.file_config,
             )
         )
         # 3. 资源初始化：确保目录已准备就绪
         pipeline.add_initializer(
             FileResourceInitializer(
-                file_config=self.file_config,
+                config=self.config,
             )
         )
 
@@ -149,8 +149,8 @@ class VideoFileOrganizer(BaseTask):
         pipeline.add_analyzer(FileSerialIdExtractor())
         pipeline.add_analyzer(
             FileActionDecider(
-                self.organized_dir,
-                self.unorganized_dir,
+                self.sorted_dir,
+                self.unsorted_dir,
                 self.archive_dir,
                 self.misc_dir,
             )
@@ -162,9 +162,7 @@ class VideoFileOrganizer(BaseTask):
         # 添加空目录清理执行器（放在最后，确保文件处理完成后再清理目录）
         # 设计意图：在文件处理完成后，利用自底向上遍历顺序清理空文件夹
         pipeline.add_executor(
-            FileEmptyDirectoryExecutor(
-                self.config.global_.scan_root, operation_repository
-            )
+            FileEmptyDirectoryExecutor(self.inbox_dir, operation_repository)
         )
 
         # 添加任务统计信息终结器

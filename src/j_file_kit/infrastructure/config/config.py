@@ -18,16 +18,17 @@ T = TypeVar("T", bound=BaseModel)
 class GlobalConfig(BaseModel):
     """全局配置"""
 
-    scan_root: Path | None = Field(None, description="扫描根目录")
+    inbox_dir: Path | None = Field(None, description="待处理目录")
+    sorted_dir: Path | None = Field(None, description="已整理目录（有番号）")
+    unsorted_dir: Path | None = Field(None, description="未整理目录（无番号）")
+    archive_dir: Path | None = Field(None, description="归档目录")
+    misc_dir: Path | None = Field(None, description="杂项目录")
+    starred_dir: Path | None = Field(None, description="精选/收藏目录")
 
 
 class FileOrganizeConfig(BaseModel):
     """文件整理任务配置"""
 
-    organized_dir: Path = Field(..., description="整理后的视频图片存储目录（B类）")
-    unorganized_dir: Path = Field(..., description="无番号视频图片存储目录（C类）")
-    archive_dir: Path = Field(..., description="压缩文件存储目录")
-    misc_dir: Path = Field(..., description="Misc文件存储目录（D类）")
     video_extensions: set[str] = Field(..., description="视频文件扩展名")
     image_extensions: set[str] = Field(..., description="图片文件扩展名")
     archive_extensions: set[str] = Field(..., description="压缩文件扩展名")
@@ -90,9 +91,16 @@ def create_default_global_config() -> GlobalConfig:
     """创建默认全局配置
 
     Returns:
-        默认全局配置对象（scan_root 为 None）
+        默认全局配置对象（所有目录字段为 None）
     """
-    return GlobalConfig(scan_root=None)
+    return GlobalConfig(
+        inbox_dir=None,
+        sorted_dir=None,
+        unsorted_dir=None,
+        archive_dir=None,
+        misc_dir=None,
+        starred_dir=None,
+    )
 
 
 def create_default_task_configs() -> list[TaskDefinition]:
@@ -107,10 +115,6 @@ def create_default_task_configs() -> list[TaskDefinition]:
             type="file_organize",
             enabled=True,
             config={
-                "organized_dir": "./organized",
-                "unorganized_dir": "./unorganized",
-                "archive_dir": "./archives",
-                "misc_dir": "./misc",
                 "video_extensions": [
                     ".mp4",
                     ".avi",
