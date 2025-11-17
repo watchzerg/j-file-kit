@@ -71,3 +71,13 @@ class TriggerType(str, Enum):
 
     MANUAL = "manual"
     AUTO = "auto"
+
+
+class OperationType(str, Enum):
+    """操作类型枚举"""
+
+    RENAME = "rename"
+    MOVE = "move"
+    DELETE = "delete"
+    CREATE_DIR = "create_dir"
+    DELETE_DIR = "delete_dir"

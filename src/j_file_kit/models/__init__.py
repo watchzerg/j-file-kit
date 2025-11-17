@@ -8,6 +8,7 @@ from .contexts import FileContext, ItemContext
 from .enums import (
     FileAction,
     FileType,
+    OperationType,
     ProcessorStatus,
     TaskStatus,
     TaskType,
@@ -19,6 +20,7 @@ from .exceptions import (
     TaskError,
     TaskNotFoundError,
 )
+from .operations import Operation
 from .results import FileItemResult, ItemResult, ProcessorResult
 from .task import Task, TaskReport
 from .value_objects import DirectoryInfo, FileInfo, SerialId
@@ -31,6 +33,7 @@ __all__ = [
     "TaskStatus",
     "TaskType",
     "TriggerType",
+    "OperationType",
     # 值对象
     "SerialId",
     "FileInfo",
@@ -45,6 +48,8 @@ __all__ = [
     # 任务
     "Task",
     "TaskReport",
+    # 操作
+    "Operation",
     # 异常
     "TaskError",
     "TaskNotFoundError",

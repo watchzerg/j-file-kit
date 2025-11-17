@@ -5,8 +5,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import sqlite3
 import threading
+from collections.abc import Iterator
 from pathlib import Path
 
 
@@ -159,6 +161,24 @@ class SQLiteConnectionManager:
             线程锁对象
         """
         return self._lock
+
+    @contextlib.contextmanager
+    def get_cursor(self) -> Iterator[sqlite3.Cursor]:
+        """获取数据库游标的上下文管理器
+
+        Yields:
+            数据库游标
+        """
+        conn = self.get_connection()
+        lock = self.get_lock()
+        with lock:
+            cursor = conn.cursor()
+            try:
+                yield cursor
+                conn.commit()
+            except Exception:
+                conn.rollback()
+                raise
 
     def close(self) -> None:
         """关闭数据库连接"""

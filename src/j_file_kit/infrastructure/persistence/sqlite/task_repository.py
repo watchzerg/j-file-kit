@@ -5,10 +5,8 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
 import sqlite3
-from collections.abc import Iterator
 from datetime import datetime
 from typing import Any
 
@@ -34,24 +32,6 @@ class TaskRepository:
             connection_manager: SQLite 连接管理器
         """
         self._conn_manager = connection_manager
-
-    @contextlib.contextmanager
-    def _get_cursor(self) -> Iterator[sqlite3.Cursor]:
-        """获取数据库游标的上下文管理器
-
-        Yields:
-            数据库游标
-        """
-        conn = self._conn_manager.get_connection()
-        lock = self._conn_manager.get_lock()
-        with lock:
-            cursor = conn.cursor()
-            try:
-                yield cursor
-                conn.commit()
-            except Exception:
-                conn.rollback()
-                raise
 
     def _row_to_task(self, row: sqlite3.Row) -> Task:
         """将数据库行转换为 Task 对象
@@ -95,7 +75,7 @@ class TaskRepository:
         Returns:
             生成的任务ID
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 """
                 INSERT INTO tasks (task_name, task_type, trigger_type, status, start_time, end_time, error_message)
@@ -161,7 +141,7 @@ class TaskRepository:
         query = "UPDATE tasks SET " + ", ".join(updates) + " WHERE task_id = ?"  # noqa: S608
         params.append(task_id)
 
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute(query, params)
 
     def get_task(self, task_id: int) -> Task | None:
@@ -173,7 +153,7 @@ class TaskRepository:
         Returns:
             任务对象，如果不存在则返回 None
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,))
             row = cursor.fetchone()
 
@@ -188,7 +168,7 @@ class TaskRepository:
         Returns:
             任务列表
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute("SELECT * FROM tasks ORDER BY start_time DESC")
             rows = cursor.fetchall()
 
@@ -200,7 +180,7 @@ class TaskRepository:
         Returns:
             运行中的任务，如果没有则返回 None
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 "SELECT * FROM tasks WHERE status = ? LIMIT 1",
                 (TaskStatus.RUNNING.value,),
@@ -218,7 +198,7 @@ class TaskRepository:
         Returns:
             待处理或运行中的任务列表
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 "SELECT * FROM tasks WHERE status IN (?, ?)",
                 (TaskStatus.PENDING.value, TaskStatus.RUNNING.value),

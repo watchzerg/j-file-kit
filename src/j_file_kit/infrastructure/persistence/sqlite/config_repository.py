@@ -5,10 +5,8 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
 import sqlite3
-from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
 
@@ -31,30 +29,51 @@ class ConfigRepository:
         self._conn_manager = connection_manager
         self._ensure_default_config()
 
-    @contextlib.contextmanager
-    def _get_cursor(self) -> Iterator[sqlite3.Cursor]:
-        """获取数据库游标的上下文管理器
+    def _row_to_global_config(self, row: sqlite3.Row) -> GlobalConfig:
+        """将数据库行转换为 GlobalConfig 对象
 
-        Yields:
-            数据库游标
+        Args:
+            row: 数据库行
+
+        Returns:
+            GlobalConfig 对象
         """
-        conn = self._conn_manager.get_connection()
-        lock = self._conn_manager.get_lock()
-        with lock:
-            cursor = conn.cursor()
-            try:
-                yield cursor
-                conn.commit()
-            except Exception:
-                conn.rollback()
-                raise
+
+        def to_path(value: str) -> Path | None:
+            return Path(value) if value else None
+
+        return GlobalConfig(
+            inbox_dir=to_path(row["inbox_dir"]),
+            sorted_dir=to_path(row["sorted_dir"]),
+            unsorted_dir=to_path(row["unsorted_dir"]),
+            archive_dir=to_path(row["archive_dir"]),
+            misc_dir=to_path(row["misc_dir"]),
+            starred_dir=to_path(row["starred_dir"]),
+        )
+
+    def _row_to_task_definition(self, row: sqlite3.Row) -> TaskDefinition:
+        """将数据库行转换为 TaskDefinition 对象
+
+        Args:
+            row: 数据库行
+
+        Returns:
+            TaskDefinition 对象
+        """
+        config_dict = json.loads(row["config"])
+        return TaskDefinition(
+            name=row["name"],
+            type=row["type"],
+            enabled=bool(row["enabled"]),
+            config=config_dict,
+        )
 
     def _ensure_default_config(self) -> None:
         """确保默认配置存在
 
         如果配置表为空，插入默认配置。
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             # 检查 global_config 表是否为空
             cursor.execute("SELECT COUNT(*) FROM global_config")
             global_count = cursor.fetchone()[0]
@@ -135,7 +154,7 @@ class ConfigRepository:
         Raises:
             ValueError: 如果全局配置不存在
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 "SELECT inbox_dir, sorted_dir, unsorted_dir, archive_dir, misc_dir, starred_dir FROM global_config WHERE id = 1"
             )
@@ -144,18 +163,7 @@ class ConfigRepository:
             if row is None:
                 raise ValueError("全局配置不存在")
 
-            # 将空字符串转为None，非空字符串转为Path对象
-            def to_path(value: str) -> Path | None:
-                return Path(value) if value else None
-
-            return GlobalConfig(
-                inbox_dir=to_path(row["inbox_dir"]),
-                sorted_dir=to_path(row["sorted_dir"]),
-                unsorted_dir=to_path(row["unsorted_dir"]),
-                archive_dir=to_path(row["archive_dir"]),
-                misc_dir=to_path(row["misc_dir"]),
-                starred_dir=to_path(row["starred_dir"]),
-            )
+            return self._row_to_global_config(row)
 
     def update_global_config(self, config: GlobalConfig) -> None:
         """更新全局配置
@@ -163,7 +171,7 @@ class ConfigRepository:
         Args:
             config: 全局配置对象
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             # 将Path对象转为字符串，None转为空字符串
             def to_str(path: Path | None) -> str:
                 return str(path) if path else ""
@@ -192,24 +200,13 @@ class ConfigRepository:
         Returns:
             任务配置列表
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 "SELECT name, type, enabled, config FROM task_configs ORDER BY name"
             )
             rows = cursor.fetchall()
 
-            tasks = []
-            for row in rows:
-                config_dict = json.loads(row["config"])
-                task = TaskDefinition(
-                    name=row["name"],
-                    type=row["type"],
-                    enabled=bool(row["enabled"]),
-                    config=config_dict,
-                )
-                tasks.append(task)
-
-            return tasks
+            return [self._row_to_task_definition(row) for row in rows]
 
     def get_task(self, name: str) -> TaskDefinition | None:
         """获取单个任务配置
@@ -220,7 +217,7 @@ class ConfigRepository:
         Returns:
             任务配置对象，如果不存在则返回 None
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 "SELECT name, type, enabled, config FROM task_configs WHERE name = ?",
                 (name,),
@@ -230,13 +227,7 @@ class ConfigRepository:
             if row is None:
                 return None
 
-            config_dict = json.loads(row["config"])
-            return TaskDefinition(
-                name=row["name"],
-                type=row["type"],
-                enabled=bool(row["enabled"]),
-                config=config_dict,
-            )
+            return self._row_to_task_definition(row)
 
     def update_task(self, task: TaskDefinition) -> None:
         """更新任务配置
@@ -247,7 +238,7 @@ class ConfigRepository:
         Raises:
             ValueError: 如果任务不存在
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             # 检查任务是否存在
             cursor.execute("SELECT name FROM task_configs WHERE name = ?", (task.name,))
             if cursor.fetchone() is None:
@@ -273,7 +264,7 @@ class ConfigRepository:
         Raises:
             ValueError: 如果任务已存在
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             # 检查任务是否已存在
             cursor.execute("SELECT name FROM task_configs WHERE name = ?", (task.name,))
             if cursor.fetchone() is not None:
@@ -298,7 +289,7 @@ class ConfigRepository:
         Raises:
             ValueError: 如果任务不存在
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             # 检查任务是否存在
             cursor.execute("SELECT name FROM task_configs WHERE name = ?", (name,))
             if cursor.fetchone() is None:

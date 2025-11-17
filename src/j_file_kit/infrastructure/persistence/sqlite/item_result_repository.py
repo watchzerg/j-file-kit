@@ -7,10 +7,8 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
 import sqlite3
-from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -43,24 +41,6 @@ class ItemResultRepository:
         self._conn_manager = connection_manager
         self.task_id = task_id
 
-    @contextlib.contextmanager
-    def _get_cursor(self) -> Iterator[sqlite3.Cursor]:
-        """获取数据库游标的上下文管理器
-
-        Yields:
-            数据库游标
-        """
-        conn = self._conn_manager.get_connection()
-        lock = self._conn_manager.get_lock()
-        with lock:
-            cursor = conn.cursor()
-            try:
-                yield cursor
-                conn.commit()
-            except Exception:
-                conn.rollback()
-                raise
-
     def save_result(self, result: FileItemResult) -> int:
         """保存单个item结果
 
@@ -84,7 +64,7 @@ class ItemResultRepository:
             else None,
         }
 
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 """
                 INSERT INTO item_results (
@@ -128,7 +108,7 @@ class ItemResultRepository:
             统计信息字典，包含 total_items, success_items, error_items,
             skipped_items, warning_items, total_duration_ms
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 """
                 SELECT
@@ -195,7 +175,7 @@ class ItemResultRepository:
                 }
             }
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             # 按item类型统计（从item_data JSON中提取type字段）
             cursor.execute(
                 """

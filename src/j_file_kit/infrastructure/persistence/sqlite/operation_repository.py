@@ -6,26 +6,15 @@
 
 from __future__ import annotations
 
-import contextlib
 import json
 import sqlite3
 import uuid
-from collections.abc import Iterator
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from ...models import Operation, OperationType  # type: ignore[import-untyped]
 from .connection import SQLiteConnectionManager
-
-
-class OperationType:
-    """操作类型常量"""
-
-    RENAME = "rename"
-    MOVE = "move"
-    DELETE = "delete"
-    CREATE_DIR = "create_dir"
-    DELETE_DIR = "delete_dir"
 
 
 class OperationRepository:
@@ -46,33 +35,52 @@ class OperationRepository:
         self._conn_manager = connection_manager
         self.task_id = task_id
 
-    @contextlib.contextmanager
-    def _get_cursor(self) -> Iterator[sqlite3.Cursor]:
-        """获取数据库游标的上下文管理器
+    def _row_to_operation(self, row: sqlite3.Row) -> Operation:
+        """将数据库行转换为操作记录对象
 
-        Yields:
-            数据库游标
+        Args:
+            row: 数据库行
+
+        Returns:
+            Operation 对象
         """
-        conn = self._conn_manager.get_connection()
-        lock = self._conn_manager.get_lock()
-        with lock:
-            cursor = conn.cursor()
-            try:
-                yield cursor
-                conn.commit()
-            except Exception:
-                conn.rollback()
-                raise
+        operation_data = json.loads(row["data"]) if row["data"] else {}
 
-    def log_operation(
+        # 从 data JSON 中提取路径信息
+        source_path_str = operation_data.get("source_path")
+        target_path_str = operation_data.get("target_path")
+
+        # 转换为 Path 对象
+        source_path = Path(source_path_str) if source_path_str else None
+        target_path = Path(target_path_str) if target_path_str else None
+
+        # 从 data 中移除路径信息，保留其他附加数据
+        data_without_paths = {
+            k: v
+            for k, v in operation_data.items()
+            if k not in ("source_path", "target_path")
+        }
+
+        return Operation(
+            id=row["id"],
+            task_id=int(row["task_id"]),
+            item_result_id=row["item_result_id"],
+            timestamp=datetime.fromisoformat(row["timestamp"]),
+            operation=OperationType(row["operation"]),
+            source_path=source_path,
+            target_path=target_path,
+            data=data_without_paths,
+        )
+
+    def create_operation(
         self,
-        operation: str,
+        operation: OperationType,
         source_path: Path,
         target_path: Path | None = None,
         data: dict[str, Any] | None = None,
         item_result_id: int | None = None,
-    ) -> None:
-        """记录操作
+    ) -> str:
+        """创建操作记录
 
         Args:
             operation: 操作类型
@@ -80,6 +88,9 @@ class OperationRepository:
             target_path: 目标路径（可选）
             data: 附加数据（可选）
             item_result_id: Item结果ID（可选）
+
+        Returns:
+            生成的操作ID（UUID字符串）
         """
         operation_id = str(uuid.uuid4())
         timestamp = datetime.now()
@@ -91,7 +102,7 @@ class OperationRepository:
             **(data or {}),  # 合并原有的data
         }
 
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 """
                 INSERT INTO operations (id, task_id, item_result_id, timestamp, operation, data)
@@ -102,124 +113,27 @@ class OperationRepository:
                     self.task_id,
                     item_result_id,
                     timestamp.isoformat(),
-                    operation,
+                    operation.value,
                     json.dumps(operation_data, ensure_ascii=False),
                 ),
             )
 
-    def log_rename(
-        self,
-        source_path: Path,
-        target_path: Path,
-        data: dict[str, Any] | None = None,
-        item_result_id: int | None = None,
-    ) -> None:
-        """记录重命名操作
+        return operation_id
 
-        Args:
-            source_path: 源路径
-            target_path: 目标路径
-            data: 附加数据
-            item_result_id: Item结果ID（可选）
-        """
-        self.log_operation(
-            OperationType.RENAME, source_path, target_path, data, item_result_id
-        )
-
-    def log_move(
-        self,
-        source_path: Path,
-        target_path: Path,
-        data: dict[str, Any] | None = None,
-        item_result_id: int | None = None,
-    ) -> None:
-        """记录移动操作
-
-        Args:
-            source_path: 源路径
-            target_path: 目标路径
-            data: 附加数据
-            item_result_id: Item结果ID（可选）
-        """
-        self.log_operation(
-            OperationType.MOVE, source_path, target_path, data, item_result_id
-        )
-
-    def log_delete(
-        self,
-        path: Path,
-        data: dict[str, Any] | None = None,
-        item_result_id: int | None = None,
-    ) -> None:
-        """记录删除操作
-
-        Args:
-            path: 删除路径
-            data: 附加数据
-            item_result_id: Item结果ID（可选）
-        """
-        self.log_operation(OperationType.DELETE, path, None, data, item_result_id)
-
-    def log_create_dir(
-        self,
-        path: Path,
-        data: dict[str, Any] | None = None,
-        item_result_id: int | None = None,
-    ) -> None:
-        """记录创建目录操作
-
-        Args:
-            path: 目录路径
-            data: 附加数据
-            item_result_id: Item结果ID（可选）
-        """
-        self.log_operation(OperationType.CREATE_DIR, path, None, data, item_result_id)
-
-    def log_delete_dir(
-        self,
-        path: Path,
-        data: dict[str, Any] | None = None,
-        item_result_id: int | None = None,
-    ) -> None:
-        """记录删除目录操作
-
-        Args:
-            path: 目录路径
-            data: 附加数据
-            item_result_id: Item结果ID（可选）
-        """
-        self.log_operation(OperationType.DELETE_DIR, path, None, data, item_result_id)
-
-    def get_operations(self) -> list[dict[str, Any]]:
+    def get_operations(self) -> list[Operation]:
         """获取任务的操作记录
 
         Returns:
             操作记录列表
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 "SELECT * FROM operations WHERE task_id = ? ORDER BY timestamp",
                 (self.task_id,),
             )
             rows = cursor.fetchall()
 
-            operations = []
-            for row in rows:
-                # 从data JSON字段中提取路径信息
-                operation_data = json.loads(row["data"]) if row["data"] else {}
-                operations.append(
-                    {
-                        "id": row["id"],
-                        "task_id": int(row["task_id"]),
-                        "timestamp": row["timestamp"],
-                        "operation": row["operation"],
-                        "source_path": operation_data.get("source_path"),
-                        "target_path": operation_data.get("target_path"),
-                        "data": operation_data,
-                    }
-                )
-
-            return operations
+            return [self._row_to_operation(row) for row in rows]
 
     def get_operation_statistics(self) -> dict[str, Any]:
         """获取任务的操作统计信息
@@ -249,7 +163,7 @@ class OperationRepository:
                 }
             }
         """
-        with self._get_cursor() as cursor:
+        with self._conn_manager.get_cursor() as cursor:
             # 按操作类型统计（所有操作）
             cursor.execute(
                 """

@@ -21,7 +21,7 @@ from ...infrastructure.filesystem.operations import (
     path_exists,
 )
 from ...interfaces.processors import Executor
-from ...models import FileAction, FileContext, ProcessorResult
+from ...models import FileAction, FileContext, OperationType, ProcessorResult
 
 
 class UnifiedFileExecutor(Executor):
@@ -111,7 +111,8 @@ class UnifiedFileExecutor(Executor):
 
             # 记录操作日志
             if self.operation_repository:
-                self.operation_repository.log_move(
+                self.operation_repository.create_operation(
+                    OperationType.MOVE,
                     old_path,
                     final_path,
                     log_metadata,
@@ -143,8 +144,10 @@ class UnifiedFileExecutor(Executor):
 
             # 记录操作日志
             if self.operation_repository:
-                self.operation_repository.log_delete(
+                self.operation_repository.create_operation(
+                    OperationType.DELETE,
                     ctx.file_info.path,
+                    None,
                     {
                         "action": "delete",
                         "file_type": ctx.file_type.value if ctx.file_type else None,
@@ -212,8 +215,10 @@ class FileEmptyDirectoryExecutor(Executor):
 
             # 记录操作日志
             if self.operation_repository:
-                self.operation_repository.log_delete_dir(
+                self.operation_repository.create_operation(
+                    OperationType.DELETE_DIR,
                     path,
+                    None,
                     {"action": "delete_empty_dir"},
                     item_result_id=ctx.item_result_id,
                 )

@@ -6,7 +6,7 @@
 from .config_repository import ConfigRepository
 from .connection import SQLiteConnectionManager
 from .item_result_repository import ItemResultRepository
-from .operation_repository import OperationRepository, OperationType
+from .operation_repository import OperationRepository
 from .task_repository import TaskRepository
 
 __all__ = [
@@ -15,5 +15,4 @@ __all__ = [
     "TaskRepository",
     "ItemResultRepository",
     "OperationRepository",
-    "OperationType",
 ]

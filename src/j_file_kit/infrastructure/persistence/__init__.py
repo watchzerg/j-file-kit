@@ -7,7 +7,6 @@ from .sqlite import (
     ConfigRepository,
     ItemResultRepository,
     OperationRepository,
-    OperationType,
     SQLiteConnectionManager,
     TaskRepository,
 )
@@ -18,5 +17,4 @@ __all__ = [
     "TaskRepository",
     "ItemResultRepository",
     "OperationRepository",
-    "OperationType",
 ]
