@@ -9,9 +9,9 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from .contexts import FileContext, ItemContext
+from .contexts import ItemContext, PathItemContext
 from .enums import ProcessorStatus
-from .value_objects import FileInfo
+from .value_objects import PathItemInfo
 
 
 class ProcessorResult(BaseModel):
@@ -110,7 +110,8 @@ class FileItemResult(ItemResult):
     """文件处理结果
 
     文件类型的 item 处理结果，继承 ItemResult 并添加文件特定的字段。
+    现在统一处理文件和文件夹，但主要用于文件处理结果。
     """
 
-    file_info: FileInfo = Field(..., description="文件信息")
-    context: FileContext = Field(..., description="处理上下文")
+    item_info: PathItemInfo = Field(..., description="路径项信息")
+    context: PathItemContext = Field(..., description="处理上下文")

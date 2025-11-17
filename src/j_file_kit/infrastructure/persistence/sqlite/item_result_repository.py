@@ -14,9 +14,10 @@ from pathlib import Path
 from typing import Any
 
 from j_file_kit.models import (
-    FileContext,
-    FileInfo,
     FileItemResult,
+    PathItemContext,
+    PathItemInfo,
+    PathItemType,
     ProcessorResult,
 )
 
@@ -55,8 +56,9 @@ class ItemResultRepository:
 
         # 构建item_data JSON：存储任务类型特定的数据
         item_data = {
-            "path": str(result.file_info.path),
-            "name": result.file_info.name,
+            "path": str(result.item_info.path),
+            "name": result.item_info.name,
+            "item_type": result.item_info.item_type,
             "type": result.context.file_type.value
             if result.context.file_type
             else None,
@@ -268,9 +270,9 @@ class ItemResultRepository:
         Returns:
             FileItemResult 对象
         """
-        # 反序列化 FileContext
+        # 反序列化 PathItemContext
         context_data = json.loads(row["context_data"]) if row["context_data"] else {}
-        context = FileContext.model_validate(context_data)
+        context = PathItemContext.model_validate(context_data)
 
         # 反序列化 ProcessorResult 列表
         processor_results_data = (
@@ -286,14 +288,17 @@ class ItemResultRepository:
         if not item_path:
             raise ValueError(f"item_data 中缺少 path 字段: {row['id']}")
         path_obj = Path(item_path)
-        file_info = FileInfo(
-            path=path_obj,
-            name=item_data.get("name", path_obj.stem),
-            suffix=path_obj.suffix.lower(),
+        # 从item_data中获取item_type，如果没有则默认为FILE（向后兼容）
+        item_type_str = item_data.get("item_type", PathItemType.FILE)
+        item_type = (
+            PathItemType(item_type_str)
+            if isinstance(item_type_str, str)
+            else PathItemType.FILE
         )
+        item_info = PathItemInfo.from_path(path_obj, item_type)
 
         return FileItemResult(
-            file_info=file_info,
+            item_info=item_info,
             context=context,
             processor_results=processor_results,
             total_duration_ms=row["total_duration_ms"],

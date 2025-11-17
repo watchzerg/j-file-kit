@@ -10,10 +10,11 @@ import os
 from collections.abc import Generator
 from pathlib import Path
 
+from ...models import PathItemType
 from .operations import is_directory, path_exists
 
 
-def scan_directory_items(root: Path) -> Generator[tuple[Path, bool]]:
+def scan_directory_items(root: Path) -> Generator[tuple[Path, PathItemType]]:
     """扫描目录下的所有文件和目录（自底向上遍历）
 
     自底向上遍历确保子目录先于父目录被处理，这样当子目录被删除后，
@@ -24,7 +25,7 @@ def scan_directory_items(root: Path) -> Generator[tuple[Path, bool]]:
         root: 根目录路径
 
     Yields:
-        tuple[Path, bool]: (路径, 是否为文件) 元组，True表示文件，False表示目录
+        tuple[Path, PathItemType]: (路径, 路径项类型) 元组，返回 PathItemType.FILE 或 PathItemType.DIRECTORY
 
     Raises:
         FileNotFoundError: 目录不存在
@@ -47,8 +48,8 @@ def scan_directory_items(root: Path) -> Generator[tuple[Path, bool]]:
         # 先yield所有文件（确保同一目录下的文件先于目录被处理）
         for filename in filenames:
             file_path = dir_path / filename
-            yield (file_path, True)
+            yield (file_path, PathItemType.FILE)
 
         # 再yield当前目录（如果dirpath不是root本身，避免返回根目录）
         if dir_path != root:
-            yield (dir_path, False)
+            yield (dir_path, PathItemType.DIRECTORY)

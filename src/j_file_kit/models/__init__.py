@@ -4,11 +4,12 @@
 包含领域实体、值对象和领域异常。
 """
 
-from .contexts import FileContext, ItemContext
+from .contexts import ItemContext, PathItemContext
 from .enums import (
-    FileAction,
     FileType,
     OperationType,
+    PathItemAction,
+    PathItemType,
     ProcessorStatus,
     TaskStatus,
     TaskType,
@@ -23,24 +24,24 @@ from .exceptions import (
 from .operations import Operation
 from .results import FileItemResult, ItemResult, ProcessorResult
 from .task import Task, TaskReport
-from .value_objects import DirectoryInfo, FileInfo, SerialId
+from .value_objects import PathItemInfo, SerialId
 
 __all__ = [
     # 枚举
     "ProcessorStatus",
     "FileType",
-    "FileAction",
+    "PathItemType",
+    "PathItemAction",
     "TaskStatus",
     "TaskType",
     "TriggerType",
     "OperationType",
     # 值对象
     "SerialId",
-    "FileInfo",
-    "DirectoryInfo",
+    "PathItemInfo",
     # 上下文
     "ItemContext",
-    "FileContext",
+    "PathItemContext",
     # 结果
     "ProcessorResult",
     "ItemResult",

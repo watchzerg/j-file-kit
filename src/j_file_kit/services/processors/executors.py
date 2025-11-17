@@ -1,7 +1,7 @@
 """执行器实现
 
 实现文件操作功能，如文件移动、删除等。
-执行器根据FileContext中的action决策执行相应的文件操作。
+执行器根据PathItemContext中的action决策执行相应的文件操作。
 
 这些处理器位于服务层，可以依赖infrastructure层。
 """
@@ -15,20 +15,27 @@ from ...infrastructure.filesystem.operations import (
     create_directory,
     delete_directory,
     delete_file,
-    is_directory,
     is_directory_empty,
     move_file_with_conflict_resolution,
     path_exists,
 )
 from ...interfaces.processors import Executor
-from ...models import FileAction, FileContext, OperationType, ProcessorResult
+from ...models import (
+    OperationType,
+    PathItemAction,
+    PathItemContext,
+    PathItemInfo,
+    PathItemType,
+    ProcessorResult,
+)
 
 
 class UnifiedFileExecutor(Executor):
     """统一文件执行器
 
-    根据 FileContext 中的 action 决策，执行相应的操作。
+    根据 PathItemContext 中的 action 决策，执行相应的操作。
     只负责执行，不关心路径如何生成（路径由 analyzer 组装完成）。
+    只处理文件类型的路径项。
     """
 
     def __init__(self, operation_repository: Any = None) -> None:
@@ -40,7 +47,7 @@ class UnifiedFileExecutor(Executor):
         super().__init__("UnifiedFileExecutor")
         self.operation_repository = operation_repository
 
-    def process(self, ctx: FileContext) -> ProcessorResult:  # type: ignore[override]
+    def process(self, ctx: PathItemContext) -> ProcessorResult:  # type: ignore[override]
         """根据动作类型执行操作
 
         Args:
@@ -49,24 +56,28 @@ class UnifiedFileExecutor(Executor):
         Returns:
             执行结果
         """
+        # 类型检查：只处理文件类型的项
+        if ctx.item_type != PathItemType.FILE:
+            return ProcessorResult.skip("不是文件，跳过")
+
         if not ctx.action:
             return ProcessorResult.skip("未决策动作")
 
         if ctx.action in [
-            FileAction.MOVE_TO_ORGANIZED,
-            FileAction.MOVE_TO_UNORGANIZED,
-            FileAction.MOVE_TO_ARCHIVE,
-            FileAction.MOVE_TO_MISC,
+            PathItemAction.MOVE_TO_ORGANIZED,
+            PathItemAction.MOVE_TO_UNORGANIZED,
+            PathItemAction.MOVE_TO_ARCHIVE,
+            PathItemAction.MOVE_TO_MISC,
         ]:
             return self._move_file(ctx)
-        elif ctx.action == FileAction.DELETE:
+        elif ctx.action == PathItemAction.DELETE:
             return self._delete(ctx)
-        elif ctx.action == FileAction.SKIP:
+        elif ctx.action == PathItemAction.SKIP:
             return ProcessorResult.skip("跳过处理")
         else:
             return ProcessorResult.error(f"未知动作类型: {ctx.action}")
 
-    def _move_file(self, ctx: FileContext) -> ProcessorResult:
+    def _move_file(self, ctx: PathItemContext) -> ProcessorResult:
         """移动文件（统一方法）
 
         所有移动操作都使用此方法，完全无脑执行。
@@ -85,20 +96,20 @@ class UnifiedFileExecutor(Executor):
                 return ProcessorResult.error("目标路径未设置")
 
             # 检查源文件是否存在
-            if not path_exists(ctx.file_info.path):
+            if not path_exists(ctx.item_info.path):
                 return ProcessorResult.error("源文件不存在")
 
             # 创建目录（如果不存在）
             create_directory(ctx.target_path.parent, parents=True, exist_ok=True)
 
             # 保存原始路径（用于事务日志）
-            old_path = ctx.file_info.path
+            old_path = ctx.item_info.path
 
             # 执行移动（自动处理路径冲突）
             final_path = move_file_with_conflict_resolution(old_path, ctx.target_path)
 
             # 更新上下文
-            ctx.file_info = ctx.file_info.model_copy(update={"path": final_path})
+            ctx.item_info = PathItemInfo.from_path(final_path, PathItemType.FILE)
 
             # 构建日志元数据
             log_metadata = {
@@ -106,7 +117,7 @@ class UnifiedFileExecutor(Executor):
                 "file_type": ctx.file_type.value if ctx.file_type else None,
             }
             # organized 操作额外记录 serial_id
-            if ctx.action == FileAction.MOVE_TO_ORGANIZED and ctx.serial_id:
+            if ctx.action == PathItemAction.MOVE_TO_ORGANIZED and ctx.serial_id:
                 log_metadata["serial_id"] = str(ctx.serial_id)
 
             # 记录操作日志
@@ -129,7 +140,7 @@ class UnifiedFileExecutor(Executor):
             description = ctx.action.description
             return ProcessorResult.error(f"移动到{description}失败: {str(e)}")
 
-    def _delete(self, ctx: FileContext) -> ProcessorResult:
+    def _delete(self, ctx: PathItemContext) -> ProcessorResult:
         """删除文件
 
         Args:
@@ -140,13 +151,13 @@ class UnifiedFileExecutor(Executor):
         """
         try:
             # 执行删除（文件不存在时静默成功）
-            delete_file(ctx.file_info.path, missing_ok=True)
+            delete_file(ctx.item_info.path, missing_ok=True)
 
             # 记录操作日志
             if self.operation_repository:
                 self.operation_repository.create_operation(
                     OperationType.DELETE,
-                    ctx.file_info.path,
+                    ctx.item_info.path,
                     None,
                     {
                         "action": "delete",
@@ -155,7 +166,7 @@ class UnifiedFileExecutor(Executor):
                     item_result_id=ctx.item_result_id,
                 )
 
-            return ProcessorResult.success(f"文件删除成功: {ctx.file_info.path.name}")
+            return ProcessorResult.success(f"文件删除成功: {ctx.item_info.path.name}")
 
         except Exception as e:
             return ProcessorResult.error(f"文件删除失败: {str(e)}")
@@ -165,7 +176,8 @@ class FileEmptyDirectoryExecutor(Executor):
     """空目录清理执行器
 
     在文件处理流程中同步清理空文件夹，利用自底向上遍历确保子目录先于父目录被处理。
-    通过路径判断而不是修改FileContext类型，保持类型系统简单。
+    现在使用类型信息而不是运行时检查，提供更好的类型安全。
+
     设计意图：在遍历过程中同步清理空文件夹，利用自底向上遍历顺序确保空文件夹及时清理。
     """
 
@@ -182,23 +194,22 @@ class FileEmptyDirectoryExecutor(Executor):
         self.scan_root = scan_root
         self.operation_repository = operation_repository
 
-    def process(self, ctx: FileContext) -> ProcessorResult:  # type: ignore[override]
+    def process(self, ctx: PathItemContext) -> ProcessorResult:  # type: ignore[override]
         """处理目录清理
 
-        通过路径判断是否为目录，如果是目录且为空，则删除。
-        目录清理是轻量级操作，不需要完整的上下文信息，因此通过路径判断而不是修改FileContext类型。
+        使用类型信息检查是否为目录，如果是目录且为空，则删除。
 
         Args:
-            ctx: 处理上下文（通过ctx.file_info.path获取路径）
+            ctx: 处理上下文
 
         Returns:
             处理结果
         """
-        path = ctx.file_info.path
-
-        # 检查路径是否为目录（通过路径判断，不修改FileContext类型）
-        if not is_directory(path):
+        # 使用类型信息检查而不是运行时检查
+        if ctx.item_type != PathItemType.DIRECTORY:
             return ProcessorResult.skip("不是目录，跳过")
+
+        path = ctx.item_info.path
 
         # 检查目录是否为scan_root（完全匹配，保护扫描根目录不被删除）
         # 使用resolve()确保规范化路径比较，处理符号链接和相对路径

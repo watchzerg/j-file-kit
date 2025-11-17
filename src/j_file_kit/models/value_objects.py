@@ -7,9 +7,12 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
+
+if TYPE_CHECKING:
+    from .enums import PathItemType
 
 
 class SerialId(BaseModel):
@@ -91,40 +94,50 @@ class SerialId(BaseModel):
         return f"{self.prefix}-{self.number}"
 
 
-class FileInfo(BaseModel):
-    """文件基础信息模型
+class PathItemInfo(BaseModel):
+    """路径项基础信息模型
 
-    轻量级模型，仅包含文件名相关的基础信息，避免文件系统开销。
+    统一文件和文件夹的信息模型，消除类型不匹配问题。
+    根据 item_type 区分文件和文件夹，文件包含 suffix，文件夹不包含。
     """
 
-    path: Path = Field(..., description="文件路径")
-    name: str = Field(..., description="文件名（不含扩展名）")
-    suffix: str = Field(..., description="文件扩展名（含点号）")
+    path: Path = Field(..., description="路径")
+    name: str = Field(..., description="名称")
+    suffix: str | None = Field(
+        None, description="文件扩展名（含点号，仅文件有，文件夹为 None）"
+    )
+    item_type: str = Field(..., description="路径项类型（文件或文件夹）")
 
     @classmethod
-    def from_path(cls, path: Path) -> FileInfo:
-        """从路径创建 FileInfo"""
-        return cls(path=path, name=path.stem, suffix=path.suffix.lower())
+    def from_path(cls, path: Path, item_type: str | PathItemType) -> PathItemInfo:
+        """从路径创建 PathItemInfo
 
-
-class DirectoryInfo(BaseModel):
-    """目录基础信息模型
-
-    用于表示目录信息，与FileInfo对应，支持统一的扫描接口。
-    设计意图：在文件处理流程中，需要同时处理文件和目录，DirectoryInfo提供了目录的统一抽象。
-    """
-
-    path: Path = Field(..., description="目录路径")
-    name: str = Field(..., description="目录名")
-
-    @classmethod
-    def from_path(cls, path: Path) -> DirectoryInfo:
-        """从路径创建 DirectoryInfo
+        根据 item_type 决定是否提取 suffix（文件提取，目录为 None）。
 
         Args:
-            path: 目录路径
+            path: 路径
+            item_type: 路径项类型（PathItemType 枚举值或字符串）
 
         Returns:
-            DirectoryInfo 对象
+            PathItemInfo 对象
         """
-        return cls(path=path, name=path.name)
+        from .enums import PathItemType
+
+        # 确保 item_type 是 PathItemType 枚举
+        if isinstance(item_type, str):
+            item_type = PathItemType(item_type)
+
+        if item_type == PathItemType.FILE:
+            return cls(
+                path=path,
+                name=path.stem,
+                suffix=path.suffix.lower() if path.suffix else None,
+                item_type=item_type.value,
+            )
+        else:
+            return cls(
+                path=path,
+                name=path.name,
+                suffix=None,
+                item_type=item_type.value,
+            )

@@ -27,10 +27,10 @@ from ..interfaces.processors import (
     ProcessorChain,
 )
 from ..models import (
-    DirectoryInfo,
-    FileContext,
-    FileInfo,
     FileItemResult,
+    PathItemContext,
+    PathItemInfo,
+    PathItemType,
     ProcessorResult,
     ProcessorStatus,
     TaskReport,
@@ -153,16 +153,20 @@ class Pipeline:
 
         return UnifiedFileExecutor(self.operation_repository)
 
-    def _create_initial_context(self, file_info: FileInfo) -> FileContext:
+    def _create_initial_context(self, item_info: PathItemInfo) -> PathItemContext:
         """创建初始处理上下文
 
         Args:
-            file_info: 文件信息
+            item_info: 路径项信息
 
         Returns:
             初始化的处理上下文
         """
-        return FileContext.model_construct(file_info=file_info)
+        # 将字符串类型的 item_type 转换为枚举类型
+        item_type_enum = PathItemType(item_info.item_type)
+        return PathItemContext.model_construct(
+            item_info=item_info, item_type=item_type_enum
+        )
 
     def _extract_error_message(
         self, processor_results: list[ProcessorResult]
@@ -181,77 +185,80 @@ class Pipeline:
         )
 
     def _create_error_result(
-        self, file_info: FileInfo, error: Exception
+        self, item_info: PathItemInfo, error: Exception
     ) -> FileItemResult:
         """创建错误结果
 
         Args:
-            file_info: 文件信息
+            item_info: 路径项信息
             error: 异常对象
 
         Returns:
             错误文件结果
         """
         return FileItemResult(
-            file_info=file_info,
-            context=self._create_initial_context(file_info),
+            item_info=item_info,
+            context=self._create_initial_context(item_info),
             success=False,
             error_message=str(error),
             total_duration_ms=0.0,
         )
 
-    def _process_single_directory(
-        self, directory_info: DirectoryInfo, dry_run: bool
-    ) -> None:
+    def _process_single_directory(self, item_info: PathItemInfo, dry_run: bool) -> None:
         """处理单个目录
 
         在遍历过程中同步处理目录，利用自底向上遍历顺序确保空文件夹及时清理。
-        直接传递DirectoryInfo给Executor，虽然类型不匹配但运行时安全。
         目录清理是辅助操作，不需要复杂的统计和持久化，只需简单日志记录。
 
         Args:
-            directory_info: 目录信息
+            item_info: 路径项信息（目录类型）
             dry_run: 是否为预览模式
         """
         # 仅在非dry_run模式下执行
         if dry_run:
             return
 
-        # 创建FileContext，将directory_info赋值给ctx.file_info
-        # 虽然类型声明是FileInfo，但FileEmptyDirectoryExecutor会通过路径判断，运行时安全
-        ctx = FileContext.model_construct(file_info=directory_info)
+        # 创建PathItemContext，设置item_type为DIRECTORY
+        ctx = PathItemContext.model_construct(
+            item_info=item_info, item_type=PathItemType.DIRECTORY
+        )
 
         # 调用FileEmptyDirectoryExecutor处理（如果存在）
         if self.empty_directory_executor:
             result = self.empty_directory_executor.process(ctx)
             # 记录日志
             if result.status == ProcessorStatus.SUCCESS:
-                self.logger.info(f"目录清理成功: {directory_info.path}")
+                self.logger.info(f"目录清理成功: {item_info.path}")
             elif result.status == ProcessorStatus.SKIP:
                 # 跳过的情况不需要记录日志
                 pass
             elif result.status == ProcessorStatus.ERROR:
                 self.logger.error(
-                    f"目录清理失败: {directory_info.path}",
+                    f"目录清理失败: {item_info.path}",
                     {"error": result.message},
                 )
 
     def _process_single_file(
-        self, file_info: FileInfo, dry_run: bool
+        self, item_info: PathItemInfo, dry_run: bool
     ) -> FileItemResult:
         """处理单个文件
 
         Args:
-            file_info: 文件信息
+            item_info: 路径项信息（文件类型）
             dry_run: 是否为预览模式
 
         Returns:
             文件结果
         """
+        # 类型检查：只处理文件类型的项
+        item_type_enum = PathItemType(item_info.item_type)
+        if item_type_enum != PathItemType.FILE:
+            raise ValueError(f"期望文件类型，但收到: {item_info.item_type}")
+
         file_start_time = time.time()
 
         # 创建处理上下文
-        ctx = self._create_initial_context(file_info)
+        ctx = self._create_initial_context(item_info)
 
         # 根据模式执行不同的处理器
         if dry_run:
@@ -264,7 +271,7 @@ class Pipeline:
 
         # 创建文件结果
         return FileItemResult(
-            file_info=file_info,
+            item_info=item_info,
             context=ctx,
             processor_results=processor_results,
             total_duration_ms=file_duration_ms,
@@ -350,17 +357,19 @@ class Pipeline:
                 raise ValueError("扫描根目录未设置")
 
             # 处理每个文件和目录（使用生成器模式，边扫描边处理）
-            for path, is_file in scan_directory_items(self.scan_root):
+            for path, item_type in scan_directory_items(self.scan_root):
                 # 检查是否被取消
                 if cancelled_event and cancelled_event.is_set():
                     self.logger.info("任务已被取消")
                     break
 
                 try:
+                    # 统一处理：使用 PathItemInfo.from_path 创建信息对象
+                    item_info = PathItemInfo.from_path(path, item_type)
+
                     # 根据类型判断：文件或目录
-                    if is_file:
-                        file_info = FileInfo.from_path(path)
-                        file_result = self._process_single_file(file_info, dry_run)
+                    if item_type == PathItemType.FILE:
+                        file_result = self._process_single_file(item_info, dry_run)
                         # 保存到数据库
                         item_result_id = self.item_result_repository.save_result(
                             file_result
@@ -372,17 +381,16 @@ class Pipeline:
                         self.logger.log_item_result(file_result)
                     else:
                         # 处理目录（清理空文件夹）
-                        directory_info = DirectoryInfo.from_path(path)
-                        self._process_single_directory(directory_info, dry_run)
+                        self._process_single_directory(item_info, dry_run)
                 except Exception as e:
                     # 处理单个文件或目录时的异常
                     error_msg = "分析失败" if dry_run else "处理失败"
                     item_path = path
                     self.logger.error(f"{error_msg}: {item_path}", {"error": str(e)})
                     # 如果是文件，创建错误结果并保存
-                    if is_file:
-                        file_info = FileInfo.from_path(path)
-                        error_result = self._create_error_result(file_info, e)
+                    if item_type == PathItemType.FILE:
+                        item_info = PathItemInfo.from_path(path, item_type)
+                        error_result = self._create_error_result(item_info, e)
                         # 立即保存到数据库
                         item_result_id = self.item_result_repository.save_result(
                             error_result
@@ -424,7 +432,7 @@ class Pipeline:
 
         self.report.total_duration_ms += result.total_duration_ms
 
-    def _run_analyzers_only(self, ctx: FileContext) -> list[ProcessorResult]:
+    def _run_analyzers_only(self, ctx: PathItemContext) -> list[ProcessorResult]:
         """仅执行分析器（用于预览模式）
 
         Args:

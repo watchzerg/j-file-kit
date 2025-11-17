@@ -92,7 +92,7 @@ class StructuredLogger:
             result: 文件item处理结果
         """
         data = {
-            "file_path": str(result.file_info.path),
+            "file_path": str(result.item_info.path),
             "file_type": result.context.file_type,
             "serial_id": str(result.context.serial_id)
             if result.context.serial_id
@@ -108,7 +108,7 @@ class StructuredLogger:
         if result.error_message:
             data["error_message"] = result.error_message
 
-        self._write_log("ITEM_RESULT", f"处理文件: {result.file_info.path.name}", data)
+        self._write_log("ITEM_RESULT", f"处理文件: {result.item_info.path.name}", data)
 
     def log_task_start(self, scan_root: str) -> None:
         """记录任务开始"""
