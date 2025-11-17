@@ -10,12 +10,13 @@ import sqlite3
 from datetime import datetime
 from typing import Any
 
-from ...models import (  # type: ignore[import-untyped]
+from j_file_kit.models import (
     Task,
     TaskStatus,
     TaskType,
     TriggerType,
 )
+
 from .connection import SQLiteConnectionManager
 
 

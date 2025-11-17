@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import threading
 from datetime import datetime
-from typing import cast
 
 from ..infrastructure.persistence import (
     ItemResultRepository,
@@ -256,7 +255,7 @@ class TaskManager:
         task_model = self.task_repository.get_task(task_id)
         if task_model is None:
             raise TaskNotFoundError(task_id)
-        return cast(Task, task_model)
+        return task_model
 
     def list_tasks(self) -> list[Task]:
         """列出所有任务

@@ -13,7 +13,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ...models import Operation, OperationType  # type: ignore[import-untyped]
+from j_file_kit.models import Operation, OperationType
+
 from .connection import SQLiteConnectionManager
 
 
