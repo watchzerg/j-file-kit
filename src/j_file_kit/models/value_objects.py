@@ -1,18 +1,14 @@
 """领域值对象
 
-定义不可变的值对象，如番号、文件信息等。
+定义不可变的值对象，如番号等。
 """
 
 from __future__ import annotations
 
 import re
-from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-
-if TYPE_CHECKING:
-    from .enums import PathItemType
 
 
 class SerialId(BaseModel):
@@ -92,52 +88,3 @@ class SerialId(BaseModel):
     def __str__(self) -> str:
         """转换为字符串格式：PREFIX-NUMBER"""
         return f"{self.prefix}-{self.number}"
-
-
-class PathItemInfo(BaseModel):
-    """路径项基础信息模型
-
-    统一文件和文件夹的信息模型，消除类型不匹配问题。
-    根据 item_type 区分文件和文件夹，文件包含 suffix，文件夹不包含。
-    """
-
-    path: Path = Field(..., description="路径")
-    stem: str = Field(..., description="名称（不含扩展名）")
-    suffix: str | None = Field(
-        None, description="文件扩展名（含点号，仅文件有，文件夹为 None）"
-    )
-    item_type: str = Field(..., description="路径项类型（文件或文件夹）")
-
-    @classmethod
-    def from_path(cls, path: Path, item_type: str | PathItemType) -> PathItemInfo:
-        """从路径创建 PathItemInfo
-
-        根据 item_type 决定是否提取 suffix（文件提取，目录为 None）。
-
-        Args:
-            path: 路径
-            item_type: 路径项类型（PathItemType 枚举值或字符串）
-
-        Returns:
-            PathItemInfo 对象
-        """
-        from .enums import PathItemType
-
-        # 确保 item_type 是 PathItemType 枚举
-        if isinstance(item_type, str):
-            item_type = PathItemType(item_type)
-
-        if item_type == PathItemType.FILE:
-            return cls(
-                path=path,
-                stem=path.stem,
-                suffix=path.suffix.lower() if path.suffix else None,
-                item_type=item_type.value,
-            )
-        else:
-            return cls(
-                path=path,
-                stem=path.stem,
-                suffix=None,
-                item_type=item_type.value,
-            )

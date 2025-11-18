@@ -6,11 +6,33 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-from .enums import TaskStatus, TaskType, TriggerType
+
+class TaskStatus(str, Enum):
+    """任务状态枚举"""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class TaskType(str, Enum):
+    """任务类型枚举"""
+
+    VIDEO_ORGANIZER = "video_organizer"
+
+
+class TriggerType(str, Enum):
+    """触发类型枚举"""
+
+    MANUAL = "manual"
+    AUTO = "auto"
 
 
 class TaskReport(BaseModel):

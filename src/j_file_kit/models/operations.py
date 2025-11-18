@@ -7,12 +7,21 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-from .enums import OperationType
+
+class OperationType(str, Enum):
+    """操作类型枚举"""
+
+    RENAME = "rename"
+    MOVE = "move"
+    DELETE = "delete"
+    CREATE_DIR = "create_dir"
+    DELETE_DIR = "delete_dir"
 
 
 class Operation(BaseModel):

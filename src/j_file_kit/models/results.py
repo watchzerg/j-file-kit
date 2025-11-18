@@ -5,13 +5,22 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field
 
 from .contexts import ItemContext, PathItemContext
-from .enums import ProcessorStatus
-from .value_objects import PathItemInfo
+from .path_item import PathItemInfo
+
+
+class ProcessorStatus(str, Enum):
+    """处理器状态枚举"""
+
+    SUCCESS = "success"
+    ERROR = "error"
+    SKIP = "skip"
+    WARNING = "warning"
 
 
 class ProcessorResult(BaseModel):
