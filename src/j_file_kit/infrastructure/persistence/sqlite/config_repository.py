@@ -10,15 +10,16 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from j_file_kit.models.config import GlobalConfig, TaskDefinition
+from j_file_kit.models.config import GlobalConfig, TaskConfig
 
 from .connection import SQLiteConnectionManager
 
 
-class ConfigRepository:
-    """配置仓储
+class AppConfigRepository:
+    """应用配置仓储
 
-    提供配置数据的持久化操作。
+    提供应用配置数据的持久化操作，管理 AppConfig 的持久化。
+    包括全局配置和任务配置的 CRUD 操作。
     """
 
     def __init__(self, connection_manager: SQLiteConnectionManager) -> None:
@@ -52,17 +53,17 @@ class ConfigRepository:
             starred_dir=to_path(row["starred_dir"]),
         )
 
-    def _row_to_task_definition(self, row: sqlite3.Row) -> TaskDefinition:
-        """将数据库行转换为 TaskDefinition 对象
+    def _row_to_task_config(self, row: sqlite3.Row) -> TaskConfig:
+        """将数据库行转换为 TaskConfig 对象
 
         Args:
             row: 数据库行
 
         Returns:
-            TaskDefinition 对象
+            TaskConfig 对象
         """
         config_dict = json.loads(row["config"])
-        return TaskDefinition(
+        return TaskConfig(
             name=row["name"],
             type=row["type"],
             enabled=bool(row["enabled"]),
@@ -86,7 +87,7 @@ class ConfigRepository:
         如果配置表为空，使用 config.py 中定义的默认配置进行初始化。
         使用延迟导入避免与 config.py 的循环依赖。
         """
-        # 延迟导入，避免循环导入（config.py 在模块级别导入了 ConfigRepository）
+        # 延迟导入，避免循环导入（config.py 在模块级别导入了 AppConfigRepository）
         from ...config.config import (
             create_default_global_config,
             create_default_task_configs,
@@ -174,7 +175,7 @@ class ConfigRepository:
                 ),
             )
 
-    def get_all_tasks(self) -> list[TaskDefinition]:
+    def get_all_tasks(self) -> list[TaskConfig]:
         """获取所有任务配置
 
         Returns:
@@ -186,9 +187,9 @@ class ConfigRepository:
             )
             rows = cursor.fetchall()
 
-            return [self._row_to_task_definition(row) for row in rows]
+            return [self._row_to_task_config(row) for row in rows]
 
-    def get_task(self, name: str) -> TaskDefinition | None:
+    def get_task(self, name: str) -> TaskConfig | None:
         """获取单个任务配置
 
         Args:
@@ -207,9 +208,9 @@ class ConfigRepository:
             if row is None:
                 return None
 
-            return self._row_to_task_definition(row)
+            return self._row_to_task_config(row)
 
-    def update_task(self, task: TaskDefinition) -> None:
+    def update_task(self, task: TaskConfig) -> None:
         """更新任务配置
 
         Args:
@@ -235,7 +236,7 @@ class ConfigRepository:
                 (task.type, task.enabled, config_json, updated_at, task.name),
             )
 
-    def create_task(self, task: TaskDefinition) -> None:
+    def create_task(self, task: TaskConfig) -> None:
         """创建任务配置
 
         Args:

@@ -26,10 +26,10 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - `task.py`: 任务模型（Task、TaskReport）
   - `Task`: 任务实例模型，存储在数据库中
   - `TaskReport`: 任务执行报告，仅用于内部日志记录，不作为返回值
-- `config.py`: 配置数据模型（GlobalConfig、TaskConfig、TaskDefinition、JavVideoOrganizeConfig）
+- `config.py`: 配置数据模型（GlobalConfig、AppConfig、TaskConfig、JavVideoOrganizeConfig）
   - `GlobalConfig`: 全局配置模型，定义目录路径等全局设置
-  - `TaskConfig`: 完整任务配置模型，包含全局配置和任务列表
-  - `TaskDefinition`: 任务定义模型，定义单个任务的配置
+  - `AppConfig`: 应用级配置模型，包含全局配置和任务配置列表（配置聚合根）
+  - `TaskConfig`: 任务配置模型，定义单个任务的配置
   - `JavVideoOrganizeConfig`: JAV视频文件整理任务特定配置模型
 - `value_objects.py`: 值对象（SerialId、FileInfo、DirectoryInfo）
 - `contexts.py`: 上下文对象（ItemContext、FileContext）
@@ -111,7 +111,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - `persistence/`: 持久化
   - `sqlite/`: SQLite数据库实现
     - `connection.py`: 数据库连接管理和表结构定义（SQLiteConnectionManager）
-    - `config_repository.py`: 配置仓储（ConfigRepository），管理全局配置和任务配置
+    - `config_repository.py`: 应用配置仓储（AppConfigRepository），管理全局配置和任务配置
     - `task_repository.py`: 任务仓储（TaskRepository），管理任务实例
     - `item_result_repository.py`: Item结果仓储（ItemResultRepository），管理item处理结果
     - `operation_repository.py`: 操作记录仓储（OperationRepository），记录文件操作历史
@@ -124,8 +124,8 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - `config/`: 配置加载
   - `config.py`: 配置加载函数
     - `load_config_from_db()`: 从SQLite数据库加载配置
-    - `create_default_global_config()`: 创建默认全局配置（单一数据源，被 ConfigRepository 使用）
-    - `create_default_task_configs()`: 创建默认任务配置（单一数据源，被 ConfigRepository 使用）
+    - `create_default_global_config()`: 创建默认全局配置（单一数据源，被 AppConfigRepository 使用）
+    - `create_default_task_configs()`: 创建默认任务配置（单一数据源，被 AppConfigRepository 使用）
     - 注意：配置模型定义在 models/config.py 中
 - `logging/`: 日志
   - `logger.py`: 结构化日志记录器（JSON Lines格式）
@@ -306,9 +306,9 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 
 1. 应用启动时，`AppState.__init__()` 创建 `SQLiteConnectionManager`
 2. 连接管理器自动创建表结构（如果不存在）
-3. `ConfigRepository` 检查配置表，如果为空则创建默认配置
+3. `AppConfigRepository` 检查配置表，如果为空则创建默认配置
 4. `load_config_from_db()` 从数据库加载配置到内存
-5. HTTP API 更新配置时，使用 `ConfigRepository` 更新数据库，然后调用 `AppState.reload_config()` 重新加载
+5. HTTP API 更新配置时，使用 `AppConfigRepository` 更新数据库，然后调用 `AppState.reload_config()` 重新加载
 
 ## 数据流
 
@@ -393,7 +393,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 ### 1. 配置系统迁移到 SQLite
 
 - **原因**: 统一数据存储，便于管理和查询
-- **实现**: 使用 `ConfigRepository` 管理配置，支持事务更新
+- **实现**: 使用 `AppConfigRepository` 管理配置，支持事务更新
 - **优势**: 配置与任务数据统一存储，便于备份和迁移
 
 ### 2. 路径冲突处理机制
@@ -414,7 +414,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 ### 4. 仓储模式
 
 - **实现**: 使用仓储模式封装数据库操作
-- **仓储**: `ConfigRepository`、`TaskRepository`、`ItemResultRepository`、`OperationRepository`
+- **仓储**: `AppConfigRepository`、`TaskRepository`、`ItemResultRepository`、`OperationRepository`
 - **优势**: 统一数据访问接口，便于测试和替换实现
 
 ### 5. JSON 字段设计

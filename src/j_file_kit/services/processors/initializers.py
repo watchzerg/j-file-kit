@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING
 
 from ...interfaces.processors import Initializer
 from ...models import ProcessorResult, TaskStatus
-from ...models.config import TaskConfig
+from ...models.config import AppConfig
 
 if TYPE_CHECKING:
     from ...infrastructure.persistence import TaskRepository
@@ -80,12 +80,12 @@ class FileConfigValidatorInitializer(Initializer):
 
     def __init__(
         self,
-        config: TaskConfig,
+        config: AppConfig,
     ) -> None:
         """初始化文件任务配置验证初始化器
 
         Args:
-            config: 任务配置
+            config: 应用配置
         """
         super().__init__("FileConfigValidatorInitializer")
         self.config = config
@@ -198,12 +198,12 @@ class FileResourceInitializer(Initializer):
 
     def __init__(
         self,
-        config: TaskConfig,
+        config: AppConfig,
     ) -> None:
         """初始化文件任务资源初始化器
 
         Args:
-            config: 任务配置（用于访问GlobalConfig中的目录）
+            config: 应用配置（用于访问GlobalConfig中的目录）
         """
         super().__init__("FileResourceInitializer")
         self.config = config

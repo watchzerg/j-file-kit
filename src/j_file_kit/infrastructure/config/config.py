@@ -6,9 +6,9 @@
 
 from __future__ import annotations
 
-from j_file_kit.models.config import GlobalConfig, TaskConfig, TaskDefinition
+from j_file_kit.models.config import AppConfig, GlobalConfig, TaskConfig
 
-from ..persistence import ConfigRepository, SQLiteConnectionManager
+from ..persistence import AppConfigRepository, SQLiteConnectionManager
 
 
 def create_default_global_config() -> GlobalConfig:
@@ -27,14 +27,14 @@ def create_default_global_config() -> GlobalConfig:
     )
 
 
-def create_default_task_configs() -> list[TaskDefinition]:
+def create_default_task_configs() -> list[TaskConfig]:
     """创建默认任务配置
 
     Returns:
         默认任务配置列表（包含 jav_video_organizer）
     """
     return [
-        TaskDefinition(
+        TaskConfig(
             name="jav_video_organizer",
             type="file_organize",
             enabled=True,
@@ -76,23 +76,23 @@ def create_default_task_configs() -> list[TaskDefinition]:
     ]
 
 
-def load_config_from_db(conn_manager: SQLiteConnectionManager) -> TaskConfig:
+def load_config_from_db(conn_manager: SQLiteConnectionManager) -> AppConfig:
     """从数据库加载配置
 
     Args:
         conn_manager: SQLite 连接管理器
 
     Returns:
-        配置对象
+        应用配置对象（AppConfig）
 
     Raises:
         ValueError: 如果配置加载失败
     """
-    config_repository = ConfigRepository(conn_manager)
+    app_config_repository = AppConfigRepository(conn_manager)
 
     try:
-        global_config = config_repository.get_global_config()
-        tasks = config_repository.get_all_tasks()
-        return TaskConfig.model_validate({"global": global_config, "tasks": tasks})
+        global_config = app_config_repository.get_global_config()
+        tasks = app_config_repository.get_all_tasks()
+        return AppConfig.model_validate({"global": global_config, "tasks": tasks})
     except Exception as e:
         raise ValueError(f"从数据库加载配置失败: {e}") from e

@@ -52,8 +52,11 @@ class JavVideoOrganizeConfig(BaseModel):
         return self
 
 
-class TaskDefinition(BaseModel):
-    """任务定义"""
+class TaskConfig(BaseModel):
+    """任务配置
+
+    定义单个任务的配置，包括任务名称、类型、启用状态和任务特定配置。
+    """
 
     name: str = Field(..., description="任务名称")
     type: Literal["file_organize", "db_update"] = Field(..., description="任务类型")
@@ -65,21 +68,25 @@ class TaskDefinition(BaseModel):
         return config_type.model_validate(self.config)  # type: ignore[no-any-return, attr-defined]
 
 
-class TaskConfig(BaseModel):
-    """完整任务配置"""
+class AppConfig(BaseModel):
+    """应用级配置
+
+    应用级配置聚合根，包含全局配置和所有任务配置列表。
+    这是应用配置的顶层模型，用于管理整个应用的配置状态。
+    """
 
     model_config = ConfigDict(populate_by_name=True)
 
     global_: GlobalConfig = Field(alias="global", description="全局配置")
-    tasks: list[TaskDefinition] = Field(..., description="任务列表")
+    tasks: list[TaskConfig] = Field(..., description="任务配置列表")
 
     @property
-    def enabled_tasks(self) -> list[TaskDefinition]:
-        """获取启用的任务"""
+    def enabled_tasks(self) -> list[TaskConfig]:
+        """获取启用的任务配置"""
         return [task for task in self.tasks if task.enabled]
 
-    def get_task(self, name: str) -> TaskDefinition | None:
-        """根据名称获取任务"""
+    def get_task(self, name: str) -> TaskConfig | None:
+        """根据名称获取任务配置"""
         for task in self.tasks:
             if task.name == name:
                 return task

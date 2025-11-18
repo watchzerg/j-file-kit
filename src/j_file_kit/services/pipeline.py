@@ -34,7 +34,7 @@ from ..models import (
     ProcessorStatus,
     TaskReport,
 )
-from ..models.config import TaskConfig
+from ..models.config import AppConfig
 
 
 class Pipeline:
@@ -45,7 +45,7 @@ class Pipeline:
 
     def __init__(
         self,
-        config: TaskConfig,
+        config: AppConfig,
         task_name: str,
         log_dir: Path,
         operation_repository: OperationRepository,

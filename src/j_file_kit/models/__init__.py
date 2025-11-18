@@ -5,10 +5,10 @@
 """
 
 from .config import (
+    AppConfig,
     GlobalConfig,
     JavVideoOrganizeConfig,
     TaskConfig,
-    TaskDefinition,
 )
 from .contexts import ItemContext, PathItemContext
 from .enums import FileType
@@ -36,8 +36,8 @@ __all__ = [
     "OperationType",
     # 配置模型
     "GlobalConfig",
+    "AppConfig",
     "TaskConfig",
-    "TaskDefinition",
     "JavVideoOrganizeConfig",
     # 值对象
     "SerialId",

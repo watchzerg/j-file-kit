@@ -9,12 +9,12 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from j_file_kit.models.config import TaskConfig
+from j_file_kit.models.config import AppConfig
 
 from ..services.task_manager import TaskManager
 from .config.config import load_config_from_db
 from .filesystem.operations import create_directory
-from .persistence import ConfigRepository, SQLiteConnectionManager, TaskRepository
+from .persistence import AppConfigRepository, SQLiteConnectionManager, TaskRepository
 
 
 class AppState:
@@ -43,11 +43,11 @@ class AppState:
         # 创建 SQLite 连接管理器（表结构在 __init__ 中自动创建）
         self.sqlite_conn = SQLiteConnectionManager(self.db_path)
 
-        # 创建配置仓储（会自动初始化默认配置）
-        self.config_repository = ConfigRepository(self.sqlite_conn)
+        # 创建应用配置仓储（会自动初始化默认配置）
+        self.app_config_repository = AppConfigRepository(self.sqlite_conn)
 
         # 从数据库加载配置
-        self.config: TaskConfig = load_config_from_db(self.sqlite_conn)
+        self.config: AppConfig = load_config_from_db(self.sqlite_conn)
 
         # 创建任务仓储
         self.task_repository = TaskRepository(self.sqlite_conn)

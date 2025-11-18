@@ -13,7 +13,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 
 from ..infrastructure.app_state import AppState
 from ..infrastructure.filesystem.operations import is_directory, path_exists
-from ..models.config import GlobalConfig, TaskConfig, TaskDefinition
+from ..models.config import AppConfig, GlobalConfig, TaskConfig
 from .models import (
     UpdateConfigRequest,
     UpdateConfigResponse,
@@ -85,16 +85,16 @@ def _merge_task_config_dict(
 
 
 def _merge_task_config(
-    current: TaskDefinition, update: UpdateTaskConfigRequest
-) -> TaskDefinition:
+    current: TaskConfig, update: UpdateTaskConfigRequest
+) -> TaskConfig:
     """合并任务配置更新
 
     Args:
-        current: 当前任务定义
+        current: 当前任务配置
         update: 更新请求
 
     Returns:
-        合并后的任务定义
+        合并后的任务配置
     """
     update_dict: dict[str, Any] = {}
     if update.name is not None:
@@ -112,8 +112,8 @@ def _merge_task_config(
 
 
 def _merge_all_task_configs(
-    current_tasks: list[TaskDefinition], task_updates: list[UpdateTaskConfigRequest]
-) -> list[TaskDefinition]:
+    current_tasks: list[TaskConfig], task_updates: list[UpdateTaskConfigRequest]
+) -> list[TaskConfig]:
     """合并所有任务配置更新
 
     Args:
@@ -272,14 +272,14 @@ def _validate_global_dirs(config: GlobalConfig) -> None:
 
 def _validate_and_save_config(
     merged_global: GlobalConfig,
-    merged_tasks: list[TaskDefinition],
+    merged_tasks: list[TaskConfig],
     app_state: AppState,
 ) -> None:
     """验证并保存配置
 
     Args:
         merged_global: 合并后的全局配置
-        merged_tasks: 合并后的任务列表
+        merged_tasks: 合并后的任务配置列表
         app_state: 应用状态
 
     Raises:
@@ -287,7 +287,7 @@ def _validate_and_save_config(
     """
     # 验证配置模型
     try:
-        TaskConfig.model_validate({"global": merged_global, "tasks": merged_tasks})
+        AppConfig.model_validate({"global": merged_global, "tasks": merged_tasks})
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -299,9 +299,9 @@ def _validate_and_save_config(
 
     # 更新数据库
     try:
-        app_state.config_repository.update_global_config(merged_global)
+        app_state.app_config_repository.update_global_config(merged_global)
         for task in merged_tasks:
-            app_state.config_repository.update_task(task)
+            app_state.app_config_repository.update_task(task)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -324,18 +324,18 @@ def _validate_and_save_config(
         ) from e
 
 
-@router.get("", response_model=TaskConfig)
-async def get_config(request: Request) -> TaskConfig:
+@router.get("", response_model=AppConfig)
+async def get_config(request: Request) -> AppConfig:
     """获取当前配置
 
     Args:
         request: HTTP请求对象
 
     Returns:
-        当前配置对象
+        当前应用配置对象
     """
     app_state: AppState = request.state.app_state
-    config: TaskConfig = app_state.config
+    config: AppConfig = app_state.config
     return config
 
 

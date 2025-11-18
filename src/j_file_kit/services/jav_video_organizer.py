@@ -19,7 +19,7 @@ from ..infrastructure.persistence import (
 )
 from ..interfaces.task import BaseTask
 from ..models import TaskType
-from ..models.config import JavVideoOrganizeConfig, TaskConfig
+from ..models.config import AppConfig, JavVideoOrganizeConfig
 from .pipeline import Pipeline
 from .processors.analyzers import (
     FileActionDecider,
@@ -43,11 +43,11 @@ class JavVideoOrganizer(BaseTask):
     这是一个完整的JAV视频文件整理任务实现，展示了如何组合使用各种处理器。
     """
 
-    def __init__(self, config: TaskConfig, log_dir: Path):
+    def __init__(self, config: AppConfig, log_dir: Path):
         """初始化JAV视频文件整理任务
 
         Args:
-            config: 任务配置
+            config: 应用配置
             log_dir: 日志目录
         """
         self.config = config
