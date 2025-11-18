@@ -1,7 +1,7 @@
 """正则表达式模式单元测试
 
 测试番号提取相关的正则表达式功能，包括：
-- extract_serial_id 函数的各种模式匹配
+- _match_serial_id 函数的各种模式匹配
 - 支持多种番号格式：连字符分隔、下划线分隔、无分隔符
 
 番号规则（基于正则表达式：`(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\\d{2,5})(?![0-9])`）：
@@ -24,7 +24,10 @@
 import pytest
 
 from j_file_kit.models import SerialId
-from j_file_kit.utils.regex_patterns import DEFAULT_SERIAL_PATTERN, extract_serial_id
+from j_file_kit.utils.filename_generation import (
+    DEFAULT_SERIAL_PATTERN,
+    _match_serial_id,
+)
 
 
 @pytest.mark.unit
@@ -139,13 +142,15 @@ class TestSerialIdExtraction:
         - 特殊字符：方括号、圆括号等
         - 多个匹配：取第一个匹配的番号
         """
-        result = extract_serial_id(filename, DEFAULT_SERIAL_PATTERN)
+        serial_id, match = _match_serial_id(filename, DEFAULT_SERIAL_PATTERN)
         if expected is None:
-            assert result is None
+            assert serial_id is None
+            assert match is None
         else:
-            assert result is not None
-            assert result.prefix == expected.prefix
-            assert result.number == expected.number
+            assert serial_id is not None
+            assert match is not None
+            assert serial_id.prefix == expected.prefix
+            assert serial_id.number == expected.number
 
 
 @pytest.mark.unit
@@ -183,7 +188,8 @@ class TestAdvancedEdgeCases:
         ]
 
         for filename, expected in test_cases:
-            result = extract_serial_id(filename, pattern)
+            serial_id, match = _match_serial_id(filename, pattern)
+            result = serial_id
             if expected is None:
                 assert result is None, (
                     f"Failed for filename: {filename}, expected: None, got: {result}"
@@ -219,7 +225,8 @@ class TestAdvancedEdgeCases:
         ]
 
         for filename, expected in separator_tests:
-            result = extract_serial_id(filename, pattern)
+            serial_id, match = _match_serial_id(filename, pattern)
+            result = serial_id
             assert result is not None
             assert (
                 result.prefix == expected.prefix and result.number == expected.number
@@ -254,7 +261,8 @@ class TestAdvancedEdgeCases:
         ]
 
         for filename, expected in letter_length_tests:
-            result = extract_serial_id(filename, pattern)
+            serial_id, match = _match_serial_id(filename, pattern)
+            result = serial_id
             if expected is None:
                 assert result is None, f"Failed for letter length test: {filename}"
             else:
@@ -292,7 +300,8 @@ class TestAdvancedEdgeCases:
         ]
 
         for filename, expected in digit_length_tests:
-            result = extract_serial_id(filename, pattern)
+            serial_id, match = _match_serial_id(filename, pattern)
+            result = serial_id
             if expected is None:
                 assert result is None, f"Failed for digit length test: {filename}"
             else:
@@ -338,7 +347,8 @@ class TestAdvancedEdgeCases:
         ]
 
         for filename, expected in boundary_tests:
-            result = extract_serial_id(filename, pattern)
+            serial_id, match = _match_serial_id(filename, pattern)
+            result = serial_id
             if expected is None:
                 assert result is None, f"Failed for boundary test: {filename}"
             else:
@@ -380,7 +390,8 @@ class TestEdgeCasesAndSpecialScenarios:
         ]
 
         for filename, expected in extension_tests:
-            result = extract_serial_id(filename, pattern)
+            serial_id, match = _match_serial_id(filename, pattern)
+            result = serial_id
             if expected is None:
                 assert result is None, f"Failed for extension test: {filename}"
             else:
@@ -409,7 +420,8 @@ class TestEdgeCasesAndSpecialScenarios:
         ]
 
         for filename, expected in special_char_tests:
-            result = extract_serial_id(filename, pattern)
+            serial_id, match = _match_serial_id(filename, pattern)
+            result = serial_id
             if expected is None:
                 assert result is None, f"Failed for special char test: {filename}"
             else:
@@ -442,7 +454,8 @@ class TestEdgeCasesAndSpecialScenarios:
         ]
 
         for filename, expected in long_filename_tests:
-            result = extract_serial_id(filename, pattern)
+            serial_id, match = _match_serial_id(filename, pattern)
+            result = serial_id
             if expected is None:
                 assert result is None, "Failed for long filename test"
             else:
@@ -473,7 +486,8 @@ class TestEdgeCasesAndSpecialScenarios:
         ]
 
         for filename, expected in multiple_serial_tests:
-            result = extract_serial_id(filename, pattern)
+            serial_id, match = _match_serial_id(filename, pattern)
+            result = serial_id
             assert result is not None
             assert (
                 result.prefix == expected.prefix and result.number == expected.number
@@ -502,7 +516,8 @@ class TestEdgeCasesAndSpecialScenarios:
         ]
 
         for filename, expected in case_tests:
-            result = extract_serial_id(filename, pattern)
+            serial_id, match = _match_serial_id(filename, pattern)
+            result = serial_id
             assert result is not None
             assert (
                 result.prefix == expected.prefix and result.number == expected.number

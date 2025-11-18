@@ -33,7 +33,6 @@ class AppState:
         # 确定固定路径
         self.db_path = self.base_dir / "sqlite" / "j_file_kit.db"
         self.log_dir = self.base_dir / "logs"
-        self.report_dir = self.base_dir / "reports"
 
         # 创建必要的目录
         create_directory(self.base_dir / "sqlite", parents=True)

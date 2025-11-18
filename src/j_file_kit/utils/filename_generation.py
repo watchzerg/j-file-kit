@@ -1,6 +1,6 @@
 """文件名生成模块
 
-提供根据番号重构文件名的功能。
+提供根据番号重构文件名的功能，包括番号匹配和文件名重构。
 
 业务规则：
 1. 文件名分解为4部分：番号之前的内容、番号、番号之后的内容、扩展名
@@ -17,6 +17,13 @@
   - 标准番号 + 空格 + 第1部分 + 占位符 + 扩展名
   - 占位符：第3部分trim后为空 → "-serialId"，否则 → "-serialId-" + 第3部分
 
+番号规则（基于正则表达式：`(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\\d{2,5})(?![0-9])`）：
+- 字母部分：2-5个英文字母（大小写都可以）
+- 分隔符：可选，支持 `-`、`_` 或无分隔符
+- 数字部分：2-5个数字
+- 边界条件：番号前面不能紧挨着字母，番号后面不能紧挨着数字
+- 输出格式：统一标准化为 `字母-数字` 格式（大写字母）
+
 标准化番号格式：大写字母 + 连字符 + 数字（如 ABC-123）
 """
 
@@ -27,10 +34,38 @@ from pathlib import Path
 
 from j_file_kit.models import SerialId
 
-from .regex_patterns import DEFAULT_SERIAL_PATTERN, extract_serial_id
+# 默认番号提取正则表达式模式
+DEFAULT_SERIAL_PATTERN = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
 
 # 文件名分隔符常量：用于 trim 操作时去除的字符
 FILENAME_SEPARATORS = " -_@#"
+
+
+def _match_serial_id(
+    filename: str, pattern: str = DEFAULT_SERIAL_PATTERN
+) -> tuple[SerialId | None, re.Match[str] | None]:
+    """内部函数：匹配番号并返回 SerialId 和 Match 对象
+
+    同时返回匹配结果和位置信息，避免重复正则匹配。
+
+    Args:
+        filename: 文件名
+        pattern: 番号正则表达式
+
+    Returns:
+        元组：(SerialId 对象, Match 对象)。如果没有匹配到，返回 (None, None)
+    """
+    match = re.search(pattern, filename, re.IGNORECASE)
+    if not match:
+        return None, None
+
+    # 获取匹配的字母和数字部分
+    letters = match.group(1).upper()
+    digits = match.group(2)
+
+    # 构造 SerialId 对象
+    serial_id = SerialId(prefix=letters, number=digits)
+    return serial_id, match
 
 
 def trim_separators(text: str) -> str:
@@ -92,16 +127,10 @@ def generate_new_filename(original_path: Path) -> tuple[Path, SerialId | None]:
     suffix = original_path.suffix
     parent = original_path.parent
 
-    # 提取番号（extract_serial_id 内部默认使用 DEFAULT_SERIAL_PATTERN）
-    serial_id = extract_serial_id(filename)
-    if not serial_id:
+    # 匹配番号并获取位置信息（一次正则匹配同时获取 SerialId 和位置）
+    serial_id, match = _match_serial_id(filename)
+    if not serial_id or not match:
         # 未匹配到番号，保持原文件名
-        return original_path, None
-
-    # 查找番号在文件名中的位置（用于分解文件名）
-    match = re.search(DEFAULT_SERIAL_PATTERN, filename, re.IGNORECASE)
-    if not match:
-        # 这种情况理论上不会发生，因为 extract_serial_id 已经验证过
         return original_path, None
 
     # 分解文件名为4部分
@@ -141,3 +170,7 @@ def generate_new_filename(original_path: Path) -> tuple[Path, SerialId | None]:
         new_filename = f"{serial_id_str} {trimmed_part1}{placeholder}{part4}"
 
     return parent / new_filename, serial_id
+
+
+# 导出所有公共函数和常量
+__all__ = ["DEFAULT_SERIAL_PATTERN", "generate_new_filename"]

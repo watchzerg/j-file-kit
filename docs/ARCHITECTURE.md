@@ -126,7 +126,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - `app_state.py`: 应用状态管理（AppState）
   - 管理全局状态：配置、任务管理器、数据库连接
   - 从环境变量 `J_FILE_KIT_BASE_DIR` 读取基础目录（默认 `.app-data`）
-  - 固定目录结构：`{base_dir}/sqlite/j_file_kit.db`、`{base_dir}/logs/`、`{base_dir}/reports/`
+  - 固定目录结构：`{base_dir}/sqlite/j_file_kit.db`、`{base_dir}/logs/`
 
 ### 5. API Layer (HTTP接口层)
 
@@ -260,7 +260,6 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - **固定目录结构**:
   - `{base_dir}/sqlite/j_file_kit.db`: 数据库文件
   - `{base_dir}/logs/`: 日志目录
-  - `{base_dir}/reports/`: 报告目录
 
 ### 数据库表结构
 
