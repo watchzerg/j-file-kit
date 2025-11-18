@@ -9,8 +9,10 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
+from j_file_kit.models.config import TaskConfig
+
 from ..services.task_manager import TaskManager
-from .config.config import TaskConfig, load_config_from_db
+from .config.config import load_config_from_db
 from .filesystem.operations import create_directory
 from .persistence import ConfigRepository, SQLiteConnectionManager, TaskRepository
 

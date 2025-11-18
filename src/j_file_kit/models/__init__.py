@@ -4,6 +4,12 @@
 包含领域实体、值对象和领域异常。
 """
 
+from .config import (
+    FileOrganizeConfig,
+    GlobalConfig,
+    TaskConfig,
+    TaskDefinition,
+)
 from .contexts import ItemContext, PathItemContext
 from .enums import FileType
 from .exceptions import (
@@ -28,6 +34,11 @@ __all__ = [
     "TaskType",
     "TriggerType",
     "OperationType",
+    # 配置模型
+    "GlobalConfig",
+    "TaskConfig",
+    "TaskDefinition",
+    "FileOrganizeConfig",
     # 值对象
     "SerialId",
     "PathItemInfo",

@@ -15,9 +15,9 @@ from typing import TYPE_CHECKING
 
 from ...interfaces.processors import Initializer
 from ...models import ProcessorResult, TaskStatus
+from ...models.config import TaskConfig
 
 if TYPE_CHECKING:
-    from ...infrastructure.config.config import TaskConfig
     from ...infrastructure.persistence import TaskRepository
 
 

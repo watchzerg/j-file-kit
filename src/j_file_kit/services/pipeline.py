@@ -11,7 +11,6 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from ..infrastructure.config.config import TaskConfig
 from ..infrastructure.filesystem.scanner import scan_directory_items
 from ..infrastructure.logging.logger import StructuredLogger
 from ..infrastructure.persistence import (
@@ -35,6 +34,7 @@ from ..models import (
     ProcessorStatus,
     TaskReport,
 )
+from ..models.config import TaskConfig
 
 
 class Pipeline:

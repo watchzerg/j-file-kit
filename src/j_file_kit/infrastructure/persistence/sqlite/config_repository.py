@@ -10,7 +10,8 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from ...config.config import GlobalConfig, TaskDefinition
+from j_file_kit.models.config import GlobalConfig, TaskDefinition
+
 from .connection import SQLiteConnectionManager
 
 

@@ -12,8 +12,8 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Request, status
 
 from ..infrastructure.app_state import AppState
-from ..infrastructure.config.config import GlobalConfig, TaskConfig, TaskDefinition
 from ..infrastructure.filesystem.operations import is_directory, path_exists
+from ..models.config import GlobalConfig, TaskConfig, TaskDefinition
 from .models import (
     UpdateConfigRequest,
     UpdateConfigResponse,
@@ -335,7 +335,8 @@ async def get_config(request: Request) -> TaskConfig:
         当前配置对象
     """
     app_state: AppState = request.state.app_state
-    return app_state.config
+    config: TaskConfig = app_state.config
+    return config
 
 
 @router.patch("", response_model=UpdateConfigResponse)

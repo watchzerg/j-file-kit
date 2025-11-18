@@ -12,7 +12,6 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from ..infrastructure.config.config import FileOrganizeConfig, TaskConfig
 from ..infrastructure.persistence import (
     ItemResultRepository,
     OperationRepository,
@@ -20,6 +19,7 @@ from ..infrastructure.persistence import (
 )
 from ..interfaces.task import BaseTask
 from ..models import TaskType
+from ..models.config import FileOrganizeConfig, TaskConfig
 from .pipeline import Pipeline
 from .processors.analyzers import (
     FileActionDecider,
