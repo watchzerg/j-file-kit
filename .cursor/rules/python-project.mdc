@@ -13,7 +13,7 @@ Targets
 Core Principles
 - Engineering Principle: Avoid speculative extensibility — design only for current, clearly justified use cases, not hypothetical future needs.
 - Prefer functional decomposition for business logic; use classes only for data models (Pydantic), settings, or explicit state.
-- Keep modules small and cohesive; expose a clear public API via `__all__`.
+- Keep modules small and cohesive; this is a web application, not an SDK, so avoid `__all__` exports unless necessary.
 - Use `snake_case` for files/dirs; descriptive names like `is_active`, `has_permission`.
 - RORO (Receive an Object, Return an Object). Do not let raw dicts leak across layers.
 - Code must be typed end-to-end (`from __future__ import annotations`), avoiding `Any`.

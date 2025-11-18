@@ -19,7 +19,7 @@ from ..infrastructure.persistence import (
 )
 from ..interfaces.task import BaseTask
 from ..models import TaskType
-from ..models.config import FileOrganizeConfig, TaskConfig
+from ..models.config import JavVideoOrganizeConfig, TaskConfig
 from .pipeline import Pipeline
 from .processors.analyzers import (
     FileActionDecider,
@@ -58,8 +58,8 @@ class JavVideoOrganizer(BaseTask):
             raise ValueError("未找到 jav_video_organizer 任务配置")
 
         # 获取类型化的配置对象
-        self.file_config: FileOrganizeConfig = self.task_config.get_config(
-            FileOrganizeConfig
+        self.file_config: JavVideoOrganizeConfig = self.task_config.get_config(
+            JavVideoOrganizeConfig
         )
 
         # 从 GlobalConfig 获取目录路径

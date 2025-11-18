@@ -25,8 +25,8 @@ class GlobalConfig(BaseModel):
     starred_dir: Path | None = Field(None, description="精选/收藏目录")
 
 
-class FileOrganizeConfig(BaseModel):
-    """文件整理任务配置"""
+class JavVideoOrganizeConfig(BaseModel):
+    """JAV视频文件整理任务配置"""
 
     video_extensions: set[str] = Field(..., description="视频文件扩展名")
     image_extensions: set[str] = Field(..., description="图片文件扩展名")
@@ -37,7 +37,7 @@ class FileOrganizeConfig(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_extensions(self) -> FileOrganizeConfig:
+    def validate_extensions(self) -> JavVideoOrganizeConfig:
         """验证扩展名格式"""
         # 确保扩展名以点号开头
         self.video_extensions = {

@@ -26,11 +26,11 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - `task.py`: 任务模型（Task、TaskReport）
   - `Task`: 任务实例模型，存储在数据库中
   - `TaskReport`: 任务执行报告，仅用于内部日志记录，不作为返回值
-- `config.py`: 配置数据模型（GlobalConfig、TaskConfig、TaskDefinition、FileOrganizeConfig）
+- `config.py`: 配置数据模型（GlobalConfig、TaskConfig、TaskDefinition、JavVideoOrganizeConfig）
   - `GlobalConfig`: 全局配置模型，定义目录路径等全局设置
   - `TaskConfig`: 完整任务配置模型，包含全局配置和任务列表
   - `TaskDefinition`: 任务定义模型，定义单个任务的配置
-  - `FileOrganizeConfig`: 文件整理任务特定配置模型
+  - `JavVideoOrganizeConfig`: JAV视频文件整理任务特定配置模型
 - `value_objects.py`: 值对象（SerialId、FileInfo、DirectoryInfo）
 - `contexts.py`: 上下文对象（ItemContext、FileContext）
 - `enums.py`: 枚举类型（TaskStatus、TaskType、FileType、ProcessorStatus等）
@@ -122,10 +122,10 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
     - `item_results` 表：使用 `item_data` JSON字段存储任务类型特定的数据（文件路径、名称、类型、番号等）
     - `operations` 表：使用 `data` JSON字段存储操作相关数据（包括路径信息）
 - `config/`: 配置加载
-  - `config.py`: 配置加载函数（load_config_from_db、create_default_*）
+  - `config.py`: 配置加载函数
     - `load_config_from_db()`: 从SQLite数据库加载配置
-    - `create_default_global_config()`: 创建默认全局配置
-    - `create_default_task_configs()`: 创建默认任务配置
+    - `create_default_global_config()`: 创建默认全局配置（单一数据源，被 ConfigRepository 使用）
+    - `create_default_task_configs()`: 创建默认任务配置（单一数据源，被 ConfigRepository 使用）
     - 注意：配置模型定义在 models/config.py 中
 - `logging/`: 日志
   - `logger.py`: 结构化日志记录器（JSON Lines格式）

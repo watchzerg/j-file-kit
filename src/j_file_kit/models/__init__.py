@@ -5,8 +5,8 @@
 """
 
 from .config import (
-    FileOrganizeConfig,
     GlobalConfig,
+    JavVideoOrganizeConfig,
     TaskConfig,
     TaskDefinition,
 )
@@ -38,7 +38,7 @@ __all__ = [
     "GlobalConfig",
     "TaskConfig",
     "TaskDefinition",
-    "FileOrganizeConfig",
+    "JavVideoOrganizeConfig",
     # 值对象
     "SerialId",
     "PathItemInfo",

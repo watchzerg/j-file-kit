@@ -69,82 +69,65 @@ class ConfigRepository:
             config=config_dict,
         )
 
+    def _path_to_str(self, path: Path | None) -> str:
+        """将 Path 对象转换为数据库存储格式
+
+        Args:
+            path: Path 对象或 None
+
+        Returns:
+            路径字符串，如果为 None 则返回空字符串
+        """
+        return str(path) if path else ""
+
     def _ensure_default_config(self) -> None:
         """确保默认配置存在
 
-        如果配置表为空，插入默认配置。
+        如果配置表为空，使用 config.py 中定义的默认配置进行初始化。
+        使用延迟导入避免与 config.py 的循环依赖。
         """
-        with self._conn_manager.get_cursor() as cursor:
-            # 检查 global_config 表是否为空
-            cursor.execute("SELECT COUNT(*) FROM global_config")
-            global_count = cursor.fetchone()[0]
+        # 延迟导入，避免循环导入（config.py 在模块级别导入了 ConfigRepository）
+        from ...config.config import (
+            create_default_global_config,
+            create_default_task_configs,
+        )
 
-            if global_count == 0:
-                # 插入默认全局配置（所有目录字段为空字符串，表示未设置）
+        with self._conn_manager.get_cursor() as cursor:
+            # 检查并初始化全局配置
+            cursor.execute("SELECT COUNT(*) FROM global_config")
+            if cursor.fetchone()[0] == 0:
+                default_global = create_default_global_config()
                 updated_at = datetime.now().isoformat()
                 cursor.execute(
                     """
                     INSERT INTO global_config (id, inbox_dir, sorted_dir, unsorted_dir, archive_dir, misc_dir, starred_dir, updated_at)
                     VALUES (1, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    ("", "", "", "", "", "", updated_at),
-                )
-
-            # 检查 task_configs 表是否为空
-            cursor.execute("SELECT COUNT(*) FROM task_configs")
-            task_count = cursor.fetchone()[0]
-
-            if task_count == 0:
-                # 插入默认任务配置（jav_video_organizer）
-                updated_at = datetime.now().isoformat()
-                default_task_config = {
-                    "video_extensions": [
-                        ".mp4",
-                        ".avi",
-                        ".mkv",
-                        ".mov",
-                        ".wmv",
-                        ".flv",
-                        ".webm",
-                    ],
-                    "image_extensions": [
-                        ".jpg",
-                        ".jpeg",
-                        ".png",
-                        ".webp",
-                        ".bmp",
-                        ".gif",
-                        ".tiff",
-                    ],
-                    "archive_extensions": [
-                        ".zip",
-                        ".rar",
-                        ".7z",
-                        ".tar",
-                        ".gz",
-                        ".bz2",
-                        ".xz",
-                    ],
-                    "misc_file_delete_rules": {
-                        "keywords": ["rarbg", "sample", "preview", "temp"],
-                        "extensions": [".tmp", ".temp", ".bak", ".old"],
-                        "max_size": 1048576,
-                    },
-                }
-                config_json = json.dumps(default_task_config)
-                cursor.execute(
-                    """
-                    INSERT INTO task_configs (name, type, enabled, config, updated_at)
-                    VALUES (?, ?, ?, ?, ?)
-                    """,
                     (
-                        "jav_video_organizer",
-                        "file_organize",
-                        True,
-                        config_json,
+                        self._path_to_str(default_global.inbox_dir),
+                        self._path_to_str(default_global.sorted_dir),
+                        self._path_to_str(default_global.unsorted_dir),
+                        self._path_to_str(default_global.archive_dir),
+                        self._path_to_str(default_global.misc_dir),
+                        self._path_to_str(default_global.starred_dir),
                         updated_at,
                     ),
                 )
+
+            # 检查并初始化任务配置
+            cursor.execute("SELECT COUNT(*) FROM task_configs")
+            if cursor.fetchone()[0] == 0:
+                default_tasks = create_default_task_configs()
+                updated_at = datetime.now().isoformat()
+                for task in default_tasks:
+                    config_json = json.dumps(task.config)
+                    cursor.execute(
+                        """
+                        INSERT INTO task_configs (name, type, enabled, config, updated_at)
+                        VALUES (?, ?, ?, ?, ?)
+                        """,
+                        (task.name, task.type, task.enabled, config_json, updated_at),
+                    )
 
     def get_global_config(self) -> GlobalConfig:
         """获取全局配置
@@ -173,10 +156,6 @@ class ConfigRepository:
             config: 全局配置对象
         """
         with self._conn_manager.get_cursor() as cursor:
-            # 将Path对象转为字符串，None转为空字符串
-            def to_str(path: Path | None) -> str:
-                return str(path) if path else ""
-
             updated_at = datetime.now().isoformat()
             cursor.execute(
                 """
@@ -185,12 +164,12 @@ class ConfigRepository:
                 WHERE id = 1
                 """,
                 (
-                    to_str(config.inbox_dir),
-                    to_str(config.sorted_dir),
-                    to_str(config.unsorted_dir),
-                    to_str(config.archive_dir),
-                    to_str(config.misc_dir),
-                    to_str(config.starred_dir),
+                    self._path_to_str(config.inbox_dir),
+                    self._path_to_str(config.sorted_dir),
+                    self._path_to_str(config.unsorted_dir),
+                    self._path_to_str(config.archive_dir),
+                    self._path_to_str(config.misc_dir),
+                    self._path_to_str(config.starred_dir),
                     updated_at,
                 ),
             )
