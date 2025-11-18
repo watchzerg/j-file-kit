@@ -125,7 +125,7 @@ class ConfigRepository:
                         ".xz",
                     ],
                     "misc_file_delete_rules": {
-                        "keywords": [".tmp", ".temp", ".bak", ".old"],
+                        "keywords": ["rarbg", "sample", "preview", "temp"],
                         "extensions": [".tmp", ".temp", ".bak", ".old"],
                         "max_size": 1048576,
                     },

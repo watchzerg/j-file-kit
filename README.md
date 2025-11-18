@@ -68,7 +68,7 @@ tasks:
       
       # 删除规则配置（用于Misc文件）
       misc_file_delete_rules:
-        keywords: [.tmp, .temp, .bak, .old]      # 包含这些关键字的文件将被删除
+        keywords: [rarbg, sample, preview, temp]  # 文件名包含这些关键字的文件将被删除
         extensions: [.tmp, .temp, .bak, .old]    # 这些扩展名的文件将被删除
         max_size: 1048576                        # 小于等于此大小的文件将被删除（字节）
 ```

@@ -63,8 +63,8 @@ class UnifiedFileExecutor(Executor):
             return ProcessorResult.skip("未决策动作")
 
         if ctx.action in [
-            PathItemAction.MOVE_TO_ORGANIZED,
-            PathItemAction.MOVE_TO_UNORGANIZED,
+            PathItemAction.MOVE_TO_SORTED,
+            PathItemAction.MOVE_TO_UNSORTED,
             PathItemAction.MOVE_TO_ARCHIVE,
             PathItemAction.MOVE_TO_MISC,
         ]:
@@ -111,8 +111,8 @@ class UnifiedFileExecutor(Executor):
                 "action": ctx.action.value,
                 "file_type": ctx.file_type.value if ctx.file_type else None,
             }
-            # organized 操作额外记录 serial_id
-            if ctx.action == PathItemAction.MOVE_TO_ORGANIZED and ctx.serial_id:
+            # sorted 操作额外记录 serial_id
+            if ctx.action == PathItemAction.MOVE_TO_SORTED and ctx.serial_id:
                 log_metadata["serial_id"] = str(ctx.serial_id)
 
             # 记录操作日志

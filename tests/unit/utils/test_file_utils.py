@@ -11,7 +11,7 @@ import pytest
 from j_file_kit.models import FileType, SerialId
 from j_file_kit.utils.file_utils import (
     generate_alternative_path,
-    generate_organized_dir,
+    generate_sorted_dir,
     get_file_type,
 )
 
@@ -132,37 +132,37 @@ class TestGetFileType:
 
 
 @pytest.mark.unit
-class TestGenerateOrganizedDir:
+class TestGenerateSortedDir:
     """测试整理目录生成函数"""
 
-    def test_generate_organized_dir_4_letter_prefix(self):
+    def test_generate_sorted_dir_4_letter_prefix(self):
         """测试4字母前缀的情况"""
-        organized_dir = Path("/organized")
+        sorted_dir = Path("/sorted")
         serial_id = SerialId(prefix="ABCD", number="123")
-        result = generate_organized_dir(organized_dir, serial_id)
-        expected = Path("/organized/A/AB/ABCD")
+        result = generate_sorted_dir(sorted_dir, serial_id)
+        expected = Path("/sorted/A/AB/ABCD")
         assert result == expected
 
-    def test_generate_organized_dir_3_letter_prefix(self):
+    def test_generate_sorted_dir_3_letter_prefix(self):
         """测试3字母前缀的情况"""
-        organized_dir = Path("/organized")
+        sorted_dir = Path("/sorted")
         serial_id = SerialId(prefix="XYZ", number="456")
-        result = generate_organized_dir(organized_dir, serial_id)
-        expected = Path("/organized/X/XY/XYZ")
+        result = generate_sorted_dir(sorted_dir, serial_id)
+        expected = Path("/sorted/X/XY/XYZ")
         assert result == expected
 
-    def test_generate_organized_dir_2_letter_prefix(self):
+    def test_generate_sorted_dir_2_letter_prefix(self):
         """测试2字母前缀的情况"""
-        organized_dir = Path("/organized")
+        sorted_dir = Path("/sorted")
         serial_id = SerialId(prefix="AB", number="789")
-        result = generate_organized_dir(organized_dir, serial_id)
-        expected = Path("/organized/A/AB/AB")
+        result = generate_sorted_dir(sorted_dir, serial_id)
+        expected = Path("/sorted/A/AB/AB")
         assert result == expected
 
-    def test_generate_organized_dir_5_letter_prefix(self):
+    def test_generate_sorted_dir_5_letter_prefix(self):
         """测试5字母前缀的情况"""
-        organized_dir = Path("/organized")
+        sorted_dir = Path("/sorted")
         serial_id = SerialId(prefix="ABCDE", number="123")
-        result = generate_organized_dir(organized_dir, serial_id)
-        expected = Path("/organized/A/AB/ABCDE")
+        result = generate_sorted_dir(sorted_dir, serial_id)
+        expected = Path("/sorted/A/AB/ABCDE")
         assert result == expected

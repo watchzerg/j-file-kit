@@ -50,6 +50,5 @@ def scan_directory_items(root: Path) -> Generator[tuple[Path, PathItemType]]:
             file_path = dir_path / filename
             yield (file_path, PathItemType.FILE)
 
-        # 再yield当前目录（如果dirpath不是root本身，避免返回根目录）
-        if dir_path != root:
-            yield (dir_path, PathItemType.DIRECTORY)
+        # 再yield当前目录（包括根目录，由业务层决定是否处理）
+        yield (dir_path, PathItemType.DIRECTORY)

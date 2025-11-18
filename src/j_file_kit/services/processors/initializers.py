@@ -69,12 +69,13 @@ class FileTaskStatusInitializer(Initializer):
 class FileConfigValidatorInitializer(Initializer):
     """文件任务配置验证初始化器
 
-    验证文件任务配置的有效性，包括扫描路径和目标目录路径。
+    验证文件任务配置的有效性，仅验证配置本身。
     确保配置正确后才能开始执行任务。
 
     设计意图：
     - 在任务执行前验证配置，避免执行过程中才发现配置错误
-    - 验证项包括：扫描路径存在且可访问、目标目录路径有效、路径不冲突
+    - 验证项包括：配置项是否设置、路径格式是否有效、路径不冲突
+    - 不检查目录存在性，目录存在性检查和创建由 FileResourceInitializer 负责
     """
 
     def __init__(
@@ -91,7 +92,9 @@ class FileConfigValidatorInitializer(Initializer):
         self._logger = logging.getLogger(__name__)
 
     def _validate_inbox_dir(self) -> list[str]:
-        """验证inbox_dir
+        """验证inbox_dir配置
+
+        仅验证配置项是否设置，不检查目录存在性。
 
         Returns:
             错误列表
@@ -100,16 +103,16 @@ class FileConfigValidatorInitializer(Initializer):
         inbox_dir = self.config.global_.inbox_dir
         if inbox_dir is None:
             errors.append("待处理目录（inbox_dir）未设置")
-        elif not inbox_dir.exists():
-            errors.append(f"待处理目录不存在: {inbox_dir}")
-        elif not inbox_dir.is_dir():
-            errors.append(f"待处理目录不是目录: {inbox_dir}")
-        elif not os.access(inbox_dir, os.R_OK):
-            errors.append(f"待处理目录不可读: {inbox_dir}")
+        elif inbox_dir.exists() and not inbox_dir.is_dir():
+            # 如果路径已存在但不是目录，这是配置错误
+            errors.append(f"待处理目录路径不是目录: {inbox_dir}")
         return errors
 
     def _validate_other_dirs(self) -> list[str]:
-        """验证其他目录
+        """验证其他目录配置
+
+        仅验证路径格式，如果路径已存在则检查是否为目录类型。
+        不检查目录存在性。
 
         Returns:
             错误列表
@@ -124,10 +127,9 @@ class FileConfigValidatorInitializer(Initializer):
 
         for dir_name, dir_path in target_dirs.items():
             if dir_path is not None:
-                if not dir_path.exists():
-                    errors.append(f"{dir_name} 不存在: {dir_path}")
-                elif not dir_path.is_dir():
-                    errors.append(f"{dir_name} 不是目录: {dir_path}")
+                # 如果路径已存在但不是目录，这是配置错误
+                if dir_path.exists() and not dir_path.is_dir():
+                    errors.append(f"{dir_name} 路径不是目录: {dir_path}")
         return errors
 
     def _check_dir_conflicts(self) -> list[str]:
@@ -163,7 +165,7 @@ class FileConfigValidatorInitializer(Initializer):
     def initialize(self) -> ProcessorResult:
         """初始化处理
 
-        验证文件任务配置的有效性。
+        验证文件任务配置的有效性（仅配置本身，不检查目录存在性）。
 
         Returns:
             处理结果，成功或错误
@@ -186,11 +188,12 @@ class FileResourceInitializer(Initializer):
     """文件任务资源初始化器
 
     确保任务所需的资源（目录）已准备就绪。
-    验证目标目录是否存在，不存在则创建；验证目录权限（可写）。
+    负责目录存在性检查和静默创建，验证目录权限。
 
     设计意图：
     - 在任务执行前确保所有必需的目录已准备好
     - 如果目录创建或权限验证失败，任务不应继续执行
+    - 目录存在性检查和创建是资源初始化的职责，而非配置验证
     """
 
     def __init__(
@@ -209,7 +212,7 @@ class FileResourceInitializer(Initializer):
     def initialize(self) -> ProcessorResult:
         """初始化处理
 
-        确保目标目录存在且可写。
+        检查目录存在性，不存在则静默创建；验证目录权限。
 
         Returns:
             处理结果，成功或错误
@@ -220,25 +223,36 @@ class FileResourceInitializer(Initializer):
 
         errors: list[str] = []
 
-        # 需要初始化的目录（从GlobalConfig获取）
-        target_dirs = {
+        # 需要初始化的目录（从GlobalConfig获取，包括inbox_dir）
+        all_dirs = {
+            "inbox_dir": self.config.global_.inbox_dir,
             "sorted_dir": self.config.global_.sorted_dir,
             "unsorted_dir": self.config.global_.unsorted_dir,
             "archive_dir": self.config.global_.archive_dir,
             "misc_dir": self.config.global_.misc_dir,
         }
 
-        for dir_name, dir_path in target_dirs.items():
+        for dir_name, dir_path in all_dirs.items():
             if dir_path is None:
                 continue  # 跳过未设置的目录
 
             try:
-                # 直接创建目录（静默创建，已存在时不抛出异常）
-                create_directory(dir_path, parents=True)
+                # 检查目录是否存在，不存在则静默创建
+                if not dir_path.exists():
+                    create_directory(dir_path, parents=True)
+                    self._logger.info(f"已创建目录: {dir_name}={dir_path}")
+                elif not dir_path.is_dir():
+                    errors.append(f"{dir_name} 路径不是目录: {dir_path}")
+                    continue
 
-                # 验证目录权限（可写）
-                if not os.access(dir_path, os.W_OK):
-                    errors.append(f"{dir_name} 不可写: {dir_path}")
+                # 验证目录权限
+                # inbox_dir 需要可读权限，其他目录需要可写权限
+                if dir_name == "inbox_dir":
+                    if not os.access(dir_path, os.R_OK):
+                        errors.append(f"{dir_name} 不可读: {dir_path}")
+                else:
+                    if not os.access(dir_path, os.W_OK):
+                        errors.append(f"{dir_name} 不可写: {dir_path}")
 
             except OSError as e:
                 errors.append(f"创建或验证 {dir_name} 失败: {dir_path}, 错误: {str(e)}")

@@ -80,13 +80,13 @@ def generate_alternative_path(target_path: Path) -> Path:
     return parent / new_name
 
 
-def generate_organized_dir(organized_dir: Path, serial_id: SerialId) -> Path:
+def generate_sorted_dir(sorted_dir: Path, serial_id: SerialId) -> Path:
     """生成整理目录路径：A/AB/ABCD/
 
-    根据番号生成整理目录路径，格式为：organized_dir/首字母/前两字母/完整前缀/
+    根据番号生成整理目录路径，格式为：sorted_dir/首字母/前两字母/完整前缀/
 
     Args:
-        organized_dir: 整理目录根路径
+        sorted_dir: 整理目录根路径
         serial_id: 番号对象
 
     Returns:
@@ -94,17 +94,17 @@ def generate_organized_dir(organized_dir: Path, serial_id: SerialId) -> Path:
 
     Examples:
         >>> from j_file_kit.models import SerialId
-        >>> generate_organized_dir(Path("/organized"), SerialId(prefix="ABCD", number="123"))
-        Path("/organized/A/AB/ABCD")
+        >>> generate_sorted_dir(Path("/sorted"), SerialId(prefix="ABCD", number="123"))
+        Path("/sorted/A/AB/ABCD")
 
-        >>> generate_organized_dir(Path("/organized"), SerialId(prefix="XYZ", number="456"))
-        Path("/organized/X/XY/XYZ")
+        >>> generate_sorted_dir(Path("/sorted"), SerialId(prefix="XYZ", number="456"))
+        Path("/sorted/X/XY/XYZ")
 
-        >>> generate_organized_dir(Path("/organized"), SerialId(prefix="AB", number="789"))
-        Path("/organized/A/AB/AB")
+        >>> generate_sorted_dir(Path("/sorted"), SerialId(prefix="AB", number="789"))
+        Path("/sorted/A/AB/AB")
     """
     prefix = serial_id.prefix
     first_letter = prefix[0]
     first_two = prefix[:2] if len(prefix) >= 2 else prefix
 
-    return organized_dir / first_letter / first_two / prefix
+    return sorted_dir / first_letter / first_two / prefix

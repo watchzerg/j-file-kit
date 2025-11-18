@@ -19,7 +19,7 @@ from ...models import (
     PathItemType,
     ProcessorResult,
 )
-from ...utils.file_utils import generate_organized_dir, get_file_type
+from ...utils.file_utils import generate_sorted_dir, get_file_type
 from ...utils.filename_generation import generate_new_filename
 
 
@@ -338,22 +338,22 @@ class FileActionDecider(Analyzer):
 
     def __init__(
         self,
-        organized_dir: Path | None,
-        unorganized_dir: Path | None,
+        sorted_dir: Path | None,
+        unsorted_dir: Path | None,
         archive_dir: Path | None,
         misc_dir: Path | None,
     ):
         """初始化动作决策器
 
         Args:
-            organized_dir: 整理后的视频图片存储目录（B类）
-            unorganized_dir: 无番号视频图片存储目录（C类）
+            sorted_dir: 整理后的视频图片存储目录（B类）
+            unsorted_dir: 无番号视频图片存储目录（C类）
             archive_dir: 压缩文件存储目录
             misc_dir: Misc文件存储目录（D类）
         """
         super().__init__("FileActionDecider")
-        self.organized_dir = organized_dir
-        self.unorganized_dir = unorganized_dir
+        self.sorted_dir = sorted_dir
+        self.unsorted_dir = unsorted_dir
         self.archive_dir = archive_dir
         self.misc_dir = misc_dir
 
@@ -368,7 +368,7 @@ class FileActionDecider(Analyzer):
         """
         if ctx.serial_id:
             # 有番号：移动到整理目录
-            if self.organized_dir is None:
+            if self.sorted_dir is None:
                 return ProcessorResult.error("sorted_dir 未设置，无法移动有番号文件")
 
             if not ctx.renamed_filename:
@@ -376,16 +376,16 @@ class FileActionDecider(Analyzer):
                     "番号存在但重构后的文件名未设置，请确保 FileSerialIdExtractor 已执行"
                 )
 
-            ctx.action = PathItemAction.MOVE_TO_ORGANIZED
-            target_dir = generate_organized_dir(self.organized_dir, ctx.serial_id)
+            ctx.action = PathItemAction.MOVE_TO_SORTED
+            target_dir = generate_sorted_dir(self.sorted_dir, ctx.serial_id)
             ctx.target_path = target_dir / ctx.renamed_filename
         else:
             # 无番号：移动到C目录
-            if self.unorganized_dir is None:
+            if self.unsorted_dir is None:
                 return ProcessorResult.error("unsorted_dir 未设置，无法移动无番号文件")
 
-            ctx.action = PathItemAction.MOVE_TO_UNORGANIZED
-            ctx.target_path = self.unorganized_dir / ctx.item_info.path.name
+            ctx.action = PathItemAction.MOVE_TO_UNSORTED
+            ctx.target_path = self.unsorted_dir / ctx.item_info.path.name
         return None
 
     def _process_archive(self, ctx: PathItemContext) -> ProcessorResult | None:

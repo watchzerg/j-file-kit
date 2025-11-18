@@ -159,7 +159,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - `file_utils.py`: 文件工具函数（纯函数，无I/O操作）
   - `generate_alternative_path()`: 生成候选路径，用于处理路径冲突（使用 `-jfk-xxxx` 后缀格式）
   - `get_file_type()`: 判断文件类型
-  - `generate_organized_dir()`: 生成整理目录路径
+  - `generate_sorted_dir()`: 生成整理目录路径
 - `regex_patterns.py`: 正则表达式模式
 - `filename_generation.py`: 文件名生成
 

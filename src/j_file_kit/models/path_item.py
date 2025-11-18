@@ -27,8 +27,8 @@ class PathItemAction(str, Enum):
     统一处理文件和文件夹的操作枚举，支持文件和文件夹的各种操作。
     """
 
-    MOVE_TO_ORGANIZED = "move_to_organized"  # 移动到整理目录（B/ABCD/...）
-    MOVE_TO_UNORGANIZED = "move_to_unorganized"  # 移动到无番号目录（C）
+    MOVE_TO_SORTED = "move_to_sorted"  # 移动到整理目录（B/ABCD/...）
+    MOVE_TO_UNSORTED = "move_to_unsorted"  # 移动到无番号目录（C）
     MOVE_TO_ARCHIVE = "move_to_archive"  # 移动到压缩文件目录
     MOVE_TO_MISC = "move_to_misc"  # 移动到其他目录（D）
     DELETE = "delete"  # 删除文件
@@ -39,8 +39,8 @@ class PathItemAction(str, Enum):
     def description(self) -> str:
         """获取动作的中文描述"""
         descriptions = {
-            PathItemAction.MOVE_TO_ORGANIZED: "整理目录",
-            PathItemAction.MOVE_TO_UNORGANIZED: "无番号目录",
+            PathItemAction.MOVE_TO_SORTED: "整理目录",
+            PathItemAction.MOVE_TO_UNSORTED: "无番号目录",
             PathItemAction.MOVE_TO_ARCHIVE: "压缩文件目录",
             PathItemAction.MOVE_TO_MISC: "Misc文件目录",
             PathItemAction.DELETE: "删除",
