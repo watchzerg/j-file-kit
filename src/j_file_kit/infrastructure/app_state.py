@@ -36,8 +36,8 @@ class AppState:
         self.report_dir = self.base_dir / "reports"
 
         # 创建必要的目录
-        create_directory(self.base_dir / "sqlite", parents=True, exist_ok=True)
-        create_directory(self.log_dir, parents=True, exist_ok=True)
+        create_directory(self.base_dir / "sqlite", parents=True)
+        create_directory(self.log_dir, parents=True)
 
         # 创建 SQLite 连接管理器（表结构在 __init__ 中自动创建）
         self.sqlite_conn = SQLiteConnectionManager(self.db_path)

@@ -25,49 +25,39 @@ def move_file(source: Path, target: Path) -> None:
     source.rename(target)
 
 
-def delete_file(path: Path, missing_ok: bool = True) -> None:
+def delete_file(path: Path) -> None:
     """删除文件
+
+    静默成功：文件不存在时不抛出异常，其他异常正常抛出。
 
     Args:
         path: 文件路径
-        missing_ok: 如果文件不存在是否静默成功
 
     Raises:
-        OSError: 删除操作失败（当missing_ok=False时）
+        OSError: 删除操作失败（文件不存在时不会抛出）
     """
-    path.unlink(missing_ok=missing_ok)
+    try:
+        path.unlink(missing_ok=True)
+    except FileNotFoundError:
+        pass
 
 
-def create_directory(path: Path, parents: bool = True, exist_ok: bool = True) -> None:
+def create_directory(path: Path, parents: bool = True) -> None:
     """创建目录
+
+    静默成功：目录已存在时不抛出异常，其他异常正常抛出。
 
     Args:
         path: 目录路径
         parents: 是否创建父目录
-        exist_ok: 如果目录已存在是否静默成功
 
     Raises:
-        OSError: 创建目录失败
+        OSError: 创建目录失败（目录已存在时不会抛出）
     """
-    path.mkdir(parents=parents, exist_ok=exist_ok)
-
-
-def read_text_file(path: Path, encoding: str = "utf-8") -> str:
-    """读取文本文件
-
-    Args:
-        path: 文件路径
-        encoding: 文件编码
-
-    Returns:
-        文件内容
-
-    Raises:
-        FileNotFoundError: 文件不存在
-        UnicodeDecodeError: 解码失败
-    """
-    with open(path, encoding=encoding) as f:
-        return f.read()
+    try:
+        path.mkdir(parents=parents, exist_ok=True)
+    except FileExistsError:
+        pass
 
 
 def write_text_file(path: Path, content: str, encoding: str = "utf-8") -> None:
@@ -112,18 +102,6 @@ def path_exists(path: Path) -> bool:
     return path.exists()
 
 
-def is_file(path: Path) -> bool:
-    """检查路径是否为文件
-
-    Args:
-        path: 路径
-
-    Returns:
-        是否为文件
-    """
-    return path.is_file()
-
-
 def is_directory(path: Path) -> bool:
     """检查路径是否为目录
 
@@ -158,25 +136,22 @@ def is_directory_empty(path: Path) -> bool:
         return False
 
 
-def delete_directory(path: Path, missing_ok: bool = True) -> None:
+def delete_directory(path: Path) -> None:
     """删除目录
 
+    静默成功：目录不存在时不抛出异常，其他异常正常抛出。
     删除空目录，与delete_file保持接口一致性。
-    设计意图：提供统一的目录删除接口，支持missing_ok参数以保持与delete_file的一致性。
 
     Args:
         path: 目录路径
-        missing_ok: 如果目录不存在是否静默成功
 
     Raises:
-        OSError: 删除操作失败（当missing_ok=False时）
-        OSError: 目录不为空时删除失败
+        OSError: 删除操作失败（目录不存在时不会抛出）
     """
     try:
         path.rmdir()
     except FileNotFoundError:
-        if not missing_ok:
-            raise
+        pass
 
 
 def move_file_with_conflict_resolution(source: Path, target: Path) -> Path:

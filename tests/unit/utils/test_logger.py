@@ -99,7 +99,6 @@ class TestStructuredLogger:
             target_path=None,
             skip_remaining=False,
             action=None,
-            should_delete=False,
             file_size=None,
             item_result_id=None,
         )
@@ -144,7 +143,6 @@ class TestStructuredLogger:
             target_path=None,
             skip_remaining=False,
             action=None,
-            should_delete=False,
             file_size=None,
             item_result_id=None,
         )
@@ -176,7 +174,6 @@ class TestStructuredLogger:
             target_path=None,
             skip_remaining=False,
             action=None,
-            should_delete=False,
             file_size=None,
             item_result_id=None,
         )
@@ -337,7 +334,6 @@ class TestStructuredLogger:
             target_path=None,
             skip_remaining=False,
             action=None,
-            should_delete=False,
             file_size=None,
             item_result_id=None,
         )

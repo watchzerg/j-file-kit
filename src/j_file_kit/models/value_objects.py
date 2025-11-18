@@ -102,7 +102,7 @@ class PathItemInfo(BaseModel):
     """
 
     path: Path = Field(..., description="路径")
-    name: str = Field(..., description="名称")
+    stem: str = Field(..., description="名称（不含扩展名）")
     suffix: str | None = Field(
         None, description="文件扩展名（含点号，仅文件有，文件夹为 None）"
     )
@@ -130,14 +130,14 @@ class PathItemInfo(BaseModel):
         if item_type == PathItemType.FILE:
             return cls(
                 path=path,
-                name=path.stem,
+                stem=path.stem,
                 suffix=path.suffix.lower() if path.suffix else None,
                 item_type=item_type.value,
             )
         else:
             return cls(
                 path=path,
-                name=path.name,
+                stem=path.stem,
                 suffix=None,
                 item_type=item_type.value,
             )

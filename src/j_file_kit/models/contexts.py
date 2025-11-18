@@ -48,6 +48,5 @@ class PathItemContext(ItemContext):
     )
     target_path: Path | None = Field(None, description="计划的目标路径（完整路径）")
     action: PathItemAction | None = Field(None, description="决策的动作类型")
-    should_delete: bool = Field(False, description="是否应该删除")
     file_size: int | None = Field(None, description="文件大小（字节）")
     item_result_id: int | None = Field(None, description="Item结果ID")

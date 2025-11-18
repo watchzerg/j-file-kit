@@ -40,7 +40,7 @@ class StructuredLogger:
         self.log_file = log_dir / f"{task_name}_{self.task_id}.jsonl"
 
         # 确保日志目录存在
-        create_directory(self.log_dir, parents=True, exist_ok=True)
+        create_directory(self.log_dir, parents=True)
 
         # 创建日志文件（如果不存在）
         if not path_exists(self.log_file):

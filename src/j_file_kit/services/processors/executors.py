@@ -17,7 +17,6 @@ from ...infrastructure.filesystem.operations import (
     delete_file,
     is_directory_empty,
     move_file_with_conflict_resolution,
-    path_exists,
 )
 from ...interfaces.processors import Executor
 from ...models import (
@@ -95,12 +94,8 @@ class UnifiedFileExecutor(Executor):
             if not ctx.target_path:
                 return ProcessorResult.error("目标路径未设置")
 
-            # 检查源文件是否存在
-            if not path_exists(ctx.item_info.path):
-                return ProcessorResult.error("源文件不存在")
-
-            # 创建目录（如果不存在）
-            create_directory(ctx.target_path.parent, parents=True, exist_ok=True)
+            # 直接创建目录（静默创建，已存在时不抛出异常）
+            create_directory(ctx.target_path.parent, parents=True)
 
             # 保存原始路径（用于事务日志）
             old_path = ctx.item_info.path
@@ -151,7 +146,7 @@ class UnifiedFileExecutor(Executor):
         """
         try:
             # 执行删除（文件不存在时静默成功）
-            delete_file(ctx.item_info.path, missing_ok=True)
+            delete_file(ctx.item_info.path)
 
             # 记录操作日志
             if self.operation_repository:
@@ -222,7 +217,7 @@ class FileEmptyDirectoryExecutor(Executor):
 
         try:
             # 删除空目录
-            delete_directory(path, missing_ok=True)
+            delete_directory(path)
 
             # 记录操作日志
             if self.operation_repository:

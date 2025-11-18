@@ -205,7 +205,7 @@ class FileNameAnalyzer(Analyzer):
             return ProcessorResult.skip("不是文件，跳过文件名分析")
 
         try:
-            filename = ctx.item_info.name
+            filename = ctx.item_info.stem
             filename_length = len(filename)
 
             # 检查文件名长度
@@ -266,9 +266,8 @@ class MiscFileDeleteAnalyzer(Analyzer):
             return ProcessorResult.skip("非Misc文件，跳过删除判断")
 
         try:
-            ctx.should_delete = self._should_delete(ctx)
-
-            if ctx.should_delete:
+            if self._should_delete(ctx):
+                ctx.action = PathItemAction.DELETE
                 return ProcessorResult.success("Misc文件符合删除条件")
             else:
                 return ProcessorResult.success(
@@ -320,7 +319,7 @@ class MiscFileDeleteAnalyzer(Analyzer):
                 return False
 
             # 检查文件名关键字
-            if not any(kw in ctx.item_info.name for kw in keywords):
+            if not any(kw in ctx.item_info.stem for kw in keywords):
                 # 文件名不包含关键字，不删除
                 return False
 
@@ -414,14 +413,33 @@ class FileActionDecider(Analyzer):
         Returns:
             处理结果，如果无法处理则返回None
         """
-        if ctx.should_delete:
-            ctx.action = PathItemAction.DELETE
-        else:
-            if self.misc_dir is None:
-                return ProcessorResult.error("misc_dir 未设置，无法移动Misc文件")
+        # 如果 action 已经设置（例如由 MiscFileDeleteAnalyzer 设置的 DELETE），直接返回
+        if ctx.action is not None:
+            return None
 
-            ctx.action = PathItemAction.MOVE_TO_MISC
-            ctx.target_path = self.misc_dir / ctx.item_info.path.name
+        if self.misc_dir is None:
+            return ProcessorResult.error("misc_dir 未设置，无法移动Misc文件")
+
+        ctx.action = PathItemAction.MOVE_TO_MISC
+        ctx.target_path = self.misc_dir / ctx.item_info.path.name
+        return None
+
+    def _process_by_file_type(self, ctx: PathItemContext) -> ProcessorResult | None:
+        """根据文件类型处理
+
+        Args:
+            ctx: 处理上下文
+
+        Returns:
+            处理结果，如果无法处理则返回None
+        """
+        if ctx.file_type in [FileType.VIDEO, FileType.IMAGE]:
+            return self._process_video_image(ctx)
+        if ctx.file_type == FileType.ARCHIVE:
+            return self._process_archive(ctx)
+        if ctx.file_type == FileType.MISC:
+            return self._process_misc(ctx)
+        ctx.action = PathItemAction.SKIP
         return None
 
     def process(self, ctx: PathItemContext) -> ProcessorResult:  # type: ignore[override]
@@ -439,21 +457,14 @@ class FileActionDecider(Analyzer):
         if ctx.item_type != PathItemType.FILE:
             return ProcessorResult.skip("不是文件，跳过动作决策")
 
+        # 如果 action 已经被设置（例如由 MiscFileDeleteAnalyzer 设置），直接跳过
+        if ctx.action is not None:
+            return ProcessorResult.skip("动作已设置，跳过决策")
+
         try:
-            if ctx.file_type in [FileType.VIDEO, FileType.IMAGE]:
-                result = self._process_video_image(ctx)
-                if result:
-                    return result
-            elif ctx.file_type == FileType.ARCHIVE:
-                result = self._process_archive(ctx)
-                if result:
-                    return result
-            elif ctx.file_type == FileType.MISC:
-                result = self._process_misc(ctx)
-                if result:
-                    return result
-            else:
-                ctx.action = PathItemAction.SKIP
+            result = self._process_by_file_type(ctx)
+            if result:
+                return result
 
             # 确保action已设置
             if ctx.action is None:

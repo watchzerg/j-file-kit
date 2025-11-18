@@ -216,7 +216,6 @@ class FileResourceInitializer(Initializer):
         """
         from ...infrastructure.filesystem.operations import (
             create_directory,
-            path_exists,
         )
 
         errors: list[str] = []
@@ -234,10 +233,8 @@ class FileResourceInitializer(Initializer):
                 continue  # 跳过未设置的目录
 
             try:
-                # 如果目录不存在，创建它
-                if not path_exists(dir_path):
-                    self._logger.info(f"创建目录: {dir_path}")
-                    create_directory(dir_path, parents=True, exist_ok=True)
+                # 直接创建目录（静默创建，已存在时不抛出异常）
+                create_directory(dir_path, parents=True)
 
                 # 验证目录权限（可写）
                 if not os.access(dir_path, os.W_OK):

@@ -57,7 +57,7 @@ class ItemResultRepository:
         # 构建item_data JSON：存储任务类型特定的数据
         item_data = {
             "path": str(result.item_info.path),
-            "name": result.item_info.name,
+            "stem": result.item_info.stem,
             "item_type": result.item_info.item_type,
             "type": result.context.file_type.value
             if result.context.file_type
