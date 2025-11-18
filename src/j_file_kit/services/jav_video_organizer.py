@@ -1,6 +1,6 @@
-"""视频文件整理任务
+"""JAV视频文件整理任务
 
-完整的视频文件整理任务实现。
+完整的JAV视频文件整理任务实现。
 组合使用各种处理器实现文件分类、番号提取、文件移动等功能。
 
 这是用例实现，位于services层。
@@ -37,14 +37,14 @@ from .processors.initializers import (
 )
 
 
-class VideoFileOrganizer(BaseTask):
-    """视频文件整理任务
+class JavVideoOrganizer(BaseTask):
+    """JAV视频文件整理任务
 
-    这是一个完整的文件整理任务实现，展示了如何组合使用各种处理器。
+    这是一个完整的JAV视频文件整理任务实现，展示了如何组合使用各种处理器。
     """
 
     def __init__(self, config: TaskConfig, log_dir: Path):
-        """初始化视频文件整理任务
+        """初始化JAV视频文件整理任务
 
         Args:
             config: 任务配置
@@ -52,10 +52,10 @@ class VideoFileOrganizer(BaseTask):
         """
         self.config = config
         self.log_dir = log_dir
-        self.task_config = self.config.get_task("video_file_organizer")
+        self.task_config = self.config.get_task("jav_video_organizer")
 
         if not self.task_config:
-            raise ValueError("未找到 video_file_organizer 任务配置")
+            raise ValueError("未找到 jav_video_organizer 任务配置")
 
         # 获取类型化的配置对象
         self.file_config: FileOrganizeConfig = self.task_config.get_config(
@@ -82,7 +82,7 @@ class VideoFileOrganizer(BaseTask):
     @property
     def task_type(self) -> TaskType:
         """任务类型"""
-        return TaskType.VIDEO_ORGANIZER
+        return TaskType.JAV_VIDEO_ORGANIZER
 
     def create_pipeline(
         self,

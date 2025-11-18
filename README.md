@@ -51,7 +51,7 @@ global:
 
 # 任务列表
 tasks:
-  - name: video_file_organizer
+  - name: jav_video_organizer
     type: file_organize
     enabled: true
     config:
@@ -89,7 +89,7 @@ uvicorn j_file_kit.api.app:app --reload
 
 ```bash
 # 启动任务
-curl -X POST http://localhost:8000/api/tasks/video_file_organizer/start \
+curl -X POST http://localhost:8000/api/tasks/jav_video_organizer/start \
   -H "Content-Type: application/json" \
   -d '{"dry_run": true}'
 
@@ -105,13 +105,13 @@ curl http://localhost:8000/api/tasks
 ```python
 from j_file_kit.infrastructure.config.config import load_config
 from j_file_kit.infrastructure.app_state import AppState
-from j_file_kit.tasks.video_organizer import VideoFileOrganizer
+from j_file_kit.services.jav_video_organizer import JavVideoOrganizer
 
 # 创建应用状态（会自动加载配置）
 app_state = AppState()
 
 # 创建任务实例
-task = VideoFileOrganizer(app_state.config)
+task = JavVideoOrganizer(app_state.config, app_state.log_dir)
 
 # 启动任务（通过任务管理器）
 task_id = app_state.task_manager.start_task(task, dry_run=True)
@@ -137,7 +137,7 @@ sqlite_conn = SQLiteConnectionManager(config.global_.db_path)
 operation_repository = OperationRepository(sqlite_conn, task_id=1)  # task_id 需要从任务管理获取
 
 # 创建管道
-pipeline = Pipeline(config, "video_file_organizer", operation_repository)
+pipeline = Pipeline(config, "jav_video_organizer", operation_repository)
 
 # 添加处理器
 pipeline.add_analyzer(FileClassifier({".mp4", ".avi"}, {".jpg", ".png"}))
@@ -267,7 +267,7 @@ j-file-kit/
 │       │   ├── routes.py        # API路由
 │       │   └── models.py        # API请求/响应模型
 │       ├── 📋 tasks/            # 应用层（具体任务实现）
-│       │   └── video_organizer.py # 视频文件整理任务
+│       │   └── jav_video_organizer.py # JAV视频文件整理任务
 │       ├── 🛠️ utils/            # 工具函数
 │       │   ├── file_utils.py    # 文件工具函数
 │       │   ├── regex_patterns.py # 正则表达式模式

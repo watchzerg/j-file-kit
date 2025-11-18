@@ -94,7 +94,7 @@ class ConfigRepository:
             task_count = cursor.fetchone()[0]
 
             if task_count == 0:
-                # 插入默认任务配置（video_file_organizer）
+                # 插入默认任务配置（jav_video_organizer）
                 updated_at = datetime.now().isoformat()
                 default_task_config = {
                     "video_extensions": [
@@ -137,7 +137,7 @@ class ConfigRepository:
                     VALUES (?, ?, ?, ?, ?)
                     """,
                     (
-                        "video_file_organizer",
+                        "jav_video_organizer",
                         "file_organize",
                         True,
                         config_json,

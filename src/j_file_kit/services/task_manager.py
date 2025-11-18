@@ -38,7 +38,7 @@ def generate_task_name(
     """生成任务可读名称
 
     格式: {task_type}-{trigger_type}-{YYYYMMDDHHMMSSmmm}
-    示例: video_organizer-manual-20241215143052123
+    示例: jav_video_organizer-manual-20241215143052123
 
     Args:
         task_type: 任务类型

@@ -107,11 +107,11 @@ def create_default_task_configs() -> list[TaskDefinition]:
     """创建默认任务配置
 
     Returns:
-        默认任务配置列表（包含 video_file_organizer）
+        默认任务配置列表（包含 jav_video_organizer）
     """
     return [
         TaskDefinition(
-            name="video_file_organizer",
+            name="jav_video_organizer",
             type="file_organize",
             enabled=True,
             config={

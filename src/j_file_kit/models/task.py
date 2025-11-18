@@ -25,7 +25,7 @@ class TaskStatus(str, Enum):
 class TaskType(str, Enum):
     """任务类型枚举"""
 
-    VIDEO_ORGANIZER = "video_organizer"
+    JAV_VIDEO_ORGANIZER = "jav_video_organizer"
 
 
 class TriggerType(str, Enum):

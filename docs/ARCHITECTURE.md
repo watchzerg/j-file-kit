@@ -71,7 +71,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 **主要模块**:
 - `pipeline.py`: 管道协调器，协调文件扫描、处理器链执行和结果汇总
 - `task_manager.py`: 任务管理器，管理任务的执行、状态跟踪和取消
-- `video_organizer.py`: 视频文件整理任务用例实现
+- `jav_video_organizer.py`: JAV视频文件整理任务用例实现
 - `processors/`: 具体处理器实现
   - `analyzers.py`: 分析器实现（FileClassifier、FileSerialIdExtractor、FileActionDecider等）
   - `executors.py`: 执行器实现（UnifiedFileExecutor、FileEmptyDirectoryExecutor）

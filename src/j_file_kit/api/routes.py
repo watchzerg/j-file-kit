@@ -12,7 +12,7 @@ from ..infrastructure.app_state import AppState
 from ..infrastructure.persistence import ItemResultRepository
 from ..interfaces.task import BaseTask
 from ..models import TaskStatus, TaskType, TriggerType
-from ..services.video_organizer import VideoFileOrganizer
+from ..services.jav_video_organizer import JavVideoOrganizer
 from .models import (
     CancelTaskResponse,
     StartTaskRequest,
@@ -59,8 +59,8 @@ def get_task_instance(task_type: str, app_state: AppState) -> BaseTask:
     Raises:
         HTTPException: 如果任务不存在
     """
-    if task_type == TaskType.VIDEO_ORGANIZER.value:
-        return VideoFileOrganizer(app_state.config, app_state.log_dir)
+    if task_type == TaskType.JAV_VIDEO_ORGANIZER.value:
+        return JavVideoOrganizer(app_state.config, app_state.log_dir)
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
