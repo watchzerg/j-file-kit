@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ..interfaces.repositories import (
-    ItemResultRepository,
+    FileItemRepository,
     OperationRepository,
     TaskRepository,
     TaskRepositoryRegistry,
@@ -91,7 +91,7 @@ class JavVideoOrganizer(BaseTask):
         log_dir: Path,
         task_repository: TaskRepository,
         operation_repository: OperationRepository,
-        item_result_repository: ItemResultRepository,
+        file_item_repository: FileItemRepository,
     ) -> Pipeline:
         """创建处理管道
 
@@ -100,7 +100,7 @@ class JavVideoOrganizer(BaseTask):
             log_dir: 日志目录
             task_repository: 任务仓储实例
             operation_repository: 操作记录仓储实例
-            item_result_repository: Item结果仓储实例
+            file_item_repository: 文件处理结果仓储实例
 
         Returns:
             配置好的处理管道
@@ -111,7 +111,7 @@ class JavVideoOrganizer(BaseTask):
             self.task_type.value,
             log_dir,
             operation_repository,
-            item_result_repository,
+            file_item_repository,
             task_id,
             task_repository,
         )
@@ -174,7 +174,7 @@ class JavVideoOrganizer(BaseTask):
                 task_id=task_id,
                 task_repository=task_repository,
                 operation_repository=operation_repository,
-                item_result_repository=item_result_repository,
+                file_item_repository=file_item_repository,
             )
         )
 
@@ -204,6 +204,6 @@ class JavVideoOrganizer(BaseTask):
             self.log_dir,
             task_repo,
             file_repo.operation_repository,
-            file_repo.item_result_repository,
+            file_repo.file_item_repository,
         )
         pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)

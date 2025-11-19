@@ -113,13 +113,13 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
     - `connection.py`: 数据库连接管理和表结构定义（SQLiteConnectionManager）
     - `config_repository.py`: 应用配置仓储（AppConfigRepository），管理全局配置和任务配置
     - `task_repository.py`: 任务仓储（TaskRepository），管理任务实例
-    - `item_result_repository.py`: Item结果仓储（ItemResultRepository），管理item处理结果
+    - `file_item_repository.py`: 文件处理结果仓储（FileItemRepository），管理文件处理结果
     - `operation_repository.py`: 操作记录仓储（OperationRepository），记录文件操作历史
-  - 数据库表结构采用JSON字段设计，完全通用化：
+  - 数据库表结构设计：
     - `global_config` 表：单行表，存储全局配置（scan_root）
     - `task_configs` 表：存储任务配置（name, type, enabled, config JSON）
     - `tasks` 表：存储任务实例（task_id, task_name, status, statistics JSON等）
-    - `item_results` 表：使用 `item_data` JSON字段存储任务类型特定的数据（文件路径、名称、类型、番号等）
+    - `file_items` 表：使用具体字段存储文件信息（path, stem, file_type, serial_id等），专门存储文件处理结果，提升查询性能和索引效率
     - `operations` 表：使用 `data` JSON字段存储操作相关数据（包括路径信息）
 - `config/`: 配置加载
   - `config.py`: 配置加载函数
@@ -287,10 +287,12 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
   - `start_time`, `end_time`, `error_message`: 执行信息
   - `statistics`: JSON字段，存储统计信息（total_items、success_items等）
 
-- **item_results**: 存储item处理结果
+- **file_items**: 存储文件处理结果
   - `id`: 自增主键
   - `task_id`: 关联任务ID
-  - `item_data`: JSON字段，存储任务类型特定的数据
+  - `path`, `stem`: 文件路径和文件名（不含扩展名）
+  - `file_type`: 文件类型（video/image/archive/misc），可为 NULL
+  - `serial_id`: 番号，可为 NULL
   - `success`, `has_errors`, `has_warnings`, `was_skipped`: 处理状态
   - `error_message`, `total_duration_ms`, `processor_count`: 处理详情
   - `context_data`, `processor_results`: JSON字段，存储上下文和处理结果
@@ -333,7 +335,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
    │   - 使用 move_file_with_conflict_resolution() 处理路径冲突
    ↓
 7. 结果保存到数据库
-   ├── item_results: 保存item处理结果
+   ├── file_items: 保存文件处理结果
    ├── operations: 记录文件操作历史
    ↓
 8. finalizers: 后处理（统计信息更新等）
@@ -346,7 +348,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 ### 数据查询流程
 
 - API 查询任务状态时，从数据库的 `tasks` 表读取任务信息
-- 统计信息（如 total_items）从 `item_results` 表通过 `ItemResultRepository.get_statistics()` 查询
+- 统计信息（如 total_items）从 `file_items` 表通过 `FileItemRepository.get_statistics()` 查询
 - `TaskReport` 仅用于 Pipeline 内部日志记录，不作为返回值
 
 ## 扩展指南
@@ -414,12 +416,12 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 ### 4. 仓储模式
 
 - **实现**: 使用仓储模式封装数据库操作
-- **仓储**: `AppConfigRepository`、`TaskRepository`、`ItemResultRepository`、`OperationRepository`
+- **仓储**: `AppConfigRepository`、`TaskRepository`、`FileItemRepository`、`OperationRepository`
 - **优势**: 统一数据访问接口，便于测试和替换实现
 
 ### 5. JSON 字段设计
 
 - **设计**: 数据库表使用 JSON 字段存储灵活数据
 - **优势**: 支持不同任务类型的特定数据结构，便于扩展
-- **表**: `item_results.item_data`、`operations.data`、`tasks.statistics`、`task_configs.config`
+- **表**: `file_items`（使用具体字段）、`operations.data`、`tasks.statistics`、`task_configs.config`
 

@@ -21,18 +21,19 @@ from ..models import (
 )
 
 
-class ItemResultRepository(Protocol):
-    """Item 结果仓储协议
+class FileItemRepository(Protocol):
+    """文件处理结果仓储协议
 
-    定义 item 结果持久化操作的接口。
+    定义文件处理结果持久化操作的接口。
+    专门用于文件处理结果，不处理目录操作（目录操作已在 operations 表中记录）。
     提供保存结果、获取统计信息等功能。
     """
 
     def save_result(self, result: FileItemResult) -> int:
-        """保存单个 item 结果
+        """保存单个文件处理结果
 
         Args:
-            result: 文件 item 结果
+            result: 文件处理结果
 
         Returns:
             生成的结果 ID
@@ -52,7 +53,7 @@ class ItemResultRepository(Protocol):
         """获取任务的详细统计信息
 
         包含两个部分：
-        - by_item_type: 按 item 类型统计
+        - by_item_type: 按文件类型统计（video/image/archive/misc）
         - performance_metrics: 性能指标
 
         Returns:
@@ -199,12 +200,12 @@ class FileProcessorRepository(Protocol):
     """文件处理仓储协议
 
     封装文件处理相关的 Repository。
-    包含 ItemResultRepository 和 OperationRepository。
+    包含 FileItemRepository 和 OperationRepository。
     """
 
     @property
-    def item_result_repository(self) -> ItemResultRepository:
-        """Item 结果仓储实例"""
+    def file_item_repository(self) -> FileItemRepository:
+        """文件处理结果仓储实例"""
         ...
 
     @property

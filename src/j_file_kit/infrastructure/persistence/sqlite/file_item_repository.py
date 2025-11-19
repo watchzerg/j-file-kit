@@ -1,8 +1,9 @@
-"""Item结果仓储
+"""文件处理结果仓储
 
-提供 item_results 表的 CRUD 操作。
-记录item处理结果，支持流式写入。
-使用JSON字段存储任务类型特定的数据，支持未来扩展不同类型的item。
+提供 file_items 表的 CRUD 操作。
+记录文件处理结果，支持流式写入。
+使用具体字段存储文件信息，提升查询性能和索引效率。
+专门存储文件处理结果，不存储目录操作（目录操作已在 operations 表中记录）。
 """
 
 from __future__ import annotations
@@ -15,28 +16,30 @@ from typing import Any
 
 from j_file_kit.models import (
     FileItemResult,
+    FileType,
     PathEntryContext,
     PathEntryInfo,
     PathEntryType,
     ProcessorResult,
+    SerialId,
 )
 
 from .connection import SQLiteConnectionManager
 
 
-class ItemResultRepositoryImpl:
-    """Item结果仓储实现
+class FileItemRepositoryImpl:
+    """文件处理结果仓储实现
 
-    提供item结果的持久化操作，支持流式写入。
-    使用JSON字段存储任务类型特定的数据，当前支持FileItemResult。
+    提供文件处理结果的持久化操作，支持流式写入。
+    使用具体字段存储文件信息，提升查询性能和索引效率。
 
-    实现 ItemResultRepository Protocol。
+    实现 FileItemRepository Protocol。
     """
 
     def __init__(
         self, connection_manager: SQLiteConnectionManager, task_id: int
     ) -> None:
-        """初始化Item结果仓储
+        """初始化文件处理结果仓储
 
         Args:
             connection_manager: SQLite 连接管理器
@@ -46,43 +49,39 @@ class ItemResultRepositoryImpl:
         self.task_id = task_id
 
     def save_result(self, result: FileItemResult) -> int:
-        """保存单个item结果
+        """保存单个文件处理结果
 
         Args:
-            result: 文件item结果
+            result: 文件处理结果
 
         Returns:
             生成的结果ID
         """
         created_at = datetime.now()
 
-        # 构建item_data JSON：存储任务类型特定的数据
-        item_data = {
-            "path": str(result.item_info.path),
-            "stem": result.item_info.stem,
-            "item_type": result.item_info.item_type,
-            "type": result.context.file_type.value
-            if result.context.file_type
-            else None,
-            "serial_id": str(result.context.serial_id)
-            if result.context.serial_id
-            else None,
-        }
+        # 提取文件信息到具体字段
+        path = str(result.item_info.path)
+        stem = result.item_info.stem
+        file_type = result.context.file_type.value if result.context.file_type else None
+        serial_id = str(result.context.serial_id) if result.context.serial_id else None
 
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO item_results (
-                    task_id, item_data,
+                INSERT INTO file_items (
+                    task_id, path, stem, file_type, serial_id,
                     success, has_errors, has_warnings, was_skipped,
                     error_message, total_duration_ms, processor_count,
                     context_data, processor_results, created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     self.task_id,
-                    json.dumps(item_data, ensure_ascii=False),
+                    path,
+                    stem,
+                    file_type,
+                    serial_id,
                     result.success,
                     result.has_errors,
                     result.has_warnings,
@@ -123,7 +122,7 @@ class ItemResultRepositoryImpl:
                     SUM(CASE WHEN was_skipped = 1 THEN 1 ELSE 0 END) as skipped_items,
                     SUM(CASE WHEN has_warnings = 1 AND was_skipped = 0 THEN 1 ELSE 0 END) as warning_items,
                     SUM(total_duration_ms) as total_duration_ms
-                FROM item_results
+                FROM file_items
                 WHERE task_id = ?
                 """,
                 (self.task_id,),
@@ -152,16 +151,16 @@ class ItemResultRepositoryImpl:
         """获取任务的详细统计信息
 
         包含两个部分：
-        - by_item_type: 按item类型统计（从item_data JSON中提取type字段）
+        - by_item_type: 按文件类型统计（video/image/archive/misc）
           每个类型包含：total, success, error, skipped, warning
         - performance_metrics: 性能指标
-          - total_duration_ms: 总耗时（所有item处理耗时之和，单位：毫秒）
+          - total_duration_ms: 总耗时（所有文件处理耗时之和，单位：毫秒）
           - avg_duration_ms: 平均处理时间（total_duration_ms / total_items，单位：毫秒）
           - min_duration_ms: 最短处理时间（MIN(total_duration_ms)，单位：毫秒）
           - max_duration_ms: 最长处理时间（MAX(total_duration_ms)，单位：毫秒）
           - items_per_second: 处理速度（total_items / (total_duration_ms / 1000)，单位：item/秒）
 
-        使用 SQL 聚合查询（SUM, AVG, MIN, MAX, COUNT）和JSON函数计算性能指标。
+        使用 SQL 聚合查询（SUM, AVG, MIN, MAX, COUNT）直接使用字段计算性能指标。
 
         Returns:
             详细统计字典，格式：
@@ -181,19 +180,19 @@ class ItemResultRepositoryImpl:
             }
         """
         with self._conn_manager.get_cursor() as cursor:
-            # 按item类型统计（从item_data JSON中提取type字段）
+            # 按文件类型统计（直接使用 file_type 字段）
             cursor.execute(
                 """
                 SELECT
-                    json_extract(item_data, '$.type') as item_type,
+                    file_type,
                     COUNT(*) as total,
                     SUM(CASE WHEN success = 1 AND was_skipped = 0 AND has_warnings = 0 THEN 1 ELSE 0 END) as success,
                     SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as error,
                     SUM(CASE WHEN was_skipped = 1 THEN 1 ELSE 0 END) as skipped,
                     SUM(CASE WHEN has_warnings = 1 AND was_skipped = 0 THEN 1 ELSE 0 END) as warning
-                FROM item_results
-                WHERE task_id = ? AND json_extract(item_data, '$.type') IS NOT NULL
-                GROUP BY json_extract(item_data, '$.type')
+                FROM file_items
+                WHERE task_id = ? AND file_type IS NOT NULL
+                GROUP BY file_type
                 """,
                 (self.task_id,),
             )
@@ -201,7 +200,7 @@ class ItemResultRepositoryImpl:
 
             by_item_type: dict[str, dict[str, int]] = {}
             for row in rows:
-                item_type = row["item_type"]
+                item_type = row["file_type"]
                 if item_type:
                     by_item_type[item_type] = {
                         "total": row["total"] or 0,
@@ -220,7 +219,7 @@ class ItemResultRepositoryImpl:
                     AVG(total_duration_ms) as avg_duration_ms,
                     MIN(total_duration_ms) as min_duration_ms,
                     MAX(total_duration_ms) as max_duration_ms
-                FROM item_results
+                FROM file_items
                 WHERE task_id = ?
                 """,
                 (self.task_id,),
@@ -284,20 +283,34 @@ class ItemResultRepositoryImpl:
             ProcessorResult.model_validate(r) for r in processor_results_data
         ]
 
-        # 从item_data JSON中提取文件特定数据
-        item_data = json.loads(row["item_data"]) if row["item_data"] else {}
-        item_path = item_data.get("path", "")
+        # 直接从字段读取文件信息
+        item_path = row["path"]
         if not item_path:
-            raise ValueError(f"item_data 中缺少 path 字段: {row['id']}")
+            raise ValueError(f"path 字段为空: {row['id']}")
         path_obj = Path(item_path)
-        # 从item_data中获取item_type，如果没有则默认为FILE（向后兼容）
-        item_type_str = item_data.get("item_type", PathEntryType.FILE)
-        item_type = (
-            PathEntryType(item_type_str)
-            if isinstance(item_type_str, str)
-            else PathEntryType.FILE
-        )
-        item_info = PathEntryInfo.from_path(path_obj, item_type)
+
+        # 表只存储文件，所以 item_type 固定为 FILE
+        item_info = PathEntryInfo.from_path(path_obj, PathEntryType.FILE)
+
+        # 从数据库字段更新 file_type 和 serial_id（数据库字段是单一数据源）
+        # 优先使用数据库字段，因为它们是为了查询和索引而展开的权威数据源
+        file_type_str = row["file_type"]
+        if file_type_str:
+            try:
+                file_type = FileType(file_type_str)
+                context.file_type = file_type
+            except ValueError:
+                # 如果 file_type 无效，保持 context 中的原值（可能来自 JSON）
+                pass
+
+        serial_id_str = row["serial_id"]
+        if serial_id_str:
+            try:
+                serial_id = SerialId.from_string(serial_id_str)
+                context.serial_id = serial_id
+            except ValueError:
+                # 如果 serial_id 无效，保持 context 中的原值（可能来自 JSON）
+                pass
 
         return FileItemResult(
             item_info=item_info,

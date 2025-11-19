@@ -6,8 +6,8 @@
 # 导出 Protocol 类型（从 interfaces 导入）
 from ...interfaces.repositories import (
     CrawlerProcessorRepository,
+    FileItemRepository,
     FileProcessorRepository,
-    ItemResultRepository,
     OperationRepository,
     TaskRepository,
     TaskRepositoryRegistry,
@@ -17,8 +17,8 @@ from ...interfaces.repositories import (
 from .sqlite import (
     AppConfigRepository,
     CrawlerProcessorRepositoryImpl,
+    FileItemRepositoryImpl,
     FileProcessorRepositoryImpl,
-    ItemResultRepositoryImpl,
     OperationRepositoryImpl,
     SQLiteConnectionManager,
     TaskRepositoryImpl,
@@ -27,7 +27,7 @@ from .sqlite import (
 
 __all__ = [
     # Protocol 类型
-    "ItemResultRepository",
+    "FileItemRepository",
     "OperationRepository",
     "TaskRepository",
     "FileProcessorRepository",
@@ -37,7 +37,7 @@ __all__ = [
     "SQLiteConnectionManager",
     "AppConfigRepository",
     "TaskRepositoryImpl",
-    "ItemResultRepositoryImpl",
+    "FileItemRepositoryImpl",
     "OperationRepositoryImpl",
     "FileProcessorRepositoryImpl",
     "CrawlerProcessorRepositoryImpl",

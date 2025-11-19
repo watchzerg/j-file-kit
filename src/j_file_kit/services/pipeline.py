@@ -21,7 +21,7 @@ from ..interfaces.processors import (
     ProcessorChain,
 )
 from ..interfaces.repositories import (
-    ItemResultRepository,
+    FileItemRepository,
     OperationRepository,
     TaskRepository,
 )
@@ -49,7 +49,7 @@ class Pipeline:
         task_name: str,
         log_dir: Path,
         operation_repository: OperationRepository,
-        item_result_repository: ItemResultRepository,
+        file_item_repository: FileItemRepository,
         task_id: int,
         task_repository: TaskRepository,
     ):
@@ -60,7 +60,7 @@ class Pipeline:
             task_name: 任务名称
             log_dir: 日志目录
             operation_repository: 操作记录仓储实例
-            item_result_repository: Item结果仓储实例
+            file_item_repository: 文件处理结果仓储实例
             task_id: 任务ID
             task_repository: 任务仓储实例，finalizer 需要更新任务统计信息
         """
@@ -72,7 +72,7 @@ class Pipeline:
         self.processor_chain = ProcessorChain()
         self.logger = StructuredLogger(log_dir, self.task_name)
         self.operation_repository = operation_repository
-        self.item_result_repository = item_result_repository
+        self.file_item_repository = file_item_repository
         self.task_id = task_id
         self.task_repository = task_repository
 
@@ -334,7 +334,7 @@ class Pipeline:
 
         # 从数据库重新计算统计信息，确保准确性
         # total_duration_ms 是所有item处理的总耗时，不是任务总耗时
-        stats = self.item_result_repository.get_statistics()
+        stats = self.file_item_repository.get_statistics()
         self.report.update_from_stats(stats)
 
         # 记录任务结束
@@ -373,7 +373,7 @@ class Pipeline:
                     if item_type == PathEntryType.FILE:
                         file_result = self._process_single_file(item_info, dry_run)
                         # 保存到数据库
-                        item_result_id = self.item_result_repository.save_result(
+                        item_result_id = self.file_item_repository.save_result(
                             file_result
                         )
                         # 设置 item_result_id 到 context（虽然 executor 已执行，但可用于后续查询）
@@ -394,7 +394,7 @@ class Pipeline:
                         item_info = PathEntryInfo.from_path(path, item_type)
                         error_result = self._create_error_result(item_info, e)
                         # 立即保存到数据库
-                        item_result_id = self.item_result_repository.save_result(
+                        item_result_id = self.file_item_repository.save_result(
                             error_result
                         )
                         # 设置 item_result_id 到 context 中

@@ -13,7 +13,7 @@ from typing import Any
 
 from ...interfaces.processors import Finalizer
 from ...interfaces.repositories import (
-    ItemResultRepository,
+    FileItemRepository,
     OperationRepository,
     TaskRepository,
 )
@@ -36,7 +36,7 @@ class FileTaskStatisticsFinalizer(Finalizer):
         task_id: int,
         task_repository: TaskRepository,
         operation_repository: OperationRepository,
-        item_result_repository: ItemResultRepository,
+        file_item_repository: FileItemRepository,
     ) -> None:
         """初始化任务统计信息终结器
 
@@ -44,13 +44,13 @@ class FileTaskStatisticsFinalizer(Finalizer):
             task_id: 任务ID
             task_repository: 任务仓储实例
             operation_repository: 操作记录仓储实例
-            item_result_repository: Item结果仓储实例
+            file_item_repository: 文件处理结果仓储实例
         """
         super().__init__("FileTaskStatisticsFinalizer")
         self.task_id = task_id
         self.task_repository = task_repository
         self.operation_repository = operation_repository
-        self.item_result_repository = item_result_repository
+        self.file_item_repository = file_item_repository
         self._logger = logging.getLogger(__name__)
 
     def finalize(self) -> ProcessorResult:
@@ -84,7 +84,7 @@ class FileTaskStatisticsFinalizer(Finalizer):
             operation_stats = self.operation_repository.get_operation_statistics()
 
             # 获取item统计和性能指标
-            detailed_stats = self.item_result_repository.get_detailed_statistics()
+            detailed_stats = self.file_item_repository.get_detailed_statistics()
 
             # 合并统计信息为统一结构
             statistics: dict[str, Any] = {
