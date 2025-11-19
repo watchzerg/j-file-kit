@@ -11,7 +11,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from .enums import FileType
-from .path_item import PathItemAction, PathItemInfo, PathItemType
+from .path_entry import PathEntryAction, PathEntryInfo, PathEntryType
 from .value_objects import SerialId
 
 
@@ -25,7 +25,7 @@ class ItemContext(BaseModel):
     custom_data: dict[str, Any] = Field(default_factory=dict, description="自定义数据")
 
 
-class PathItemContext(ItemContext):
+class PathEntryContext(ItemContext):
     """路径项处理上下文模型
 
     统一处理文件和文件夹的上下文对象，携带分析结果和中间状态。
@@ -38,8 +38,8 @@ class PathItemContext(ItemContext):
     - target_path: 完整的目标路径（目录+文件名），由 FileActionDecider 设置
     """
 
-    item_info: PathItemInfo = Field(..., description="路径项基础信息")
-    item_type: PathItemType = Field(..., description="路径项类型（文件或文件夹）")
+    item_info: PathEntryInfo = Field(..., description="路径项基础信息")
+    item_type: PathEntryType = Field(..., description="路径项类型（文件或文件夹）")
     file_type: FileType | None = Field(
         None, description="文件类型（视频/图片/压缩/其他），仅在 item_type=FILE 时有效"
     )
@@ -48,6 +48,6 @@ class PathItemContext(ItemContext):
         None, description="重构后的完整文件名（含扩展名，不含路径）"
     )
     target_path: Path | None = Field(None, description="计划的目标路径（完整路径）")
-    action: PathItemAction | None = Field(None, description="决策的动作类型")
+    action: PathEntryAction | None = Field(None, description="决策的动作类型")
     file_size: int | None = Field(None, description="文件大小（字节）")
     item_result_id: int | None = Field(None, description="Item结果ID")

@@ -11,7 +11,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 
-class PathItemType(str, Enum):
+class PathEntryType(str, Enum):
     """路径项类型枚举
 
     区分路径项是文件还是文件夹，这是第一层分类。
@@ -21,7 +21,7 @@ class PathItemType(str, Enum):
     DIRECTORY = "directory"
 
 
-class PathItemAction(str, Enum):
+class PathEntryAction(str, Enum):
     """路径项动作类型枚举
 
     统一处理文件和文件夹的操作枚举，支持文件和文件夹的各种操作。
@@ -39,18 +39,18 @@ class PathItemAction(str, Enum):
     def description(self) -> str:
         """获取动作的中文描述"""
         descriptions = {
-            PathItemAction.MOVE_TO_SORTED: "整理目录",
-            PathItemAction.MOVE_TO_UNSORTED: "无番号目录",
-            PathItemAction.MOVE_TO_ARCHIVE: "压缩文件目录",
-            PathItemAction.MOVE_TO_MISC: "Misc文件目录",
-            PathItemAction.DELETE: "删除",
-            PathItemAction.DELETE_DIRECTORY: "删除目录",
-            PathItemAction.SKIP: "跳过",
+            PathEntryAction.MOVE_TO_SORTED: "整理目录",
+            PathEntryAction.MOVE_TO_UNSORTED: "无番号目录",
+            PathEntryAction.MOVE_TO_ARCHIVE: "压缩文件目录",
+            PathEntryAction.MOVE_TO_MISC: "Misc文件目录",
+            PathEntryAction.DELETE: "删除",
+            PathEntryAction.DELETE_DIRECTORY: "删除目录",
+            PathEntryAction.SKIP: "跳过",
         }
         return descriptions.get(self, self.value)
 
 
-class PathItemInfo(BaseModel):
+class PathEntryInfo(BaseModel):
     """路径项基础信息模型
 
     统一文件和文件夹的信息模型，消除类型不匹配问题。
@@ -65,23 +65,23 @@ class PathItemInfo(BaseModel):
     item_type: str = Field(..., description="路径项类型（文件或文件夹）")
 
     @classmethod
-    def from_path(cls, path: Path, item_type: str | PathItemType) -> PathItemInfo:
-        """从路径创建 PathItemInfo
+    def from_path(cls, path: Path, item_type: str | PathEntryType) -> PathEntryInfo:
+        """从路径创建 PathEntryInfo
 
         根据 item_type 决定是否提取 suffix（文件提取，目录为 None）。
 
         Args:
             path: 路径
-            item_type: 路径项类型（PathItemType 枚举值或字符串）
+            item_type: 路径项类型（PathEntryType 枚举值或字符串）
 
         Returns:
-            PathItemInfo 对象
+            PathEntryInfo 对象
         """
-        # 确保 item_type 是 PathItemType 枚举
+        # 确保 item_type 是 PathEntryType 枚举
         if isinstance(item_type, str):
-            item_type = PathItemType(item_type)
+            item_type = PathEntryType(item_type)
 
-        if item_type == PathItemType.FILE:
+        if item_type == PathEntryType.FILE:
             return cls(
                 path=path,
                 stem=path.stem,

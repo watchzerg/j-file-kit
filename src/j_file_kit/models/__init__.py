@@ -10,7 +10,7 @@ from .config import (
     JavVideoOrganizeConfig,
     TaskConfig,
 )
-from .contexts import ItemContext, PathItemContext
+from .contexts import ItemContext, PathEntryContext
 from .enums import FileType
 from .exceptions import (
     TaskAlreadyRunningError,
@@ -19,7 +19,7 @@ from .exceptions import (
     TaskNotFoundError,
 )
 from .operations import Operation, OperationType
-from .path_item import PathItemAction, PathItemInfo, PathItemType
+from .path_entry import PathEntryAction, PathEntryInfo, PathEntryType
 from .results import FileItemResult, ItemResult, ProcessorResult, ProcessorStatus
 from .task import Task, TaskReport, TaskStatus, TaskType, TriggerType
 from .value_objects import SerialId
@@ -28,8 +28,8 @@ __all__ = [
     # 枚举
     "ProcessorStatus",
     "FileType",
-    "PathItemType",
-    "PathItemAction",
+    "PathEntryType",
+    "PathEntryAction",
     "TaskStatus",
     "TaskType",
     "TriggerType",
@@ -41,10 +41,10 @@ __all__ = [
     "JavVideoOrganizeConfig",
     # 值对象
     "SerialId",
-    "PathItemInfo",
+    "PathEntryInfo",
     # 上下文
     "ItemContext",
-    "PathItemContext",
+    "PathEntryContext",
     # 结果
     "ProcessorResult",
     "ItemResult",

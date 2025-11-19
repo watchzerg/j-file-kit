@@ -14,9 +14,9 @@ from typing import Any
 from ...interfaces.processors import Analyzer
 from ...models import (
     FileType,
-    PathItemAction,
-    PathItemContext,
-    PathItemType,
+    PathEntryAction,
+    PathEntryContext,
+    PathEntryType,
     ProcessorResult,
 )
 from ...utils.file_utils import generate_sorted_dir, get_file_type
@@ -47,7 +47,7 @@ class FileClassifier(Analyzer):
         self.image_extensions = image_extensions
         self.archive_extensions = archive_extensions
 
-    def process(self, ctx: PathItemContext) -> ProcessorResult:  # type: ignore[override]
+    def process(self, ctx: PathEntryContext) -> ProcessorResult:  # type: ignore[override]
         """分析文件类型
 
         Args:
@@ -57,7 +57,7 @@ class FileClassifier(Analyzer):
             分析结果
         """
         # 类型检查：只处理文件类型的项
-        if ctx.item_type != PathItemType.FILE:
+        if ctx.item_type != PathEntryType.FILE:
             return ProcessorResult.skip("不是文件，跳过文件类型分析")
 
         try:
@@ -89,7 +89,7 @@ class FileSerialIdExtractor(Analyzer):
         """初始化番号提取器"""
         super().__init__("FileSerialIdExtractor")
 
-    def process(self, ctx: PathItemContext) -> ProcessorResult:  # type: ignore[override]
+    def process(self, ctx: PathEntryContext) -> ProcessorResult:  # type: ignore[override]
         """提取番号并生成重构后的文件名
 
         Args:
@@ -99,7 +99,7 @@ class FileSerialIdExtractor(Analyzer):
             分析结果
         """
         # 类型检查：只处理文件类型的项
-        if ctx.item_type != PathItemType.FILE:
+        if ctx.item_type != PathEntryType.FILE:
             return ProcessorResult.skip("不是文件，跳过番号提取")
 
         try:
@@ -147,7 +147,7 @@ class MiscFileSizeAnalyzer(Analyzer):
         """初始化Misc文件大小分析器"""
         super().__init__("MiscFileSizeAnalyzer")
 
-    def process(self, ctx: PathItemContext) -> ProcessorResult:  # type: ignore[override]
+    def process(self, ctx: PathEntryContext) -> ProcessorResult:  # type: ignore[override]
         """分析文件大小
 
         Args:
@@ -157,7 +157,7 @@ class MiscFileSizeAnalyzer(Analyzer):
             分析结果
         """
         # 类型检查：只处理文件类型的项
-        if ctx.item_type != PathItemType.FILE:
+        if ctx.item_type != PathEntryType.FILE:
             return ProcessorResult.skip("不是文件，跳过大小分析")
 
         # 只处理Misc文件
@@ -191,7 +191,7 @@ class FileNameAnalyzer(Analyzer):
         super().__init__("FileNameAnalyzer")
         self.max_length = max_length
 
-    def process(self, ctx: PathItemContext) -> ProcessorResult:  # type: ignore[override]
+    def process(self, ctx: PathEntryContext) -> ProcessorResult:  # type: ignore[override]
         """分析文件名
 
         Args:
@@ -201,7 +201,7 @@ class FileNameAnalyzer(Analyzer):
             分析结果
         """
         # 类型检查：只处理文件类型的项
-        if ctx.item_type != PathItemType.FILE:
+        if ctx.item_type != PathEntryType.FILE:
             return ProcessorResult.skip("不是文件，跳过文件名分析")
 
         try:
@@ -248,7 +248,7 @@ class MiscFileDeleteAnalyzer(Analyzer):
         super().__init__("MiscFileDeleteAnalyzer")
         self.misc_file_delete_rules = misc_file_delete_rules
 
-    def process(self, ctx: PathItemContext) -> ProcessorResult:  # type: ignore[override]
+    def process(self, ctx: PathEntryContext) -> ProcessorResult:  # type: ignore[override]
         """判断Misc文件是否应该删除
 
         Args:
@@ -258,7 +258,7 @@ class MiscFileDeleteAnalyzer(Analyzer):
             分析结果
         """
         # 类型检查：只处理文件类型的项
-        if ctx.item_type != PathItemType.FILE:
+        if ctx.item_type != PathEntryType.FILE:
             return ProcessorResult.skip("不是文件，跳过删除判断")
 
         # 只处理Misc文件
@@ -267,7 +267,7 @@ class MiscFileDeleteAnalyzer(Analyzer):
 
         try:
             if self._should_delete(ctx):
-                ctx.action = PathItemAction.DELETE
+                ctx.action = PathEntryAction.DELETE
                 return ProcessorResult.success("Misc文件符合删除条件")
             else:
                 return ProcessorResult.success(
@@ -277,7 +277,7 @@ class MiscFileDeleteAnalyzer(Analyzer):
         except Exception as e:
             return ProcessorResult.error(f"Misc文件删除判断失败: {str(e)}")
 
-    def _should_delete(self, ctx: PathItemContext) -> bool:
+    def _should_delete(self, ctx: PathEntryContext) -> bool:
         """判断Misc文件是否应该删除
 
         删除条件：扩展名 or (体积 <= max_size and 文件名包含关键字)
@@ -357,7 +357,7 @@ class FileActionDecider(Analyzer):
         self.archive_dir = archive_dir
         self.misc_dir = misc_dir
 
-    def _process_video_image(self, ctx: PathItemContext) -> ProcessorResult | None:
+    def _process_video_image(self, ctx: PathEntryContext) -> ProcessorResult | None:
         """处理视频/图片文件
 
         Args:
@@ -376,7 +376,7 @@ class FileActionDecider(Analyzer):
                     "番号存在但重构后的文件名未设置，请确保 FileSerialIdExtractor 已执行"
                 )
 
-            ctx.action = PathItemAction.MOVE_TO_SORTED
+            ctx.action = PathEntryAction.MOVE_TO_SORTED
             target_dir = generate_sorted_dir(self.sorted_dir, ctx.serial_id)
             ctx.target_path = target_dir / ctx.renamed_filename
         else:
@@ -384,11 +384,11 @@ class FileActionDecider(Analyzer):
             if self.unsorted_dir is None:
                 return ProcessorResult.error("unsorted_dir 未设置，无法移动无番号文件")
 
-            ctx.action = PathItemAction.MOVE_TO_UNSORTED
+            ctx.action = PathEntryAction.MOVE_TO_UNSORTED
             ctx.target_path = self.unsorted_dir / ctx.item_info.path.name
         return None
 
-    def _process_archive(self, ctx: PathItemContext) -> ProcessorResult | None:
+    def _process_archive(self, ctx: PathEntryContext) -> ProcessorResult | None:
         """处理压缩文件
 
         Args:
@@ -400,11 +400,11 @@ class FileActionDecider(Analyzer):
         if self.archive_dir is None:
             return ProcessorResult.error("archive_dir 未设置，无法移动压缩文件")
 
-        ctx.action = PathItemAction.MOVE_TO_ARCHIVE
+        ctx.action = PathEntryAction.MOVE_TO_ARCHIVE
         ctx.target_path = self.archive_dir / ctx.item_info.path.name
         return None
 
-    def _process_misc(self, ctx: PathItemContext) -> ProcessorResult | None:
+    def _process_misc(self, ctx: PathEntryContext) -> ProcessorResult | None:
         """处理Misc文件
 
         Args:
@@ -420,11 +420,11 @@ class FileActionDecider(Analyzer):
         if self.misc_dir is None:
             return ProcessorResult.error("misc_dir 未设置，无法移动Misc文件")
 
-        ctx.action = PathItemAction.MOVE_TO_MISC
+        ctx.action = PathEntryAction.MOVE_TO_MISC
         ctx.target_path = self.misc_dir / ctx.item_info.path.name
         return None
 
-    def _process_by_file_type(self, ctx: PathItemContext) -> ProcessorResult | None:
+    def _process_by_file_type(self, ctx: PathEntryContext) -> ProcessorResult | None:
         """根据文件类型处理
 
         Args:
@@ -439,10 +439,10 @@ class FileActionDecider(Analyzer):
             return self._process_archive(ctx)
         if ctx.file_type == FileType.MISC:
             return self._process_misc(ctx)
-        ctx.action = PathItemAction.SKIP
+        ctx.action = PathEntryAction.SKIP
         return None
 
-    def process(self, ctx: PathItemContext) -> ProcessorResult:  # type: ignore[override]
+    def process(self, ctx: PathEntryContext) -> ProcessorResult:  # type: ignore[override]
         """决策动作类型并组装完整路径
 
         根据文件类型、番号等信息，决定应该执行什么动作，并组装完整的目标路径。
@@ -454,7 +454,7 @@ class FileActionDecider(Analyzer):
             分析结果
         """
         # 类型检查：只处理文件类型的项
-        if ctx.item_type != PathItemType.FILE:
+        if ctx.item_type != PathEntryType.FILE:
             return ProcessorResult.skip("不是文件，跳过动作决策")
 
         # 如果 action 已经被设置（例如由 MiscFileDeleteAnalyzer 设置），直接跳过

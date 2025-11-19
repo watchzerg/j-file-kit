@@ -15,9 +15,9 @@ from typing import Any
 
 from j_file_kit.models import (
     FileItemResult,
-    PathItemContext,
-    PathItemInfo,
-    PathItemType,
+    PathEntryContext,
+    PathEntryInfo,
+    PathEntryType,
     ProcessorResult,
 )
 
@@ -272,9 +272,9 @@ class ItemResultRepositoryImpl:
         Returns:
             FileItemResult 对象
         """
-        # 反序列化 PathItemContext
+        # 反序列化 PathEntryContext
         context_data = json.loads(row["context_data"]) if row["context_data"] else {}
-        context = PathItemContext.model_validate(context_data)
+        context = PathEntryContext.model_validate(context_data)
 
         # 反序列化 ProcessorResult 列表
         processor_results_data = (
@@ -291,13 +291,13 @@ class ItemResultRepositoryImpl:
             raise ValueError(f"item_data 中缺少 path 字段: {row['id']}")
         path_obj = Path(item_path)
         # 从item_data中获取item_type，如果没有则默认为FILE（向后兼容）
-        item_type_str = item_data.get("item_type", PathItemType.FILE)
+        item_type_str = item_data.get("item_type", PathEntryType.FILE)
         item_type = (
-            PathItemType(item_type_str)
+            PathEntryType(item_type_str)
             if isinstance(item_type_str, str)
-            else PathItemType.FILE
+            else PathEntryType.FILE
         )
-        item_info = PathItemInfo.from_path(path_obj, item_type)
+        item_info = PathEntryInfo.from_path(path_obj, item_type)
 
         return FileItemResult(
             item_info=item_info,

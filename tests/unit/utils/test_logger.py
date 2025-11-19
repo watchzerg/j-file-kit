@@ -13,9 +13,9 @@ from j_file_kit.infrastructure.logging.logger import StructuredLogger
 from j_file_kit.models import (
     FileItemResult,
     FileType,
-    PathItemContext,
-    PathItemInfo,
-    PathItemType,
+    PathEntryContext,
+    PathEntryInfo,
+    PathEntryType,
     ProcessorResult,
     TaskReport,
 )
@@ -87,12 +87,12 @@ class TestStructuredLogger:
         """测试文件处理结果日志"""
         logger = StructuredLogger(tmp_path, "test_task")
 
-        item_info = PathItemInfo.from_path(Path("/test/video.mp4"), PathItemType.FILE)
+        item_info = PathEntryInfo.from_path(Path("/test/video.mp4"), PathEntryType.FILE)
         from j_file_kit.models import SerialId
 
-        context = PathItemContext(
+        context = PathEntryContext(
             item_info=item_info,
-            item_type=PathItemType.FILE,
+            item_type=PathEntryType.FILE,
             file_type=FileType.VIDEO,
             serial_id=SerialId(prefix="ABC", number="123"),
             renamed_filename=None,
@@ -133,10 +133,10 @@ class TestStructuredLogger:
         """测试带错误消息的文件结果日志"""
         logger = StructuredLogger(tmp_path, "test_task")
 
-        item_info = PathItemInfo.from_path(Path("/test/file.mp4"), PathItemType.FILE)
-        context = PathItemContext(
+        item_info = PathEntryInfo.from_path(Path("/test/file.mp4"), PathEntryType.FILE)
+        context = PathEntryContext(
             item_info=item_info,
-            item_type=PathItemType.FILE,
+            item_type=PathEntryType.FILE,
             file_type=None,
             serial_id=None,
             renamed_filename=None,
@@ -164,10 +164,10 @@ class TestStructuredLogger:
         """测试跳过状态的文件结果日志"""
         logger = StructuredLogger(tmp_path, "test_task")
 
-        item_info = PathItemInfo.from_path(Path("/test/file.mp4"), PathItemType.FILE)
-        context = PathItemContext(
+        item_info = PathEntryInfo.from_path(Path("/test/file.mp4"), PathEntryType.FILE)
+        context = PathEntryContext(
             item_info=item_info,
-            item_type=PathItemType.FILE,
+            item_type=PathEntryType.FILE,
             file_type=None,
             serial_id=None,
             renamed_filename=None,
@@ -324,10 +324,10 @@ class TestStructuredLogger:
         """测试文件结果日志处理 None 值"""
         logger = StructuredLogger(tmp_path, "test_task")
 
-        item_info = PathItemInfo.from_path(Path("/test/file.mp4"), PathItemType.FILE)
-        context = PathItemContext(
+        item_info = PathEntryInfo.from_path(Path("/test/file.mp4"), PathEntryType.FILE)
+        context = PathEntryContext(
             item_info=item_info,
-            item_type=PathItemType.FILE,
+            item_type=PathEntryType.FILE,
             file_type=None,
             serial_id=None,
             renamed_filename=None,

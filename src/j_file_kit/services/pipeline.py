@@ -27,9 +27,9 @@ from ..interfaces.repositories import (
 )
 from ..models import (
     FileItemResult,
-    PathItemContext,
-    PathItemInfo,
-    PathItemType,
+    PathEntryContext,
+    PathEntryInfo,
+    PathEntryType,
     ProcessorResult,
     ProcessorStatus,
     TaskReport,
@@ -153,7 +153,7 @@ class Pipeline:
 
         return UnifiedFileExecutor(self.operation_repository)
 
-    def _create_initial_context(self, item_info: PathItemInfo) -> PathItemContext:
+    def _create_initial_context(self, item_info: PathEntryInfo) -> PathEntryContext:
         """创建初始处理上下文
 
         Args:
@@ -163,8 +163,8 @@ class Pipeline:
             初始化的处理上下文
         """
         # 将字符串类型的 item_type 转换为枚举类型
-        item_type_enum = PathItemType(item_info.item_type)
-        return PathItemContext.model_construct(
+        item_type_enum = PathEntryType(item_info.item_type)
+        return PathEntryContext.model_construct(
             item_info=item_info, item_type=item_type_enum
         )
 
@@ -185,7 +185,7 @@ class Pipeline:
         )
 
     def _create_error_result(
-        self, item_info: PathItemInfo, error: Exception
+        self, item_info: PathEntryInfo, error: Exception
     ) -> FileItemResult:
         """创建错误结果
 
@@ -204,7 +204,9 @@ class Pipeline:
             total_duration_ms=0.0,
         )
 
-    def _process_single_directory(self, item_info: PathItemInfo, dry_run: bool) -> None:
+    def _process_single_directory(
+        self, item_info: PathEntryInfo, dry_run: bool
+    ) -> None:
         """处理单个目录
 
         在遍历过程中同步处理目录，利用自底向上遍历顺序确保空文件夹及时清理。
@@ -218,9 +220,9 @@ class Pipeline:
         if dry_run:
             return
 
-        # 创建PathItemContext，设置item_type为DIRECTORY
-        ctx = PathItemContext.model_construct(
-            item_info=item_info, item_type=PathItemType.DIRECTORY
+        # 创建PathEntryContext，设置item_type为DIRECTORY
+        ctx = PathEntryContext.model_construct(
+            item_info=item_info, item_type=PathEntryType.DIRECTORY
         )
 
         # 调用FileEmptyDirectoryExecutor处理（如果存在）
@@ -239,7 +241,7 @@ class Pipeline:
                 )
 
     def _process_single_file(
-        self, item_info: PathItemInfo, dry_run: bool
+        self, item_info: PathEntryInfo, dry_run: bool
     ) -> FileItemResult:
         """处理单个文件
 
@@ -251,8 +253,8 @@ class Pipeline:
             文件结果
         """
         # 类型检查：只处理文件类型的项
-        item_type_enum = PathItemType(item_info.item_type)
-        if item_type_enum != PathItemType.FILE:
+        item_type_enum = PathEntryType(item_info.item_type)
+        if item_type_enum != PathEntryType.FILE:
             raise ValueError(f"期望文件类型，但收到: {item_info.item_type}")
 
         file_start_time = time.time()
@@ -364,11 +366,11 @@ class Pipeline:
                     break
 
                 try:
-                    # 统一处理：使用 PathItemInfo.from_path 创建信息对象
-                    item_info = PathItemInfo.from_path(path, item_type)
+                    # 统一处理：使用 PathEntryInfo.from_path 创建信息对象
+                    item_info = PathEntryInfo.from_path(path, item_type)
 
                     # 根据类型判断：文件或目录
-                    if item_type == PathItemType.FILE:
+                    if item_type == PathEntryType.FILE:
                         file_result = self._process_single_file(item_info, dry_run)
                         # 保存到数据库
                         item_result_id = self.item_result_repository.save_result(
@@ -388,8 +390,8 @@ class Pipeline:
                     item_path = path
                     self.logger.error(f"{error_msg}: {item_path}", {"error": str(e)})
                     # 如果是文件，创建错误结果并保存
-                    if item_type == PathItemType.FILE:
-                        item_info = PathItemInfo.from_path(path, item_type)
+                    if item_type == PathEntryType.FILE:
+                        item_info = PathEntryInfo.from_path(path, item_type)
                         error_result = self._create_error_result(item_info, e)
                         # 立即保存到数据库
                         item_result_id = self.item_result_repository.save_result(
@@ -432,7 +434,7 @@ class Pipeline:
 
         self.report.total_duration_ms += result.total_duration_ms
 
-    def _run_analyzers_only(self, ctx: PathItemContext) -> list[ProcessorResult]:
+    def _run_analyzers_only(self, ctx: PathEntryContext) -> list[ProcessorResult]:
         """仅执行分析器（用于预览模式）
 
         Args:
