@@ -7,7 +7,6 @@
 from ...interfaces.repositories import (
     CrawlerProcessorRepository,
     FileItemRepository,
-    FileProcessorRepository,
     OperationRepository,
     TaskRepository,
     TaskRepositoryRegistry,
@@ -18,7 +17,6 @@ from .sqlite import (
     AppConfigRepository,
     CrawlerProcessorRepositoryImpl,
     FileItemRepositoryImpl,
-    FileProcessorRepositoryImpl,
     OperationRepositoryImpl,
     SQLiteConnectionManager,
     TaskRepositoryImpl,
@@ -30,7 +28,6 @@ __all__ = [
     "FileItemRepository",
     "OperationRepository",
     "TaskRepository",
-    "FileProcessorRepository",
     "CrawlerProcessorRepository",
     "TaskRepositoryRegistry",
     # 实现类
@@ -39,7 +36,6 @@ __all__ = [
     "TaskRepositoryImpl",
     "FileItemRepositoryImpl",
     "OperationRepositoryImpl",
-    "FileProcessorRepositoryImpl",
     "CrawlerProcessorRepositoryImpl",
     "TaskRepositoryRegistryImpl",
 ]

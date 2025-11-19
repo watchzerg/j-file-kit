@@ -196,24 +196,6 @@ class TaskRepository(Protocol):
         ...
 
 
-class FileProcessorRepository(Protocol):
-    """文件处理仓储协议
-
-    封装文件处理相关的 Repository。
-    包含 FileItemRepository 和 OperationRepository。
-    """
-
-    @property
-    def file_item_repository(self) -> FileItemRepository:
-        """文件处理结果仓储实例"""
-        ...
-
-    @property
-    def operation_repository(self) -> OperationRepository:
-        """操作记录仓储实例"""
-        ...
-
-
 class CrawlerProcessorRepository(Protocol):
     """爬虫处理仓储协议
 
@@ -231,19 +213,27 @@ class TaskRepositoryRegistry(Protocol):
     作为依赖注入容器，统一管理 Repository 的生命周期。
     """
 
-    def get_file_processor_repository(self) -> FileProcessorRepository:
-        """获取文件处理仓储
-
-        Returns:
-            文件处理仓储实例
-        """
-        ...
-
     def get_task_repository(self) -> TaskRepository:
         """获取任务仓储
 
         Returns:
             任务仓储实例
+        """
+        ...
+
+    def get_file_item_repository(self) -> FileItemRepository:
+        """获取文件处理结果仓储
+
+        Returns:
+            文件处理结果仓储实例
+        """
+        ...
+
+    def get_operation_repository(self) -> OperationRepository:
+        """获取操作记录仓储
+
+        Returns:
+            操作记录仓储实例
         """
         ...
 

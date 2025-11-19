@@ -196,14 +196,15 @@ class JavVideoOrganizer(BaseTask):
             cancelled_event: 取消事件，用于检查任务是否被取消
         """
         # 从 Registry 获取 Repository
-        file_repo = repository_registry.get_file_processor_repository()
+        operation_repository = repository_registry.get_operation_repository()
+        file_item_repository = repository_registry.get_file_item_repository()
         task_repo = repository_registry.get_task_repository()
 
         pipeline = self.create_pipeline(
             task_id,
             self.log_dir,
             task_repo,
-            file_repo.operation_repository,
-            file_repo.file_item_repository,
+            operation_repository,
+            file_item_repository,
         )
         pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)

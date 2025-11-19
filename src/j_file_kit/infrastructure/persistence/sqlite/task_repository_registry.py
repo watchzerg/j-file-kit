@@ -8,13 +8,15 @@ from __future__ import annotations
 
 from j_file_kit.interfaces.repositories import (
     CrawlerProcessorRepository,
-    FileProcessorRepository,
+    FileItemRepository,
+    OperationRepository,
     TaskRepository,
 )
 
 from .connection import SQLiteConnectionManager
 from .crawler_processor_repository import CrawlerProcessorRepositoryImpl
-from .file_processor_repository import FileProcessorRepositoryImpl
+from .file_item_repository import FileItemRepositoryImpl
+from .operation_repository import OperationRepositoryImpl
 
 
 class TaskRepositoryRegistryImpl:
@@ -42,22 +44,9 @@ class TaskRepositoryRegistryImpl:
         self._connection_manager = connection_manager
         self._task_id = task_id
         self._task_repository = task_repository
-        self._file_processor_repository: FileProcessorRepository | None = None
+        self._file_item_repository: FileItemRepository | None = None
+        self._operation_repository: OperationRepository | None = None
         self._crawler_processor_repository: CrawlerProcessorRepository | None = None
-
-    def get_file_processor_repository(self) -> FileProcessorRepository:
-        """获取文件处理仓储
-
-        使用懒加载模式，首次调用时创建。
-
-        Returns:
-            文件处理仓储实例
-        """
-        if self._file_processor_repository is None:
-            self._file_processor_repository = FileProcessorRepositoryImpl(
-                self._connection_manager, self._task_id
-            )
-        return self._file_processor_repository
 
     def get_task_repository(self) -> TaskRepository:
         """获取任务仓储
@@ -66,6 +55,34 @@ class TaskRepositoryRegistryImpl:
             任务仓储实例
         """
         return self._task_repository
+
+    def get_file_item_repository(self) -> FileItemRepository:
+        """获取文件处理结果仓储
+
+        使用懒加载模式，首次调用时创建。
+
+        Returns:
+            文件处理结果仓储实例
+        """
+        if self._file_item_repository is None:
+            self._file_item_repository = FileItemRepositoryImpl(
+                self._connection_manager, self._task_id
+            )
+        return self._file_item_repository
+
+    def get_operation_repository(self) -> OperationRepository:
+        """获取操作记录仓储
+
+        使用懒加载模式，首次调用时创建。
+
+        Returns:
+            操作记录仓储实例
+        """
+        if self._operation_repository is None:
+            self._operation_repository = OperationRepositoryImpl(
+                self._connection_manager, self._task_id
+            )
+        return self._operation_repository
 
     def get_crawler_processor_repository(self) -> CrawlerProcessorRepository:
         """获取爬虫处理仓储
