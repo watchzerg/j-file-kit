@@ -7,7 +7,6 @@
 from .analyzers import (
     FileActionDecider,
     FileClassifier,
-    FileNameAnalyzer,
     FileSerialIdExtractor,
     MiscFileDeleteAnalyzer,
     MiscFileSizeAnalyzer,
@@ -25,7 +24,6 @@ __all__ = [
     "FileClassifier",
     "FileSerialIdExtractor",
     "MiscFileSizeAnalyzer",
-    "FileNameAnalyzer",
     "MiscFileDeleteAnalyzer",
     "FileActionDecider",
     # Executors
