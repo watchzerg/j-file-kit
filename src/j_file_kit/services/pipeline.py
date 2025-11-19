@@ -13,17 +13,17 @@ from pathlib import Path
 
 from ..infrastructure.filesystem.scanner import scan_directory_items
 from ..infrastructure.logging.logger import StructuredLogger
-from ..infrastructure.persistence import (
-    ItemResultRepository,
-    OperationRepository,
-    TaskRepository,
-)
 from ..interfaces.processors import (
     Analyzer,
     Executor,
     Finalizer,
     Initializer,
     ProcessorChain,
+)
+from ..interfaces.repositories import (
+    ItemResultRepository,
+    OperationRepository,
+    TaskRepository,
 )
 from ..models import (
     FileItemResult,

@@ -9,7 +9,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
 from ...infrastructure.filesystem.operations import (
     create_directory,
@@ -19,6 +18,7 @@ from ...infrastructure.filesystem.operations import (
     move_file_with_conflict_resolution,
 )
 from ...interfaces.processors import Executor
+from ...interfaces.repositories import OperationRepository
 from ...models import (
     OperationType,
     PathItemAction,
@@ -37,7 +37,7 @@ class UnifiedFileExecutor(Executor):
     只处理文件类型的路径项。
     """
 
-    def __init__(self, operation_repository: Any = None) -> None:
+    def __init__(self, operation_repository: OperationRepository | None = None) -> None:
         """初始化统一文件执行器
 
         Args:
@@ -177,7 +177,9 @@ class FileEmptyDirectoryExecutor(Executor):
     """
 
     def __init__(
-        self, scan_root: Path | None, operation_repository: Any | None = None
+        self,
+        scan_root: Path | None,
+        operation_repository: OperationRepository | None = None,
     ) -> None:
         """初始化空目录清理执行器
 

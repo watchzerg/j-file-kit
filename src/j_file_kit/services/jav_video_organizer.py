@@ -12,10 +12,11 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from ..infrastructure.persistence import (
+from ..interfaces.repositories import (
     ItemResultRepository,
     OperationRepository,
     TaskRepository,
+    TaskRepositoryRegistry,
 )
 from ..interfaces.task import BaseTask
 from ..models import TaskType
@@ -182,9 +183,7 @@ class JavVideoOrganizer(BaseTask):
     def run(
         self,
         task_id: int,
-        task_repository: TaskRepository,
-        operation_repository: OperationRepository,
-        item_result_repository: ItemResultRepository,
+        repository_registry: TaskRepositoryRegistry,
         dry_run: bool = False,
         cancelled_event: threading.Event | None = None,
     ) -> None:
@@ -192,17 +191,19 @@ class JavVideoOrganizer(BaseTask):
 
         Args:
             task_id: 任务ID
-            task_repository: 任务仓储实例
-            operation_repository: 操作记录仓储实例
-            item_result_repository: Item结果仓储实例
+            repository_registry: 任务仓储注册表，提供统一的 Repository 获取接口
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancelled_event: 取消事件，用于检查任务是否被取消
         """
+        # 从 Registry 获取 Repository
+        file_repo = repository_registry.get_file_processor_repository()
+        task_repo = repository_registry.get_task_repository()
+
         pipeline = self.create_pipeline(
             task_id,
             self.log_dir,
-            task_repository,
-            operation_repository,
-            item_result_repository,
+            task_repo,
+            file_repo.operation_repository,
+            file_repo.item_result_repository,
         )
         pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)

@@ -20,10 +20,12 @@ from j_file_kit.models import (
 from .connection import SQLiteConnectionManager
 
 
-class TaskRepository:
-    """任务仓储
+class TaskRepositoryImpl:
+    """任务仓储实现
 
     提供任务数据的持久化操作。
+
+    实现 TaskRepository Protocol。
     """
 
     def __init__(self, connection_manager: SQLiteConnectionManager) -> None:

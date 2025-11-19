@@ -24,11 +24,13 @@ from j_file_kit.models import (
 from .connection import SQLiteConnectionManager
 
 
-class ItemResultRepository:
-    """Item结果仓储
+class ItemResultRepositoryImpl:
+    """Item结果仓储实现
 
     提供item结果的持久化操作，支持流式写入。
     使用JSON字段存储任务类型特定的数据，当前支持FileItemResult。
+
+    实现 ItemResultRepository Protocol。
     """
 
     def __init__(

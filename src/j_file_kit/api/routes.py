@@ -9,7 +9,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request, status
 
 from ..infrastructure.app_state import AppState
-from ..infrastructure.persistence import ItemResultRepository
+from ..infrastructure.persistence import ItemResultRepositoryImpl
 from ..interfaces.task import BaseTask
 from ..models import TaskStatus, TaskType, TriggerType
 from ..services.jav_video_organizer import JavVideoOrganizer
@@ -137,7 +137,7 @@ async def get_task_status(
     # 从数据库查询 total_items
     total_items = None
     if task_model.status in (TaskStatus.COMPLETED, TaskStatus.RUNNING):
-        item_result_repository = ItemResultRepository(
+        item_result_repository = ItemResultRepositoryImpl(
             app_state.sqlite_conn, task_id_int
         )
         stats = item_result_repository.get_statistics()

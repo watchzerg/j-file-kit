@@ -11,11 +11,10 @@ import threading
 from datetime import datetime
 
 from ..infrastructure.persistence import (
-    ItemResultRepository,
-    OperationRepository,
     SQLiteConnectionManager,
-    TaskRepository,
+    TaskRepositoryRegistryImpl,
 )
+from ..interfaces.repositories import TaskRepository
 from ..interfaces.task import BaseTask
 from ..models import (
     Task,
@@ -61,7 +60,9 @@ class TaskManager:
     """
 
     def __init__(
-        self, task_repository: TaskRepository, sqlite_conn: SQLiteConnectionManager
+        self,
+        task_repository: TaskRepository,
+        sqlite_conn: SQLiteConnectionManager,
     ) -> None:
         """初始化任务管理器
 
@@ -153,18 +154,15 @@ class TaskManager:
             cancelled_event: 取消事件
         """
         try:
-            # 创建操作记录仓储
-            operation_repository = OperationRepository(self._sqlite_conn, task_id)
-
-            # 创建item结果仓储
-            item_result_repository = ItemResultRepository(self._sqlite_conn, task_id)
+            # 创建任务仓储注册表
+            repository_registry = TaskRepositoryRegistryImpl(
+                self._sqlite_conn, task_id, self.task_repository
+            )
 
             # 执行任务
             task.run(
                 task_id=task_id,
-                task_repository=self.task_repository,
-                operation_repository=operation_repository,
-                item_result_repository=item_result_repository,
+                repository_registry=repository_registry,
                 dry_run=dry_run,
                 cancelled_event=cancelled_event,
             )

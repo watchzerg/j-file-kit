@@ -14,7 +14,11 @@ from j_file_kit.models.config import AppConfig
 from ..services.task_manager import TaskManager
 from .config.config import load_config_from_db
 from .filesystem.operations import create_directory
-from .persistence import AppConfigRepository, SQLiteConnectionManager, TaskRepository
+from .persistence import (
+    AppConfigRepository,
+    SQLiteConnectionManager,
+    TaskRepositoryImpl,
+)
 
 
 class AppState:
@@ -50,7 +54,7 @@ class AppState:
         self.config: AppConfig = load_config_from_db(self.sqlite_conn)
 
         # 创建任务仓储
-        self.task_repository = TaskRepository(self.sqlite_conn)
+        self.task_repository = TaskRepositoryImpl(self.sqlite_conn)
 
         # 创建任务管理器
         self.task_manager: TaskManager = TaskManager(

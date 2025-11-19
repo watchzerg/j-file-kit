@@ -18,10 +18,12 @@ from j_file_kit.models import Operation, OperationType
 from .connection import SQLiteConnectionManager
 
 
-class OperationRepository:
-    """操作记录仓储
+class OperationRepositoryImpl:
+    """操作记录仓储实现
 
     提供文件操作日志的持久化操作。
+
+    实现 OperationRepository Protocol。
     """
 
     def __init__(

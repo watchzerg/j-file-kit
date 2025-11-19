@@ -11,14 +11,11 @@ from __future__ import annotations
 import logging
 import os
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 from ...interfaces.processors import Initializer
+from ...interfaces.repositories import TaskRepository
 from ...models import ProcessorResult, TaskStatus
 from ...models.config import AppConfig
-
-if TYPE_CHECKING:
-    from ...infrastructure.persistence import TaskRepository
 
 
 class FileTaskStatusInitializer(Initializer):

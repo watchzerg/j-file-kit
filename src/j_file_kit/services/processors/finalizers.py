@@ -9,17 +9,15 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from ...interfaces.processors import Finalizer
+from ...interfaces.repositories import (
+    ItemResultRepository,
+    OperationRepository,
+    TaskRepository,
+)
 from ...models import ProcessorResult
-
-if TYPE_CHECKING:
-    from ...infrastructure.persistence import (
-        ItemResultRepository,
-        OperationRepository,
-        TaskRepository,
-    )
 
 
 class FileTaskStatisticsFinalizer(Finalizer):

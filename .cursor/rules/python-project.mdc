@@ -16,8 +16,9 @@ Core Principles
 - Keep modules small and cohesive; this is a web application, not an SDK, so avoid `__all__` exports unless necessary.
 - Use `snake_case` for files/dirs; descriptive names like `is_active`, `has_permission`.
 - RORO (Receive an Object, Return an Object). Do not let raw dicts leak across layers.
-- Code must be typed end-to-end (`from __future__ import annotations`), avoiding `Any`.
+- Code must be typed end-to-end, avoiding `Any`.
 - Prefer EAFP (Easier to Ask for Forgiveness than Permission) over LBYL (Look Before You Leap): try operations and handle exceptions rather than checking preconditions first.
+- Circular dependencies: prioritize architectural design to eliminate runtime cycles; rely on Python 3.14 lazy annotations as fallback; use `TYPE_CHECKING` only when necessary; forbid local imports and `from __future__ import annotations`.
   
 Data & Validation
 - Pydantic v2: `model_validate`, `model_dump(exclude_none=True)`.
