@@ -124,7 +124,7 @@ print(f"任务状态: {task_model.status}")
 #### 方式三：使用管道 API（高级用法）
 
 ```python
-from j_file_kit.services.pipeline import Pipeline
+from j_file_kit.services.pipeline import PathEntryPipeline
 from j_file_kit.infrastructure.config.config import load_config
 from j_file_kit.infrastructure.persistence import OperationRepository, SQLiteConnectionManager
 from j_file_kit.domain.processors.analyzers import FileClassifier, SerialIdExtractor
@@ -137,7 +137,7 @@ sqlite_conn = SQLiteConnectionManager(config.global_.db_path)
 operation_repository = OperationRepository(sqlite_conn, task_id=1)  # task_id 需要从任务管理获取
 
 # 创建管道
-pipeline = Pipeline(config, "jav_video_organizer", operation_repository)
+pipeline = PathEntryPipeline(config, "jav_video_organizer", operation_repository)
 
 # 添加处理器
 pipeline.add_analyzer(FileClassifier({".mp4", ".avi"}, {".jpg", ".png"}))

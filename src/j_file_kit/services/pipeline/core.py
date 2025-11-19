@@ -1,7 +1,7 @@
-"""管道协调器
+"""路径项处理管道核心实现
 
-协调整个文件处理流程：扫描 → 分析 → 执行 → 终结。
-负责文件扫描、处理器链执行和结果汇总。
+协调整个路径项（文件和目录）处理流程：扫描 → 分析 → 执行 → 终结。
+负责路径项扫描、处理器链执行和结果汇总。
 """
 
 from __future__ import annotations
@@ -11,21 +11,21 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from ..infrastructure.filesystem.scanner import scan_directory_items
-from ..infrastructure.logging.logger import StructuredLogger
-from ..interfaces.processors import (
+from ...infrastructure.filesystem.scanner import scan_directory_items
+from ...infrastructure.logging.logger import StructuredLogger
+from ...interfaces.processors import (
     Analyzer,
     Executor,
     Finalizer,
     Initializer,
     ProcessorChain,
 )
-from ..interfaces.repositories import (
+from ...interfaces.repositories import (
     FileItemRepository,
     FileProcessorRepository,
     TaskRepository,
 )
-from ..models import (
+from ...models import (
     FileItemResult,
     PathEntryContext,
     PathEntryInfo,
@@ -34,13 +34,21 @@ from ..models import (
     ProcessorStatus,
     TaskReport,
 )
-from ..models.config import AppConfig
+from ...models.config import AppConfig
+from .statistics import StatisticsTracker
+from .utils import create_error_result, create_initial_context, extract_error_message
 
 
-class Pipeline:
-    """管道协调器
+class PathEntryPipeline:
+    """路径项处理管道协调器
 
-    协调整个文件处理流程：扫描 → 分析 → 执行 → 终结。
+    协调整个路径项（文件和目录）处理流程：扫描 → 分析 → 执行 → 终结。
+    负责路径项扫描、处理器链执行和结果汇总。
+
+    设计意图：
+    - 统一处理文件和目录，使用 PathEntry 概念统一抽象
+    - 协调处理器链的执行，管理任务生命周期
+    - 封装统计信息管理，使职责更清晰
     """
 
     def __init__(
@@ -52,8 +60,8 @@ class Pipeline:
         file_item_repository: FileItemRepository,
         task_id: int,
         task_repository: TaskRepository,
-    ):
-        """初始化管道
+    ) -> None:
+        """初始化路径项处理管道
 
         Args:
             config: 任务配置
@@ -92,7 +100,10 @@ class Pipeline:
             total_duration_ms=0.0,
         )
 
-    def add_analyzer(self, analyzer: Analyzer) -> Pipeline:
+        # 统计信息跟踪器
+        self.statistics_tracker = StatisticsTracker(self.report)
+
+    def add_analyzer(self, analyzer: Analyzer) -> PathEntryPipeline:
         """添加分析器
 
         Args:
@@ -104,7 +115,7 @@ class Pipeline:
         self.processor_chain.add_analyzer(analyzer)
         return self
 
-    def add_executor(self, executor: Executor) -> Pipeline:
+    def add_executor(self, executor: Executor) -> PathEntryPipeline:
         """添加执行器
 
         Args:
@@ -119,7 +130,7 @@ class Pipeline:
             self.empty_directory_executor = executor
         return self
 
-    def add_initializer(self, initializer: Initializer) -> Pipeline:
+    def add_initializer(self, initializer: Initializer) -> PathEntryPipeline:
         """添加初始化器
 
         Args:
@@ -131,7 +142,7 @@ class Pipeline:
         self.processor_chain.add_initializer(initializer)
         return self
 
-    def add_finalizer(self, finalizer: Finalizer) -> Pipeline:
+    def add_finalizer(self, finalizer: Finalizer) -> PathEntryPipeline:
         """添加终结器
 
         Args:
@@ -149,60 +160,9 @@ class Pipeline:
         Returns:
             配置好的统一文件执行器
         """
-        from .processors.executors import UnifiedFileExecutor
+        from ..processors.executors import UnifiedFileExecutor
 
         return UnifiedFileExecutor(self.file_processor_repository)
-
-    def _create_initial_context(self, item_info: PathEntryInfo) -> PathEntryContext:
-        """创建初始处理上下文
-
-        Args:
-            item_info: 路径项信息
-
-        Returns:
-            初始化的处理上下文
-        """
-        # 将字符串类型的 item_type 转换为枚举类型
-        item_type_enum = PathEntryType(item_info.item_type)
-        return PathEntryContext.model_construct(
-            item_info=item_info, item_type=item_type_enum
-        )
-
-    def _extract_error_message(
-        self, processor_results: list[ProcessorResult]
-    ) -> str | None:
-        """从处理器结果中提取错误消息
-
-        Args:
-            processor_results: 处理器结果列表
-
-        Returns:
-            错误消息，如果没有错误则返回 None
-        """
-        return next(
-            (r.message for r in processor_results if r.status == ProcessorStatus.ERROR),
-            None,
-        )
-
-    def _create_error_result(
-        self, item_info: PathEntryInfo, error: Exception
-    ) -> FileItemResult:
-        """创建错误结果
-
-        Args:
-            item_info: 路径项信息
-            error: 异常对象
-
-        Returns:
-            错误文件结果
-        """
-        return FileItemResult(
-            item_info=item_info,
-            context=self._create_initial_context(item_info),
-            success=False,
-            error_message=str(error),
-            total_duration_ms=0.0,
-        )
 
     def _process_single_directory(
         self, item_info: PathEntryInfo, dry_run: bool
@@ -212,6 +172,10 @@ class Pipeline:
         在遍历过程中同步处理目录，利用自底向上遍历顺序确保空文件夹及时清理。
         目录清理是辅助操作，不需要复杂的统计和持久化，只需简单日志记录。
 
+        设计意图：
+        - 利用扫描顺序，在文件处理完成后及时清理空目录
+        - 简化目录处理逻辑，不进行复杂的统计和持久化
+
         Args:
             item_info: 路径项信息（目录类型）
             dry_run: 是否为预览模式
@@ -220,10 +184,8 @@ class Pipeline:
         if dry_run:
             return
 
-        # 创建PathEntryContext，设置item_type为DIRECTORY
-        ctx = PathEntryContext.model_construct(
-            item_info=item_info, item_type=PathEntryType.DIRECTORY
-        )
+        # 创建PathEntryContext（使用工具函数保持一致性）
+        ctx = create_initial_context(item_info)
 
         # 调用FileEmptyDirectoryExecutor处理（如果存在）
         if self.empty_directory_executor:
@@ -245,6 +207,12 @@ class Pipeline:
     ) -> FileItemResult:
         """处理单个文件
 
+        执行文件处理流程：创建上下文 → 执行处理器链 → 构建结果。
+
+        设计意图：
+        - 统一文件处理流程，支持预览模式和实际执行模式
+        - 记录处理耗时，用于统计和日志
+
         Args:
             item_info: 路径项信息（文件类型）
             dry_run: 是否为预览模式
@@ -260,7 +228,7 @@ class Pipeline:
         file_start_time = time.time()
 
         # 创建处理上下文
-        ctx = self._create_initial_context(item_info)
+        ctx = create_initial_context(item_info)
 
         # 根据模式执行不同的处理器
         if dry_run:
@@ -280,11 +248,17 @@ class Pipeline:
             success=not any(
                 r.status == ProcessorStatus.ERROR for r in processor_results
             ),
-            error_message=self._extract_error_message(processor_results),
+            error_message=extract_error_message(processor_results),
         )
 
     def _start_task(self, dry_run: bool) -> None:
         """任务开始处理
+
+        执行初始化器，确保任务环境准备就绪。
+
+        设计意图：
+        - 统一任务开始逻辑，确保初始化器正确执行
+        - 初始化失败时阻止任务继续执行
 
         Args:
             dry_run: 是否为预览模式
@@ -321,6 +295,12 @@ class Pipeline:
     def _finish_task(self, dry_run: bool) -> None:
         """任务结束处理
 
+        执行终结器，最终化统计信息，记录任务结束日志。
+
+        设计意图：
+        - 统一任务结束逻辑，确保终结器正确执行
+        - 从数据库重新计算统计信息，确保准确性
+
         Args:
             dry_run: 是否为预览模式
         """
@@ -333,9 +313,7 @@ class Pipeline:
         self.report.end_time = datetime.now()
 
         # 从数据库重新计算统计信息，确保准确性
-        # total_duration_ms 是所有item处理的总耗时，不是任务总耗时
-        stats = self.file_item_repository.get_statistics()
-        self.report.update_from_stats(stats)
+        self.statistics_tracker.finalize(self.file_item_repository)
 
         # 记录任务结束
         self.logger.log_task_end(self.report)
@@ -346,6 +324,13 @@ class Pipeline:
         self, dry_run: bool = False, cancelled_event: threading.Event | None = None
     ) -> None:
         """运行管道
+
+        协调整个路径项处理流程：扫描 → 处理 → 汇总。
+
+        设计意图：
+        - 统一处理文件和目录，使用 PathEntry 概念
+        - 支持预览模式和实际执行模式
+        - 支持任务取消机制
 
         Args:
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
@@ -379,7 +364,7 @@ class Pipeline:
                         # 设置 item_result_id 到 context（虽然 executor 已执行，但可用于后续查询）
                         file_result.context.item_result_id = item_result_id
                         # 更新内存中的统计信息
-                        self._update_statistics(file_result)
+                        self.statistics_tracker.update(file_result)
                         self.logger.log_item_result(file_result)
                     else:
                         # 处理目录（清理空文件夹）
@@ -392,7 +377,7 @@ class Pipeline:
                     # 如果是文件，创建错误结果并保存
                     if item_type == PathEntryType.FILE:
                         item_info = PathEntryInfo.from_path(path, item_type)
-                        error_result = self._create_error_result(item_info, e)
+                        error_result = create_error_result(item_info, e)
                         # 立即保存到数据库
                         item_result_id = self.file_item_repository.save_result(
                             error_result
@@ -400,7 +385,7 @@ class Pipeline:
                         # 设置 item_result_id 到 context 中
                         error_result.context.item_result_id = item_result_id
                         # 更新内存中的统计信息
-                        self._update_statistics(error_result)
+                        self.statistics_tracker.update(error_result)
 
                 # 检查是否被取消
                 if cancelled_event and cancelled_event.is_set():
@@ -414,28 +399,14 @@ class Pipeline:
             self.logger.error(f"管道执行失败: {str(e)}")
             raise
 
-    def _update_statistics(self, result: FileItemResult) -> None:
-        """更新统计信息
-
-        Args:
-            result: 文件结果
-        """
-        self.report.total_items += 1
-
-        if result.success:
-            if result.was_skipped:
-                self.report.skipped_items += 1
-            elif result.has_warnings:
-                self.report.warning_items += 1
-            else:
-                self.report.success_items += 1
-        else:
-            self.report.error_items += 1
-
-        self.report.total_duration_ms += result.total_duration_ms
-
     def _run_analyzers_only(self, ctx: PathEntryContext) -> list[ProcessorResult]:
         """仅执行分析器（用于预览模式）
+
+        在预览模式下，只执行分析器，不执行执行器。
+
+        设计意图：
+        - 支持预览模式，允许用户查看分析结果而不执行实际操作
+        - 遇到错误或跳过标记时提前终止
 
         Args:
             ctx: 处理上下文

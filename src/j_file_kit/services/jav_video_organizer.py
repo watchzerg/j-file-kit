@@ -21,7 +21,7 @@ from ..interfaces.repositories import (
 from ..interfaces.task import BaseTask
 from ..models import TaskType
 from ..models.config import AppConfig, JavVideoOrganizeConfig
-from .pipeline import Pipeline
+from .pipeline import PathEntryPipeline
 from .processors.analyzers import (
     FileActionDecider,
     FileClassifier,
@@ -92,7 +92,7 @@ class JavVideoOrganizer(BaseTask):
         task_repository: TaskRepository,
         file_processor_repository: FileProcessorRepository,
         file_item_repository: FileItemRepository,
-    ) -> Pipeline:
+    ) -> PathEntryPipeline:
         """创建处理管道
 
         Args:
@@ -106,7 +106,7 @@ class JavVideoOrganizer(BaseTask):
             配置好的处理管道
         """
         # 创建管道
-        pipeline = Pipeline(
+        pipeline = PathEntryPipeline(
             self.config,
             self.task_type.value,
             log_dir,
