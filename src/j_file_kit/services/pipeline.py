@@ -22,7 +22,7 @@ from ..interfaces.processors import (
 )
 from ..interfaces.repositories import (
     FileItemRepository,
-    OperationRepository,
+    FileProcessorRepository,
     TaskRepository,
 )
 from ..models import (
@@ -48,7 +48,7 @@ class Pipeline:
         config: AppConfig,
         task_name: str,
         log_dir: Path,
-        operation_repository: OperationRepository,
+        file_processor_repository: FileProcessorRepository,
         file_item_repository: FileItemRepository,
         task_id: int,
         task_repository: TaskRepository,
@@ -59,7 +59,7 @@ class Pipeline:
             config: 任务配置
             task_name: 任务名称
             log_dir: 日志目录
-            operation_repository: 操作记录仓储实例
+            file_processor_repository: 文件处理操作仓储实例
             file_item_repository: 文件处理结果仓储实例
             task_id: 任务ID
             task_repository: 任务仓储实例，finalizer 需要更新任务统计信息
@@ -71,7 +71,7 @@ class Pipeline:
         self.scan_root = config.global_.inbox_dir
         self.processor_chain = ProcessorChain()
         self.logger = StructuredLogger(log_dir, self.task_name)
-        self.operation_repository = operation_repository
+        self.file_processor_repository = file_processor_repository
         self.file_item_repository = file_item_repository
         self.task_id = task_id
         self.task_repository = task_repository
@@ -144,14 +144,14 @@ class Pipeline:
         return self
 
     def create_unified_executor(self) -> Executor:
-        """创建统一文件执行器（自动注入 operation_repository）
+        """创建统一文件执行器（自动注入 file_processor_repository）
 
         Returns:
             配置好的统一文件执行器
         """
         from .processors.executors import UnifiedFileExecutor
 
-        return UnifiedFileExecutor(self.operation_repository)
+        return UnifiedFileExecutor(self.file_processor_repository)
 
     def _create_initial_context(self, item_info: PathEntryInfo) -> PathEntryContext:
         """创建初始处理上下文

@@ -90,20 +90,30 @@ class SQLiteConnectionManager:
                 """
             )
 
-            # 创建 operations 表
-            # data 字段使用 JSON 格式存储操作相关数据（包括路径信息等）
-            # 支持未来扩展不同类型的操作
+            # 删除旧的 operations 表（如果存在）
+            cursor.execute("DROP TABLE IF EXISTS operations")
+            # 删除相关索引（如果存在）
+            cursor.execute("DROP INDEX IF EXISTS idx_operations_task_id")
+            cursor.execute("DROP INDEX IF EXISTS idx_operations_item_result_id")
+            cursor.execute("DROP INDEX IF EXISTS idx_operations_timestamp")
+
+            # 创建 file_operations 表
+            # 使用具体字段替代 JSON，提升查询性能和索引效率
+            # 只记录文件操作，不记录目录操作
             cursor.execute(
                 """
-                CREATE TABLE IF NOT EXISTS operations (
+                CREATE TABLE IF NOT EXISTS file_operations (
                     id TEXT PRIMARY KEY,
                     task_id INTEGER NOT NULL,
-                    item_result_id INTEGER,
+                    file_item_id INTEGER,
                     timestamp TEXT NOT NULL,
                     operation TEXT NOT NULL,
-                    data TEXT,
+                    source_path TEXT NOT NULL,
+                    target_path TEXT,
+                    file_type TEXT,
+                    serial_id TEXT,
                     FOREIGN KEY (task_id) REFERENCES tasks(task_id),
-                    FOREIGN KEY (item_result_id) REFERENCES file_items(id)
+                    FOREIGN KEY (file_item_id) REFERENCES file_items(id)
                 )
                 """
             )
@@ -122,13 +132,16 @@ class SQLiteConnectionManager:
                 "CREATE INDEX IF NOT EXISTS idx_file_items_serial_id ON file_items(serial_id)"
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_operations_task_id ON operations(task_id)"
+                "CREATE INDEX IF NOT EXISTS idx_file_operations_task_id ON file_operations(task_id)"
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_operations_item_result_id ON operations(item_result_id)"
+                "CREATE INDEX IF NOT EXISTS idx_file_operations_file_item_id ON file_operations(file_item_id)"
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_operations_timestamp ON operations(timestamp)"
+                "CREATE INDEX IF NOT EXISTS idx_file_operations_file_type ON file_operations(file_type)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_file_operations_timestamp ON file_operations(timestamp)"
             )
 
             # 创建 global_config 表（单行表，存储全局配置）

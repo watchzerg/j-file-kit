@@ -62,10 +62,11 @@ class FileItemRepository(Protocol):
         ...
 
 
-class OperationRepository(Protocol):
-    """操作记录仓储协议
+class FileProcessorRepository(Protocol):
+    """文件处理操作仓储协议
 
     定义文件操作日志持久化操作的接口。
+    只处理文件操作（MOVE、DELETE、RENAME），不处理目录操作。
     提供创建操作记录、查询操作历史等功能。
     """
 
@@ -74,20 +75,27 @@ class OperationRepository(Protocol):
         operation: OperationType,
         source_path: Path,
         target_path: Path | None = None,
-        data: dict[str, Any] | None = None,
-        item_result_id: int | None = None,
+        file_item_id: int | None = None,
+        file_type: str | None = None,
+        serial_id: str | None = None,
     ) -> str:
         """创建操作记录
 
+        只接受文件操作类型（MOVE、DELETE、RENAME），拒绝目录操作类型。
+
         Args:
-            operation: 操作类型
+            operation: 操作类型（必须是文件操作，不能是 CREATE_DIR 或 DELETE_DIR）
             source_path: 源路径
             target_path: 目标路径（可选）
-            data: 附加数据（可选）
-            item_result_id: Item 结果 ID（可选）
+            file_item_id: 文件项 ID（可选）
+            file_type: 文件类型（冗余字段，避免 JOIN）
+            serial_id: 番号（冗余字段，避免 JOIN）
 
         Returns:
             生成的操作 ID（UUID 字符串）
+
+        Raises:
+            ValueError: 如果操作类型是目录操作（CREATE_DIR 或 DELETE_DIR）
         """
         ...
 
@@ -104,7 +112,9 @@ class OperationRepository(Protocol):
 
         统计操作数量，包含两个维度：
         - by_operation_type: 按操作类型统计
-        - by_item_type: 按 item 类型统计操作数量
+        - by_item_type: 按文件类型统计操作数量
+
+        使用冗余字段 file_type 直接统计，无需 JOIN file_items 表。
 
         Returns:
             操作统计字典
@@ -229,11 +239,11 @@ class TaskRepositoryRegistry(Protocol):
         """
         ...
 
-    def get_operation_repository(self) -> OperationRepository:
-        """获取操作记录仓储
+    def get_file_processor_repository(self) -> FileProcessorRepository:
+        """获取文件处理操作仓储
 
         Returns:
-            操作记录仓储实例
+            文件处理操作仓储实例
         """
         ...
 

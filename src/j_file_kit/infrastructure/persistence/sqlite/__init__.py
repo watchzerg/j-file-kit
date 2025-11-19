@@ -7,7 +7,7 @@ from .config_repository import AppConfigRepository
 from .connection import SQLiteConnectionManager
 from .crawler_processor_repository import CrawlerProcessorRepositoryImpl
 from .file_item_repository import FileItemRepositoryImpl
-from .operation_repository import OperationRepositoryImpl
+from .file_processor_repository import FileProcessorRepositoryImpl
 from .task_repository import TaskRepositoryImpl
 from .task_repository_registry import TaskRepositoryRegistryImpl
 
@@ -16,7 +16,7 @@ __all__ = [
     "AppConfigRepository",
     "TaskRepositoryImpl",
     "FileItemRepositoryImpl",
-    "OperationRepositoryImpl",
+    "FileProcessorRepositoryImpl",
     "CrawlerProcessorRepositoryImpl",
     "TaskRepositoryRegistryImpl",
 ]

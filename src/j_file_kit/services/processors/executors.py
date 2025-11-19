@@ -18,7 +18,7 @@ from ...infrastructure.filesystem.operations import (
     move_file_with_conflict_resolution,
 )
 from ...interfaces.processors import Executor
-from ...interfaces.repositories import OperationRepository
+from ...interfaces.repositories import FileProcessorRepository
 from ...models import (
     OperationType,
     PathEntryAction,
@@ -37,14 +37,16 @@ class UnifiedFileExecutor(Executor):
     只处理文件类型的路径项。
     """
 
-    def __init__(self, operation_repository: OperationRepository | None = None) -> None:
+    def __init__(
+        self, file_processor_repository: FileProcessorRepository | None = None
+    ) -> None:
         """初始化统一文件执行器
 
         Args:
-            operation_repository: 操作记录仓储
+            file_processor_repository: 文件处理操作仓储
         """
         super().__init__("UnifiedFileExecutor")
-        self.operation_repository = operation_repository
+        self.file_processor_repository = file_processor_repository
 
     def process(self, ctx: PathEntryContext) -> ProcessorResult:  # type: ignore[override]
         """根据动作类型执行操作
@@ -106,23 +108,15 @@ class UnifiedFileExecutor(Executor):
             # 更新上下文
             ctx.item_info = PathEntryInfo.from_path(final_path, PathEntryType.FILE)
 
-            # 构建日志元数据
-            log_metadata = {
-                "action": ctx.action.value,
-                "file_type": ctx.file_type.value if ctx.file_type else None,
-            }
-            # sorted 操作额外记录 serial_id
-            if ctx.action == PathEntryAction.MOVE_TO_SORTED and ctx.serial_id:
-                log_metadata["serial_id"] = str(ctx.serial_id)
-
             # 记录操作日志
-            if self.operation_repository:
-                self.operation_repository.create_operation(
+            if self.file_processor_repository:
+                self.file_processor_repository.create_operation(
                     OperationType.MOVE,
                     old_path,
                     final_path,
-                    log_metadata,
-                    item_result_id=ctx.item_result_id,
+                    file_item_id=ctx.item_result_id,
+                    file_type=ctx.file_type.value if ctx.file_type else None,
+                    serial_id=str(ctx.serial_id) if ctx.serial_id else None,
                 )
 
             description = ctx.action.description
@@ -149,16 +143,14 @@ class UnifiedFileExecutor(Executor):
             delete_file(ctx.item_info.path)
 
             # 记录操作日志
-            if self.operation_repository:
-                self.operation_repository.create_operation(
+            if self.file_processor_repository:
+                self.file_processor_repository.create_operation(
                     OperationType.DELETE,
                     ctx.item_info.path,
                     None,
-                    {
-                        "action": "delete",
-                        "file_type": ctx.file_type.value if ctx.file_type else None,
-                    },
-                    item_result_id=ctx.item_result_id,
+                    file_item_id=ctx.item_result_id,
+                    file_type=ctx.file_type.value if ctx.file_type else None,
+                    serial_id=str(ctx.serial_id) if ctx.serial_id else None,
                 )
 
             return ProcessorResult.success(f"文件删除成功: {ctx.item_info.path.name}")
@@ -174,22 +166,20 @@ class FileEmptyDirectoryExecutor(Executor):
     现在使用类型信息而不是运行时检查，提供更好的类型安全。
 
     设计意图：在遍历过程中同步清理空文件夹，利用自底向上遍历顺序确保空文件夹及时清理。
+    目录操作不再记录到操作日志中。
     """
 
     def __init__(
         self,
         scan_root: Path | None,
-        operation_repository: OperationRepository | None = None,
     ) -> None:
         """初始化空目录清理执行器
 
         Args:
             scan_root: 扫描根目录（该目录本身不会被删除）
-            operation_repository: 操作记录仓储
         """
         super().__init__("FileEmptyDirectoryExecutor")
         self.scan_root = scan_root
-        self.operation_repository = operation_repository
 
     def process(self, ctx: PathEntryContext) -> ProcessorResult:  # type: ignore[override]
         """处理目录清理
@@ -220,16 +210,6 @@ class FileEmptyDirectoryExecutor(Executor):
         try:
             # 删除空目录
             delete_directory(path)
-
-            # 记录操作日志
-            if self.operation_repository:
-                self.operation_repository.create_operation(
-                    OperationType.DELETE_DIR,
-                    path,
-                    None,
-                    {"action": "delete_empty_dir"},
-                    item_result_id=ctx.item_result_id,
-                )
 
             return ProcessorResult.success(f"空目录删除成功: {path.name}")
 

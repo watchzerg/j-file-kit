@@ -14,7 +14,7 @@ from typing import Any
 from ...interfaces.processors import Finalizer
 from ...interfaces.repositories import (
     FileItemRepository,
-    OperationRepository,
+    FileProcessorRepository,
     TaskRepository,
 )
 from ...models import ProcessorResult
@@ -35,7 +35,7 @@ class FileTaskStatisticsFinalizer(Finalizer):
         self,
         task_id: int,
         task_repository: TaskRepository,
-        operation_repository: OperationRepository,
+        file_processor_repository: FileProcessorRepository,
         file_item_repository: FileItemRepository,
     ) -> None:
         """初始化任务统计信息终结器
@@ -43,13 +43,13 @@ class FileTaskStatisticsFinalizer(Finalizer):
         Args:
             task_id: 任务ID
             task_repository: 任务仓储实例
-            operation_repository: 操作记录仓储实例
+            file_processor_repository: 文件处理操作仓储实例
             file_item_repository: 文件处理结果仓储实例
         """
         super().__init__("FileTaskStatisticsFinalizer")
         self.task_id = task_id
         self.task_repository = task_repository
-        self.operation_repository = operation_repository
+        self.file_processor_repository = file_processor_repository
         self.file_item_repository = file_item_repository
         self._logger = logging.getLogger(__name__)
 
@@ -81,7 +81,7 @@ class FileTaskStatisticsFinalizer(Finalizer):
         """
         try:
             # 获取操作统计
-            operation_stats = self.operation_repository.get_operation_statistics()
+            operation_stats = self.file_processor_repository.get_operation_statistics()
 
             # 获取item统计和性能指标
             detailed_stats = self.file_item_repository.get_detailed_statistics()

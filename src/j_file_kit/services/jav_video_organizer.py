@@ -14,7 +14,7 @@ from typing import Any
 
 from ..interfaces.repositories import (
     FileItemRepository,
-    OperationRepository,
+    FileProcessorRepository,
     TaskRepository,
     TaskRepositoryRegistry,
 )
@@ -90,7 +90,7 @@ class JavVideoOrganizer(BaseTask):
         task_id: int,
         log_dir: Path,
         task_repository: TaskRepository,
-        operation_repository: OperationRepository,
+        file_processor_repository: FileProcessorRepository,
         file_item_repository: FileItemRepository,
     ) -> Pipeline:
         """创建处理管道
@@ -99,7 +99,7 @@ class JavVideoOrganizer(BaseTask):
             task_id: 任务ID
             log_dir: 日志目录
             task_repository: 任务仓储实例
-            operation_repository: 操作记录仓储实例
+            file_processor_repository: 文件处理操作仓储实例
             file_item_repository: 文件处理结果仓储实例
 
         Returns:
@@ -110,7 +110,7 @@ class JavVideoOrganizer(BaseTask):
             self.config,
             self.task_type.value,
             log_dir,
-            operation_repository,
+            file_processor_repository,
             file_item_repository,
             task_id,
             task_repository,
@@ -162,9 +162,7 @@ class JavVideoOrganizer(BaseTask):
 
         # 添加空目录清理执行器（放在最后，确保文件处理完成后再清理目录）
         # 设计意图：在文件处理完成后，利用自底向上遍历顺序清理空文件夹
-        pipeline.add_executor(
-            FileEmptyDirectoryExecutor(self.inbox_dir, operation_repository)
-        )
+        pipeline.add_executor(FileEmptyDirectoryExecutor(self.inbox_dir))
 
         # 添加任务统计信息终结器
         # finalizer 是全局的，pipeline 会先处理完所有文件的 processors，再执行 finalizers
@@ -173,7 +171,7 @@ class JavVideoOrganizer(BaseTask):
             FileTaskStatisticsFinalizer(
                 task_id=task_id,
                 task_repository=task_repository,
-                operation_repository=operation_repository,
+                file_processor_repository=file_processor_repository,
                 file_item_repository=file_item_repository,
             )
         )
@@ -196,7 +194,7 @@ class JavVideoOrganizer(BaseTask):
             cancelled_event: 取消事件，用于检查任务是否被取消
         """
         # 从 Registry 获取 Repository
-        operation_repository = repository_registry.get_operation_repository()
+        file_processor_repository = repository_registry.get_file_processor_repository()
         file_item_repository = repository_registry.get_file_item_repository()
         task_repo = repository_registry.get_task_repository()
 
@@ -204,7 +202,7 @@ class JavVideoOrganizer(BaseTask):
             task_id,
             self.log_dir,
             task_repo,
-            operation_repository,
+            file_processor_repository,
             file_item_repository,
         )
         pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)

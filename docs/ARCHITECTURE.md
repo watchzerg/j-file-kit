@@ -114,13 +114,13 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
     - `config_repository.py`: 应用配置仓储（AppConfigRepository），管理全局配置和任务配置
     - `task_repository.py`: 任务仓储（TaskRepository），管理任务实例
     - `file_item_repository.py`: 文件处理结果仓储（FileItemRepository），管理文件处理结果
-    - `operation_repository.py`: 操作记录仓储（OperationRepository），记录文件操作历史
+    - `file_processor_repository.py`: 文件处理操作仓储（FileProcessorRepository），记录文件操作历史
   - 数据库表结构设计：
     - `global_config` 表：单行表，存储全局配置（scan_root）
     - `task_configs` 表：存储任务配置（name, type, enabled, config JSON）
     - `tasks` 表：存储任务实例（task_id, task_name, status, statistics JSON等）
     - `file_items` 表：使用具体字段存储文件信息（path, stem, file_type, serial_id等），专门存储文件处理结果，提升查询性能和索引效率
-    - `operations` 表：使用 `data` JSON字段存储操作相关数据（包括路径信息）
+    - `file_operations` 表：使用具体字段存储文件操作信息（source_path, target_path, file_type, serial_id等），只记录文件操作，不记录目录操作
 - `config/`: 配置加载
   - `config.py`: 配置加载函数
     - `load_config_from_db()`: 从SQLite数据库加载配置
@@ -297,12 +297,13 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
   - `error_message`, `total_duration_ms`, `processor_count`: 处理详情
   - `context_data`, `processor_results`: JSON字段，存储上下文和处理结果
 
-- **operations**: 存储操作记录
+- **file_operations**: 存储文件操作记录
   - `id`: 操作ID（主键）
   - `task_id`: 关联任务ID
-  - `item_result_id`: 关联item结果ID（可选）
-  - `timestamp`, `operation`: 操作时间和类型
-  - `data`: JSON字段，存储操作相关数据
+  - `file_item_id`: 关联文件项ID（可选）
+  - `timestamp`, `operation`: 操作时间和类型（只包含文件操作：MOVE、DELETE、RENAME）
+  - `source_path`, `target_path`: 源路径和目标路径（展开为独立字段）
+  - `file_type`, `serial_id`: 文件类型和番号（冗余字段，避免JOIN）
 
 ### 配置加载流程
 
@@ -336,7 +337,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
    ↓
 7. 结果保存到数据库
    ├── file_items: 保存文件处理结果
-   ├── operations: 记录文件操作历史
+   ├── file_operations: 记录文件操作历史
    ↓
 8. finalizers: 后处理（统计信息更新等）
    ├── 更新任务统计信息到数据库
@@ -416,12 +417,12 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 ### 4. 仓储模式
 
 - **实现**: 使用仓储模式封装数据库操作
-- **仓储**: `AppConfigRepository`、`TaskRepository`、`FileItemRepository`、`OperationRepository`
+- **仓储**: `AppConfigRepository`、`TaskRepository`、`FileItemRepository`、`FileProcessorRepository`
 - **优势**: 统一数据访问接口，便于测试和替换实现
 
 ### 5. JSON 字段设计
 
 - **设计**: 数据库表使用 JSON 字段存储灵活数据
 - **优势**: 支持不同任务类型的特定数据结构，便于扩展
-- **表**: `file_items`（使用具体字段）、`operations.data`、`tasks.statistics`、`task_configs.config`
+- **表**: `file_items`（使用具体字段）、`file_operations`（使用具体字段）、`tasks.statistics`、`task_configs.config`
 
