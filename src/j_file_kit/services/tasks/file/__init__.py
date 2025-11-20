@@ -4,5 +4,3 @@
 """
 
 from .jav_video_organizer import JavVideoOrganizer
-
-__all__ = ["JavVideoOrganizer"]

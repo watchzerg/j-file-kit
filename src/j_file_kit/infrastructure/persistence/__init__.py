@@ -9,7 +9,6 @@ from ...interfaces.file.repositories import (
     FileProcessorRepository,
 )
 from ...interfaces.repositories import (
-    CrawlerProcessorRepository,
     TaskRepository,
     TaskRepositoryRegistry,
 )
@@ -17,27 +16,9 @@ from ...interfaces.repositories import (
 # 导出实现类（从 sqlite 导入）
 from .sqlite import (
     AppConfigRepository,
-    CrawlerProcessorRepositoryImpl,
     FileItemRepositoryImpl,
     FileProcessorRepositoryImpl,
     SQLiteConnectionManager,
     TaskRepositoryImpl,
     TaskRepositoryRegistryImpl,
 )
-
-__all__ = [
-    # Protocol 类型
-    "FileItemRepository",
-    "FileProcessorRepository",
-    "TaskRepository",
-    "CrawlerProcessorRepository",
-    "TaskRepositoryRegistry",
-    # 实现类
-    "SQLiteConnectionManager",
-    "AppConfigRepository",
-    "TaskRepositoryImpl",
-    "FileItemRepositoryImpl",
-    "FileProcessorRepositoryImpl",
-    "CrawlerProcessorRepositoryImpl",
-    "TaskRepositoryRegistryImpl",
-]

@@ -4,7 +4,3 @@
 主要处理文件，目录清理是辅助功能。
 按领域组织，文件相关实现位于 file/ 子目录下。
 """
-
-from .file import FilePipeline
-
-__all__ = ["FilePipeline"]

@@ -5,5 +5,3 @@
 """
 
 from .pipeline import FilePipeline
-
-__all__ = ["FilePipeline"]

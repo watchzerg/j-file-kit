@@ -106,16 +106,6 @@ class TaskRepository(Protocol):
         ...
 
 
-class CrawlerProcessorRepository(Protocol):
-    """爬虫处理仓储协议
-
-    预留接口，用于未来爬虫处理相关的 Repository。
-    当前为空协议，等待后续实现。
-    """
-
-    ...
-
-
 class TaskRepositoryRegistry(Protocol):
     """任务仓储注册表协议
 
@@ -144,13 +134,5 @@ class TaskRepositoryRegistry(Protocol):
 
         Returns:
             文件处理操作仓储实例
-        """
-        ...
-
-    def get_crawler_processor_repository(self) -> CrawlerProcessorRepository:
-        """获取爬虫处理仓储
-
-        Returns:
-            爬虫处理仓储实例（预留）
         """
         ...

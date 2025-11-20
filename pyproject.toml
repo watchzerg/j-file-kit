@@ -42,6 +42,7 @@ ignore = ["E501"]  # 不按79检查行长，而是让formatter按照88检查
 
 [tool.mypy]
 strict = true
+implicit_reexport = true
 warn_unused_configs = true
 disallow_untyped_decorators = true
 
