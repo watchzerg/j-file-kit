@@ -4,8 +4,6 @@
 使 PathEntryPipeline 主类更简洁，职责更清晰。
 """
 
-from __future__ import annotations
-
 from ...interfaces.repositories import FileItemRepository
 from ...models import FileItemResult, TaskReport
 

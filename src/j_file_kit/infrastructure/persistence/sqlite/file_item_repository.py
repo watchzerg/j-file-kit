@@ -6,8 +6,6 @@
 专门存储文件处理结果，不存储目录操作（目录操作已在 operations 表中记录）。
 """
 
-from __future__ import annotations
-
 import json
 import sqlite3
 from datetime import datetime

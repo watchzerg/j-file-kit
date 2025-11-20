@@ -3,8 +3,6 @@
 定义领域相关的异常类型。
 """
 
-from __future__ import annotations
-
 
 class TaskError(Exception):
     """任务相关异常基类"""

@@ -4,8 +4,6 @@
 包含应用生命周期管理和异常处理。
 """
 
-from __future__ import annotations
-
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 

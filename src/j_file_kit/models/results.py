@@ -3,8 +3,6 @@
 定义处理结果相关的模型，包括处理器结果和Item处理结果。
 """
 
-from __future__ import annotations
-
 from enum import Enum
 from typing import Any
 

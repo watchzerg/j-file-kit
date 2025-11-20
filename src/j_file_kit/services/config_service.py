@@ -4,8 +4,6 @@
 将配置管理逻辑从API层提取到服务层，符合分层架构原则。
 """
 
-from __future__ import annotations
-
 from typing import Any
 
 from fastapi import HTTPException, status

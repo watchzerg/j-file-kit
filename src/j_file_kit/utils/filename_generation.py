@@ -27,8 +27,6 @@
 标准化番号格式：大写字母 + 连字符 + 数字（如 ABC-123）
 """
 
-from __future__ import annotations
-
 import re
 from pathlib import Path
 

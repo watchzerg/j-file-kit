@@ -4,8 +4,6 @@
 用于API层的数据传输，与领域模型分离。
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from typing import Any
 

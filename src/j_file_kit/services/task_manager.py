@@ -4,8 +4,6 @@
 负责任务的生命周期管理，同一时间只允许一个任务运行。
 """
 
-from __future__ import annotations
-
 import logging
 import threading
 from datetime import datetime

@@ -3,8 +3,6 @@
 根据文件类型、番号等信息，决定应该执行什么动作。
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from ....interfaces.processors import Analyzer

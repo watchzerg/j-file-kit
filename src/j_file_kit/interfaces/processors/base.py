@@ -3,8 +3,6 @@
 定义处理器的核心抽象接口。
 """
 
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
 
 from ...models import ItemContext, ProcessorResult

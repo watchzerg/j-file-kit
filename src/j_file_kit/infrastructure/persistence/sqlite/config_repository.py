@@ -3,8 +3,6 @@
 提供配置数据的持久化操作，包括全局配置和任务配置的 CRUD。
 """
 
-from __future__ import annotations
-
 import json
 import sqlite3
 from datetime import datetime

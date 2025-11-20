@@ -4,8 +4,6 @@
 遵循依赖倒置原则：interface 层定义抽象，infra 层实现具体细节。
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Protocol

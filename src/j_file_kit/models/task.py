@@ -3,8 +3,6 @@
 定义任务执行相关的模型，包括任务实例和任务报告。
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from enum import Enum
 from typing import Any

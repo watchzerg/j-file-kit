@@ -4,8 +4,6 @@
 提供任务的启动、查询、取消等功能。
 """
 
-from __future__ import annotations
-
 from fastapi import APIRouter, HTTPException, Request, status
 
 from ..infrastructure.app_state import AppState

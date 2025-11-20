@@ -3,8 +3,6 @@
 定义处理单个 item 的处理器基类，包括分析器和执行器。
 """
 
-from __future__ import annotations
-
 from ...models import ItemContext, ProcessorResult
 from .base import ItemProcessor
 

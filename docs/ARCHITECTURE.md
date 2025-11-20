@@ -47,7 +47,8 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 
 **特点**:
 - 依赖models层（使用数据模型）
-- 使用TYPE_CHECKING隔离infrastructure依赖（但可以直接导入models层）
+- 使用 Python 3.14+ 延迟注解（`from __future__ import annotations`）处理类型提示
+- 通过架构设计避免循环依赖
 - 只包含协议定义，不包含具体实现
 
 **主要模块**:
@@ -199,7 +200,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 ### 依赖规则
 
 1. **models/**: 无外部依赖（仅标准库、Pydantic）
-2. **interfaces/**: 依赖models/（使用数据模型），使用TYPE_CHECKING隔离infrastructure依赖
+2. **interfaces/**: 依赖models/（使用数据模型），使用 Python 3.14+ 延迟注解处理类型提示，通过架构设计避免循环依赖
 3. **services/**: 依赖models/、interfaces/、utils/、infrastructure/
 4. **api/**: 依赖services/、interfaces/、infrastructure/
 5. **utils/**: 依赖models/（使用数据模型），无业务逻辑，纯工具函数

@@ -4,8 +4,6 @@
 提供配置的查询和更新功能，支持部分更新。
 """
 
-from __future__ import annotations
-
 from fastapi import APIRouter, HTTPException, Request, status
 
 from ..infrastructure.app_state import AppState

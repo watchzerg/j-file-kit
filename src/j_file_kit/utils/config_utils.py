@@ -4,8 +4,6 @@
 用于统一配置验证逻辑，消除重复代码。
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from ..models.config import GlobalConfig

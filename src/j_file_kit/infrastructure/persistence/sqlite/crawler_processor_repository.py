@@ -4,8 +4,6 @@
 实现 CrawlerProcessorRepository Protocol。
 """
 
-from __future__ import annotations
-
 
 class CrawlerProcessorRepositoryImpl:
     """爬虫处理仓储实现

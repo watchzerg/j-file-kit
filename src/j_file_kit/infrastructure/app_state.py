@@ -4,8 +4,6 @@
 在应用启动时初始化，提供统一的配置和任务管理接口。
 """
 
-from __future__ import annotations
-
 import os
 from pathlib import Path
 

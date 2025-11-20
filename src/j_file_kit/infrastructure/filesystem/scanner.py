@@ -4,8 +4,6 @@
 提供底层文件扫描功能，由服务层的FileScanner使用。
 """
 
-from __future__ import annotations
-
 import os
 from collections.abc import Generator
 from pathlib import Path

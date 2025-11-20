@@ -3,8 +3,6 @@
 包含Misc文件相关的分析器，如文件大小分析和删除判断。
 """
 
-from __future__ import annotations
-
 from typing import Any
 
 from ....interfaces.processors import Analyzer

@@ -3,8 +3,6 @@
 定义处理过程中的上下文对象，携带分析结果和中间状态。
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import Any
 

@@ -6,8 +6,6 @@
 这是用例实现，位于services层。
 """
 
-from __future__ import annotations
-
 import threading
 from pathlib import Path
 from typing import Any

@@ -3,8 +3,6 @@
 管理 SQLite 数据库连接和表结构创建。
 """
 
-from __future__ import annotations
-
 import contextlib
 import sqlite3
 import threading

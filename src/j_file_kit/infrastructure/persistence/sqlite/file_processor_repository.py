@@ -5,8 +5,6 @@
 只处理文件操作，不处理目录操作。
 """
 
-from __future__ import annotations
-
 import sqlite3
 import uuid
 from datetime import datetime

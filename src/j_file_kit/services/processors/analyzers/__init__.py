@@ -4,8 +4,6 @@
 这些分析器位于服务层，可以依赖infrastructure层。
 """
 
-from __future__ import annotations
-
 from .action_decider import FileActionDecider
 from .file_classifier import FileClassifier
 from .misc_analyzer import MiscFileDeleteAnalyzer, MiscFileSizeAnalyzer

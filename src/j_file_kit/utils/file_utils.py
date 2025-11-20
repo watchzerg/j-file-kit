@@ -4,8 +4,6 @@
 不包含I/O操作，所有文件系统操作应使用infrastructure/filesystem/operations。
 """
 
-from __future__ import annotations
-
 import random
 import re
 import string

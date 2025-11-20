@@ -4,8 +4,6 @@
 实现 TaskRepositoryRegistry Protocol。
 """
 
-from __future__ import annotations
-
 from j_file_kit.interfaces.repositories import (
     CrawlerProcessorRepository,
     FileItemRepository,

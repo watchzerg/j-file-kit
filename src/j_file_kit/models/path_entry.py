@@ -3,8 +3,6 @@
 定义路径项类型、动作和信息模型。
 """
 
-from __future__ import annotations
-
 from enum import Enum
 from pathlib import Path
 

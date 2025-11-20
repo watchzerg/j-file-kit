@@ -6,8 +6,6 @@
 这些处理器位于服务层，可以依赖infrastructure层。
 """
 
-from __future__ import annotations
-
 import logging
 import os
 

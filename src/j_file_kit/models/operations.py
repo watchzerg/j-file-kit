@@ -4,8 +4,6 @@
 用于记录任务执行过程中的文件操作历史，如移动、删除、重命名等。
 """
 
-from __future__ import annotations
-
 from datetime import datetime
 from enum import Enum
 from pathlib import Path

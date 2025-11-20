@@ -4,8 +4,6 @@
 记录任务执行过程中的所有事件，便于后续分析和调试。
 """
 
-from __future__ import annotations
-
 import json
 import uuid
 from datetime import datetime

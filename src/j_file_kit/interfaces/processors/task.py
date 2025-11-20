@@ -3,8 +3,6 @@
 定义处理任务级别的处理器基类，包括初始化器和终结器。
 """
 
-from __future__ import annotations
-
 from abc import abstractmethod
 
 from ...models import ProcessorResult

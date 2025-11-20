@@ -4,8 +4,6 @@
 所有文件系统I/O操作都通过此模块统一管理，便于测试和未来扩展。
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from ...utils.file_utils import generate_alternative_path

@@ -4,8 +4,6 @@
 这些函数是 pipeline 模块内部实现细节，专门用于路径项处理流程。
 """
 
-from __future__ import annotations
-
 from ...models import (
     FileItemResult,
     PathEntryContext,

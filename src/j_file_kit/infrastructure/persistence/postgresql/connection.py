@@ -4,8 +4,6 @@
 目前仅预留，待后续实现。
 """
 
-from __future__ import annotations
-
 
 class PostgreSQLConnectionManager:
     """PostgreSQL 连接管理器

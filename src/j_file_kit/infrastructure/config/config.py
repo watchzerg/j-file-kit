@@ -4,8 +4,6 @@
 配置模型定义在 models/config.py 中。
 """
 
-from __future__ import annotations
-
 from j_file_kit.models.config import AppConfig, GlobalConfig, TaskConfig
 
 from ..persistence import AppConfigRepository, SQLiteConnectionManager
