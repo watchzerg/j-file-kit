@@ -101,9 +101,9 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 
 - `processors/`: 具体处理器实现
   - `analyzers.py`: 分析器实现（FileClassifier、FileSerialIdExtractor、FileActionDecider等）
-  - `executors.py`: 执行器实现（UnifiedFileExecutor、FileEmptyDirectoryExecutor）
-  - `initializers.py`: 初始化器实现（FileTaskStatusInitializer、FileConfigValidatorInitializer等）
-  - `finalizers.py`: 终结器实现（FileTaskStatisticsFinalizer）
+  - `executors.py`: 执行器实现（UnifiedFileExecutor、EmptyDirectoryExecutor）
+  - `initializers.py`: 初始化器实现（TaskStatusInitializer、TaskConfigValidatorInitializer、TaskResourceInitializer等）
+  - `finalizers.py`: 终结器实现（TaskStatisticsFinalizer）
 
 ### 4. Infrastructure Layer (基础设施层)
 

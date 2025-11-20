@@ -11,12 +11,12 @@ from .analyzers import (
     MiscFileDeleteAnalyzer,
     MiscFileSizeAnalyzer,
 )
-from .executors import FileEmptyDirectoryExecutor, UnifiedFileExecutor
-from .finalizers import FileTaskStatisticsFinalizer
+from .executors import EmptyDirectoryExecutor, UnifiedFileExecutor
+from .finalizers import TaskStatisticsFinalizer
 from .initializers import (
-    FileConfigValidatorInitializer,
-    FileResourceInitializer,
-    FileTaskStatusInitializer,
+    TaskConfigValidatorInitializer,
+    TaskResourceInitializer,
+    TaskStatusInitializer,
 )
 
 __all__ = [
@@ -28,11 +28,11 @@ __all__ = [
     "FileActionDecider",
     # Executors
     "UnifiedFileExecutor",
-    "FileEmptyDirectoryExecutor",
+    "EmptyDirectoryExecutor",
     # Initializers
-    "FileTaskStatusInitializer",
-    "FileConfigValidatorInitializer",
-    "FileResourceInitializer",
+    "TaskStatusInitializer",
+    "TaskConfigValidatorInitializer",
+    "TaskResourceInitializer",
     # Finalizers
-    "FileTaskStatisticsFinalizer",
+    "TaskStatisticsFinalizer",
 ]

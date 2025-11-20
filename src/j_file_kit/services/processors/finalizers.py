@@ -18,7 +18,7 @@ from ...interfaces.repositories import (
 from ...models import ProcessorResult
 
 
-class FileTaskStatisticsFinalizer(Finalizer):
+class TaskStatisticsFinalizer(Finalizer):
     """任务统计信息终结器
 
     在任务完成后统计所有操作和性能指标，更新到 tasks 表。
@@ -27,6 +27,8 @@ class FileTaskStatisticsFinalizer(Finalizer):
     设计意图：
     - 在 finalize 阶段统计：此时所有操作已完成，数据完整
     - 错误处理策略：finalizer 失败不应影响任务完成状态，记录错误但不抛出异常
+
+    注意：这是任务级别的统计终结器，不特定于文件处理任务。
     """
 
     def __init__(
@@ -44,7 +46,7 @@ class FileTaskStatisticsFinalizer(Finalizer):
             file_processor_repository: 文件处理操作仓储实例
             file_item_repository: 文件处理结果仓储实例
         """
-        super().__init__("FileTaskStatisticsFinalizer")
+        super().__init__("TaskStatisticsFinalizer")
         self.task_id = task_id
         self.task_repository = task_repository
         self.file_processor_repository = file_processor_repository

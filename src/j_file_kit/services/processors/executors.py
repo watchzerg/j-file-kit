@@ -157,7 +157,7 @@ class UnifiedFileExecutor(Executor):
             return ProcessorResult.error(f"文件删除失败: {str(e)}")
 
 
-class FileEmptyDirectoryExecutor(Executor):
+class EmptyDirectoryExecutor(Executor):
     """空目录清理执行器
 
     在文件处理流程中同步清理空文件夹，利用自底向上遍历确保子目录先于父目录被处理。
@@ -165,6 +165,8 @@ class FileEmptyDirectoryExecutor(Executor):
 
     设计意图：在遍历过程中同步清理空文件夹，利用自底向上遍历顺序确保空文件夹及时清理。
     目录操作不再记录到操作日志中。
+
+    注意：这是目录处理执行器，不使用 File 前缀，因为其处理的是目录而非文件。
     """
 
     def __init__(
@@ -176,7 +178,7 @@ class FileEmptyDirectoryExecutor(Executor):
         Args:
             scan_root: 扫描根目录（该目录本身不会被删除）
         """
-        super().__init__("FileEmptyDirectoryExecutor")
+        super().__init__("EmptyDirectoryExecutor")
         self.scan_root = scan_root
 
     def process(self, ctx: PathEntryContext) -> ProcessorResult:  # type: ignore[override]

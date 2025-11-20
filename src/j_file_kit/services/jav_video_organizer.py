@@ -27,12 +27,12 @@ from .processors.analyzers import (
     MiscFileDeleteAnalyzer,
     MiscFileSizeAnalyzer,
 )
-from .processors.executors import FileEmptyDirectoryExecutor
-from .processors.finalizers import FileTaskStatisticsFinalizer
+from .processors.executors import EmptyDirectoryExecutor
+from .processors.finalizers import TaskStatisticsFinalizer
 from .processors.initializers import (
-    FileConfigValidatorInitializer,
-    FileResourceInitializer,
-    FileTaskStatusInitializer,
+    TaskConfigValidatorInitializer,
+    TaskResourceInitializer,
+    TaskStatusInitializer,
 )
 
 
@@ -126,20 +126,20 @@ class JavVideoOrganizer(BaseTask):
         # 添加初始化器（按依赖顺序）
         # 1. 状态更新：确保任务状态正确
         pipeline.add_initializer(
-            FileTaskStatusInitializer(
+            TaskStatusInitializer(
                 task_id=task_id,
                 task_repository=task_repository,
             )
         )
         # 2. 配置验证：验证配置有效性
         pipeline.add_initializer(
-            FileConfigValidatorInitializer(
+            TaskConfigValidatorInitializer(
                 config=self.config,
             )
         )
         # 3. 资源初始化：确保目录已准备就绪
         pipeline.add_initializer(
-            FileResourceInitializer(
+            TaskResourceInitializer(
                 config=self.config,
             )
         )
@@ -169,13 +169,13 @@ class JavVideoOrganizer(BaseTask):
 
         # 添加空目录清理执行器（放在最后，确保文件处理完成后再清理目录）
         # 设计意图：在文件处理完成后，利用自底向上遍历顺序清理空文件夹
-        pipeline.add_executor(FileEmptyDirectoryExecutor(self.inbox_dir))
+        pipeline.add_executor(EmptyDirectoryExecutor(self.inbox_dir))
 
         # 添加任务统计信息终结器
         # finalizer 是全局的，pipeline 会先处理完所有文件的 processors，再执行 finalizers
         # 所以添加顺序不影响执行顺序
         pipeline.add_finalizer(
-            FileTaskStatisticsFinalizer(
+            TaskStatisticsFinalizer(
                 task_id=task_id,
                 task_repository=task_repository,
                 file_processor_repository=file_processor_repository,

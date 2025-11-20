@@ -92,7 +92,7 @@ class FilePipeline:
         self.task_id = task_id
         self.task_repository = task_repository
 
-        # 保存FileEmptyDirectoryExecutor引用（如果存在），用于目录处理
+        # 保存EmptyDirectoryExecutor引用（如果存在），用于目录处理
         self.empty_directory_executor: Executor | None = None
 
         # 任务报告
@@ -133,8 +133,8 @@ class FilePipeline:
             管道实例（支持链式调用）
         """
         self.processor_chain.add_executor(executor)
-        # 如果是FileEmptyDirectoryExecutor，保存引用以便直接调用
-        if executor.name == "FileEmptyDirectoryExecutor":
+        # 如果是EmptyDirectoryExecutor，保存引用以便直接调用
+        if executor.name == "EmptyDirectoryExecutor":
             self.empty_directory_executor = executor
         return self
 
@@ -193,7 +193,7 @@ class FilePipeline:
         # 创建PathEntryContext（使用工具函数保持一致性）
         ctx = create_initial_context(item_info)
 
-        # 调用FileEmptyDirectoryExecutor处理（如果存在）
+        # 调用EmptyDirectoryExecutor处理（如果存在）
         if self.empty_directory_executor:
             result = self.empty_directory_executor.process(ctx)
             # 记录日志
