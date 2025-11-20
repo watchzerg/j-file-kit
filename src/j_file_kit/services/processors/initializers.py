@@ -9,6 +9,7 @@
 import logging
 import os
 
+from ...infrastructure.filesystem.operations import create_directory
 from ...interfaces.processors import Initializer
 from ...interfaces.repositories import TaskRepository
 from ...models import ProcessorResult, TaskStatus
@@ -139,10 +140,6 @@ class FileResourceInitializer(Initializer):
         Returns:
             处理结果，成功或错误
         """
-        from ...infrastructure.filesystem.operations import (
-            create_directory,
-        )
-
         errors: list[str] = []
 
         # 需要初始化的目录（从GlobalConfig获取，包括inbox_dir）

@@ -4,6 +4,7 @@
 将配置管理逻辑从API层提取到服务层，符合分层架构原则。
 """
 
+from pathlib import Path
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -35,8 +36,6 @@ class ConfigService:
         Returns:
             合并后的全局配置
         """
-        from pathlib import Path
-
         update_dict: dict[str, Any] = {}
         if update.inbox_dir is not None:
             update_dict["inbox_dir"] = (

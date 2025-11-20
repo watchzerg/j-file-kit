@@ -35,6 +35,7 @@ from ...models import (
     TaskReport,
 )
 from ...models.config import AppConfig
+from ..processors.executors import UnifiedFileExecutor
 from .statistics import StatisticsTracker
 from .utils import create_error_result, create_initial_context, extract_error_message
 
@@ -160,8 +161,6 @@ class PathEntryPipeline:
         Returns:
             配置好的统一文件执行器
         """
-        from ..processors.executors import UnifiedFileExecutor
-
         return UnifiedFileExecutor(self.file_processor_repository)
 
     def _process_single_directory(
