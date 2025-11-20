@@ -8,7 +8,12 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from j_file_kit.models.config import GlobalConfig, TaskConfig
+from j_file_kit.models.config import (
+    GlobalConfig,
+    TaskConfig,
+    create_default_global_config,
+    create_default_task_configs,
+)
 
 from .connection import SQLiteConnectionManager
 
@@ -82,14 +87,8 @@ class AppConfigRepository:
     def _ensure_default_config(self) -> None:
         """确保默认配置存在
 
-        如果配置表为空，使用 config.py 中定义的默认配置进行初始化。
-        使用延迟导入避免与 config.py 的循环依赖。
+        如果配置表为空，使用 models/config.py 中定义的默认配置进行初始化。
         """
-        # 延迟导入，避免循环导入（config.py 在模块级别导入了 AppConfigRepository）
-        from ...config.config import (
-            create_default_global_config,
-            create_default_task_configs,
-        )
 
         with self._conn_manager.get_cursor() as cursor:
             # 检查并初始化全局配置

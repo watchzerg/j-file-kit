@@ -4,8 +4,6 @@
 明确区分前置处理（initializers）和后置处理（finalizers）。
 """
 
-from __future__ import annotations
-
 from ...models import ItemContext, ProcessorResult, ProcessorStatus
 from .item import Analyzer, Executor
 from .task import Finalizer, Initializer

@@ -31,6 +31,8 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
   - `AppConfig`: 应用级配置模型，包含全局配置和任务配置列表（配置聚合根）
   - `TaskConfig`: 任务配置模型，定义单个任务的配置
   - `JavVideoOrganizeConfig`: JAV视频文件整理任务特定配置模型
+  - `create_default_global_config()`: 创建默认全局配置（单一数据源，被 AppConfigRepository 使用）
+  - `create_default_task_configs()`: 创建默认任务配置（单一数据源，被 AppConfigRepository 使用）
 - `value_objects.py`: 值对象（SerialId、FileInfo、DirectoryInfo）
 - `contexts.py`: 上下文对象（ItemContext、FileContext）
 - `enums.py`: 枚举类型（TaskStatus、TaskType、FileType、ProcessorStatus等）
@@ -125,9 +127,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - `config/`: 配置加载
   - `config.py`: 配置加载函数
     - `load_config_from_db()`: 从SQLite数据库加载配置
-    - `create_default_global_config()`: 创建默认全局配置（单一数据源，被 AppConfigRepository 使用）
-    - `create_default_task_configs()`: 创建默认任务配置（单一数据源，被 AppConfigRepository 使用）
-    - 注意：配置模型定义在 models/config.py 中
+    - 注意：配置模型和默认配置创建函数定义在 models/config.py 中
 - `logging/`: 日志
   - `logger.py`: 结构化日志记录器（JSON Lines格式）
 - `app_state.py`: 应用状态管理（AppState）
