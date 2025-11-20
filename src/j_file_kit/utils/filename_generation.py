@@ -134,13 +134,11 @@ def generate_new_filename(original_path: Path) -> tuple[Path, SerialId | None]:
     # 分解文件名为4部分
     start, end = match.span()
     part1 = filename[:start]  # 番号之前的内容
-    part2 = filename[start:end]  # 番号
     part3 = filename[end:].replace(suffix, "")  # 番号之后的内容（不含扩展名）
     part4 = suffix  # 扩展名
 
-    # 对第1、2、3部分执行trim操作
+    # 对第1、3部分执行trim操作
     trimmed_part1 = trim_separators(part1)
-    trim_separators(part2)  # part2 是番号本身，标准化后不再需要
     trimmed_part3 = trim_separators(part3)
 
     # 将 serial_id 转换为字符串用于文件名拼接
@@ -168,7 +166,3 @@ def generate_new_filename(original_path: Path) -> tuple[Path, SerialId | None]:
         new_filename = f"{serial_id_str} {trimmed_part1}{placeholder}{part4}"
 
     return parent / new_filename, serial_id
-
-
-# 导出所有公共函数和常量
-__all__ = ["DEFAULT_SERIAL_PATTERN", "generate_new_filename"]
