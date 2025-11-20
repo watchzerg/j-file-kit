@@ -9,13 +9,13 @@
 import logging
 from typing import Any
 
-from ...interfaces.processors import Finalizer
-from ...interfaces.repositories import (
+from ....interfaces.processors import Finalizer
+from ....interfaces.repositories import (
     FileItemRepository,
     FileProcessorRepository,
     TaskRepository,
 )
-from ...models import ProcessorResult
+from ....models import ProcessorResult
 
 
 class TaskStatisticsFinalizer(Finalizer):

@@ -3,33 +3,33 @@
 完整的JAV视频文件整理任务实现。
 组合使用各种处理器实现文件分类、番号提取、文件移动等功能。
 
-这是用例实现，位于services层。
+这是用例实现，位于services层，位于 tasks/file/ 目录下。
 """
 
 import threading
 from pathlib import Path
 from typing import Any
 
-from ..interfaces.repositories import (
+from ....interfaces.repositories import (
     FileItemRepository,
     FileProcessorRepository,
     TaskRepository,
     TaskRepositoryRegistry,
 )
-from ..interfaces.task import BaseTask
-from ..models import TaskType
-from ..models.config import AppConfig, JavVideoOrganizeConfig
-from .pipeline import FilePipeline
-from .processors.analyzers import (
+from ....interfaces.task import BaseTask
+from ....models import TaskType
+from ....models.config import AppConfig, JavVideoOrganizeConfig
+from ...pipeline.file import FilePipeline
+from ...processors.file.analyzers import (
     FileActionDecider,
     FileClassifier,
     FileSerialIdExtractor,
     MiscFileDeleteAnalyzer,
     MiscFileSizeAnalyzer,
 )
-from .processors.executors import EmptyDirectoryExecutor
-from .processors.finalizers import TaskStatisticsFinalizer
-from .processors.initializers import (
+from ...processors.file.executors import EmptyDirectoryExecutor
+from ...processors.file.finalizers import TaskStatisticsFinalizer
+from ...processors.file.initializers import (
     TaskConfigValidatorInitializer,
     TaskResourceInitializer,
     TaskStatusInitializer,
@@ -47,6 +47,7 @@ class JavVideoOrganizer(BaseTask):
     - 通过 `run()` 方法执行任务
 
     这是一个完整的JAV视频文件整理任务实现，展示了如何组合使用各种处理器。
+    这是文件处理领域的任务实现。
     """
 
     def __init__(self, config: AppConfig, log_dir: Path):

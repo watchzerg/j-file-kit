@@ -5,15 +5,15 @@
 
 from pathlib import Path
 
-from ....interfaces.processors import Analyzer
-from ....models import (
+from .....interfaces.processors import Analyzer
+from .....models import (
     FileType,
     PathEntryAction,
     PathEntryContext,
     PathEntryType,
     ProcessorResult,
 )
-from ....utils.file_utils import generate_sorted_dir
+from .....utils.file_utils import generate_sorted_dir
 
 
 class FileActionDecider(Analyzer):

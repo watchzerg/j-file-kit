@@ -9,21 +9,21 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from ...infrastructure.filesystem.scanner import scan_directory_items
-from ...infrastructure.logging.logger import StructuredLogger
-from ...interfaces.processors import (
+from ....infrastructure.filesystem.scanner import scan_directory_items
+from ....infrastructure.logging.logger import StructuredLogger
+from ....interfaces.processors import (
     Analyzer,
     Executor,
     Finalizer,
     Initializer,
     ProcessorChain,
 )
-from ...interfaces.repositories import (
+from ....interfaces.repositories import (
     FileItemRepository,
     FileProcessorRepository,
     TaskRepository,
 )
-from ...models import (
+from ....models import (
     FileItemResult,
     PathEntryContext,
     PathEntryInfo,
@@ -32,8 +32,8 @@ from ...models import (
     ProcessorStatus,
     TaskReport,
 )
-from ...models.config import AppConfig
-from ..processors.executors import UnifiedFileExecutor
+from ....models.config import AppConfig
+from ...processors.file.executors import UnifiedFileExecutor
 from .statistics import StatisticsTracker
 from .utils import create_error_result, create_initial_context, extract_error_message
 

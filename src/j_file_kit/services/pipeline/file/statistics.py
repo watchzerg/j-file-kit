@@ -4,8 +4,8 @@
 使 FilePipeline 主类更简洁，职责更清晰。
 """
 
-from ...interfaces.repositories import FileItemRepository
-from ...models import FileItemResult, TaskReport
+from ....interfaces.repositories import FileItemRepository
+from ....models import FileItemResult, TaskReport
 
 
 class StatisticsTracker:

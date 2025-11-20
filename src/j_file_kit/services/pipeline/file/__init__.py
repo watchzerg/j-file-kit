@@ -1,10 +1,9 @@
-"""文件处理管道
+"""文件处理管道实现
 
 文件处理管道（流程协调层），协调文件处理流程：扫描 → 分析 → 执行 → 终结。
 主要处理文件，目录清理是辅助功能。
-按领域组织，文件相关实现位于 file/ 子目录下。
 """
 
-from .file import FilePipeline
+from .pipeline import FilePipeline
 
 __all__ = ["FilePipeline"]

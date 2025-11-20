@@ -10,7 +10,7 @@ from ..infrastructure.app_state import AppState
 from ..infrastructure.persistence import FileItemRepositoryImpl
 from ..interfaces.task import BaseTask
 from ..models import TaskStatus, TaskType, TriggerType
-from ..services.jav_video_organizer import JavVideoOrganizer
+from ..services.tasks.file import JavVideoOrganizer
 from .models import (
     CancelTaskResponse,
     StartTaskRequest,

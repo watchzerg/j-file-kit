@@ -3,9 +3,9 @@
 根据文件扩展名判断文件类型（视频/图片/压缩/Misc）。
 """
 
-from ....interfaces.processors import Analyzer
-from ....models import PathEntryContext, PathEntryType, ProcessorResult
-from ....utils.file_utils import get_file_type
+from .....interfaces.processors import Analyzer
+from .....models import PathEntryContext, PathEntryType, ProcessorResult
+from .....utils.file_utils import get_file_type
 
 
 class FileClassifier(Analyzer):

@@ -5,8 +5,8 @@
 
 from typing import Any
 
-from ....interfaces.processors import Analyzer
-from ....models import (
+from .....interfaces.processors import Analyzer
+from .....models import (
     FileType,
     PathEntryAction,
     PathEntryContext,

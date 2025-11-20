@@ -77,9 +77,16 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - 包含业务编排逻辑和具体实现
 
 **主要模块**:
-- `pipeline.py`: 文件处理管道（流程协调层），协调文件扫描、处理器链执行和结果汇总，主要处理文件，目录清理是辅助功能
+- `pipeline/file/`: 文件处理管道实现（流程协调层），包含 pipeline.py、statistics.py、utils.py，协调文件扫描、处理器链执行和结果汇总，主要处理文件，目录清理是辅助功能
+- `tasks/file/`: 文件处理领域的任务用例实现（业务用例层），包含 jav_video_organizer.py
+- `processors/file/`: 文件处理相关的处理器实现，包含 analyzers/、executors.py、initializers.py、finalizers.py
 - `task_manager.py`: 任务管理器，管理任务的执行、状态跟踪和取消
-- `jav_video_organizer.py`: JAV视频文件整理任务用例实现（业务用例层）
+- `config_service.py`: 配置服务，管理应用配置
+
+**领域组织**:
+- services 层按领域组织，文件相关实现位于 `file/` 子目录下
+- pipeline、processors、tasks 三个模块保持结构一致性，都采用相同的领域组织方式
+- 为未来添加 crawler 领域做准备
 
 ### Task、Pipeline、ProcessorChain 职责分工
 
@@ -99,8 +106,8 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
   - 区分 initializers、analyzers、executors、finalizers
   - 处理单个 item 的执行逻辑
 
-- `processors/`: 具体处理器实现
-  - `analyzers.py`: 分析器实现（FileClassifier、FileSerialIdExtractor、FileActionDecider等）
+- `processors/file/`: 文件处理相关的具体处理器实现
+  - `analyzers/`: 分析器实现（FileClassifier、FileSerialIdExtractor、FileActionDecider等）
   - `executors.py`: 执行器实现（UnifiedFileExecutor、EmptyDirectoryExecutor）
   - `initializers.py`: 初始化器实现（TaskStatusInitializer、TaskConfigValidatorInitializer、TaskResourceInitializer等）
   - `finalizers.py`: 终结器实现（TaskStatisticsFinalizer）
