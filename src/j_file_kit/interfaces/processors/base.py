@@ -1,6 +1,9 @@
 """处理器基础协议
 
 定义处理器的核心抽象接口。
+
+这是处理器的基础抽象协议，不依赖特定领域。
+定义了 ItemProcessor（处理单个 item）和 TaskProcessor（处理任务级别）两个核心抽象。
 """
 
 from abc import ABC, abstractmethod

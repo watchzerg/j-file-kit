@@ -4,10 +4,12 @@
 实现 TaskRepositoryRegistry Protocol。
 """
 
-from j_file_kit.interfaces.repositories import (
-    CrawlerProcessorRepository,
+from j_file_kit.interfaces.file.repositories import (
     FileItemRepository,
     FileProcessorRepository,
+)
+from j_file_kit.interfaces.repositories import (
+    CrawlerProcessorRepository,
     TaskRepository,
 )
 

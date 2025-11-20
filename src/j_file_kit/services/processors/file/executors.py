@@ -15,8 +15,8 @@ from ....infrastructure.filesystem.operations import (
     is_directory_empty,
     move_file_with_conflict_resolution,
 )
+from ....interfaces.file.repositories import FileProcessorRepository
 from ....interfaces.processors import Executor
-from ....interfaces.repositories import FileProcessorRepository
 from ....models import (
     OperationType,
     PathEntryAction,

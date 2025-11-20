@@ -4,10 +4,12 @@
 """
 
 # 导出 Protocol 类型（从 interfaces 导入）
-from ...interfaces.repositories import (
-    CrawlerProcessorRepository,
+from ...interfaces.file.repositories import (
     FileItemRepository,
     FileProcessorRepository,
+)
+from ...interfaces.repositories import (
+    CrawlerProcessorRepository,
     TaskRepository,
     TaskRepositoryRegistry,
 )

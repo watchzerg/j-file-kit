@@ -1,6 +1,9 @@
-"""Task 级别处理器
+"""Task 级别处理器协议
 
 定义处理任务级别的处理器基类，包括初始化器和终结器。
+
+这是抽象的任务级别处理器协议，不依赖特定领域。
+使用通用的任务概念，支持不同类型的任务处理。
 """
 
 from abc import abstractmethod
@@ -36,8 +39,8 @@ class Initializer(TaskProcessor):
 class Finalizer(TaskProcessor):
     """终结器基类
 
-    用于全局后处理，如清理空目录、生成报告等。
-    终结器在所有文件处理完成后执行。
+    用于全局后处理，如清理资源、生成报告等。
+    终结器在所有 item 处理完成后执行。
     """
 
     def process_task(self) -> ProcessorResult:
@@ -47,6 +50,6 @@ class Finalizer(TaskProcessor):
     def finalize(self) -> ProcessorResult:
         """全局终结处理
 
-        在所有文件处理完成后调用，用于执行全局清理等操作。
+        在所有 item 处理完成后调用，用于执行全局清理等操作。
         """
         return ProcessorResult.success(f"{self.name} 全局终结完成")

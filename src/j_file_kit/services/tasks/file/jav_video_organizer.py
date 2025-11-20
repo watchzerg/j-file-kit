@@ -10,9 +10,11 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from ....interfaces.repositories import (
+from ....interfaces.file.repositories import (
     FileItemRepository,
     FileProcessorRepository,
+)
+from ....interfaces.repositories import (
     TaskRepository,
     TaskRepositoryRegistry,
 )

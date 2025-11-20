@@ -11,6 +11,10 @@ from pathlib import Path
 
 from ....infrastructure.filesystem.scanner import scan_directory_items
 from ....infrastructure.logging.logger import StructuredLogger
+from ....interfaces.file.repositories import (
+    FileItemRepository,
+    FileProcessorRepository,
+)
 from ....interfaces.processors import (
     Analyzer,
     Executor,
@@ -18,11 +22,7 @@ from ....interfaces.processors import (
     Initializer,
     ProcessorChain,
 )
-from ....interfaces.repositories import (
-    FileItemRepository,
-    FileProcessorRepository,
-    TaskRepository,
-)
+from ....interfaces.repositories import TaskRepository
 from ....models import (
     FileItemResult,
     PathEntryContext,
