@@ -9,7 +9,8 @@ import re
 import string
 from pathlib import Path
 
-from ..models import FileType, SerialId
+from ..models.enums import FileType
+from ..models.value_objects import SerialId
 
 
 def get_file_type(
@@ -91,7 +92,7 @@ def generate_sorted_dir(sorted_dir: Path, serial_id: SerialId) -> Path:
         目录路径（不含文件名）
 
     Examples:
-        >>> from j_file_kit.models import SerialId
+        >>> from j_file_kit.models.value_objects import SerialId
         >>> generate_sorted_dir(Path("/sorted"), SerialId(prefix="ABCD", number="123"))
         Path("/sorted/A/AB/ABCD")
 

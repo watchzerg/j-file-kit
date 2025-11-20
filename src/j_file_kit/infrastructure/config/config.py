@@ -6,7 +6,8 @@
 
 from j_file_kit.models.config import AppConfig
 
-from ..persistence import AppConfigRepository, SQLiteConnectionManager
+from ..persistence.sqlite.config_repository import AppConfigRepository
+from ..persistence.sqlite.connection import SQLiteConnectionManager
 
 
 def load_config_from_db(conn_manager: SQLiteConnectionManager) -> AppConfig:

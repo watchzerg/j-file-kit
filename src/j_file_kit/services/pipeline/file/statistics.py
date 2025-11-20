@@ -5,7 +5,8 @@
 """
 
 from ....interfaces.file.repositories import FileItemRepository
-from ....models import FileItemResult, TaskReport
+from ....models.results import FileItemResult
+from ....models.task import TaskReport
 
 
 class StatisticsTracker:

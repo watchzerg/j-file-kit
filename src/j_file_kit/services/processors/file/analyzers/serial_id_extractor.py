@@ -4,8 +4,11 @@
 只负责提取番号和生成文件名，不设置完整路径。
 """
 
-from .....interfaces.processors import Analyzer
-from .....models import FileType, PathEntryContext, PathEntryType, ProcessorResult
+from .....interfaces.processors.item import Analyzer
+from .....models.contexts import PathEntryContext
+from .....models.enums import FileType
+from .....models.path_entry import PathEntryType
+from .....models.results import ProcessorResult
 from .....utils.filename_generation import generate_new_filename
 
 

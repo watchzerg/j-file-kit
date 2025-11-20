@@ -12,11 +12,9 @@ from j_file_kit.models.config import AppConfig
 from ..services.task_manager import TaskManager
 from .config.config import load_config_from_db
 from .filesystem.operations import create_directory
-from .persistence import (
-    AppConfigRepository,
-    SQLiteConnectionManager,
-    TaskRepositoryImpl,
-)
+from .persistence.sqlite.config_repository import AppConfigRepository
+from .persistence.sqlite.connection import SQLiteConnectionManager
+from .persistence.sqlite.task_repository import TaskRepositoryImpl
 
 
 class AppState:

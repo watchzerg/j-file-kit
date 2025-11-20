@@ -4,11 +4,10 @@
 这些函数是 pipeline 模块内部实现细节，专门用于路径项处理流程。
 """
 
-from ....models import (
+from ....models.contexts import PathEntryContext
+from ....models.path_entry import PathEntryInfo, PathEntryType
+from ....models.results import (
     FileItemResult,
-    PathEntryContext,
-    PathEntryInfo,
-    PathEntryType,
     ProcessorResult,
     ProcessorStatus,
 )

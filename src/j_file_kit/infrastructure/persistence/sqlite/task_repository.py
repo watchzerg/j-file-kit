@@ -8,7 +8,7 @@ import sqlite3
 from datetime import datetime
 from typing import Any
 
-from j_file_kit.models import (
+from j_file_kit.models.task import (
     Task,
     TaskStatus,
     TaskType,

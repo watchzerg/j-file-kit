@@ -5,14 +5,11 @@
 
 from typing import Any
 
-from .....interfaces.processors import Analyzer
-from .....models import (
-    FileType,
-    PathEntryAction,
-    PathEntryContext,
-    PathEntryType,
-    ProcessorResult,
-)
+from .....interfaces.processors.item import Analyzer
+from .....models.contexts import PathEntryContext
+from .....models.enums import FileType
+from .....models.path_entry import PathEntryAction, PathEntryType
+from .....models.results import ProcessorResult
 
 
 class MiscFileSizeAnalyzer(Analyzer):

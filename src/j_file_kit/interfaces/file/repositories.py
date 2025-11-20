@@ -15,11 +15,8 @@
 from pathlib import Path
 from typing import Any, Protocol
 
-from ...models import (
-    FileItemResult,
-    Operation,
-    OperationType,
-)
+from ...models.operations import Operation, OperationType
+from ...models.results import FileItemResult
 
 
 class FileItemRepository(Protocol):

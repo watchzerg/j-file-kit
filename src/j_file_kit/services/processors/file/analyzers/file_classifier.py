@@ -3,8 +3,10 @@
 根据文件扩展名判断文件类型（视频/图片/压缩/Misc）。
 """
 
-from .....interfaces.processors import Analyzer
-from .....models import PathEntryContext, PathEntryType, ProcessorResult
+from .....interfaces.processors.item import Analyzer
+from .....models.contexts import PathEntryContext
+from .....models.path_entry import PathEntryType
+from .....models.results import ProcessorResult
 from .....utils.file_utils import get_file_type
 
 

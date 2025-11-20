@@ -10,15 +10,11 @@ from pathlib import Path
 import pytest
 
 from j_file_kit.infrastructure.logging.logger import StructuredLogger
-from j_file_kit.models import (
-    FileItemResult,
-    FileType,
-    PathEntryContext,
-    PathEntryInfo,
-    PathEntryType,
-    ProcessorResult,
-    TaskReport,
-)
+from j_file_kit.models.contexts import PathEntryContext
+from j_file_kit.models.enums import FileType
+from j_file_kit.models.path_entry import PathEntryInfo, PathEntryType
+from j_file_kit.models.results import FileItemResult, ProcessorResult
+from j_file_kit.models.task import TaskReport
 
 
 @pytest.mark.unit
@@ -88,7 +84,7 @@ class TestStructuredLogger:
         logger = StructuredLogger(tmp_path, "test_task")
 
         item_info = PathEntryInfo.from_path(Path("/test/video.mp4"), PathEntryType.FILE)
-        from j_file_kit.models import SerialId
+        from j_file_kit.models.value_objects import SerialId
 
         context = PathEntryContext(
             item_info=item_info,

@@ -11,7 +11,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from ..infrastructure.app_state import AppState
-from ..models import (
+from ..models.exceptions import (
     TaskAlreadyRunningError,
     TaskCancelledError,
     TaskError,

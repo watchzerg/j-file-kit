@@ -13,7 +13,7 @@
 from datetime import datetime
 from typing import Any, Protocol
 
-from ..models import (
+from ..models.task import (
     Task,
     TaskStatus,
     TaskType,

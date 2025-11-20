@@ -15,24 +15,19 @@ from ....interfaces.file.repositories import (
     FileItemRepository,
     FileProcessorRepository,
 )
-from ....interfaces.processors import (
-    Analyzer,
-    Executor,
-    Finalizer,
-    Initializer,
-    ProcessorChain,
-)
+from ....interfaces.processors.chain import ProcessorChain
+from ....interfaces.processors.item import Analyzer, Executor
+from ....interfaces.processors.task import Finalizer, Initializer
 from ....interfaces.repositories import TaskRepository
-from ....models import (
+from ....models.config import AppConfig
+from ....models.contexts import PathEntryContext
+from ....models.path_entry import PathEntryInfo, PathEntryType
+from ....models.results import (
     FileItemResult,
-    PathEntryContext,
-    PathEntryInfo,
-    PathEntryType,
     ProcessorResult,
     ProcessorStatus,
-    TaskReport,
 )
-from ....models.config import AppConfig
+from ....models.task import TaskReport
 from ...processors.file.executors import UnifiedFileExecutor
 from .statistics import StatisticsTracker
 from .utils import create_error_result, create_initial_context, extract_error_message

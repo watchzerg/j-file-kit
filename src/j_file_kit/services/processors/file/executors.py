@@ -16,15 +16,15 @@ from ....infrastructure.filesystem.operations import (
     move_file_with_conflict_resolution,
 )
 from ....interfaces.file.repositories import FileProcessorRepository
-from ....interfaces.processors import Executor
-from ....models import (
-    OperationType,
+from ....interfaces.processors.item import Executor
+from ....models.contexts import PathEntryContext
+from ....models.operations import OperationType
+from ....models.path_entry import (
     PathEntryAction,
-    PathEntryContext,
     PathEntryInfo,
     PathEntryType,
-    ProcessorResult,
 )
+from ....models.results import ProcessorResult
 
 
 class UnifiedFileExecutor(Executor):

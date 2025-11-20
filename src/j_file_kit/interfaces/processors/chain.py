@@ -7,7 +7,8 @@ ProcessorChain 是处理器执行层，定义"怎么执行处理器"。
 明确区分前置处理（initializers）和后置处理（finalizers）。
 """
 
-from ...models import ItemContext, ProcessorResult, ProcessorStatus
+from ...models.contexts import ItemContext
+from ...models.results import ProcessorResult, ProcessorStatus
 from .item import Analyzer, Executor
 from .task import Finalizer, Initializer
 

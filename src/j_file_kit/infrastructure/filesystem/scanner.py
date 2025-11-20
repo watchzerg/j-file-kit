@@ -8,7 +8,7 @@ import os
 from collections.abc import Generator
 from pathlib import Path
 
-from ...models import PathEntryType
+from ...models.path_entry import PathEntryType
 from .operations import is_directory, path_exists
 
 

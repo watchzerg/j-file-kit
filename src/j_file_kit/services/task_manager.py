@@ -8,17 +8,19 @@ import logging
 import threading
 from datetime import datetime
 
-from ..infrastructure.persistence import (
-    SQLiteConnectionManager,
+from ..infrastructure.persistence.sqlite.connection import SQLiteConnectionManager
+from ..infrastructure.persistence.sqlite.task_repository_registry import (
     TaskRepositoryRegistryImpl,
 )
 from ..interfaces.repositories import TaskRepository
 from ..interfaces.task import BaseTask
-from ..models import (
-    Task,
+from ..models.exceptions import (
     TaskAlreadyRunningError,
     TaskCancelledError,
     TaskNotFoundError,
+)
+from ..models.task import (
+    Task,
     TaskStatus,
     TaskType,
     TriggerType,

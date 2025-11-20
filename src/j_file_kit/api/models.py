@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ..models import TaskStatus
+from ..models.task import TaskStatus
 
 
 class StartTaskRequest(BaseModel):

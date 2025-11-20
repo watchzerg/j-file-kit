@@ -7,10 +7,12 @@
 from fastapi import APIRouter, HTTPException, Request, status
 
 from ..infrastructure.app_state import AppState
-from ..infrastructure.persistence import FileItemRepositoryImpl
+from ..infrastructure.persistence.sqlite.file_item_repository import (
+    FileItemRepositoryImpl,
+)
 from ..interfaces.task import BaseTask
-from ..models import TaskStatus, TaskType, TriggerType
-from ..services.tasks.file import JavVideoOrganizer
+from ..models.task import TaskStatus, TaskType, TriggerType
+from ..services.tasks.file.jav_video_organizer import JavVideoOrganizer
 from .models import (
     CancelTaskResponse,
     StartTaskRequest,

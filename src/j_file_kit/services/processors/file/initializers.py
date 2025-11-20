@@ -10,10 +10,11 @@ import logging
 import os
 
 from ....infrastructure.filesystem.operations import create_directory
-from ....interfaces.processors import Initializer
+from ....interfaces.processors.task import Initializer
 from ....interfaces.repositories import TaskRepository
-from ....models import ProcessorResult, TaskStatus
 from ....models.config import AppConfig
+from ....models.results import ProcessorResult
+from ....models.task import TaskStatus
 from ....utils.config_utils import validate_global_config
 
 

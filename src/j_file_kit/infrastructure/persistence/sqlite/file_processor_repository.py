@@ -11,7 +11,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from j_file_kit.models import Operation, OperationType
+from j_file_kit.models.operations import Operation, OperationType
 
 from .connection import SQLiteConnectionManager
 

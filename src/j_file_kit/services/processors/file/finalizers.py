@@ -13,9 +13,9 @@ from ....interfaces.file.repositories import (
     FileItemRepository,
     FileProcessorRepository,
 )
-from ....interfaces.processors import Finalizer
+from ....interfaces.processors.task import Finalizer
 from ....interfaces.repositories import TaskRepository
-from ....models import ProcessorResult
+from ....models.results import ProcessorResult
 
 
 class TaskStatisticsFinalizer(Finalizer):

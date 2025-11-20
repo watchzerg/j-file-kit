@@ -8,7 +8,8 @@
 
 from abc import ABC, abstractmethod
 
-from ...models import ItemContext, ProcessorResult
+from ...models.contexts import ItemContext
+from ...models.results import ProcessorResult
 
 
 class ItemProcessor(ABC):

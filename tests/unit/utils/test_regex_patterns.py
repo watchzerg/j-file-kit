@@ -23,7 +23,7 @@
 
 import pytest
 
-from j_file_kit.models import SerialId
+from j_file_kit.models.value_objects import SerialId
 from j_file_kit.utils.filename_generation import (
     DEFAULT_SERIAL_PATTERN,
     _match_serial_id,

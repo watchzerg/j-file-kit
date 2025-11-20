@@ -19,16 +19,16 @@ from ....interfaces.repositories import (
     TaskRepositoryRegistry,
 )
 from ....interfaces.task import BaseTask
-from ....models import TaskType
 from ....models.config import AppConfig, JavVideoOrganizeConfig
-from ...pipeline.file import FilePipeline
-from ...processors.file.analyzers import (
-    FileActionDecider,
-    FileClassifier,
-    FileSerialIdExtractor,
+from ....models.task import TaskType
+from ...pipeline.file.pipeline import FilePipeline
+from ...processors.file.analyzers.action_decider import FileActionDecider
+from ...processors.file.analyzers.file_classifier import FileClassifier
+from ...processors.file.analyzers.misc_analyzer import (
     MiscFileDeleteAnalyzer,
     MiscFileSizeAnalyzer,
 )
+from ...processors.file.analyzers.serial_id_extractor import FileSerialIdExtractor
 from ...processors.file.executors import EmptyDirectoryExecutor
 from ...processors.file.finalizers import TaskStatisticsFinalizer
 from ...processors.file.initializers import (

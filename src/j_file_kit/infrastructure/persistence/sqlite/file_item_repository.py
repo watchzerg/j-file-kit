@@ -12,15 +12,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from j_file_kit.models import (
-    FileItemResult,
-    FileType,
-    PathEntryContext,
-    PathEntryInfo,
-    PathEntryType,
-    ProcessorResult,
-    SerialId,
-)
+from j_file_kit.models.contexts import PathEntryContext
+from j_file_kit.models.enums import FileType
+from j_file_kit.models.path_entry import PathEntryInfo, PathEntryType
+from j_file_kit.models.results import FileItemResult, ProcessorResult
+from j_file_kit.models.value_objects import SerialId
 
 from .connection import SQLiteConnectionManager
 

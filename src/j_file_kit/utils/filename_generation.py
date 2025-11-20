@@ -30,7 +30,7 @@
 import re
 from pathlib import Path
 
-from j_file_kit.models import SerialId
+from j_file_kit.models.value_objects import SerialId
 
 # 默认番号提取正则表达式模式
 DEFAULT_SERIAL_PATTERN = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"

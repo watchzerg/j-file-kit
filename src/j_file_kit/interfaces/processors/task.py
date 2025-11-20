@@ -8,7 +8,7 @@
 
 from abc import abstractmethod
 
-from ...models import ProcessorResult
+from ...models.results import ProcessorResult
 from .base import TaskProcessor
 
 
