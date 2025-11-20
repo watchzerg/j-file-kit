@@ -334,11 +334,11 @@ class PathEntryPipeline:
             cancelled_event: 取消事件，用于检查任务是否被取消
         """
         try:
-            self._start_task(dry_run)
-
-            # 检查扫描根目录是否设置
+            # 先检查扫描根目录是否设置（先验证，后执行）
             if self.scan_root is None:
                 raise ValueError("扫描根目录未设置")
+
+            self._start_task(dry_run)
 
             # 处理每个文件和目录（使用生成器模式，边扫描边处理）
             for path, item_type in scan_directory_items(self.scan_root):
