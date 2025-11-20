@@ -1,7 +1,7 @@
 """统计信息跟踪器
 
 管理 TaskReport 的统计信息更新，封装统计信息更新逻辑。
-使 PathEntryPipeline 主类更简洁，职责更清晰。
+使 FilePipeline 主类更简洁，职责更清晰。
 """
 
 from ...interfaces.repositories import FileItemRepository

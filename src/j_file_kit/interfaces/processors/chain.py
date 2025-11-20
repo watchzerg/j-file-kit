@@ -1,5 +1,7 @@
 """处理器链
 
+ProcessorChain 是处理器执行层，定义"怎么执行处理器"。
+
 管理一组处理器的执行顺序和结果。
 明确区分前置处理（initializers）和后置处理（finalizers）。
 """
@@ -12,8 +14,16 @@ from .task import Finalizer, Initializer
 class ProcessorChain:
     """处理器链
 
-    管理一组处理器的执行顺序和结果。
-    明确区分前置处理（initializers）和后置处理（finalizers）。
+    ProcessorChain 是处理器执行层，定义"怎么执行处理器"。
+
+    职责：
+    - 管理处理器的注册和执行顺序
+    - 区分不同类型的处理器：initializers、analyzers、executors、finalizers
+    - 处理单个 item 的执行逻辑
+
+    与 Pipeline 的关系：
+    - Pipeline 通过 ProcessorChain 执行处理器
+    - Pipeline 负责流程协调，ProcessorChain 负责处理器执行逻辑
     """
 
     def __init__(self) -> None:

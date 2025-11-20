@@ -58,8 +58,8 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
   - `base.py`: 处理器基类定义（ItemProcessor、TaskProcessor）
   - `item.py`: Item级别处理器协议（Analyzer、Executor）
   - `task.py`: 任务级别处理器协议（Initializer、Finalizer）
-  - `chain.py`: ProcessorChain处理器链
-- `task.py`: BaseTask抽象基类协议
+  - `chain.py`: ProcessorChain处理器链（处理器执行层）
+- `task.py`: BaseTask抽象基类协议（业务用例层）
 
 ### 3. Services Layer (服务层)
 
@@ -77,9 +77,28 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - 包含业务编排逻辑和具体实现
 
 **主要模块**:
-- `pipeline.py`: 管道协调器，协调文件扫描、处理器链执行和结果汇总
+- `pipeline.py`: 文件处理管道（流程协调层），协调文件扫描、处理器链执行和结果汇总，主要处理文件，目录清理是辅助功能
 - `task_manager.py`: 任务管理器，管理任务的执行、状态跟踪和取消
-- `jav_video_organizer.py`: JAV视频文件整理任务用例实现
+- `jav_video_organizer.py`: JAV视频文件整理任务用例实现（业务用例层）
+
+### Task、Pipeline、ProcessorChain 职责分工
+
+- **Task (BaseTask)**: 业务用例层，定义"做什么"
+  - 定义业务用例，组合处理器，创建并配置 Pipeline
+  - 通过 `create_pipeline()` 方法组装 Pipeline
+  - 通过 `run()` 方法执行任务
+
+- **Pipeline (FilePipeline)**: 流程协调层，定义"怎么做流程"
+  - 协调处理流程（扫描 → 处理 → 汇总）
+  - 管理任务生命周期（初始化 → 处理 → 终结）
+  - 封装统计信息管理和结果持久化
+  - 主要处理文件，目录清理是辅助功能
+
+- **ProcessorChain**: 处理器执行层，定义"怎么执行处理器"
+  - 管理处理器的注册和执行顺序
+  - 区分 initializers、analyzers、executors、finalizers
+  - 处理单个 item 的执行逻辑
+
 - `processors/`: 具体处理器实现
   - `analyzers.py`: 分析器实现（FileClassifier、FileSerialIdExtractor、FileActionDecider等）
   - `executors.py`: 执行器实现（UnifiedFileExecutor、FileEmptyDirectoryExecutor）
@@ -325,13 +344,15 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
    ↓
 3. services/task_manager启动任务（在后台线程执行）
    ↓
-4. services/pipeline协调执行
+4. services/pipeline协调执行（流程协调层）
+   - Pipeline 通过 ProcessorChain 执行处理器
    ├── initializers: 前置处理（状态更新、配置验证、资源初始化）
    │   - 在非预览模式下执行，失败会阻止任务继续
    ↓
 5. infrastructure/filesystem/scanner扫描文件
    ↓
 6. services/processors/处理item（文件等）
+   - ProcessorChain 管理处理器的执行顺序
    ├── analyzers: 分析item（分类、提取番号等）
    ├── executors: 执行操作（使用infrastructure/filesystem）
    │   - 使用 move_file_with_conflict_resolution() 处理路径冲突
@@ -369,7 +390,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 1. 在 `services/processors/` 中创建新的处理器类
 2. 继承 `interfaces/processors/` 中相应的基类（Initializer 或 Finalizer）
 3. 实现 `initialize()` 或 `finalize()` 方法
-4. 在任务的 `create_pipeline()` 方法中添加：
+4. 在任务的 `create_pipeline()` 方法中添加（Task 通过此方法创建并配置 Pipeline）：
    - Initializer: 使用 `pipeline.add_initializer()`
    - Finalizer: 使用 `pipeline.add_finalizer()`
 

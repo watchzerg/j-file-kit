@@ -1,6 +1,7 @@
 """任务基类协议
 
-定义任务的抽象接口。
+Task 是业务用例层，定义"做什么"。
+
 所有具体任务实现必须继承此类并实现run方法。
 """
 
@@ -14,7 +15,18 @@ from .repositories import TaskRepositoryRegistry
 class BaseTask(ABC):
     """任务基类协议
 
-    定义任务的抽象接口，所有任务实现必须继承此类并实现run方法。
+    Task 是业务用例层，定义"做什么"。
+
+    职责：
+    - 定义业务用例，组合处理器，创建并配置 Pipeline
+    - 通过 `create_pipeline()` 方法组装 Pipeline
+    - 通过 `run()` 方法执行任务
+
+    与 Pipeline 的关系：
+    - Task 通过 `create_pipeline()` 创建 Pipeline
+    - Task 通过 `run()` 方法执行任务，内部调用 Pipeline
+
+    所有任务实现必须继承此类并实现run方法。
     """
 
     @property
@@ -32,6 +44,8 @@ class BaseTask(ABC):
         cancelled_event: threading.Event | None = None,
     ) -> None:
         """运行任务
+
+        Task 通过 `run()` 方法执行任务，内部调用 Pipeline。
 
         Args:
             task_id: 任务ID

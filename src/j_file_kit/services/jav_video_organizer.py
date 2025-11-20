@@ -19,7 +19,7 @@ from ..interfaces.repositories import (
 from ..interfaces.task import BaseTask
 from ..models import TaskType
 from ..models.config import AppConfig, JavVideoOrganizeConfig
-from .pipeline import PathEntryPipeline
+from .pipeline import FilePipeline
 from .processors.analyzers import (
     FileActionDecider,
     FileClassifier,
@@ -38,6 +38,13 @@ from .processors.initializers import (
 
 class JavVideoOrganizer(BaseTask):
     """JAV视频文件整理任务
+
+    Task 是业务用例层，定义"做什么"。
+
+    职责：
+    - 定义业务用例，组合处理器，创建并配置 Pipeline
+    - 通过 `create_pipeline()` 方法组装 Pipeline
+    - 通过 `run()` 方法执行任务
 
     这是一个完整的JAV视频文件整理任务实现，展示了如何组合使用各种处理器。
     """
@@ -90,8 +97,10 @@ class JavVideoOrganizer(BaseTask):
         task_repository: TaskRepository,
         file_processor_repository: FileProcessorRepository,
         file_item_repository: FileItemRepository,
-    ) -> PathEntryPipeline:
+    ) -> FilePipeline:
         """创建处理管道
+
+        Task 通过此方法创建并配置 Pipeline，组装处理器链。
 
         Args:
             task_id: 任务ID
@@ -104,7 +113,7 @@ class JavVideoOrganizer(BaseTask):
             配置好的处理管道
         """
         # 创建管道
-        pipeline = PathEntryPipeline(
+        pipeline = FilePipeline(
             self.config,
             self.task_type.value,
             log_dir,

@@ -1,9 +1,9 @@
-"""路径项处理管道
+"""文件处理管道
 
-协调整个路径项（文件和目录）处理流程：扫描 → 分析 → 执行 → 终结。
-负责路径项扫描、处理器链执行和结果汇总。
+文件处理管道（流程协调层），协调文件处理流程：扫描 → 分析 → 执行 → 终结。
+主要处理文件，目录清理是辅助功能。
 """
 
-from .core import PathEntryPipeline
+from .core import FilePipeline
 
-__all__ = ["PathEntryPipeline"]
+__all__ = ["FilePipeline"]

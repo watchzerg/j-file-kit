@@ -1,7 +1,7 @@
-"""路径项处理管道核心实现
+"""文件处理管道核心实现
 
-协调整个路径项（文件和目录）处理流程：扫描 → 分析 → 执行 → 终结。
-负责路径项扫描、处理器链执行和结果汇总。
+文件处理管道（流程协调层），协调文件处理流程：扫描 → 分析 → 执行 → 终结。
+主要处理文件，目录清理是辅助功能。
 """
 
 import threading
@@ -38,14 +38,23 @@ from .statistics import StatisticsTracker
 from .utils import create_error_result, create_initial_context, extract_error_message
 
 
-class PathEntryPipeline:
-    """路径项处理管道协调器
+class FilePipeline:
+    """文件处理管道协调器（流程协调层）
 
-    协调整个路径项（文件和目录）处理流程：扫描 → 分析 → 执行 → 终结。
-    负责路径项扫描、处理器链执行和结果汇总。
+    文件处理管道是流程协调层，定义"怎么做流程"。
+
+    职责：
+    - 协调处理流程（扫描 → 处理 → 汇总）
+    - 管理任务生命周期（初始化 → 处理 → 终结）
+    - 封装统计信息管理和结果持久化
+    - 主要处理文件，目录清理是辅助功能
+
+    与 ProcessorChain 的关系：
+    - Pipeline 通过 ProcessorChain 执行处理器
+    - Pipeline 负责流程协调，ProcessorChain 负责处理器执行逻辑
 
     设计意图：
-    - 统一处理文件和目录，使用 PathEntry 概念统一抽象
+    - 统一文件处理流程，支持预览模式和实际执行模式
     - 协调处理器链的执行，管理任务生命周期
     - 封装统计信息管理，使职责更清晰
     """
@@ -60,7 +69,7 @@ class PathEntryPipeline:
         task_id: int,
         task_repository: TaskRepository,
     ) -> None:
-        """初始化路径项处理管道
+        """初始化文件处理管道
 
         Args:
             config: 任务配置
@@ -102,7 +111,7 @@ class PathEntryPipeline:
         # 统计信息跟踪器
         self.statistics_tracker = StatisticsTracker(self.report)
 
-    def add_analyzer(self, analyzer: Analyzer) -> PathEntryPipeline:
+    def add_analyzer(self, analyzer: Analyzer) -> FilePipeline:
         """添加分析器
 
         Args:
@@ -114,7 +123,7 @@ class PathEntryPipeline:
         self.processor_chain.add_analyzer(analyzer)
         return self
 
-    def add_executor(self, executor: Executor) -> PathEntryPipeline:
+    def add_executor(self, executor: Executor) -> FilePipeline:
         """添加执行器
 
         Args:
@@ -129,7 +138,7 @@ class PathEntryPipeline:
             self.empty_directory_executor = executor
         return self
 
-    def add_initializer(self, initializer: Initializer) -> PathEntryPipeline:
+    def add_initializer(self, initializer: Initializer) -> FilePipeline:
         """添加初始化器
 
         Args:
@@ -141,7 +150,7 @@ class PathEntryPipeline:
         self.processor_chain.add_initializer(initializer)
         return self
 
-    def add_finalizer(self, finalizer: Finalizer) -> PathEntryPipeline:
+    def add_finalizer(self, finalizer: Finalizer) -> FilePipeline:
         """添加终结器
 
         Args:
@@ -322,11 +331,11 @@ class PathEntryPipeline:
     ) -> None:
         """运行管道
 
-        协调整个路径项处理流程：扫描 → 处理 → 汇总。
+        协调文件处理流程：扫描 → 处理 → 汇总。
+        主要处理文件，目录清理是辅助功能。
 
         设计意图：
-        - 统一处理文件和目录，使用 PathEntry 概念
-        - 支持预览模式和实际执行模式
+        - 统一文件处理流程，支持预览模式和实际执行模式
         - 支持任务取消机制
 
         Args:
