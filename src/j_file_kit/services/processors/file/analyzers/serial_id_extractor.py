@@ -9,7 +9,7 @@ from .....models.contexts import PathEntryContext
 from .....models.enums import FileType
 from .....models.path_entry import PathEntryType
 from .....models.results import ProcessorResult
-from .....utils.filename_generation import generate_new_filename
+from .....utils.jav_utils import generate_jav_filename
 
 
 class FileSerialIdExtractor(Analyzer):
@@ -42,7 +42,7 @@ class FileSerialIdExtractor(Analyzer):
                 return ProcessorResult.skip("非视频/图片文件，跳过番号提取")
 
             # 生成新文件名并提取番号
-            new_path, serial_id = generate_new_filename(ctx.item_info.path)
+            new_path, serial_id = generate_jav_filename(ctx.item_info.path)
 
             if serial_id:
                 # 检查新路径是否与原路径相同

@@ -1,10 +1,10 @@
-"""文件名生成模块
+"""JAV 领域工具函数模块
 
-提供根据番号重构文件名的功能，包括番号匹配和文件名重构。
+提供 JAV 文件处理相关的工具函数，包括番号匹配、文件名重构和目录生成。
 
 业务规则：
 1. 文件名分解为4部分：番号之前的内容、番号、番号之后的内容、扩展名
-2. 对第1、2、3部分分别执行trim操作：去除前后的空格、连字符(-)、下划线(_)、点号(.)
+2. 对第1、3部分分别执行trim操作：去除前后的空格、连字符(-)、下划线(_)、@符号、#符号
 3. 根据第1部分trim后是否为空判断番号是否在开头
 4. 按不同规则拼接新文件名
 
@@ -91,7 +91,7 @@ def trim_separators(text: str) -> str:
     return text.strip(FILENAME_SEPARATORS)
 
 
-def generate_new_filename(original_path: Path) -> tuple[Path, SerialId | None]:
+def generate_jav_filename(original_path: Path) -> tuple[Path, SerialId | None]:
     """根据番号生成新文件名
 
     使用内置的 DEFAULT_SERIAL_PATTERN 进行番号提取和文件名重构。
@@ -103,19 +103,19 @@ def generate_new_filename(original_path: Path) -> tuple[Path, SerialId | None]:
         元组：(新文件路径, 提取到的番号)。如果没有找到番号，返回 (原路径, None)
 
     Examples:
-        >>> new_path, serial_id = generate_new_filename(Path("video_ABC-001_hd.mp4"))
+        >>> new_path, serial_id = generate_jav_filename(Path("video_ABC-001_hd.mp4"))
         >>> new_path
         Path("ABC-001 video-serialId-hd.mp4")
         >>> serial_id
         SerialId(prefix='ABC', number='001')
 
-        >>> new_path, serial_id = generate_new_filename(Path("ABC-001_video.mp4"))
+        >>> new_path, serial_id = generate_jav_filename(Path("ABC-001_video.mp4"))
         >>> new_path
         Path("ABC-001 video.mp4")
         >>> serial_id
         SerialId(prefix='ABC', number='001')
 
-        >>> new_path, serial_id = generate_new_filename(Path("no_serial.mp4"))
+        >>> new_path, serial_id = generate_jav_filename(Path("no_serial.mp4"))
         >>> new_path
         Path("no_serial.mp4")
         >>> serial_id
@@ -134,7 +134,9 @@ def generate_new_filename(original_path: Path) -> tuple[Path, SerialId | None]:
     # 分解文件名为4部分
     start, end = match.span()
     part1 = filename[:start]  # 番号之前的内容
-    part3 = filename[end:].replace(suffix, "")  # 番号之后的内容（不含扩展名）
+    # 番号之后的内容（不含扩展名）：使用 removesuffix 安全移除扩展名
+    part3_with_suffix = filename[end:]
+    part3 = part3_with_suffix.removesuffix(suffix) if suffix else part3_with_suffix
     part4 = suffix  # 扩展名
 
     # 对第1、3部分执行trim操作
@@ -166,3 +168,34 @@ def generate_new_filename(original_path: Path) -> tuple[Path, SerialId | None]:
         new_filename = f"{serial_id_str} {trimmed_part1}{placeholder}{part4}"
 
     return parent / new_filename, serial_id
+
+
+def generate_sorted_dir(sorted_dir: Path, serial_id: SerialId) -> Path:
+    """生成整理目录路径：A/AB/ABCD/
+
+    根据番号生成整理目录路径，格式为：sorted_dir/首字母/前两字母/完整前缀/
+    SerialId 已验证 prefix 长度在 2-5 之间，因此可以安全访问。
+
+    Args:
+        sorted_dir: 整理目录根路径
+        serial_id: 番号对象
+
+    Returns:
+        目录路径（不含文件名）
+
+    Examples:
+        >>> from j_file_kit.models.value_objects import SerialId
+        >>> generate_sorted_dir(Path("/sorted"), SerialId(prefix="ABCD", number="123"))
+        Path("/sorted/A/AB/ABCD")
+
+        >>> generate_sorted_dir(Path("/sorted"), SerialId(prefix="XYZ", number="456"))
+        Path("/sorted/X/XY/XYZ")
+
+        >>> generate_sorted_dir(Path("/sorted"), SerialId(prefix="AB", number="789"))
+        Path("/sorted/A/AB/AB")
+    """
+    prefix = serial_id.prefix
+    first_letter = prefix[0]
+    first_two = prefix[:2]
+
+    return sorted_dir / first_letter / first_two / prefix

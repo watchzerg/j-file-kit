@@ -189,12 +189,14 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 - 无I/O操作
 
 **主要模块**:
-- `file_utils.py`: 文件工具函数（纯函数，无I/O操作）
-  - `generate_alternative_path()`: 生成候选路径，用于处理路径冲突（使用 `-jfk-xxxx` 后缀格式）
+- `file_utils.py`: 通用文件工具函数（纯函数，无I/O操作，无业务逻辑）
   - `get_file_type()`: 判断文件类型
+  - `generate_alternative_filename()`: 生成候选文件名路径，用于处理路径冲突（使用 `-jfk-xxxx` 后缀格式）
+- `jav_utils.py`: JAV 领域工具函数
+  - `generate_jav_filename()`: 根据番号生成新文件名
   - `generate_sorted_dir()`: 生成整理目录路径
+  - `trim_separators()`: 去除字符串前后的分隔符
 - `regex_patterns.py`: 正则表达式模式
-- `filename_generation.py`: 文件名生成
 
 ## 依赖关系
 
@@ -258,7 +260,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
   - `move_file()`: 基础文件移动（直接移动，不处理冲突）
   - `move_file_with_conflict_resolution()`: 带冲突解决的文件移动
     - 先尝试直接移动，如果目标路径已存在，自动生成唯一路径并重试
-    - 使用 `generate_alternative_path()` 生成候选路径（格式：`{原始stem}-jfk-{4个随机字符}{suffix}`）
+    - 使用 `generate_alternative_filename()` 生成候选文件名（格式：`{原始stem}-jfk-{4个随机字符}{suffix}`）
     - 始终基于原始目标路径生成，避免路径越来越长
     - 最多重试10次
   - `delete_file()`: 删除文件
@@ -272,7 +274,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
   - `scan_directory_files()`: 扫描目录下的所有文件
 
 **路径冲突处理机制**:
-- 纯函数 `utils/file_utils.py::generate_alternative_path()` 负责生成候选路径（无I/O操作）
+- 纯函数 `utils/file_utils.py::generate_alternative_filename()` 负责生成候选文件名（无I/O操作）
 - `infrastructure/filesystem/operations.py::move_file_with_conflict_resolution()` 负责实际移动和重试逻辑
 - 使用 `-jfk-xxxx` 后缀格式，避免与原始文件名冲突
 - 如果输入路径已带后缀，会提取原始路径并基于原始路径生成新候选路径
@@ -432,7 +434,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
 
 - **设计**: "先尝试后生成"模式，减少不必要的 I/O 检查
 - **实现**: 
-  - `generate_alternative_path()`: 纯函数，生成候选路径（无I/O）
+  - `generate_alternative_filename()`: 纯函数，生成候选文件名（无I/O）
   - `move_file_with_conflict_resolution()`: 实际移动和重试逻辑
 - **后缀格式**: `-jfk-xxxx`（4个小写字母或数字），避免与原始文件名冲突
 - **路径提取**: 如果输入路径已带后缀，提取原始路径并基于原始路径生成

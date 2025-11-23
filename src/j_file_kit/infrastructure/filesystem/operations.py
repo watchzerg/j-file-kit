@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from ...utils.file_utils import generate_alternative_path
+from ...utils.file_utils import generate_alternative_filename
 
 
 def move_file(source: Path, target: Path) -> None:
@@ -194,8 +194,8 @@ def move_file_with_conflict_resolution(source: Path, target: Path) -> Path:
                 raise RuntimeError(
                     f"无法为 {original_target} 生成唯一路径，已尝试 {max_attempts} 次"
                 ) from None
-            # 始终基于原始路径生成候选路径
-            current_target = generate_alternative_path(original_target)
+            # 始终基于原始路径生成候选文件名
+            current_target = generate_alternative_filename(original_target)
         except OSError:
             # 其他错误（如源文件不存在）直接抛出
             raise
