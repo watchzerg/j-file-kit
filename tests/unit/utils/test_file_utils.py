@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from j_file_kit.models.enums import FileType
-from j_file_kit.utils.file_utils import (
+from j_file_kit.shared.models.enums import FileType
+from j_file_kit.shared.utils.file_utils import (
     generate_alternative_filename,
     get_file_type,
 )

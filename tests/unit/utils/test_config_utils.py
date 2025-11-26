@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from j_file_kit.models.config import GlobalConfig
-from j_file_kit.utils.config_utils import (
+from j_file_kit.app.app_config.domain import GlobalConfig
+from j_file_kit.shared.utils.config_utils import (
     check_dir_conflicts,
     validate_global_config,
     validate_inbox_dir,

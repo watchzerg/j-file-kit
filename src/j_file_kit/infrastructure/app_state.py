@@ -7,14 +7,14 @@
 import os
 from pathlib import Path
 
-from j_file_kit.models.config import AppConfig
-from j_file_kit.services.task_manager import TaskManager
+from j_file_kit.app.app_config.domain import AppConfig
+from j_file_kit.app.file_task.service.task_manager import TaskManager
 
 from .config.config import load_config_from_db
 from .filesystem.operations import create_directory
-from .persistence.sqlite.config_repository import AppConfigRepository
+from .persistence.sqlite.config.config_repository import AppConfigRepository
 from .persistence.sqlite.connection import SQLiteConnectionManager
-from .persistence.sqlite.task_repository import TaskRepositoryImpl
+from .persistence.sqlite.task.task_repository import TaskRepositoryImpl
 
 
 class AppState:

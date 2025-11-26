@@ -1,0 +1,87 @@
+"""配置仓储接口
+
+定义配置仓储的协议接口，遵循依赖倒置原则。
+"""
+
+from typing import Protocol
+
+from j_file_kit.app.app_config.domain import GlobalConfig, TaskConfig
+
+
+class AppConfigRepository(Protocol):
+    """应用配置仓储协议
+
+    定义配置数据持久化操作的接口。
+    提供全局配置和任务配置的 CRUD 操作。
+    """
+
+    def get_global_config(self) -> GlobalConfig:
+        """获取全局配置
+
+        Returns:
+            全局配置对象
+
+        Raises:
+            ValueError: 如果全局配置不存在
+        """
+        ...
+
+    def update_global_config(self, config: GlobalConfig) -> None:
+        """更新全局配置
+
+        Args:
+            config: 全局配置对象
+        """
+        ...
+
+    def get_all_tasks(self) -> list[TaskConfig]:
+        """获取所有任务配置
+
+        Returns:
+            任务配置列表
+        """
+        ...
+
+    def get_task(self, name: str) -> TaskConfig | None:
+        """获取单个任务配置
+
+        Args:
+            name: 任务名称
+
+        Returns:
+            任务配置对象，如果不存在则返回 None
+        """
+        ...
+
+    def update_task(self, task: TaskConfig) -> None:
+        """更新任务配置
+
+        Args:
+            task: 任务配置对象
+
+        Raises:
+            ValueError: 如果任务不存在
+        """
+        ...
+
+    def create_task(self, task: TaskConfig) -> None:
+        """创建任务配置
+
+        Args:
+            task: 任务配置对象
+
+        Raises:
+            ValueError: 如果任务已存在
+        """
+        ...
+
+    def delete_task(self, name: str) -> None:
+        """删除任务配置
+
+        Args:
+            name: 任务名称
+
+        Raises:
+            ValueError: 如果任务不存在
+        """
+        ...

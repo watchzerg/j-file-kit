@@ -4,13 +4,13 @@
 配置模型定义在 models/config.py 中。
 """
 
-from j_file_kit.infrastructure.persistence.sqlite.config_repository import (
+from j_file_kit.app.app_config.domain import AppConfig
+from j_file_kit.infrastructure.persistence.sqlite.config.config_repository import (
     AppConfigRepository,
 )
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
-from j_file_kit.models.config import AppConfig
 
 
 def load_config_from_db(conn_manager: SQLiteConnectionManager) -> AppConfig:
