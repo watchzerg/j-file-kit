@@ -1,6 +1,6 @@
 """文件工具函数
 
-提供文件操作相关的纯函数工具，如路径冲突处理、文件类型判断等。
+提供文件操作相关的纯函数工具，如路径冲突处理等。
 不包含I/O操作，所有文件系统操作应使用infrastructure/filesystem/operations。
 不包含业务逻辑，所有函数都是通用的文件工具函数。
 """
@@ -9,36 +9,6 @@ import random
 import re
 import string
 from pathlib import Path
-
-from j_file_kit.shared.models.enums import FileType
-
-
-def get_file_type(
-    path: Path,
-    video_exts: set[str],
-    image_exts: set[str],
-    archive_exts: set[str],
-) -> FileType:
-    """根据文件扩展名判断文件类型
-
-    Args:
-        path: 文件路径
-        video_exts: 视频文件扩展名集合
-        image_exts: 图片文件扩展名集合
-        archive_exts: 压缩文件扩展名集合
-
-    Returns:
-        文件类型枚举，无匹配时返回 MISC
-    """
-    suffix = path.suffix.lower()
-
-    if suffix in video_exts:
-        return FileType.VIDEO
-    if suffix in image_exts:
-        return FileType.IMAGE
-    if suffix in archive_exts:
-        return FileType.ARCHIVE
-    return FileType.MISC
 
 
 def generate_alternative_filename(target_path: Path) -> Path:

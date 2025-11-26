@@ -8,8 +8,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from .contexts import ItemContext, PathEntryContext
-from .path_entry import PathEntryInfo
+from .contexts import ItemContext
 
 
 class ProcessorStatus(str, Enum):
@@ -114,14 +113,3 @@ class ItemResult(BaseModel):
         return any(
             result.status == ProcessorStatus.SKIP for result in self.processor_results
         )
-
-
-class FileItemResult(ItemResult):
-    """文件处理结果
-
-    文件类型的 item 处理结果，继承 ItemResult 并添加文件特定的字段。
-    现在统一处理文件和文件夹，但主要用于文件处理结果。
-    """
-
-    item_info: PathEntryInfo = Field(..., description="路径项信息")
-    context: PathEntryContext = Field(..., description="处理上下文")

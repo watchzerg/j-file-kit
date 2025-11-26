@@ -4,13 +4,13 @@
 这些函数是 pipeline 模块内部实现细节，专门用于路径项处理流程。
 """
 
-from j_file_kit.shared.models.contexts import PathEntryContext
-from j_file_kit.shared.models.path_entry import PathEntryInfo, PathEntryType
-from j_file_kit.shared.models.results import (
+from j_file_kit.app.file_task.domain import (
     FileItemResult,
-    ProcessorResult,
-    ProcessorStatus,
+    PathEntryContext,
+    PathEntryInfo,
+    PathEntryType,
 )
+from j_file_kit.shared.models.results import ProcessorResult, ProcessorStatus
 
 
 def create_initial_context(item_info: PathEntryInfo) -> PathEntryContext:

@@ -3,11 +3,10 @@
 根据文件扩展名判断文件类型（视频/图片/压缩/Misc）。
 """
 
+from j_file_kit.app.file_task.domain import PathEntryContext, PathEntryType
+from j_file_kit.app.file_task.utils import get_file_type
 from j_file_kit.shared.interfaces.processors.item import Analyzer
-from j_file_kit.shared.models.contexts import PathEntryContext
-from j_file_kit.shared.models.path_entry import PathEntryType
 from j_file_kit.shared.models.results import ProcessorResult
-from j_file_kit.shared.utils.file_utils import get_file_type
 
 
 class FileClassifier(Analyzer):

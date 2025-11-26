@@ -8,13 +8,13 @@ from pathlib import Path
 
 import pytest
 
+from j_file_kit.app.file_task.domain import SerialId
 from j_file_kit.app.file_task.file_util import (
     _match_serial_id,
     generate_jav_filename,
     generate_sorted_dir,
     trim_separators,
 )
-from j_file_kit.shared.models.value_objects import SerialId
 
 
 @pytest.mark.unit

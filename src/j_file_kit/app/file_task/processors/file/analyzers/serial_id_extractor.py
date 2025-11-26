@@ -4,11 +4,9 @@
 只负责提取番号和生成文件名，不设置完整路径。
 """
 
+from j_file_kit.app.file_task.domain import FileType, PathEntryContext, PathEntryType
 from j_file_kit.app.file_task.file_util import generate_jav_filename
 from j_file_kit.shared.interfaces.processors.item import Analyzer
-from j_file_kit.shared.models.contexts import PathEntryContext
-from j_file_kit.shared.models.enums import FileType
-from j_file_kit.shared.models.path_entry import PathEntryType
 from j_file_kit.shared.models.results import ProcessorResult
 
 

@@ -8,11 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from j_file_kit.shared.models.enums import FileType
-from j_file_kit.shared.utils.file_utils import (
-    generate_alternative_filename,
-    get_file_type,
-)
+from j_file_kit.app.file_task.domain import FileType
+from j_file_kit.app.file_task.utils import get_file_type
+from j_file_kit.shared.utils.file_utils import generate_alternative_filename
 
 
 @pytest.mark.unit

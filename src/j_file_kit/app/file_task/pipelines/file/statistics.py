@@ -4,8 +4,8 @@
 使 FilePipeline 主类更简洁，职责更清晰。
 """
 
+from j_file_kit.app.file_task.domain import FileItemResult
 from j_file_kit.app.file_task.ports import FileItemRepository
-from j_file_kit.shared.models.results import FileItemResult
 from j_file_kit.shared.models.task import TaskReport
 
 

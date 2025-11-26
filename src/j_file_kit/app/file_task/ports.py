@@ -7,9 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Protocol
 
+from j_file_kit.app.file_task.domain import FileItemResult, Operation, OperationType
 from j_file_kit.shared.models.enums import TaskStatus, TaskType, TriggerType
-from j_file_kit.shared.models.operations import Operation, OperationType
-from j_file_kit.shared.models.results import FileItemResult
 from j_file_kit.shared.models.task import Task
 
 

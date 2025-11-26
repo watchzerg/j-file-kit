@@ -8,6 +8,13 @@
 
 from pathlib import Path
 
+from j_file_kit.app.file_task.domain import (
+    OperationType,
+    PathEntryAction,
+    PathEntryContext,
+    PathEntryInfo,
+    PathEntryType,
+)
 from j_file_kit.app.file_task.ports import FileProcessorRepository
 from j_file_kit.infrastructure.filesystem.operations import (
     create_directory,
@@ -17,13 +24,6 @@ from j_file_kit.infrastructure.filesystem.operations import (
     move_file_with_conflict_resolution,
 )
 from j_file_kit.shared.interfaces.processors.item import Executor
-from j_file_kit.shared.models.contexts import PathEntryContext
-from j_file_kit.shared.models.operations import OperationType
-from j_file_kit.shared.models.path_entry import (
-    PathEntryAction,
-    PathEntryInfo,
-    PathEntryType,
-)
 from j_file_kit.shared.models.results import ProcessorResult
 
 

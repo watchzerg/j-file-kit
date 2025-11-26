@@ -5,10 +5,13 @@
 
 from typing import Any
 
+from j_file_kit.app.file_task.domain import (
+    FileType,
+    PathEntryAction,
+    PathEntryContext,
+    PathEntryType,
+)
 from j_file_kit.shared.interfaces.processors.item import Analyzer
-from j_file_kit.shared.models.contexts import PathEntryContext
-from j_file_kit.shared.models.enums import FileType
-from j_file_kit.shared.models.path_entry import PathEntryAction, PathEntryType
 from j_file_kit.shared.models.results import ProcessorResult
 
 

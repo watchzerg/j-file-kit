@@ -12,6 +12,12 @@ from pathlib import Path
 from loguru import logger
 
 from j_file_kit.app.app_config.domain import AppConfig
+from j_file_kit.app.file_task.domain import (
+    FileItemResult,
+    PathEntryContext,
+    PathEntryInfo,
+    PathEntryType,
+)
 from j_file_kit.app.file_task.ports import (
     FileItemRepository,
     FileProcessorRepository,
@@ -26,13 +32,7 @@ from j_file_kit.infrastructure.logging.logging_setup import (
 from j_file_kit.shared.interfaces.processors.chain import ProcessorChain
 from j_file_kit.shared.interfaces.processors.item import Analyzer, Executor
 from j_file_kit.shared.interfaces.processors.task import Finalizer, Initializer
-from j_file_kit.shared.models.contexts import PathEntryContext
-from j_file_kit.shared.models.path_entry import PathEntryInfo, PathEntryType
-from j_file_kit.shared.models.results import (
-    FileItemResult,
-    ProcessorResult,
-    ProcessorStatus,
-)
+from j_file_kit.shared.models.results import ProcessorResult, ProcessorStatus
 from j_file_kit.shared.models.task import TaskReport
 
 from .statistics import StatisticsTracker

@@ -11,10 +11,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from j_file_kit.app.file_task.domain import Operation, OperationType
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
-from j_file_kit.shared.models.operations import Operation, OperationType
 
 
 class FileProcessorRepositoryImpl:

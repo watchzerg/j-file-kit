@@ -12,14 +12,18 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from j_file_kit.app.file_task.domain import (
+    FileItemResult,
+    FileType,
+    PathEntryContext,
+    PathEntryInfo,
+    PathEntryType,
+    SerialId,
+)
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
-from j_file_kit.shared.models.contexts import PathEntryContext
-from j_file_kit.shared.models.enums import FileType
-from j_file_kit.shared.models.path_entry import PathEntryInfo, PathEntryType
-from j_file_kit.shared.models.results import FileItemResult, ProcessorResult
-from j_file_kit.shared.models.value_objects import SerialId
+from j_file_kit.shared.models.results import ProcessorResult
 
 
 class FileItemRepositoryImpl:
