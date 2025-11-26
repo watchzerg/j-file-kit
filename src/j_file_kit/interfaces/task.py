@@ -4,18 +4,18 @@ Task 是业务用例层，定义"做什么"。
 
 这是抽象的任务协议，不依赖特定领域。
 使用通用的任务概念，支持不同类型的任务实现。
-所有具体任务实现必须继承此类并实现run方法。
+所有具体任务实现必须符合此协议。
 """
 
 import threading
-from abc import ABC, abstractmethod
+from typing import Protocol
 
 from j_file_kit.models.task import TaskType
 
 from .repositories import TaskRepositoryRegistry
 
 
-class BaseTask(ABC):
+class BaseTask(Protocol):
     """任务基类协议
 
     Task 是业务用例层，定义"做什么"。
@@ -29,16 +29,14 @@ class BaseTask(ABC):
     - Task 通过 `create_pipeline()` 创建 Pipeline
     - Task 通过 `run()` 方法执行任务，内部调用 Pipeline
 
-    所有任务实现必须继承此类并实现run方法。
+    所有具体任务实现必须符合此协议（通过继承或实现相同接口）。
     """
 
     @property
-    @abstractmethod
     def task_type(self) -> TaskType:
         """任务类型"""
-        pass
+        ...
 
-    @abstractmethod
     def run(
         self,
         task_id: int,
@@ -59,4 +57,4 @@ class BaseTask(ABC):
         Raises:
             Exception: 任务执行过程中的任何异常
         """
-        pass
+        ...

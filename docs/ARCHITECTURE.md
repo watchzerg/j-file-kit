@@ -59,7 +59,7 @@ j-file-kit 采用分层架构设计，遵循领域驱动设计（DDD）原则，
   - `item.py`: Item级别处理器协议（Analyzer、Executor）
   - `task.py`: 任务级别处理器协议（Initializer、Finalizer）
   - `chain.py`: ProcessorChain处理器链（处理器执行层）
-- `task.py`: BaseTask抽象基类协议（业务用例层）
+- `task.py`: BaseTask协议（业务用例层）
 
 ### 3. Services Layer (服务层)
 
