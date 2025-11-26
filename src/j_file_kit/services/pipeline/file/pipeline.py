@@ -9,8 +9,13 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+from loguru import logger
+
 from j_file_kit.infrastructure.filesystem.scanner import scan_directory_items
-from j_file_kit.infrastructure.logging.logger import StructuredLogger
+from j_file_kit.infrastructure.logging.logging_setup import (
+    configure_task_logger,
+    remove_task_logger,
+)
 from j_file_kit.interfaces.file.repositories import (
     FileItemRepository,
     FileProcessorRepository,
@@ -74,14 +79,18 @@ class FilePipeline:
         """
         self.config = config
         self.task_name = task_name
+        self.task_id = task_id
 
         # 初始化组件
         self.scan_root = config.global_.inbox_dir
         self.processor_chain = ProcessorChain()
-        self.logger = StructuredLogger(log_dir, self.task_name)
+        self._log_handler_id = configure_task_logger(
+            log_dir,
+            self.task_name,
+            self.task_id,
+        )
         self.file_processor_repository = file_processor_repository
         self.file_item_repository = file_item_repository
-        self.task_id = task_id
         self.task_repository = task_repository
 
         # 保存EmptyDirectoryExecutor引用（如果存在），用于目录处理
@@ -192,15 +201,19 @@ class FilePipeline:
             result = self.empty_directory_executor.process(ctx)
             # 记录日志
             if result.status == ProcessorStatus.SUCCESS:
-                self.logger.info(f"目录清理成功: {item_info.path}")
+                logger.bind(
+                    task_id=str(self.task_id),
+                    task_name=self.task_name,
+                ).info(f"目录清理成功: {item_info.path}")
             elif result.status == ProcessorStatus.SKIP:
                 # 跳过的情况不需要记录日志
                 pass
             elif result.status == ProcessorStatus.ERROR:
-                self.logger.error(
-                    f"目录清理失败: {item_info.path}",
-                    {"error": result.message},
-                )
+                logger.bind(
+                    task_id=str(self.task_id),
+                    task_name=self.task_name,
+                    error=result.message,
+                ).error(f"目录清理失败: {item_info.path}")
 
     def _process_single_file(
         self,
@@ -273,14 +286,25 @@ class FilePipeline:
             if self.config.global_.inbox_dir
             else "未设置"
         )
-        self.logger.log_task_start(scan_root_str)
+        logger.bind(
+            task_id=str(self.task_id),
+            task_name=self.task_name,
+            scan_root=scan_root_str,
+            level="TASK_START",
+        ).info(f"开始任务: {self.task_name}")
         if dry_run:
-            self.logger.info("运行在干模式（预览模式）")
+            logger.bind(
+                task_id=str(self.task_id),
+                task_name=self.task_name,
+            ).info("运行在干模式（预览模式）")
 
         # 执行初始化器（仅在非预览模式）
         if not dry_run:
             initializer_results = self.processor_chain.process_initializers()
-            self.logger.info(f"执行了 {len(initializer_results)} 个初始化器")
+            logger.bind(
+                task_id=str(self.task_id),
+                task_name=self.task_name,
+            ).info(f"执行了 {len(initializer_results)} 个初始化器")
 
             # 检查是否有初始化器失败
             failed_initializers = [
@@ -291,7 +315,10 @@ class FilePipeline:
                 error_msg = "初始化失败:\n" + "\n".join(
                     f"  - {msg}" for msg in error_messages
                 )
-                self.logger.error(error_msg)
+                logger.bind(
+                    task_id=str(self.task_id),
+                    task_name=self.task_name,
+                ).error(error_msg)
                 raise RuntimeError(error_msg)
 
     def _finish_task(self, dry_run: bool) -> None:
@@ -309,7 +336,10 @@ class FilePipeline:
         # 执行终结器（仅在非预览模式）
         if not dry_run:
             finalizer_results = self.processor_chain.process_finalizers()
-            self.logger.info(f"执行了 {len(finalizer_results)} 个终结器")
+            logger.bind(
+                task_id=str(self.task_id),
+                task_name=self.task_name,
+            ).info(f"执行了 {len(finalizer_results)} 个终结器")
 
         # 完成报告
         self.report.end_time = datetime.now()
@@ -318,9 +348,18 @@ class FilePipeline:
         self.statistics_tracker.finalize(self.file_item_repository)
 
         # 记录任务结束
-        self.logger.log_task_end(self.report)
+        report_data = self.report.model_dump(exclude_none=True)
+        logger.bind(
+            task_id=str(self.task_id),
+            task_name=self.task_name,
+            level="TASK_END",
+            **report_data,
+        ).info(f"任务完成: {self.task_name}")
         if dry_run:
-            self.logger.info("干模式执行完成")
+            logger.bind(
+                task_id=str(self.task_id),
+                task_name=self.task_name,
+            ).info("干模式执行完成")
 
     def run(
         self,
@@ -351,7 +390,10 @@ class FilePipeline:
             for path, item_type in scan_directory_items(self.scan_root):
                 # 检查是否被取消
                 if cancelled_event and cancelled_event.is_set():
-                    self.logger.info("任务已被取消")
+                    logger.bind(
+                        task_id=str(self.task_id),
+                        task_name=self.task_name,
+                    ).info("任务已被取消")
                     break
 
                 try:
@@ -369,7 +411,30 @@ class FilePipeline:
                         file_result.context.item_result_id = item_result_id
                         # 更新内存中的统计信息
                         self.statistics_tracker.update(file_result)
-                        self.logger.log_item_result(file_result)
+                        # 记录文件处理结果
+                        item_data = {
+                            "file_path": str(file_result.item_info.path),
+                            "file_type": file_result.context.file_type,
+                            "serial_id": (
+                                str(file_result.context.serial_id)
+                                if file_result.context.serial_id
+                                else None
+                            ),
+                            "success": file_result.success,
+                            "has_errors": file_result.has_errors,
+                            "has_warnings": file_result.has_warnings,
+                            "was_skipped": file_result.was_skipped,
+                            "duration_ms": file_result.total_duration_ms,
+                            "processor_count": len(file_result.processor_results),
+                        }
+                        if file_result.error_message:
+                            item_data["error_message"] = file_result.error_message
+                        logger.bind(
+                            task_id=str(self.task_id),
+                            task_name=self.task_name,
+                            level="ITEM_RESULT",
+                            **item_data,
+                        ).info(f"处理文件: {file_result.item_info.path.name}")
                     else:
                         # 处理目录（清理空文件夹）
                         self._process_single_directory(item_info, dry_run)
@@ -377,7 +442,11 @@ class FilePipeline:
                     # 处理单个文件或目录时的异常
                     error_msg = "分析失败" if dry_run else "处理失败"
                     item_path = path
-                    self.logger.error(f"{error_msg}: {item_path}", {"error": str(e)})
+                    logger.bind(
+                        task_id=str(self.task_id),
+                        task_name=self.task_name,
+                        error=str(e),
+                    ).error(f"{error_msg}: {item_path}")
                     # 如果是文件，创建错误结果并保存
                     if item_type == PathEntryType.FILE:
                         item_info = PathEntryInfo.from_path(path, item_type)
@@ -393,15 +462,24 @@ class FilePipeline:
 
                 # 检查是否被取消
                 if cancelled_event and cancelled_event.is_set():
-                    self.logger.info("任务已被取消")
+                    logger.bind(
+                        task_id=str(self.task_id),
+                        task_name=self.task_name,
+                    ).info("任务已被取消")
                     break
 
             self._finish_task(dry_run)
 
         except Exception as e:
             # 管道级别的异常
-            self.logger.error(f"管道执行失败: {str(e)}")
+            logger.bind(
+                task_id=str(self.task_id),
+                task_name=self.task_name,
+            ).error(f"管道执行失败: {str(e)}")
             raise
+        finally:
+            # 清理任务级别的日志 handler
+            remove_task_logger(self._log_handler_id)
 
     def _run_analyzers_only(self, ctx: PathEntryContext) -> list[ProcessorResult]:
         """仅执行分析器（用于预览模式）

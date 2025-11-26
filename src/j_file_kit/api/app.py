@@ -11,6 +11,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from j_file_kit.infrastructure.app_state import AppState
+from j_file_kit.infrastructure.logging.logging_setup import setup_logging
 from j_file_kit.models.exceptions import (
     TaskAlreadyRunningError,
     TaskCancelledError,
@@ -29,6 +30,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     Args:
         app: FastAPI应用实例
     """
+    # 启动时初始化日志系统
+    setup_logging()
+
     # 启动时初始化应用状态
     app.state.app_state = AppState()
 
