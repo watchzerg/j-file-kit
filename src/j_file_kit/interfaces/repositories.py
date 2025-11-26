@@ -13,12 +13,8 @@
 from datetime import datetime
 from typing import Any, Protocol
 
-from ..models.task import (
-    Task,
-    TaskStatus,
-    TaskType,
-    TriggerType,
-)
+from j_file_kit.models.task import Task, TaskStatus, TaskType, TriggerType
+
 from .file.repositories import FileItemRepository, FileProcessorRepository
 
 

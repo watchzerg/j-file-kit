@@ -4,12 +4,12 @@
 只负责提取番号和生成文件名，不设置完整路径。
 """
 
-from .....interfaces.processors.item import Analyzer
-from .....models.contexts import PathEntryContext
-from .....models.enums import FileType
-from .....models.path_entry import PathEntryType
-from .....models.results import ProcessorResult
-from .....utils.jav_utils import generate_jav_filename
+from j_file_kit.interfaces.processors.item import Analyzer
+from j_file_kit.models.contexts import PathEntryContext
+from j_file_kit.models.enums import FileType
+from j_file_kit.models.path_entry import PathEntryType
+from j_file_kit.models.results import ProcessorResult
+from j_file_kit.utils.jav_utils import generate_jav_filename
 
 
 class FileSerialIdExtractor(Analyzer):

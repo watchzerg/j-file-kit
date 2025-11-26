@@ -5,11 +5,11 @@
 
 from typing import Any
 
-from .....interfaces.processors.item import Analyzer
-from .....models.contexts import PathEntryContext
-from .....models.enums import FileType
-from .....models.path_entry import PathEntryAction, PathEntryType
-from .....models.results import ProcessorResult
+from j_file_kit.interfaces.processors.item import Analyzer
+from j_file_kit.models.contexts import PathEntryContext
+from j_file_kit.models.enums import FileType
+from j_file_kit.models.path_entry import PathEntryAction, PathEntryType
+from j_file_kit.models.results import ProcessorResult
 
 
 class MiscFileSizeAnalyzer(Analyzer):
@@ -44,7 +44,8 @@ class MiscFileSizeAnalyzer(Analyzer):
             ctx.file_size = file_size
 
             return ProcessorResult.success(
-                f"文件大小: {file_size} 字节", {"file_size": file_size}
+                f"文件大小: {file_size} 字节",
+                {"file_size": file_size},
             )
 
         except Exception as e:
@@ -61,7 +62,7 @@ class MiscFileDeleteAnalyzer(Analyzer):
     def __init__(
         self,
         misc_file_delete_rules: dict[str, Any],
-    ):
+    ) -> None:
         """初始化Misc文件删除判断器
 
         Args:
@@ -93,7 +94,7 @@ class MiscFileDeleteAnalyzer(Analyzer):
                 return ProcessorResult.success("Misc文件符合删除条件")
             else:
                 return ProcessorResult.success(
-                    "Misc文件不符合删除条件，将移动到misc目录"
+                    "Misc文件不符合删除条件，将移动到misc目录",
                 )
 
         except Exception as e:

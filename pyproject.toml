@@ -33,29 +33,50 @@ build-backend = "uv_build"
 force-exclude = true
 
 [tool.ruff.lint]
-select = ["E", "F", "I", "N", "W", "UP", "B", "C90","S"]
-ignore = ["E501"]  # 不按79检查行长，而是让formatter按照88检查
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort-style import rules
+    "N",   # pep8-naming
+    "W",   # pycodestyle warnings
+    "UP",  # pyupgrade
+    "B",   # bugbear
+    "C90", # mccabe complexity
+    "S",   # bandit (security)
+    "ANN", # annotations (类型注解)
+    "COM", # comma style
+    "ERA", # commented-out code
+    "TID", # tidy imports/names
+]
+ignore = [
+    "E501", # 行宽交给 formatter (ruff format) 控制
+]
 
 [tool.ruff.lint.per-file-ignores]
-"__init__.py" = ["F401"] # init里允许“import但不使用”
-"tests/*" = ["S101"] # test里允许“assert”
+"__init__.py" = ["F401"]          # 允许 __init__ 里存在“导出用”的 unused import
+"tests/*" = ["S101", "ANN"]       # 测试里允许 assert 和不写函数注解
 
 [tool.mypy]
 strict = true
-implicit_reexport = true
-warn_unused_configs = true
-disallow_untyped_decorators = true
+warn_unreachable = true
+show_error_codes = true
+show_error_context = true
+show_column_numbers = true
+show_error_code_links = true
+enable_error_code = ["ignore-without-code"]
 
 [[tool.mypy.overrides]]
 module = ["tests", "tests.*"]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
+disallow_untyped_calls = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# strict = true # 得等pytest-testmon支持pytest9之后才能开启
 addopts = [
-    "--strict-markers",
-    "--strict-config",
+    "--strict-markers", # 开启 strict = true 之后可以移除
+    "--strict-config", # 开启 strict = true 之后可以移除
     "--verbose",
 ]
 markers = [

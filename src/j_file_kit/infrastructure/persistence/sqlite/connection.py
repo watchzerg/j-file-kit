@@ -51,7 +51,7 @@ class SQLiteConnectionManager:
                     error_message TEXT,
                     statistics TEXT
                 )
-                """
+                """,
             )
 
             # 删除旧的 item_results 表（如果存在）
@@ -85,7 +85,7 @@ class SQLiteConnectionManager:
                     created_at TEXT NOT NULL,
                     FOREIGN KEY (task_id) REFERENCES tasks(task_id)
                 )
-                """
+                """,
             )
 
             # 删除旧的 operations 表（如果存在）
@@ -113,33 +113,33 @@ class SQLiteConnectionManager:
                     FOREIGN KEY (task_id) REFERENCES tasks(task_id),
                     FOREIGN KEY (file_item_id) REFERENCES file_items(id)
                 )
-                """
+                """,
             )
 
             # 创建索引
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_file_items_task_id ON file_items(task_id)"
+                "CREATE INDEX IF NOT EXISTS idx_file_items_task_id ON file_items(task_id)",
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_file_items_success ON file_items(task_id, success)"
+                "CREATE INDEX IF NOT EXISTS idx_file_items_success ON file_items(task_id, success)",
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_file_items_file_type ON file_items(file_type)"
+                "CREATE INDEX IF NOT EXISTS idx_file_items_file_type ON file_items(file_type)",
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_file_items_serial_id ON file_items(serial_id)"
+                "CREATE INDEX IF NOT EXISTS idx_file_items_serial_id ON file_items(serial_id)",
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_file_operations_task_id ON file_operations(task_id)"
+                "CREATE INDEX IF NOT EXISTS idx_file_operations_task_id ON file_operations(task_id)",
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_file_operations_file_item_id ON file_operations(file_item_id)"
+                "CREATE INDEX IF NOT EXISTS idx_file_operations_file_item_id ON file_operations(file_item_id)",
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_file_operations_file_type ON file_operations(file_type)"
+                "CREATE INDEX IF NOT EXISTS idx_file_operations_file_type ON file_operations(file_type)",
             )
             cursor.execute(
-                "CREATE INDEX IF NOT EXISTS idx_file_operations_timestamp ON file_operations(timestamp)"
+                "CREATE INDEX IF NOT EXISTS idx_file_operations_timestamp ON file_operations(timestamp)",
             )
 
             # 创建 global_config 表（单行表，存储全局配置）
@@ -155,7 +155,7 @@ class SQLiteConnectionManager:
                     starred_dir TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
-                """
+                """,
             )
 
             # 创建 task_configs 表（存储任务配置）
@@ -168,7 +168,7 @@ class SQLiteConnectionManager:
                     config TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
-                """
+                """,
             )
 
             self._conn.commit()

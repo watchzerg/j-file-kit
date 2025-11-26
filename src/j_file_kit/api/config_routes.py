@@ -6,9 +6,10 @@
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from ..infrastructure.app_state import AppState
-from ..models.config import AppConfig
-from ..services.config_service import ConfigService
+from j_file_kit.infrastructure.app_state import AppState
+from j_file_kit.models.config import AppConfig
+from j_file_kit.services.config_service import ConfigService
+
 from .models import (
     UpdateConfigRequest,
     UpdateConfigResponse,
@@ -56,7 +57,8 @@ async def update_config(
     if body.global_ is not None:
         try:
             merged_global = ConfigService.merge_global_config(
-                current_config.global_, body.global_
+                current_config.global_,
+                body.global_,
             )
         except Exception as e:
             raise HTTPException(

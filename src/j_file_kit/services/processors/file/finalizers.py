@@ -9,13 +9,13 @@
 import logging
 from typing import Any
 
-from ....interfaces.file.repositories import (
+from j_file_kit.interfaces.file.repositories import (
     FileItemRepository,
     FileProcessorRepository,
 )
-from ....interfaces.processors.task import Finalizer
-from ....interfaces.repositories import TaskRepository
-from ....models.results import ProcessorResult
+from j_file_kit.interfaces.processors.task import Finalizer
+from j_file_kit.interfaces.repositories import TaskRepository
+from j_file_kit.models.results import ProcessorResult
 
 
 class TaskStatisticsFinalizer(Finalizer):
@@ -103,7 +103,7 @@ class TaskStatisticsFinalizer(Finalizer):
 
             return ProcessorResult.success(
                 f"任务统计信息已更新：操作数={sum(operation_stats.get('by_operation_type', {}).values())}, "
-                f"item数={sum(f.get('total', 0) for f in detailed_stats.get('by_item_type', {}).values())}"
+                f"item数={sum(f.get('total', 0) for f in detailed_stats.get('by_item_type', {}).values())}",
             )
 
         except Exception as e:

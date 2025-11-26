@@ -26,7 +26,9 @@ class FileProcessorRepositoryImpl:
     """
 
     def __init__(
-        self, connection_manager: SQLiteConnectionManager, task_id: int
+        self,
+        connection_manager: SQLiteConnectionManager,
+        task_id: int,
     ) -> None:
         """初始化文件处理操作仓储
 

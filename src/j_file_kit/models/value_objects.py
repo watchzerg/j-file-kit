@@ -8,6 +8,9 @@ from typing import Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+# Pydantic model_validator 需要接受 Any 类型
+# ruff: noqa: ANN401
+
 
 class SerialId(BaseModel):
     """番号模型
@@ -77,7 +80,7 @@ class SerialId(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
-    def parse_string_input(cls, data: Any) -> Any:
+    def parse_string_input(cls, data: Any) -> Any:  # noqa: ANN401
         """支持从字符串自动解析（向后兼容）"""
         if isinstance(data, str):
             return cls.from_string(data).model_dump()

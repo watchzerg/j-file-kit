@@ -58,7 +58,8 @@ class PathEntryInfo(BaseModel):
     path: Path = Field(..., description="路径")
     stem: str = Field(..., description="名称（不含扩展名）")
     suffix: str | None = Field(
-        None, description="文件扩展名（含点号，仅文件有，文件夹为 None）"
+        None,
+        description="文件扩展名（含点号，仅文件有，文件夹为 None）",
     )
     item_type: str = Field(..., description="路径项类型（文件或文件夹）")
 

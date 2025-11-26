@@ -4,13 +4,9 @@
 这些函数是 pipeline 模块内部实现细节，专门用于路径项处理流程。
 """
 
-from ....models.contexts import PathEntryContext
-from ....models.path_entry import PathEntryInfo, PathEntryType
-from ....models.results import (
-    FileItemResult,
-    ProcessorResult,
-    ProcessorStatus,
-)
+from j_file_kit.models.contexts import PathEntryContext
+from j_file_kit.models.path_entry import PathEntryInfo, PathEntryType
+from j_file_kit.models.results import FileItemResult, ProcessorResult, ProcessorStatus
 
 
 def create_initial_context(item_info: PathEntryInfo) -> PathEntryContext:
@@ -32,7 +28,8 @@ def create_initial_context(item_info: PathEntryInfo) -> PathEntryContext:
     # 将字符串类型的 item_type 转换为枚举类型
     item_type_enum = PathEntryType(item_info.item_type)
     return PathEntryContext.model_construct(
-        item_info=item_info, item_type=item_type_enum
+        item_info=item_info,
+        item_type=item_type_enum,
     )
 
 

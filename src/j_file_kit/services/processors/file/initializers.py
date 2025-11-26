@@ -9,13 +9,13 @@
 import logging
 import os
 
-from ....infrastructure.filesystem.operations import create_directory
-from ....interfaces.processors.task import Initializer
-from ....interfaces.repositories import TaskRepository
-from ....models.config import AppConfig
-from ....models.results import ProcessorResult
-from ....models.task import TaskStatus
-from ....utils.config_utils import validate_global_config
+from j_file_kit.infrastructure.filesystem.operations import create_directory
+from j_file_kit.interfaces.processors.task import Initializer
+from j_file_kit.interfaces.repositories import TaskRepository
+from j_file_kit.models.config import AppConfig
+from j_file_kit.models.results import ProcessorResult
+from j_file_kit.models.task import TaskStatus
+from j_file_kit.utils.config_utils import validate_global_config
 
 
 class TaskStatusInitializer(Initializer):

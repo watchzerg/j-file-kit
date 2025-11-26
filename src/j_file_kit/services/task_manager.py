@@ -8,23 +8,20 @@ import logging
 import threading
 from datetime import datetime
 
-from ..infrastructure.persistence.sqlite.connection import SQLiteConnectionManager
-from ..infrastructure.persistence.sqlite.task_repository_registry import (
+from j_file_kit.infrastructure.persistence.sqlite.connection import (
+    SQLiteConnectionManager,
+)
+from j_file_kit.infrastructure.persistence.sqlite.task_repository_registry import (
     TaskRepositoryRegistryImpl,
 )
-from ..interfaces.repositories import TaskRepository
-from ..interfaces.task import BaseTask
-from ..models.exceptions import (
+from j_file_kit.interfaces.repositories import TaskRepository
+from j_file_kit.interfaces.task import BaseTask
+from j_file_kit.models.exceptions import (
     TaskAlreadyRunningError,
     TaskCancelledError,
     TaskNotFoundError,
 )
-from ..models.task import (
-    Task,
-    TaskStatus,
-    TaskType,
-    TriggerType,
-)
+from j_file_kit.models.task import Task, TaskStatus, TaskType, TriggerType
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +153,9 @@ class TaskManager:
         try:
             # 创建任务仓储注册表
             repository_registry = TaskRepositoryRegistryImpl(
-                self._sqlite_conn, task_id, self.task_repository
+                self._sqlite_conn,
+                task_id,
+                self.task_repository,
             )
 
             # 执行任务
@@ -295,6 +294,6 @@ class TaskManager:
                 "Recovered %d incomplete task(s) from previous session",
                 len(incomplete_tasks),
                 extra={
-                    "recovered_task_ids": [task.task_id for task in incomplete_tasks]
+                    "recovered_task_ids": [task.task_id for task in incomplete_tasks],
                 },
             )

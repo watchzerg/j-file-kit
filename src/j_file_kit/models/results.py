@@ -65,7 +65,9 @@ class ProcessorResult(BaseModel):
 
     @classmethod
     def warning(
-        cls, message: str, data: dict[str, Any] | None = None
+        cls,
+        message: str,
+        data: dict[str, Any] | None = None,
     ) -> ProcessorResult:
         """创建警告结果"""
         return cls(
@@ -84,7 +86,8 @@ class ItemResult(BaseModel):
 
     context: ItemContext = Field(..., description="处理上下文")
     processor_results: list[ProcessorResult] = Field(
-        default_factory=list, description="各处理器结果"
+        default_factory=list,
+        description="各处理器结果",
     )
     total_duration_ms: float = Field(0.0, description="总处理耗时（毫秒）")
     success: bool = Field(True, description="是否成功")

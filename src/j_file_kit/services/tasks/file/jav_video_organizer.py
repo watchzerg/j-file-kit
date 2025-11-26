@@ -10,28 +10,29 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from ....interfaces.file.repositories import (
+from j_file_kit.interfaces.file.repositories import (
     FileItemRepository,
     FileProcessorRepository,
 )
-from ....interfaces.repositories import (
-    TaskRepository,
-    TaskRepositoryRegistry,
+from j_file_kit.interfaces.repositories import TaskRepository, TaskRepositoryRegistry
+from j_file_kit.interfaces.task import BaseTask
+from j_file_kit.models.config import AppConfig, JavVideoOrganizeConfig
+from j_file_kit.models.task import TaskType
+from j_file_kit.services.pipeline.file.pipeline import FilePipeline
+from j_file_kit.services.processors.file.analyzers.action_decider import (
+    FileActionDecider,
 )
-from ....interfaces.task import BaseTask
-from ....models.config import AppConfig, JavVideoOrganizeConfig
-from ....models.task import TaskType
-from ...pipeline.file.pipeline import FilePipeline
-from ...processors.file.analyzers.action_decider import FileActionDecider
-from ...processors.file.analyzers.file_classifier import FileClassifier
-from ...processors.file.analyzers.misc_analyzer import (
+from j_file_kit.services.processors.file.analyzers.file_classifier import FileClassifier
+from j_file_kit.services.processors.file.analyzers.misc_analyzer import (
     MiscFileDeleteAnalyzer,
     MiscFileSizeAnalyzer,
 )
-from ...processors.file.analyzers.serial_id_extractor import FileSerialIdExtractor
-from ...processors.file.executors import EmptyDirectoryExecutor
-from ...processors.file.finalizers import TaskStatisticsFinalizer
-from ...processors.file.initializers import (
+from j_file_kit.services.processors.file.analyzers.serial_id_extractor import (
+    FileSerialIdExtractor,
+)
+from j_file_kit.services.processors.file.executors import EmptyDirectoryExecutor
+from j_file_kit.services.processors.file.finalizers import TaskStatisticsFinalizer
+from j_file_kit.services.processors.file.initializers import (
     TaskConfigValidatorInitializer,
     TaskResourceInitializer,
     TaskStatusInitializer,
@@ -52,7 +53,7 @@ class JavVideoOrganizer(BaseTask):
     这是文件处理领域的任务实现。
     """
 
-    def __init__(self, config: AppConfig, log_dir: Path):
+    def __init__(self, config: AppConfig, log_dir: Path) -> None:
         """初始化JAV视频文件整理任务
 
         Args:
@@ -68,7 +69,7 @@ class JavVideoOrganizer(BaseTask):
 
         # 获取类型化的配置对象
         self.file_config: JavVideoOrganizeConfig = self.task_config.get_config(
-            JavVideoOrganizeConfig
+            JavVideoOrganizeConfig,
         )
 
         # 从 GlobalConfig 获取目录路径
@@ -132,19 +133,19 @@ class JavVideoOrganizer(BaseTask):
             TaskStatusInitializer(
                 task_id=task_id,
                 task_repository=task_repository,
-            )
+            ),
         )
         # 2. 配置验证：验证配置有效性
         pipeline.add_initializer(
             TaskConfigValidatorInitializer(
                 config=self.config,
-            )
+            ),
         )
         # 3. 资源初始化：确保目录已准备就绪
         pipeline.add_initializer(
             TaskResourceInitializer(
                 config=self.config,
-            )
+            ),
         )
 
         # 添加分析器
@@ -153,7 +154,7 @@ class JavVideoOrganizer(BaseTask):
                 self.video_extensions,
                 self.image_extensions,
                 self.archive_extensions,
-            )
+            ),
         )
         pipeline.add_analyzer(MiscFileSizeAnalyzer())
         pipeline.add_analyzer(MiscFileDeleteAnalyzer(self.misc_file_delete_rules))
@@ -164,7 +165,7 @@ class JavVideoOrganizer(BaseTask):
                 self.unsorted_dir,
                 self.archive_dir,
                 self.misc_dir,
-            )
+            ),
         )
 
         # 添加执行器
@@ -183,7 +184,7 @@ class JavVideoOrganizer(BaseTask):
                 task_repository=task_repository,
                 file_processor_repository=file_processor_repository,
                 file_item_repository=file_item_repository,
-            )
+            ),
         )
 
         return pipeline

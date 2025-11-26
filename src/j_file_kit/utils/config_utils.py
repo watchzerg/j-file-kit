@@ -7,7 +7,7 @@
 
 from pathlib import Path
 
-from ..models.config import GlobalConfig
+from j_file_kit.models.config import GlobalConfig
 
 
 def _get_all_dir_fields(global_config: GlobalConfig) -> list[tuple[str, Path | None]]:
@@ -85,7 +85,7 @@ def check_dir_conflicts(global_config: GlobalConfig) -> list[str]:
     for resolved_path, dir_names in resolved_paths.items():
         if len(dir_names) > 1:
             errors.append(
-                f"目录路径冲突: {', '.join(dir_names)} 都指向同一路径 {resolved_path}"
+                f"目录路径冲突: {', '.join(dir_names)} 都指向同一路径 {resolved_path}",
             )
 
     # 检查是否有目录之间存在父子关系
@@ -94,12 +94,12 @@ def check_dir_conflicts(global_config: GlobalConfig) -> list[str]:
             # 检查 path1 是否是 path2 的父目录
             if path1 in path2.parents:
                 errors.append(
-                    f"目录路径冲突: {name1} ({path1}) 是 {name2} ({path2}) 的父目录"
+                    f"目录路径冲突: {name1} ({path1}) 是 {name2} ({path2}) 的父目录",
                 )
             # 检查 path2 是否是 path1 的父目录
             elif path2 in path1.parents:
                 errors.append(
-                    f"目录路径冲突: {name2} ({path2}) 是 {name1} ({path1}) 的父目录"
+                    f"目录路径冲突: {name2} ({path2}) 是 {name1} ({path1}) 的父目录",
                 )
 
     return errors

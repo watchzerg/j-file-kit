@@ -8,8 +8,8 @@ import os
 from pathlib import Path
 
 from j_file_kit.models.config import AppConfig
+from j_file_kit.services.task_manager import TaskManager
 
-from ..services.task_manager import TaskManager
 from .config.config import load_config_from_db
 from .filesystem.operations import create_directory
 from .persistence.sqlite.config_repository import AppConfigRepository
@@ -54,7 +54,8 @@ class AppState:
 
         # 创建任务管理器
         self.task_manager: TaskManager = TaskManager(
-            self.task_repository, self.sqlite_conn
+            self.task_repository,
+            self.sqlite_conn,
         )
 
     def reload_config(self) -> None:

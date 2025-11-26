@@ -10,7 +10,8 @@ Task 是业务用例层，定义"做什么"。
 import threading
 from abc import ABC, abstractmethod
 
-from ..models.task import TaskType
+from j_file_kit.models.task import TaskType
+
 from .repositories import TaskRepositoryRegistry
 
 

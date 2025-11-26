@@ -15,8 +15,8 @@
 from pathlib import Path
 from typing import Any, Protocol
 
-from ...models.operations import Operation, OperationType
-from ...models.results import FileItemResult
+from j_file_kit.models.operations import Operation, OperationType
+from j_file_kit.models.results import FileItemResult
 
 
 class FileItemRepository(Protocol):

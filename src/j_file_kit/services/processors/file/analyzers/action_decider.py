@@ -5,12 +5,12 @@
 
 from pathlib import Path
 
-from .....interfaces.processors.item import Analyzer
-from .....models.contexts import PathEntryContext
-from .....models.enums import FileType
-from .....models.path_entry import PathEntryAction, PathEntryType
-from .....models.results import ProcessorResult
-from .....utils.jav_utils import generate_sorted_dir
+from j_file_kit.interfaces.processors.item import Analyzer
+from j_file_kit.models.contexts import PathEntryContext
+from j_file_kit.models.enums import FileType
+from j_file_kit.models.path_entry import PathEntryAction, PathEntryType
+from j_file_kit.models.results import ProcessorResult
+from j_file_kit.utils.jav_utils import generate_sorted_dir
 
 
 class FileActionDecider(Analyzer):
@@ -25,7 +25,7 @@ class FileActionDecider(Analyzer):
         unsorted_dir: Path | None,
         archive_dir: Path | None,
         misc_dir: Path | None,
-    ):
+    ) -> None:
         """初始化动作决策器
 
         Args:
@@ -56,7 +56,7 @@ class FileActionDecider(Analyzer):
 
             if not ctx.renamed_filename:
                 return ProcessorResult.error(
-                    "番号存在但重构后的文件名未设置，请确保 FileSerialIdExtractor 已执行"
+                    "番号存在但重构后的文件名未设置，请确保 FileSerialIdExtractor 已执行",
                 )
 
             ctx.action = PathEntryAction.MOVE_TO_SORTED
@@ -149,11 +149,12 @@ class FileActionDecider(Analyzer):
             if result:
                 return result
 
-            # 确保action已设置
+            # _process_by_file_type 总是会设置 ctx.action（要么在子方法中，要么设置为 SKIP）
+            # 但为了类型安全，我们仍然检查
             if ctx.action is None:
                 return ProcessorResult.error("未能决策动作类型")
-
-            return ProcessorResult.success(
+            # mypy 认为这里不可达，但实际上 _process_by_file_type 总是会设置 action
+            return ProcessorResult.success(  # type: ignore[unreachable]
                 f"决策动作: {ctx.action.value}",
                 {
                     "action": ctx.action.value,

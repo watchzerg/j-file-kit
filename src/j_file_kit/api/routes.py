@@ -6,13 +6,14 @@
 
 from fastapi import APIRouter, HTTPException, Request, status
 
-from ..infrastructure.app_state import AppState
-from ..infrastructure.persistence.sqlite.file_item_repository import (
+from j_file_kit.infrastructure.app_state import AppState
+from j_file_kit.infrastructure.persistence.sqlite.file_item_repository import (
     FileItemRepositoryImpl,
 )
-from ..interfaces.task import BaseTask
-from ..models.task import TaskStatus, TaskType, TriggerType
-from ..services.tasks.file.jav_video_organizer import JavVideoOrganizer
+from j_file_kit.interfaces.task import BaseTask
+from j_file_kit.models.task import TaskStatus, TaskType, TriggerType
+from j_file_kit.services.tasks.file.jav_video_organizer import JavVideoOrganizer
+
 from .models import (
     CancelTaskResponse,
     StartTaskRequest,
@@ -102,7 +103,9 @@ async def start_task(
             ) from None
 
     task_id = app_state.task_manager.start_task(
-        task, trigger_type=trigger_type, dry_run=body.dry_run
+        task,
+        trigger_type=trigger_type,
+        dry_run=body.dry_run,
     )
     task_model = app_state.task_manager.get_task(task_id)
 
@@ -138,7 +141,8 @@ async def get_task_status(
     total_items = None
     if task_model.status in (TaskStatus.COMPLETED, TaskStatus.RUNNING):
         file_item_repository = FileItemRepositoryImpl(
-            app_state.sqlite_conn, task_id_int
+            app_state.sqlite_conn,
+            task_id_int,
         )
         stats = file_item_repository.get_statistics()
         # 如果统计信息存在，返回 total_items（0 也是有效值）

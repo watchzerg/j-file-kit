@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ..models.task import TaskStatus
+from j_file_kit.models.task import TaskStatus
 
 
 class StartTaskRequest(BaseModel):
@@ -85,7 +85,9 @@ class UpdateConfigRequest(BaseModel):
     """更新配置请求（部分更新）"""
 
     global_: UpdateGlobalConfigRequest | None = Field(
-        None, alias="global", description="全局配置"
+        None,
+        alias="global",
+        description="全局配置",
     )
     tasks: list[UpdateTaskConfigRequest] | None = Field(None, description="任务列表")
 

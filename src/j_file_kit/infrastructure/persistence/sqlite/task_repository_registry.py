@@ -61,7 +61,8 @@ class TaskRepositoryRegistryImpl:
         """
         if self._file_item_repository is None:
             self._file_item_repository = FileItemRepositoryImpl(
-                self._connection_manager, self._task_id
+                self._connection_manager,
+                self._task_id,
             )
         return self._file_item_repository
 
@@ -75,6 +76,7 @@ class TaskRepositoryRegistryImpl:
         """
         if self._file_processor_repository is None:
             self._file_processor_repository = FileProcessorRepositoryImpl(
-                self._connection_manager, self._task_id
+                self._connection_manager,
+                self._task_id,
             )
         return self._file_processor_repository

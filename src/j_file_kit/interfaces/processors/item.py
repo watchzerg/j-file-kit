@@ -6,8 +6,9 @@
 使用通用的 item 概念，支持文件、网页、爬虫数据等不同类型的 item。
 """
 
-from ...models.contexts import ItemContext
-from ...models.results import ProcessorResult
+from j_file_kit.models.contexts import ItemContext
+from j_file_kit.models.results import ProcessorResult
+
 from .base import ItemProcessor
 
 

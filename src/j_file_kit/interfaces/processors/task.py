@@ -8,7 +8,8 @@
 
 from abc import abstractmethod
 
-from ...models.results import ProcessorResult
+from j_file_kit.models.results import ProcessorResult
+
 from .base import TaskProcessor
 
 

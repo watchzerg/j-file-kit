@@ -39,11 +39,13 @@ class PathEntryContext(ItemContext):
     item_info: PathEntryInfo = Field(..., description="路径项基础信息")
     item_type: PathEntryType = Field(..., description="路径项类型（文件或文件夹）")
     file_type: FileType | None = Field(
-        None, description="文件类型（视频/图片/压缩/其他），仅在 item_type=FILE 时有效"
+        None,
+        description="文件类型（视频/图片/压缩/其他），仅在 item_type=FILE 时有效",
     )
     serial_id: SerialId | None = Field(None, description="提取的番号")
     renamed_filename: str | None = Field(
-        None, description="重构后的完整文件名（含扩展名，不含路径）"
+        None,
+        description="重构后的完整文件名（含扩展名，不含路径）",
     )
     target_path: Path | None = Field(None, description="计划的目标路径（完整路径）")
     action: PathEntryAction | None = Field(None, description="决策的动作类型")

@@ -138,7 +138,7 @@ class AppConfigRepository:
         """
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
-                "SELECT inbox_dir, sorted_dir, unsorted_dir, archive_dir, misc_dir, starred_dir FROM global_config WHERE id = 1"
+                "SELECT inbox_dir, sorted_dir, unsorted_dir, archive_dir, misc_dir, starred_dir FROM global_config WHERE id = 1",
             )
             row = cursor.fetchone()
 
@@ -180,7 +180,7 @@ class AppConfigRepository:
         """
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
-                "SELECT name, type, enabled, config FROM task_configs ORDER BY name"
+                "SELECT name, type, enabled, config FROM task_configs ORDER BY name",
             )
             rows = cursor.fetchall()
 

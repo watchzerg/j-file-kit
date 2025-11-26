@@ -13,7 +13,7 @@ class TaskError(Exception):
 class TaskNotFoundError(TaskError):
     """任务不存在异常"""
 
-    def __init__(self, task_id: int):
+    def __init__(self, task_id: int) -> None:
         self.task_id = task_id
         super().__init__(f"任务不存在: {task_id}")
 
@@ -21,7 +21,7 @@ class TaskNotFoundError(TaskError):
 class TaskAlreadyRunningError(TaskError):
     """任务已在运行异常"""
 
-    def __init__(self, running_task_id: int):
+    def __init__(self, running_task_id: int) -> None:
         self.running_task_id = running_task_id
         super().__init__(f"已有任务正在运行: {running_task_id}")
 
@@ -29,6 +29,6 @@ class TaskAlreadyRunningError(TaskError):
 class TaskCancelledError(TaskError):
     """任务已取消异常"""
 
-    def __init__(self, task_id: int):
+    def __init__(self, task_id: int) -> None:
         self.task_id = task_id
         super().__init__(f"任务已取消: {task_id}")

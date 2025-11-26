@@ -11,10 +11,10 @@ from fastapi import HTTPException, status
 
 # 注意：这里导入 API 层的模型是为了类型注解和运行时使用
 # ConfigService 被 API 层调用，接受 API 层的请求模型是合理的
-from ..api.models import UpdateGlobalConfigRequest, UpdateTaskConfigRequest
-from ..infrastructure.app_state import AppState
-from ..models.config import AppConfig, GlobalConfig, TaskConfig
-from ..utils.config_utils import validate_global_config
+from j_file_kit.api.models import UpdateGlobalConfigRequest, UpdateTaskConfigRequest
+from j_file_kit.infrastructure.app_state import AppState
+from j_file_kit.models.config import AppConfig, GlobalConfig, TaskConfig
+from j_file_kit.utils.config_utils import validate_global_config
 
 
 class ConfigService:
@@ -25,7 +25,8 @@ class ConfigService:
 
     @staticmethod
     def merge_global_config(
-        current: GlobalConfig, update: UpdateGlobalConfigRequest
+        current: GlobalConfig,
+        update: UpdateGlobalConfigRequest,
     ) -> GlobalConfig:
         """合并全局配置更新
 
@@ -67,7 +68,8 @@ class ConfigService:
 
     @staticmethod
     def merge_task_config(
-        current: TaskConfig, update: UpdateTaskConfigRequest
+        current: TaskConfig,
+        update: UpdateTaskConfigRequest,
     ) -> TaskConfig:
         """合并任务配置更新
 
@@ -85,7 +87,8 @@ class ConfigService:
             update_dict["enabled"] = update.enabled
         if update.config is not None:
             merged_config = ConfigService._merge_task_config_dict(
-                current.config, update.config
+                current.config,
+                update.config,
             )
             update_dict["config"] = merged_config
 
@@ -96,7 +99,8 @@ class ConfigService:
 
     @staticmethod
     def _merge_task_config_dict(
-        current: dict[str, Any], update: dict[str, Any]
+        current: dict[str, Any],
+        update: dict[str, Any],
     ) -> dict[str, Any]:
         """合并任务配置字典更新
 
@@ -116,7 +120,8 @@ class ConfigService:
 
     @staticmethod
     def merge_all_task_configs(
-        current_tasks: list[TaskConfig], task_updates: list[UpdateTaskConfigRequest]
+        current_tasks: list[TaskConfig],
+        task_updates: list[UpdateTaskConfigRequest],
     ) -> list[TaskConfig]:
         """合并所有任务配置更新
 
@@ -158,7 +163,8 @@ class ConfigService:
 
             try:
                 merged_task = ConfigService.merge_task_config(
-                    merged_tasks[task_index], task_update
+                    merged_tasks[task_index],
+                    task_update,
                 )
                 merged_tasks[task_index] = merged_task
             except Exception as e:

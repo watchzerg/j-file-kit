@@ -40,7 +40,8 @@ FILENAME_SEPARATORS = " -_@#"
 
 
 def _match_serial_id(
-    filename: str, pattern: str = DEFAULT_SERIAL_PATTERN
+    filename: str,
+    pattern: str = DEFAULT_SERIAL_PATTERN,
 ) -> tuple[SerialId | None, re.Match[str] | None]:
     """内部函数：匹配番号并返回 SerialId 和 Match 对象
 

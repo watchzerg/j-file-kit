@@ -10,13 +10,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from ...models.results import FileItemResult
-from ..filesystem.operations import (
+from j_file_kit.infrastructure.filesystem.operations import (
     append_text_file,
     create_directory,
     path_exists,
     write_text_file,
 )
+from j_file_kit.models.results import FileItemResult
+from j_file_kit.models.task import TaskReport
 
 
 class StructuredLogger:
@@ -25,7 +26,7 @@ class StructuredLogger:
     提供 JSON Lines 格式的日志记录功能，便于后续分析和处理。
     """
 
-    def __init__(self, log_dir: Path, task_name: str):
+    def __init__(self, log_dir: Path, task_name: str) -> None:
         """初始化日志记录器
 
         Args:
@@ -45,7 +46,10 @@ class StructuredLogger:
             write_text_file(self.log_file, "")
 
     def _write_log(
-        self, level: str, message: str, data: dict[str, Any] | None = None
+        self,
+        level: str,
+        message: str,
+        data: dict[str, Any] | None = None,
     ) -> None:
         """写入日志记录
 
@@ -64,7 +68,8 @@ class StructuredLogger:
         }
 
         append_text_file(
-            self.log_file, json.dumps(log_entry, ensure_ascii=False) + "\n"
+            self.log_file,
+            json.dumps(log_entry, ensure_ascii=False) + "\n",
         )
 
     def info(self, message: str, data: dict[str, Any] | None = None) -> None:
@@ -113,7 +118,7 @@ class StructuredLogger:
         data = {"scan_root": scan_root}
         self._write_log("TASK_START", f"开始任务: {self.task_name}", data)
 
-    def log_task_end(self, report: Any) -> None:
+    def log_task_end(self, report: TaskReport) -> None:
         """记录任务结束"""
         data = {
             "total_items": report.total_items,

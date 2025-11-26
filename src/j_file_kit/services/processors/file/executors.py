@@ -8,23 +8,19 @@
 
 from pathlib import Path
 
-from ....infrastructure.filesystem.operations import (
+from j_file_kit.infrastructure.filesystem.operations import (
     create_directory,
     delete_directory,
     delete_file,
     is_directory_empty,
     move_file_with_conflict_resolution,
 )
-from ....interfaces.file.repositories import FileProcessorRepository
-from ....interfaces.processors.item import Executor
-from ....models.contexts import PathEntryContext
-from ....models.operations import OperationType
-from ....models.path_entry import (
-    PathEntryAction,
-    PathEntryInfo,
-    PathEntryType,
-)
-from ....models.results import ProcessorResult
+from j_file_kit.interfaces.file.repositories import FileProcessorRepository
+from j_file_kit.interfaces.processors.item import Executor
+from j_file_kit.models.contexts import PathEntryContext
+from j_file_kit.models.operations import OperationType
+from j_file_kit.models.path_entry import PathEntryAction, PathEntryInfo, PathEntryType
+from j_file_kit.models.results import ProcessorResult
 
 
 class UnifiedFileExecutor(Executor):
@@ -36,7 +32,8 @@ class UnifiedFileExecutor(Executor):
     """
 
     def __init__(
-        self, file_processor_repository: FileProcessorRepository | None = None
+        self,
+        file_processor_repository: FileProcessorRepository | None = None,
     ) -> None:
         """初始化统一文件执行器
 

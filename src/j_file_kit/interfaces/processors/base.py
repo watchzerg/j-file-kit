@@ -8,8 +8,8 @@
 
 from abc import ABC, abstractmethod
 
-from ...models.contexts import ItemContext
-from ...models.results import ProcessorResult
+from j_file_kit.models.contexts import ItemContext
+from j_file_kit.models.results import ProcessorResult
 
 
 class ItemProcessor(ABC):
@@ -18,7 +18,7 @@ class ItemProcessor(ABC):
     处理单个 item（文件、网页等），接收 ItemContext。
     """
 
-    def __init__(self, name: str | None = None):
+    def __init__(self, name: str | None = None) -> None:
         """初始化处理器
 
         Args:
@@ -45,7 +45,7 @@ class TaskProcessor(ABC):
     处理任务级别的操作，不接收 item 上下文。
     """
 
-    def __init__(self, name: str | None = None):
+    def __init__(self, name: str | None = None) -> None:
         """初始化处理器
 
         Args:

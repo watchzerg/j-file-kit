@@ -3,11 +3,11 @@
 根据文件扩展名判断文件类型（视频/图片/压缩/Misc）。
 """
 
-from .....interfaces.processors.item import Analyzer
-from .....models.contexts import PathEntryContext
-from .....models.path_entry import PathEntryType
-from .....models.results import ProcessorResult
-from .....utils.file_utils import get_file_type
+from j_file_kit.interfaces.processors.item import Analyzer
+from j_file_kit.models.contexts import PathEntryContext
+from j_file_kit.models.path_entry import PathEntryType
+from j_file_kit.models.results import ProcessorResult
+from j_file_kit.utils.file_utils import get_file_type
 
 
 class FileClassifier(Analyzer):
@@ -21,7 +21,7 @@ class FileClassifier(Analyzer):
         video_extensions: set[str],
         image_extensions: set[str],
         archive_extensions: set[str],
-    ):
+    ) -> None:
         """初始化文件分类器
 
         Args:

@@ -7,8 +7,9 @@ ProcessorChain 是处理器执行层，定义"怎么执行处理器"。
 明确区分前置处理（initializers）和后置处理（finalizers）。
 """
 
-from ...models.contexts import ItemContext
-from ...models.results import ProcessorResult, ProcessorStatus
+from j_file_kit.models.contexts import ItemContext
+from j_file_kit.models.results import ProcessorResult, ProcessorStatus
+
 from .item import Analyzer, Executor
 from .task import Finalizer, Initializer
 
@@ -115,12 +116,8 @@ class ProcessorChain:
                 result = executor.process(ctx)
                 results.append(result)
 
-                # 如果执行器返回错误，跳过后续处理器
-                if result.status == ProcessorStatus.ERROR:
-                    break
-
-                # 如果设置了短路标记，跳过后续处理器
-                if ctx.skip_remaining:
+                # 如果执行器返回错误或设置了短路标记，跳过后续处理器
+                if result.status == ProcessorStatus.ERROR or ctx.skip_remaining:
                     break
 
         return results

@@ -152,5 +152,5 @@ def create_default_task_configs() -> list[TaskConfig]:
                     "max_size": 1048576,
                 },
             },
-        )
+        ),
     ]

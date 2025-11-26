@@ -10,13 +10,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from ..infrastructure.app_state import AppState
-from ..models.exceptions import (
+from j_file_kit.infrastructure.app_state import AppState
+from j_file_kit.models.exceptions import (
     TaskAlreadyRunningError,
     TaskCancelledError,
     TaskError,
     TaskNotFoundError,
 )
+
 from .config_routes import router as config_router
 from .routes import router
 
@@ -46,7 +47,8 @@ app = FastAPI(
 
 @app.exception_handler(TaskNotFoundError)
 async def task_not_found_handler(
-    request: Request, exc: TaskNotFoundError
+    request: Request,
+    exc: TaskNotFoundError,
 ) -> JSONResponse:
     """任务不存在异常处理器
 
@@ -65,7 +67,8 @@ async def task_not_found_handler(
 
 @app.exception_handler(TaskAlreadyRunningError)
 async def task_already_running_handler(
-    request: Request, exc: TaskAlreadyRunningError
+    request: Request,
+    exc: TaskAlreadyRunningError,
 ) -> JSONResponse:
     """任务已在运行异常处理器
 
@@ -84,7 +87,8 @@ async def task_already_running_handler(
 
 @app.exception_handler(TaskCancelledError)
 async def task_cancelled_handler(
-    request: Request, exc: TaskCancelledError
+    request: Request,
+    exc: TaskCancelledError,
 ) -> JSONResponse:
     """任务已取消异常处理器
 

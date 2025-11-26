@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from ...utils.file_utils import generate_alternative_filename
+from j_file_kit.utils.file_utils import generate_alternative_filename
 
 
 def move_file(source: Path, target: Path) -> None:
@@ -192,7 +192,7 @@ def move_file_with_conflict_resolution(source: Path, target: Path) -> Path:
             # 目标路径已存在，生成新的候选路径
             if attempt == max_attempts - 1:
                 raise RuntimeError(
-                    f"无法为 {original_target} 生成唯一路径，已尝试 {max_attempts} 次"
+                    f"无法为 {original_target} 生成唯一路径，已尝试 {max_attempts} 次",
                 ) from None
             # 始终基于原始路径生成候选文件名
             current_target = generate_alternative_filename(original_target)
@@ -202,5 +202,5 @@ def move_file_with_conflict_resolution(source: Path, target: Path) -> Path:
 
     # 理论上不会执行到这里（循环内会返回或抛出异常），但为了满足类型检查
     raise RuntimeError(
-        f"无法为 {original_target} 生成唯一路径，已尝试 {max_attempts} 次"
+        f"无法为 {original_target} 生成唯一路径，已尝试 {max_attempts} 次",
     )

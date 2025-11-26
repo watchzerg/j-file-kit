@@ -9,26 +9,23 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-from ....infrastructure.filesystem.scanner import scan_directory_items
-from ....infrastructure.logging.logger import StructuredLogger
-from ....interfaces.file.repositories import (
+from j_file_kit.infrastructure.filesystem.scanner import scan_directory_items
+from j_file_kit.infrastructure.logging.logger import StructuredLogger
+from j_file_kit.interfaces.file.repositories import (
     FileItemRepository,
     FileProcessorRepository,
 )
-from ....interfaces.processors.chain import ProcessorChain
-from ....interfaces.processors.item import Analyzer, Executor
-from ....interfaces.processors.task import Finalizer, Initializer
-from ....interfaces.repositories import TaskRepository
-from ....models.config import AppConfig
-from ....models.contexts import PathEntryContext
-from ....models.path_entry import PathEntryInfo, PathEntryType
-from ....models.results import (
-    FileItemResult,
-    ProcessorResult,
-    ProcessorStatus,
-)
-from ....models.task import TaskReport
-from ...processors.file.executors import UnifiedFileExecutor
+from j_file_kit.interfaces.processors.chain import ProcessorChain
+from j_file_kit.interfaces.processors.item import Analyzer, Executor
+from j_file_kit.interfaces.processors.task import Finalizer, Initializer
+from j_file_kit.interfaces.repositories import TaskRepository
+from j_file_kit.models.config import AppConfig
+from j_file_kit.models.contexts import PathEntryContext
+from j_file_kit.models.path_entry import PathEntryInfo, PathEntryType
+from j_file_kit.models.results import FileItemResult, ProcessorResult, ProcessorStatus
+from j_file_kit.models.task import TaskReport
+from j_file_kit.services.processors.file.executors import UnifiedFileExecutor
+
 from .statistics import StatisticsTracker
 from .utils import create_error_result, create_initial_context, extract_error_message
 
@@ -166,7 +163,9 @@ class FilePipeline:
         return UnifiedFileExecutor(self.file_processor_repository)
 
     def _process_single_directory(
-        self, item_info: PathEntryInfo, dry_run: bool
+        self,
+        item_info: PathEntryInfo,
+        dry_run: bool,
     ) -> None:
         """处理单个目录
 
@@ -204,7 +203,9 @@ class FilePipeline:
                 )
 
     def _process_single_file(
-        self, item_info: PathEntryInfo, dry_run: bool
+        self,
+        item_info: PathEntryInfo,
+        dry_run: bool,
     ) -> FileItemResult:
         """处理单个文件
 
@@ -322,7 +323,9 @@ class FilePipeline:
             self.logger.info("干模式执行完成")
 
     def run(
-        self, dry_run: bool = False, cancelled_event: threading.Event | None = None
+        self,
+        dry_run: bool = False,
+        cancelled_event: threading.Event | None = None,
     ) -> None:
         """运行管道
 
@@ -360,7 +363,7 @@ class FilePipeline:
                         file_result = self._process_single_file(item_info, dry_run)
                         # 保存到数据库
                         item_result_id = self.file_item_repository.save_result(
-                            file_result
+                            file_result,
                         )
                         # 设置 item_result_id 到 context（虽然 executor 已执行，但可用于后续查询）
                         file_result.context.item_result_id = item_result_id
@@ -381,7 +384,7 @@ class FilePipeline:
                         error_result = create_error_result(item_info, e)
                         # 立即保存到数据库
                         item_result_id = self.file_item_repository.save_result(
-                            error_result
+                            error_result,
                         )
                         # 设置 item_result_id 到 context 中
                         error_result.context.item_result_id = item_result_id

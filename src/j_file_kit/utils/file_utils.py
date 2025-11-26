@@ -10,11 +10,14 @@ import re
 import string
 from pathlib import Path
 
-from ..models.enums import FileType
+from j_file_kit.models.enums import FileType
 
 
 def get_file_type(
-    path: Path, video_exts: set[str], image_exts: set[str], archive_exts: set[str]
+    path: Path,
+    video_exts: set[str],
+    image_exts: set[str],
+    archive_exts: set[str],
 ) -> FileType:
     """根据文件扩展名判断文件类型
 
