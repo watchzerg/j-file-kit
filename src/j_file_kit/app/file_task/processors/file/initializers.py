@@ -10,12 +10,12 @@ import logging
 import os
 
 from j_file_kit.app.app_config.domain import AppConfig
+from j_file_kit.app.app_config.service.config_validator import validate_global_config
 from j_file_kit.app.file_task.ports import TaskRepository
 from j_file_kit.infrastructure.filesystem.operations import create_directory
 from j_file_kit.shared.interfaces.processors.task import Initializer
 from j_file_kit.shared.models.results import ProcessorResult
 from j_file_kit.shared.models.task import TaskStatus
-from j_file_kit.shared.utils.config_utils import validate_global_config
 
 
 class TaskStatusInitializer(Initializer):

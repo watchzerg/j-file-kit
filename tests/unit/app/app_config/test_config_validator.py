@@ -1,6 +1,6 @@
 """配置验证工具函数单元测试
 
-测试 config_utils.py 中的所有函数，包括配置验证和目录冲突检查。
+测试 app_config/service/config_validator.py 中的所有函数，包括配置验证和目录冲突检查。
 """
 
 from pathlib import Path
@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from j_file_kit.app.app_config.domain import GlobalConfig
-from j_file_kit.shared.utils.config_utils import (
+from j_file_kit.app.app_config.service.config_validator import (
     check_dir_conflicts,
     validate_global_config,
     validate_inbox_dir,

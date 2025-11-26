@@ -1,7 +1,6 @@
-"""文件工具函数单元测试
+"""文件任务工具函数单元测试
 
-测试 file_utils.py 中的所有函数，包括文件类型判断和候选文件名生成。
-测试文件结构与源文件一一对应，只包含通用文件工具函数（无业务逻辑）。
+测试 file_task/utils.py 中的工具函数，包括文件类型判断和候选文件名生成。
 """
 
 from pathlib import Path
@@ -9,8 +8,10 @@ from pathlib import Path
 import pytest
 
 from j_file_kit.app.file_task.domain import FileType
-from j_file_kit.app.file_task.utils import get_file_type
-from j_file_kit.shared.utils.file_utils import generate_alternative_filename
+from j_file_kit.app.file_task.utils import (
+    generate_alternative_filename,
+    get_file_type,
+)
 
 
 @pytest.mark.unit

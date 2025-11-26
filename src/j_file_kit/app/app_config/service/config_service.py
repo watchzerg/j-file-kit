@@ -14,8 +14,8 @@ from j_file_kit.app.app_config.schemas import (
     UpdateGlobalConfigRequest,
     UpdateTaskConfigRequest,
 )
+from j_file_kit.app.app_config.service.config_validator import validate_global_config
 from j_file_kit.infrastructure.app_state import AppState
-from j_file_kit.shared.utils.config_utils import validate_global_config
 
 
 class ConfigService:

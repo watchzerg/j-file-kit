@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from j_file_kit.shared.utils.file_utils import generate_alternative_filename
+from j_file_kit.app.file_task.utils import generate_alternative_filename
 
 
 def move_file(source: Path, target: Path) -> None:

@@ -53,8 +53,7 @@ src/j_file_kit/
 │   │       ├── task.py         # 任务级别处理器协议
 │   │       └── chain.py        # ProcessorChain处理器链
 │   └── utils/                   # 通用工具
-│       ├── file_utils.py       # 通用文件工具函数
-│       └── config_utils.py     # 配置验证工具函数
+│       └── file_utils.py       # 通用文件工具函数（注意：部分函数已迁移到对应domain）
 ├── infrastructure/              # 基础设施层
 │   ├── filesystem/              # 文件系统操作
 │   │   ├── operations.py        # 文件操作封装
@@ -109,6 +108,7 @@ src/j_file_kit/
   - `create_default_global_config()`: 创建默认全局配置
   - `create_default_task_configs()`: 创建默认任务配置
 - `service/config_service.py`: 配置业务逻辑（合并、验证、保存）
+- `service/config_validator.py`: 配置验证工具函数（验证全局配置的有效性）
 - `api.py`: 配置管理API路由（GET、PATCH）
 - `schemas.py`: HTTP请求/响应模型（UpdateConfigRequest等）
 - `ports.py`: 配置仓储接口（AppConfigRepository Protocol）
@@ -128,7 +128,7 @@ src/j_file_kit/
   - `OperationType`、`Operation`: 文件操作相关模型
   - `SerialId`: 番号值对象
 - `config.py`: 文件任务专属配置模型（JavVideoOrganizeConfig）
-- `utils.py`: 文件任务工具函数（如 `get_file_type()`）
+- `utils.py`: 文件任务工具函数（如 `get_file_type()`、`generate_alternative_filename()`）
 - `schemas.py`: HTTP请求/响应模型（StartTaskRequest、TaskStatusResponse等）
 - `ports.py`: 文件任务仓储接口
   - `TaskRepository`: 任务仓储协议
@@ -205,11 +205,11 @@ src/j_file_kit/
 **职责**: 提供纯工具函数（无业务逻辑，无I/O操作）
 
 **主要模块**:
-- `file_utils.py`: 通用文件工具函数
-  - `get_file_type()`: 判断文件类型
-  - `generate_alternative_filename()`: 生成候选文件名路径，用于处理路径冲突
-- `config_utils.py`: 配置验证工具函数
-  - `validate_global_config()`: 验证全局配置
+- `file_utils.py`: 通用文件工具函数（注意：文件任务相关的工具函数已迁移到 `app/file_task/utils.py`）
+
+**注意**: 
+- 文件任务相关的工具函数（如 `generate_alternative_filename()`）已迁移到 `app/file_task/utils.py`，属于 file_task domain 的业务逻辑
+- 配置验证工具函数（如 `validate_global_config()`）已迁移到 `app/app_config/service/config_validator.py`，属于 app_config domain 的业务逻辑
 
 ### 3. Infrastructure Layer (基础设施层)
 
@@ -327,6 +327,9 @@ src/j_file_kit/
    - service实现业务逻辑
    - api提供HTTP接口
 5. **infrastructure/**: 依赖shared/models/，实现domain定义的ports接口（依赖倒置）
+   - 特殊情况：`infrastructure/filesystem/operations.py` 依赖 `app/file_task/utils.py::generate_alternative_filename()`
+   - 理由：路径冲突处理是文件任务的核心业务逻辑，属于 file_task domain
+   - 注意：这是特例，其他 infrastructure 代码应遵循依赖规则
 6. **api/**: 依赖app/（各个domain的api）、infrastructure/
 
 ## 设计原则
@@ -370,7 +373,7 @@ src/j_file_kit/
   - `scan_directory_files()`: 扫描目录下的所有文件
 
 **路径冲突处理机制**:
-- 纯函数 `shared/utils/file_utils.py::generate_alternative_filename()` 负责生成候选文件名（无I/O操作）
+- 纯函数 `app/file_task/utils.py::generate_alternative_filename()` 负责生成候选文件名（无I/O操作）
 - `infrastructure/filesystem/operations.py::move_file_with_conflict_resolution()` 负责实际移动和重试逻辑
 - 使用 `-jfk-xxxx` 后缀格式，避免与原始文件名冲突
 - 如果输入路径已带后缀，会提取原始路径并基于原始路径生成新候选路径
@@ -548,8 +551,8 @@ src/j_file_kit/
 
 - **设计**: "先尝试后生成"模式，减少不必要的 I/O 检查
 - **实现**: 
-  - `generate_alternative_filename()`: 纯函数，生成候选文件名（无I/O）
-  - `move_file_with_conflict_resolution()`: 实际移动和重试逻辑
+  - `app/file_task/utils.py::generate_alternative_filename()`: 纯函数，生成候选文件名（无I/O）
+  - `infrastructure/filesystem/operations.py::move_file_with_conflict_resolution()`: 实际移动和重试逻辑
 - **后缀格式**: `-jfk-xxxx`（4个小写字母或数字），避免与原始文件名冲突
 - **路径提取**: 如果输入路径已带后缀，提取原始路径并基于原始路径生成
 
