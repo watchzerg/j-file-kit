@@ -37,17 +37,10 @@ deps-upgrade:
     uv lock --upgrade
     uv sync --all-groups
     
-# 升级python版本（例如3.14）
-py-up VERSION:
+# 初始化或升级python版本（例如3.14）
+py-upgrade VERSION:
     uv python install {{VERSION}}
     uv python pin {{VERSION}}
     uv venv --refresh
-    uv sync --all-groups
-    uv run python -V
-
-# 安装python版本
-py-install VERSION:
-    uv python install {{VERSION}}
-    uv venv
     uv sync --all-groups
     uv run python -V
