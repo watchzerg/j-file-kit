@@ -33,7 +33,7 @@ deps-sync:
 	uv sync --all-groups
 
 # 升级依赖
-deps-up:
+deps-upgrade:
     uv lock --upgrade
     uv sync --all-groups
     
@@ -42,5 +42,12 @@ py-up VERSION:
     uv python install {{VERSION}}
     uv python pin {{VERSION}}
     uv venv --refresh
+    uv sync --all-groups
+    uv run python -V
+
+# 安装python版本
+py-install VERSION:
+    uv python install {{VERSION}}
+    uv venv
     uv sync --all-groups
     uv run python -V
