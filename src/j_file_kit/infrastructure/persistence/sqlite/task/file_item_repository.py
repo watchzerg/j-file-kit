@@ -6,24 +6,13 @@
 专门存储文件处理结果，不存储目录操作（目录操作已在 operations 表中记录）。
 """
 
-import json
-import sqlite3
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
-from j_file_kit.app.file_task.domain import (
-    FileItemResult,
-    FileType,
-    PathEntryContext,
-    PathEntryInfo,
-    PathEntryType,
-    SerialId,
-)
+from j_file_kit.app.file_task.decisions import FileItemData
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
-from j_file_kit.shared.models.results import ProcessorResult
 
 
 class FileItemRepositoryImpl:
@@ -49,22 +38,28 @@ class FileItemRepositoryImpl:
         self._conn_manager = connection_manager
         self.task_id = task_id
 
-    def save_result(self, result: FileItemResult) -> int:
+    def save_result(self, result: FileItemData) -> int:
         """保存单个文件处理结果
 
         Args:
-            result: 文件处理结果
+            result: 文件处理结果数据
 
         Returns:
             生成的结果ID
         """
         created_at = datetime.now()
 
-        # 提取文件信息到具体字段
-        path = str(result.item_info.path)
-        stem = result.item_info.stem
-        file_type = result.context.file_type.value if result.context.file_type else None
-        serial_id = str(result.context.serial_id) if result.context.serial_id else None
+        # 提取字段
+        path = str(result.path)
+        stem = result.stem
+        file_type = result.file_type.value if result.file_type else None
+        serial_id = str(result.serial_id) if result.serial_id else None
+
+        # 根据 decision_type 判断状态
+        success = result.success
+        was_skipped = result.decision_type == "skip"
+        has_errors = not success
+        has_warnings = False  # 简化设计，不再使用 warnings
 
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
@@ -83,21 +78,15 @@ class FileItemRepositoryImpl:
                     stem,
                     file_type,
                     serial_id,
-                    result.success,
-                    result.has_errors,
-                    result.has_warnings,
-                    result.was_skipped,
+                    success,
+                    has_errors,
+                    has_warnings,
+                    was_skipped,
                     result.error_message,
-                    result.total_duration_ms,
-                    len(result.processor_results),
-                    result.context.model_dump_json(exclude_none=True),
-                    json.dumps(
-                        [
-                            r.model_dump(exclude_none=True, mode="json")
-                            for r in result.processor_results
-                        ],
-                        ensure_ascii=False,
-                    ),
+                    result.duration_ms,
+                    1,  # processor_count 固定为 1（简化设计）
+                    "{}",  # context_data 不再使用
+                    "[]",  # processor_results 不再使用
                     created_at.isoformat(),
                 ),
             )
@@ -164,21 +153,7 @@ class FileItemRepositoryImpl:
         使用 SQL 聚合查询（SUM, AVG, MIN, MAX, COUNT）直接使用字段计算性能指标。
 
         Returns:
-            详细统计字典，格式：
-            {
-                "by_item_type": {
-                    "video": {"total": 10, "success": 8, "error": 1, "skipped": 1, "warning": 0},
-                    "image": {"total": 5, "success": 5, "error": 0, "skipped": 0, "warning": 0},
-                    ...
-                },
-                "performance_metrics": {
-                    "total_duration_ms": 12345.6,
-                    "avg_duration_ms": 123.456,
-                    "min_duration_ms": 10.5,
-                    "max_duration_ms": 500.0,
-                    "items_per_second": 0.81
-                }
-            }
+            详细统计字典
         """
         with self._conn_manager.get_cursor() as cursor:
             # 按文件类型统计（直接使用 file_type 字段）
@@ -243,7 +218,6 @@ class FileItemRepositoryImpl:
                 max_duration_ms = row["max_duration_ms"] or 0.0
 
                 # 计算处理速度：total_items / (total_duration_ms / 1000)
-                # 如果总耗时为0，则处理速度为0
                 items_per_second = (
                     total_items / (total_duration_ms / 1000.0)
                     if total_duration_ms > 0
@@ -262,62 +236,3 @@ class FileItemRepositoryImpl:
                 "by_item_type": by_item_type,
                 "performance_metrics": performance_metrics,
             }
-
-    def _row_to_item_result(self, row: sqlite3.Row) -> FileItemResult:
-        """将数据库行转换为 FileItemResult 对象
-
-        Args:
-            row: 数据库行
-
-        Returns:
-            FileItemResult 对象
-        """
-        # 反序列化 PathEntryContext
-        context_data = json.loads(row["context_data"]) if row["context_data"] else {}
-        context = PathEntryContext.model_validate(context_data)
-
-        # 反序列化 ProcessorResult 列表
-        processor_results_data = (
-            json.loads(row["processor_results"]) if row["processor_results"] else []
-        )
-        processor_results = [
-            ProcessorResult.model_validate(r) for r in processor_results_data
-        ]
-
-        # 直接从字段读取文件信息
-        item_path = row["path"]
-        if not item_path:
-            raise ValueError(f"path 字段为空: {row['id']}")
-        path_obj = Path(item_path)
-
-        # 表只存储文件，所以 item_type 固定为 FILE
-        item_info = PathEntryInfo.from_path(path_obj, PathEntryType.FILE)
-
-        # 从数据库字段更新 file_type 和 serial_id（数据库字段是单一数据源）
-        # 优先使用数据库字段，因为它们是为了查询和索引而展开的权威数据源
-        file_type_str = row["file_type"]
-        if file_type_str:
-            try:
-                file_type = FileType(file_type_str)
-                context.file_type = file_type
-            except ValueError:
-                # 如果 file_type 无效，保持 context 中的原值（可能来自 JSON）
-                pass
-
-        serial_id_str = row["serial_id"]
-        if serial_id_str:
-            try:
-                serial_id = SerialId.from_string(serial_id_str)
-                context.serial_id = serial_id
-            except ValueError:
-                # 如果 serial_id 无效，保持 context 中的原值（可能来自 JSON）
-                pass
-
-        return FileItemResult(
-            item_info=item_info,
-            context=context,
-            processor_results=processor_results,
-            total_duration_ms=row["total_duration_ms"],
-            success=bool(row["success"]),
-            error_message=row["error_message"],
-        )

@@ -7,7 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Protocol
 
-from j_file_kit.app.file_task.domain import FileItemResult, Operation, OperationType
+from j_file_kit.app.file_task.decisions import FileItemData
+from j_file_kit.app.file_task.domain import Operation, OperationType
 from j_file_kit.shared.models.enums import TaskStatus, TaskType, TriggerType
 from j_file_kit.shared.models.task import Task
 
@@ -104,11 +105,11 @@ class FileItemRepository(Protocol):
     提供保存结果、获取统计信息等功能。
     """
 
-    def save_result(self, result: FileItemResult) -> int:
+    def save_result(self, result: FileItemData) -> int:
         """保存单个文件处理结果
 
         Args:
-            result: 文件处理结果
+            result: 文件处理结果数据
 
         Returns:
             生成的结果 ID

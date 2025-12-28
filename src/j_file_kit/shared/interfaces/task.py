@@ -22,13 +22,8 @@ class BaseTask(Protocol):
     Task 是业务用例层，定义"做什么"。
 
     职责：
-    - 定义业务用例，组合处理器，创建并配置 Pipeline
-    - 通过 `create_pipeline()` 方法组装 Pipeline
+    - 定义业务用例
     - 通过 `run()` 方法执行任务
-
-    与 Pipeline 的关系：
-    - Task 通过 `create_pipeline()` 创建 Pipeline
-    - Task 通过 `run()` 方法执行任务，内部调用 Pipeline
 
     所有具体任务实现必须符合此协议（通过继承或实现相同接口）。
     """

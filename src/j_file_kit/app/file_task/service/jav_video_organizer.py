@@ -1,46 +1,17 @@
 """JAV视频文件整理任务
 
 完整的JAV视频文件整理任务实现。
-组合使用各种处理器实现文件分类、番号提取、文件移动等功能。
-
-这是用例实现，位于services层，位于 tasks/file/ 目录下。
+使用 Decision 模式进行文件分析和处理。
 """
 
 import threading
 from pathlib import Path
-from typing import Any
 
 from j_file_kit.app.app_config.domain import AppConfig
+from j_file_kit.app.file_task.analyzer import AnalyzeConfig
 from j_file_kit.app.file_task.config import JavVideoOrganizeConfig
-from j_file_kit.app.file_task.pipelines.file.pipeline import FilePipeline
-from j_file_kit.app.file_task.ports import (
-    FileItemRepository,
-    FileProcessorRepository,
-    TaskRepository,
-    TaskRepositoryRegistry,
-)
-from j_file_kit.app.file_task.processors.file.analyzers.action_decider import (
-    FileActionDecider,
-)
-from j_file_kit.app.file_task.processors.file.analyzers.file_classifier import (
-    FileClassifier,
-)
-from j_file_kit.app.file_task.processors.file.analyzers.misc_analyzer import (
-    MiscFileDeleteAnalyzer,
-    MiscFileSizeAnalyzer,
-)
-from j_file_kit.app.file_task.processors.file.analyzers.serial_id_extractor import (
-    FileSerialIdExtractor,
-)
-from j_file_kit.app.file_task.processors.file.executors import EmptyDirectoryExecutor
-from j_file_kit.app.file_task.processors.file.finalizers import (
-    TaskStatisticsFinalizer,
-)
-from j_file_kit.app.file_task.processors.file.initializers import (
-    TaskConfigValidatorInitializer,
-    TaskResourceInitializer,
-    TaskStatusInitializer,
-)
+from j_file_kit.app.file_task.pipeline import FilePipeline
+from j_file_kit.app.file_task.ports import TaskRepositoryRegistry
 from j_file_kit.shared.interfaces.task import BaseTask
 from j_file_kit.shared.models.enums import TaskType
 
@@ -51,12 +22,12 @@ class JavVideoOrganizer(BaseTask):
     Task 是业务用例层，定义"做什么"。
 
     职责：
-    - 定义业务用例，组合处理器，创建并配置 Pipeline
-    - 通过 `create_pipeline()` 方法组装 Pipeline
+    - 定义业务用例，配置 Pipeline
     - 通过 `run()` 方法执行任务
 
-    这是一个完整的JAV视频文件整理任务实现，展示了如何组合使用各种处理器。
-    这是文件处理领域的任务实现。
+    设计意图：
+    - 使用 Decision 模式进行文件分析和处理
+    - 简化的 Pipeline 设计，不使用 ProcessorChain
     """
 
     def __init__(self, config: AppConfig, log_dir: Path) -> None:
@@ -85,115 +56,29 @@ class JavVideoOrganizer(BaseTask):
         self.archive_dir: Path | None = self.config.global_.archive_dir
         self.misc_dir: Path | None = self.config.global_.misc_dir
 
-        # 设置文件类型扩展名
-        self.video_extensions: set[str] = self.file_config.video_extensions
-        self.image_extensions: set[str] = self.file_config.image_extensions
-        self.archive_extensions: set[str] = self.file_config.archive_extensions
-
-        # 设置删除规则
-        self.misc_file_delete_rules: dict[str, Any] = (
-            self.file_config.misc_file_delete_rules
-        )
-
     @property
     def task_type(self) -> TaskType:
         """任务类型"""
         return TaskType.JAV_VIDEO_ORGANIZER
 
-    def create_pipeline(
-        self,
-        task_id: int,
-        log_dir: Path,
-        task_repository: TaskRepository,
-        file_processor_repository: FileProcessorRepository,
-        file_item_repository: FileItemRepository,
-    ) -> FilePipeline:
-        """创建处理管道
+    def _create_analyze_config(self) -> AnalyzeConfig:
+        """创建分析配置
 
-        Task 通过此方法创建并配置 Pipeline，组装处理器链。
-
-        Args:
-            task_id: 任务ID
-            log_dir: 日志目录
-            task_repository: 任务仓储实例
-            file_processor_repository: 文件处理操作仓储实例
-            file_item_repository: 文件处理结果仓储实例
+        将任务配置转换为分析配置。
 
         Returns:
-            配置好的处理管道
+            分析配置对象
         """
-        # 创建管道
-        pipeline = FilePipeline(
-            self.config,
-            self.task_type.value,
-            log_dir,
-            file_processor_repository,
-            file_item_repository,
-            task_id,
-            task_repository,
+        return AnalyzeConfig(
+            video_extensions=self.file_config.video_extensions,
+            image_extensions=self.file_config.image_extensions,
+            archive_extensions=self.file_config.archive_extensions,
+            sorted_dir=self.sorted_dir,
+            unsorted_dir=self.unsorted_dir,
+            archive_dir=self.archive_dir,
+            misc_dir=self.misc_dir,
+            misc_file_delete_rules=self.file_config.misc_file_delete_rules,
         )
-
-        # 添加初始化器（按依赖顺序）
-        # 1. 状态更新：确保任务状态正确
-        pipeline.add_initializer(
-            TaskStatusInitializer(
-                task_id=task_id,
-                task_repository=task_repository,
-            ),
-        )
-        # 2. 配置验证：验证配置有效性
-        pipeline.add_initializer(
-            TaskConfigValidatorInitializer(
-                config=self.config,
-            ),
-        )
-        # 3. 资源初始化：确保目录已准备就绪
-        pipeline.add_initializer(
-            TaskResourceInitializer(
-                config=self.config,
-            ),
-        )
-
-        # 添加分析器
-        pipeline.add_analyzer(
-            FileClassifier(
-                self.video_extensions,
-                self.image_extensions,
-                self.archive_extensions,
-            ),
-        )
-        pipeline.add_analyzer(MiscFileSizeAnalyzer())
-        pipeline.add_analyzer(MiscFileDeleteAnalyzer(self.misc_file_delete_rules))
-        pipeline.add_analyzer(FileSerialIdExtractor())
-        pipeline.add_analyzer(
-            FileActionDecider(
-                self.sorted_dir,
-                self.unsorted_dir,
-                self.archive_dir,
-                self.misc_dir,
-            ),
-        )
-
-        # 添加执行器
-        pipeline.add_executor(pipeline.create_unified_executor())
-
-        # 添加空目录清理执行器（放在最后，确保文件处理完成后再清理目录）
-        # 设计意图：在文件处理完成后，利用自底向上遍历顺序清理空文件夹
-        pipeline.add_executor(EmptyDirectoryExecutor(self.inbox_dir))
-
-        # 添加任务统计信息终结器
-        # finalizer 是全局的，pipeline 会先处理完所有文件的 processors，再执行 finalizers
-        # 所以添加顺序不影响执行顺序
-        pipeline.add_finalizer(
-            TaskStatisticsFinalizer(
-                task_id=task_id,
-                task_repository=task_repository,
-                file_processor_repository=file_processor_repository,
-                file_item_repository=file_item_repository,
-            ),
-        )
-
-        return pipeline
 
     def run(
         self,
@@ -210,16 +95,26 @@ class JavVideoOrganizer(BaseTask):
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancelled_event: 取消事件，用于检查任务是否被取消
         """
+        if self.inbox_dir is None:
+            raise ValueError("inbox_dir 未设置")
+
         # 从 Registry 获取 Repository
+        task_repository = repository_registry.get_task_repository()
         file_processor_repository = repository_registry.get_file_processor_repository()
         file_item_repository = repository_registry.get_file_item_repository()
-        task_repo = repository_registry.get_task_repository()
 
-        pipeline = self.create_pipeline(
-            task_id,
-            self.log_dir,
-            task_repo,
-            file_processor_repository,
-            file_item_repository,
+        # 创建分析配置
+        analyze_config = self._create_analyze_config()
+
+        # 创建并运行 Pipeline
+        pipeline = FilePipeline(
+            task_id=task_id,
+            task_name=self.task_type.value,
+            scan_root=self.inbox_dir,
+            analyze_config=analyze_config,
+            log_dir=self.log_dir,
+            task_repository=task_repository,
+            file_processor_repository=file_processor_repository,
+            file_item_repository=file_item_repository,
         )
         pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)

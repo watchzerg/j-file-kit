@@ -4,11 +4,10 @@
 
 本模块包含文件处理相关的所有领域模型，包括：
 - 文件类型枚举（FileType）
-- 路径项相关模型（PathEntryType、PathEntryAction、PathEntryInfo）
-- 路径项处理上下文（PathEntryContext）
-- 文件处理结果（FileItemResult）
-- 文件操作相关模型（OperationType、Operation）
+- 路径项类型枚举（PathEntryType）
+- 操作类型枚举（OperationType）
 - 番号值对象（SerialId）
+- 操作记录模型（Operation）
 
 这些模型是文件domain的核心概念，专门用于文件处理任务，不属于跨domain的通用模型。
 """
@@ -20,9 +19,6 @@ from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-
-from j_file_kit.shared.models.contexts import ItemContext
-from j_file_kit.shared.models.results import ItemResult
 
 # Pydantic model_validator 需要接受 Any 类型
 # ruff: noqa: ANN401
@@ -55,36 +51,6 @@ class PathEntryType(str, Enum):
 
     FILE = "file"
     DIRECTORY = "directory"
-
-
-class PathEntryAction(str, Enum):
-    """路径项动作类型枚举
-
-    统一处理文件和文件夹的操作枚举，支持文件和文件夹的各种操作。
-    用于决策处理器应该执行什么操作（移动、删除、跳过等）。
-    """
-
-    MOVE_TO_SORTED = "move_to_sorted"  # 移动到整理目录（B/ABCD/...）
-    MOVE_TO_UNSORTED = "move_to_unsorted"  # 移动到无番号目录（C）
-    MOVE_TO_ARCHIVE = "move_to_archive"  # 移动到压缩文件目录
-    MOVE_TO_MISC = "move_to_misc"  # 移动到其他目录（D）
-    DELETE = "delete"  # 删除文件
-    DELETE_DIRECTORY = "delete_directory"  # 删除目录
-    SKIP = "skip"  # 跳过处理
-
-    @property
-    def description(self) -> str:
-        """获取动作的中文描述"""
-        descriptions = {
-            PathEntryAction.MOVE_TO_SORTED: "整理目录",
-            PathEntryAction.MOVE_TO_UNSORTED: "无番号目录",
-            PathEntryAction.MOVE_TO_ARCHIVE: "压缩文件目录",
-            PathEntryAction.MOVE_TO_MISC: "Misc文件目录",
-            PathEntryAction.DELETE: "删除",
-            PathEntryAction.DELETE_DIRECTORY: "删除目录",
-            PathEntryAction.SKIP: "跳过",
-        }
-        return descriptions.get(self, self.value)
 
 
 class OperationType(str, Enum):
@@ -193,92 +159,6 @@ class SerialId(BaseModel):
 # ============================================================================
 
 
-class PathEntryInfo(BaseModel):
-    """路径项基础信息模型
-
-    统一文件和文件夹的信息模型，消除类型不匹配问题。
-    根据 item_type 区分文件和文件夹，文件包含 suffix，文件夹不包含。
-
-    设计意图：
-    - 统一文件和文件夹的信息表示，简化处理流程
-    - 封装路径解析逻辑，确保路径信息的一致性
-    """
-
-    path: Path = Field(..., description="路径")
-    stem: str = Field(..., description="名称（不含扩展名）")
-    suffix: str | None = Field(
-        None,
-        description="文件扩展名（含点号，仅文件有，文件夹为 None）",
-    )
-    item_type: str = Field(..., description="路径项类型（文件或文件夹）")
-
-    @classmethod
-    def from_path(cls, path: Path, item_type: str | PathEntryType) -> PathEntryInfo:
-        """从路径创建 PathEntryInfo
-
-        根据 item_type 决定是否提取 suffix（文件提取，目录为 None）。
-
-        Args:
-            path: 路径
-            item_type: 路径项类型（PathEntryType 枚举值或字符串）
-
-        Returns:
-            PathEntryInfo 对象
-        """
-        # 确保 item_type 是 PathEntryType 枚举
-        if isinstance(item_type, str):
-            item_type = PathEntryType(item_type)
-
-        if item_type == PathEntryType.FILE:
-            return cls(
-                path=path,
-                stem=path.stem,
-                suffix=path.suffix.lower() if path.suffix else None,
-                item_type=item_type.value,
-            )
-        else:
-            return cls(
-                path=path,
-                stem=path.stem,
-                suffix=None,
-                item_type=item_type.value,
-            )
-
-
-class PathEntryContext(ItemContext):
-    """路径项处理上下文模型
-
-    统一处理文件和文件夹的上下文对象，携带分析结果和中间状态。
-    贯穿整个路径项处理流程，支持文件和文件夹的统一处理。
-
-    设计意图：
-    - 作为处理器链中传递的上下文对象，携带分析结果和决策信息
-    - 支持文件和文件夹的统一处理流程，简化处理器实现
-
-    字段说明：
-    - item_type: 路径项类型（文件或文件夹），用于区分处理逻辑
-    - file_type: 文件类型（视频/图片/压缩/其他），仅在 item_type=FILE 时有效
-    - renamed_filename: 重构后的完整文件名（含扩展名，不含路径），由 FileSerialIdExtractor 设置
-    - target_path: 完整的目标路径（目录+文件名），由 FileActionDecider 设置
-    """
-
-    item_info: PathEntryInfo = Field(..., description="路径项基础信息")
-    item_type: PathEntryType = Field(..., description="路径项类型（文件或文件夹）")
-    file_type: FileType | None = Field(
-        None,
-        description="文件类型（视频/图片/压缩/其他），仅在 item_type=FILE 时有效",
-    )
-    serial_id: SerialId | None = Field(None, description="提取的番号")
-    renamed_filename: str | None = Field(
-        None,
-        description="重构后的完整文件名（含扩展名，不含路径）",
-    )
-    target_path: Path | None = Field(None, description="计划的目标路径（完整路径）")
-    action: PathEntryAction | None = Field(None, description="决策的动作类型")
-    file_size: int | None = Field(None, description="文件大小（字节）")
-    item_result_id: int | None = Field(None, description="Item结果ID")
-
-
 class Operation(BaseModel):
     """操作记录模型
 
@@ -300,18 +180,3 @@ class Operation(BaseModel):
     target_path: Path | None = Field(None, description="目标路径（可选）")
     file_type: str | None = Field(None, description="文件类型（冗余字段，避免JOIN）")
     serial_id: str | None = Field(None, description="番号（冗余字段，避免JOIN）")
-
-
-class FileItemResult(ItemResult):
-    """文件处理结果
-
-    文件类型的 item 处理结果，继承 ItemResult 并添加文件特定的字段。
-    现在统一处理文件和文件夹，但主要用于文件处理结果。
-
-    设计意图：
-    - 封装文件处理结果，包含处理上下文和处理结果
-    - 支持文件处理流程的结果持久化和查询
-    """
-
-    item_info: PathEntryInfo = Field(..., description="路径项信息")
-    context: PathEntryContext = Field(..., description="处理上下文")
