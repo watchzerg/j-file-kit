@@ -260,4 +260,3 @@ def _execute_delete(
             file_type=decision.file_type,
             message=f"删除失败: {e!s}",
         )
-

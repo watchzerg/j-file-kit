@@ -177,7 +177,8 @@ def _check_misc_delete_rules(path: Path, rules: dict[str, Any]) -> str | None:
     extensions = rules.get("extensions")
     if extensions and isinstance(extensions, list):
         extensions_normalized = {
-            ext.lower() if ext.startswith(".") else f".{ext.lower()}" for ext in extensions
+            ext.lower() if ext.startswith(".") else f".{ext.lower()}"
+            for ext in extensions
         }
         if suffix in extensions_normalized:
             return f"扩展名 {suffix} 匹配删除规则"
@@ -288,4 +289,3 @@ def _decide_media_action(
             file_type=file_type,
             serial_id=None,
         )
-

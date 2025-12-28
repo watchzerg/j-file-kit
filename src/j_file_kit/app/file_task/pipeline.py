@@ -345,9 +345,15 @@ class FilePipeline:
         }
 
         if isinstance(decision, MoveDecision):
-            item_data["file_type"] = decision.file_type.value if decision.file_type else None
-            item_data["serial_id"] = str(decision.serial_id) if decision.serial_id else None
-            item_data["target_path"] = str(result.target_path) if result.target_path else None
+            item_data["file_type"] = (
+                decision.file_type.value if decision.file_type else None
+            )
+            item_data["serial_id"] = (
+                str(decision.serial_id) if decision.serial_id else None
+            )
+            item_data["target_path"] = (
+                str(result.target_path) if result.target_path else None
+            )
 
         logger.bind(
             task_id=str(self.task_id),
@@ -386,4 +392,3 @@ class FilePipeline:
                 task_name=self.task_name,
                 error=str(e),
             ).warning(f"清理空目录失败: {path}")
-
