@@ -4,12 +4,12 @@
 
 本模块包含文件处理相关的所有领域模型，包括：
 - 文件类型枚举（FileType）
-- 路径项类型枚举（PathEntryType）
 - 操作类型枚举（OperationType）
 - 番号值对象（SerialId）
 - 操作记录模型（Operation）
 
 这些模型是文件domain的核心概念，专门用于文件处理任务，不属于跨domain的通用模型。
+注：PathEntryType 已迁移到 shared/models/enums.py（通用文件系统概念）。
 """
 
 import re
@@ -40,17 +40,6 @@ class FileType(str, Enum):
     IMAGE = "image"
     ARCHIVE = "archive"
     MISC = "misc"
-
-
-class PathEntryType(str, Enum):
-    """路径项类型枚举
-
-    区分路径项是文件还是文件夹，这是第一层分类。
-    用于统一处理文件和文件夹的处理流程。
-    """
-
-    FILE = "file"
-    DIRECTORY = "directory"
 
 
 class OperationType(str, Enum):

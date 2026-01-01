@@ -9,7 +9,7 @@ from types import FrameType
 
 from loguru import logger
 
-from j_file_kit.infrastructure.filesystem.operations import create_directory
+from j_file_kit.shared.utils.file_utils import ensure_directory
 
 
 class InterceptHandler(logging.Handler):
@@ -77,7 +77,7 @@ def configure_task_logger(log_dir: Path, task_name: str, task_id: int) -> int:
         handler_id，用于后续移除该 handler
     """
     # 确保日志目录存在
-    create_directory(log_dir, parents=True)
+    ensure_directory(log_dir, parents=True)
 
     # 日志文件路径
     log_file = log_dir / f"{task_name}_{task_id}.jsonl"

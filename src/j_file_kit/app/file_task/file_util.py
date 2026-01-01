@@ -92,45 +92,46 @@ def trim_separators(text: str) -> str:
     return text.strip(FILENAME_SEPARATORS)
 
 
-def generate_jav_filename(original_path: Path) -> tuple[Path, SerialId | None]:
+def generate_jav_filename(filename: str) -> tuple[str, SerialId | None]:
     """根据番号生成新文件名
 
     使用内置的 DEFAULT_SERIAL_PATTERN 进行番号提取和文件名重构。
+    纯文件名转换函数，不涉及路径处理。
 
     Args:
-        original_path: 原文件路径
+        filename: 原始文件名（包含扩展名）
 
     Returns:
-        元组：(新文件路径, 提取到的番号)。如果没有找到番号，返回 (原路径, None)
+        元组：(新文件名, 提取到的番号)。如果没有找到番号，返回 (原文件名, None)
 
     Examples:
-        >>> new_path, serial_id = generate_jav_filename(Path("video_ABC-001_hd.mp4"))
-        >>> new_path
-        Path("ABC-001 video-serialId-hd.mp4")
+        >>> new_filename, serial_id = generate_jav_filename("video_ABC-001_hd.mp4")
+        >>> new_filename
+        "ABC-001 video-serialId-hd.mp4"
         >>> serial_id
         SerialId(prefix='ABC', number='001')
 
-        >>> new_path, serial_id = generate_jav_filename(Path("ABC-001_video.mp4"))
-        >>> new_path
-        Path("ABC-001 video.mp4")
+        >>> new_filename, serial_id = generate_jav_filename("ABC-001_video.mp4")
+        >>> new_filename
+        "ABC-001 video.mp4"
         >>> serial_id
         SerialId(prefix='ABC', number='001')
 
-        >>> new_path, serial_id = generate_jav_filename(Path("no_serial.mp4"))
-        >>> new_path
-        Path("no_serial.mp4")
+        >>> new_filename, serial_id = generate_jav_filename("no_serial.mp4")
+        >>> new_filename
+        "no_serial.mp4"
         >>> serial_id
         None
     """
-    filename = original_path.name
-    suffix = original_path.suffix
-    parent = original_path.parent
+    # 使用 Path 仅用于提取扩展名
+    path = Path(filename)
+    suffix = path.suffix
 
     # 匹配番号并获取位置信息（一次正则匹配同时获取 SerialId 和位置）
     serial_id, match = _match_serial_id(filename)
     if not serial_id or not match:
         # 未匹配到番号，保持原文件名
-        return original_path, None
+        return filename, None
 
     # 分解文件名为4部分
     start, end = match.span()
@@ -168,35 +169,35 @@ def generate_jav_filename(original_path: Path) -> tuple[Path, SerialId | None]:
         # 拼接：标准番号 + 空格 + 第1部分 + 占位符 + 扩展名
         new_filename = f"{serial_id_str} {trimmed_part1}{placeholder}{part4}"
 
-    return parent / new_filename, serial_id
+    return new_filename, serial_id
 
 
-def generate_sorted_dir(sorted_dir: Path, serial_id: SerialId) -> Path:
-    """生成整理目录路径：A/AB/ABCD/
+def generate_sorted_dir(serial_id: SerialId) -> Path:
+    """生成整理子目录路径：A/AB/ABCD
 
-    根据番号生成整理目录路径，格式为：sorted_dir/首字母/前两字母/完整前缀/
+    根据番号生成子目录路径，格式为：首字母/前两字母/完整前缀
     SerialId 已验证 prefix 长度在 2-5 之间，因此可以安全访问。
+    调用者负责拼接基础目录。
 
     Args:
-        sorted_dir: 整理目录根路径
         serial_id: 番号对象
 
     Returns:
-        目录路径（不含文件名）
+        相对子目录路径（不含基础目录和文件名）
 
     Examples:
         >>> from j_file_kit.app.file_task.domain import SerialId
-        >>> generate_sorted_dir(Path("/sorted"), SerialId(prefix="ABCD", number="123"))
-        Path("/sorted/A/AB/ABCD")
+        >>> generate_sorted_dir(SerialId(prefix="ABCD", number="123"))
+        Path("A/AB/ABCD")
 
-        >>> generate_sorted_dir(Path("/sorted"), SerialId(prefix="XYZ", number="456"))
-        Path("/sorted/X/XY/XYZ")
+        >>> generate_sorted_dir(SerialId(prefix="XYZ", number="456"))
+        Path("X/XY/XYZ")
 
-        >>> generate_sorted_dir(Path("/sorted"), SerialId(prefix="AB", number="789"))
-        Path("/sorted/A/AB/AB")
+        >>> generate_sorted_dir(SerialId(prefix="AB", number="789"))
+        Path("A/AB/AB")
     """
     prefix = serial_id.prefix
     first_letter = prefix[0]
     first_two = prefix[:2]
 
-    return sorted_dir / first_letter / first_two / prefix
+    return Path(first_letter) / first_two / prefix

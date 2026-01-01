@@ -9,9 +9,9 @@ from pathlib import Path
 
 from j_file_kit.app.app_config.domain import AppConfig
 from j_file_kit.app.file_task.service.task_manager import TaskManager
+from j_file_kit.shared.utils.file_utils import ensure_directory
 
 from .config.config import load_config_from_db
-from .filesystem.operations import create_directory
 from .persistence.sqlite.config.config_repository import AppConfigRepository
 from .persistence.sqlite.connection import SQLiteConnectionManager
 from .persistence.sqlite.task.task_repository import TaskRepositoryImpl
@@ -37,8 +37,8 @@ class AppState:
         self.log_dir = self.base_dir / "logs"
 
         # 创建必要的目录
-        create_directory(self.base_dir / "sqlite", parents=True)
-        create_directory(self.log_dir, parents=True)
+        ensure_directory(self.base_dir / "sqlite", parents=True)
+        ensure_directory(self.log_dir, parents=True)
 
         # 创建 SQLite 连接管理器（表结构在 __init__ 中自动创建）
         self.sqlite_conn = SQLiteConnectionManager(self.db_path)

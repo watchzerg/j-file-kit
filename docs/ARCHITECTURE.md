@@ -29,11 +29,10 @@ src/j_file_kit/
 │       ├── schemas.py           # 请求/响应模型
 │       └── ports.py             # 仓储接口
 ├── shared/                       # 共享层 - 跨领域通用代码
-│   ├── models/                  # 通用模型（Task、Results、Contexts、Enums）
+│   ├── models/                  # 通用模型（Task、Enums、PathEntryType 等）
 │   ├── interfaces/              # 通用接口（BaseTask、Processor 协议）
-│   └── utils/                   # 工具函数
-├── infrastructure/               # 基础设施层 - I/O 操作
-│   ├── filesystem/              # 文件操作（operations、scanner）
+│   └── utils/                   # 工具函数（文件 I/O、扫描等）
+├── infrastructure/               # 基础设施层 - 有状态的 I/O 操作
 │   ├── persistence/sqlite/      # 数据库（connection、repositories）
 │   ├── config/                  # 配置加载
 │   ├── logging/                 # 日志
@@ -55,15 +54,14 @@ src/j_file_kit/
 
 跨 domain 的通用代码，无业务逻辑，无外部依赖。
 
-- **models/**: Task、ItemResult、ProcessorResult、ItemContext、枚举、异常
-- **interfaces/**: BaseTask 协议、Processor 基类（Analyzer/Executor/Initializer/Finalizer）、ProcessorChain
-- **utils/**: 通用工具函数
+- **models/**: Task、PathEntryType、TaskStatus、枚举、异常
+- **interfaces/**: BaseTask 协议、Processor 基类
+- **utils/**: 文件系统工具函数（move、delete、scan 等纯 I/O 操作）
 
 ### 3. Infrastructure Layer（基础设施层）
 
-提供 I/O 操作，实现 domain 定义的 ports 接口。
+提供有状态的 I/O 操作，实现 domain 定义的 ports 接口。
 
-- **filesystem/**: 文件操作（move、delete、scan）
 - **persistence/sqlite/**: SQLite 仓储实现
 - **config/**: 配置加载（load_config_from_db）
 - **logging/**: 结构化日志
@@ -95,8 +93,20 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 **依赖规则**：
 - shared/models: 无外部依赖
 - shared/interfaces: 依赖 shared/models
-- app/{domain}: 依赖 shared/、infrastructure/
-- infrastructure: 依赖 shared/models，实现 domain 的 ports
+- shared/utils: 依赖 shared/models（如 PathEntryType）
+- app/{domain}: 依赖 shared/
+- infrastructure: 依赖 shared/，实现 domain 的 ports
+
+### 依赖策略
+
+根据 I/O 操作的特性采用不同的依赖方式：
+
+| 类型 | 依赖方式 | 位置 | 原因 |
+|------|----------|------|------|
+| **数据库操作** | 通过 ports 注入 | infrastructure/ | 可能迁移数据库、需要事务测试、连接管理复杂 |
+| **文件系统操作** | 直接依赖 | shared/utils/ | API 稳定、用临时目录即可测试、无状态管理 |
+
+业务相关的文件操作（如带 `-jfk-` 后缀的冲突处理）应放在对应 domain 的 utils.py 中。
 
 ## 核心概念
 

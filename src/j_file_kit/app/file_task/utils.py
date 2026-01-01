@@ -2,6 +2,11 @@
 
 提供文件任务domain专用的工具函数，如文件类型判断、路径冲突处理等。
 这些函数是文件domain的业务逻辑，不属于通用工具。
+
+设计意图：
+- get_file_type：根据扩展名判断文件类型，用于文件分类
+- generate_alternative_filename：生成 -jfk-xxxx 格式的候选文件名
+- move_file_with_conflict_resolution：移动文件并自动处理路径冲突
 """
 
 import random
@@ -10,6 +15,7 @@ import string
 from pathlib import Path
 
 from j_file_kit.app.file_task.domain import FileType
+from j_file_kit.shared.utils.file_utils import move_file
 
 
 def get_file_type(
@@ -88,3 +94,49 @@ def generate_alternative_filename(target_path: Path) -> Path:
     random_suffix = "-jfk-" + "".join(random.choices(chars, k=4))  # noqa: S311
     new_name = f"{original_stem}{random_suffix}{suffix}"
     return parent / new_name
+
+
+def move_file_with_conflict_resolution(source: Path, target: Path) -> Path:
+    """移动文件，自动处理路径冲突
+
+    先尝试直接移动，如果目标路径已存在，自动生成唯一路径并重试。
+    生成的路径使用 `-jfk-xxxx` 格式后缀（file_task domain 的业务约定）。
+    最多重试 10 次，超过后抛出异常。
+
+    设计意图：
+    - 使用 -jfk- 后缀是 file_task domain 的业务逻辑
+    - 始终基于原始目标路径生成候选路径，避免文件名越来越长
+
+    Args:
+        source: 源文件路径
+        target: 目标文件路径（可能已存在）
+
+    Returns:
+        实际移动到的目标路径（可能与输入的 target 不同）
+
+    Raises:
+        FileNotFoundError: 源文件不存在
+        RuntimeError: 重试 10 次后仍无法找到唯一路径
+        OSError: 其他移动操作失败
+    """
+    original_target = target
+    current_target = target
+    max_attempts = 10
+
+    for attempt in range(max_attempts):
+        try:
+            move_file(source, current_target)
+            return current_target
+        except FileExistsError:
+            if attempt == max_attempts - 1:
+                raise RuntimeError(
+                    f"无法为 {original_target} 生成唯一路径，已尝试 {max_attempts} 次",
+                ) from None
+            current_target = generate_alternative_filename(original_target)
+        except OSError:
+            raise
+
+    # 理论上不会执行到这里，但为了满足类型检查
+    raise RuntimeError(
+        f"无法为 {original_target} 生成唯一路径，已尝试 {max_attempts} 次",
+    )

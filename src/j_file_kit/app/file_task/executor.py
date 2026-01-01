@@ -22,11 +22,8 @@ from j_file_kit.app.file_task.decisions import (
 )
 from j_file_kit.app.file_task.domain import FileType, OperationType, SerialId
 from j_file_kit.app.file_task.ports import FileProcessorRepository
-from j_file_kit.infrastructure.filesystem.operations import (
-    create_directory,
-    delete_file,
-    move_file_with_conflict_resolution,
-)
+from j_file_kit.app.file_task.utils import move_file_with_conflict_resolution
+from j_file_kit.shared.utils.file_utils import delete_file, ensure_directory
 
 
 class ExecutionStatus(str, Enum):
@@ -188,7 +185,7 @@ def _execute_move(
     """
     try:
         # 创建目标目录
-        create_directory(decision.target_path.parent, parents=True)
+        ensure_directory(decision.target_path.parent, parents=True)
 
         # 执行移动（自动处理路径冲突）
         final_path = move_file_with_conflict_resolution(

@@ -23,7 +23,6 @@ from j_file_kit.app.file_task.decisions import (
     MoveDecision,
     SkipDecision,
 )
-from j_file_kit.app.file_task.domain import PathEntryType
 from j_file_kit.app.file_task.executor import (
     ExecutionResult,
     ExecutionStatus,
@@ -34,16 +33,16 @@ from j_file_kit.app.file_task.ports import (
     FileProcessorRepository,
     TaskRepository,
 )
-from j_file_kit.infrastructure.filesystem.operations import (
-    delete_directory,
-    is_directory_empty,
-)
-from j_file_kit.infrastructure.filesystem.scanner import scan_directory_items
 from j_file_kit.infrastructure.logging.logging_setup import (
     configure_task_logger,
     remove_task_logger,
 )
-from j_file_kit.shared.models.enums import TaskStatus
+from j_file_kit.shared.models.enums import PathEntryType, TaskStatus
+from j_file_kit.shared.utils.file_utils import (
+    delete_directory,
+    is_directory_empty,
+    scan_directory_items,
+)
 
 
 class FilePipeline:

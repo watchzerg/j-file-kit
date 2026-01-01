@@ -20,7 +20,7 @@ from j_file_kit.app.file_task.decisions import (
     MoveDecision,
     SkipDecision,
 )
-from j_file_kit.app.file_task.domain import FileType, SerialId
+from j_file_kit.app.file_task.domain import FileType
 from j_file_kit.app.file_task.file_util import (
     generate_jav_filename,
     generate_sorted_dir,
@@ -98,20 +98,6 @@ def _classify_file(path: Path, config: AnalyzeConfig) -> FileType:
     return FileType.MISC
 
 
-def _extract_serial_id(path: Path) -> tuple[Path, SerialId | None]:
-    """从文件名提取番号
-
-    使用 generate_jav_filename 提取番号并生成新文件名。
-
-    Args:
-        path: 文件路径
-
-    Returns:
-        元组：(新文件路径, 番号)。如果没有找到番号，返回 (原路径, None)
-    """
-    return generate_jav_filename(path)
-
-
 def _decide_misc_action(
     path: Path,
     file_type: FileType,
@@ -173,34 +159,33 @@ def _check_misc_delete_rules(path: Path, rules: dict[str, Any]) -> str | None:
     suffix = path.suffix.lower()
     stem = path.stem
 
-    # 检查扩展名（优先级最高，单独判断）
+    # 检查扩展名（优先级最高）
     extensions = rules.get("extensions")
-    if extensions and isinstance(extensions, list):
+    if isinstance(extensions, list):
         extensions_normalized = {
-            ext.lower() if ext.startswith(".") else f".{ext.lower()}"
-            for ext in extensions
+            ext if ext.startswith(".") else f".{ext}".lower()
+            for ext in (e.lower() for e in extensions)
         }
         if suffix in extensions_normalized:
             return f"扩展名 {suffix} 匹配删除规则"
 
-    # 检查体积和文件名的组合条件
+    # 检查体积和文件名关键字组合
     max_size = rules.get("max_size")
     keywords = rules.get("keywords")
-
-    if max_size is not None and keywords and isinstance(keywords, list):
-        # 获取文件大小
+    if keywords is not None and max_size is not None:
+        if not isinstance(keywords, list) or not all(
+            isinstance(kw, str) for kw in keywords
+        ):
+            return None
+        if not isinstance(max_size, (int, float)):
+            raise ValueError("max_size 必须为数字类型")
         try:
             file_size = path.stat().st_size
         except OSError:
             return None
-
-        if not isinstance(max_size, (int, float)) or file_size > max_size:
-            return None
-
-        # 检查文件名关键字
-        if any(kw in stem for kw in keywords):
-            return f"文件大小 {file_size} <= {max_size} 且文件名包含关键字"
-
+        if file_size <= max_size:
+            if any(kw in stem for kw in keywords):
+                return f"文件大小 {file_size} <= {max_size} 且文件名包含关键字"
     return None
 
 
@@ -253,8 +238,8 @@ def _decide_media_action(
     Returns:
         文件处理决策
     """
-    # 提取番号
-    new_path, serial_id = _extract_serial_id(path)
+    # 1. 从文件名生成新文件名和番号
+    new_filename, serial_id = generate_jav_filename(path.name)
 
     if serial_id:
         # 有番号：移动到整理目录
@@ -265,8 +250,11 @@ def _decide_media_action(
                 reason="sorted_dir 未设置，无法移动有番号文件",
             )
 
-        target_dir = generate_sorted_dir(config.sorted_dir, serial_id)
-        target_path = target_dir / new_path.name
+        # 2. 用番号生成子目录
+        sub_dir = generate_sorted_dir(serial_id)
+
+        # 3. 组装最终路径：基础目录 / 子目录 / 新文件名
+        target_path = config.sorted_dir / sub_dir / new_filename
 
         return MoveDecision(
             source_path=path,
