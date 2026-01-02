@@ -120,14 +120,14 @@ class TaskManager:
                 start_time=start_time,
             )
 
-            cancelled_event = threading.Event()
-            self._cancellation_event = cancelled_event
+            cancellation_event = threading.Event()
+            self._cancellation_event = cancellation_event
             self._running_task_id = task_id
 
             # 在后台线程中执行任务
             thread = threading.Thread(
                 target=self._execute_task,
-                args=(task_id, task, dry_run, cancelled_event),
+                args=(task_id, task, dry_run, cancellation_event),
                 daemon=True,
             )
             thread.start()
@@ -139,7 +139,7 @@ class TaskManager:
         task_id: int,
         task: BaseTask,
         dry_run: bool,
-        cancelled_event: threading.Event,
+        cancellation_event: threading.Event,
     ) -> None:
         """执行任务（内部方法）
 
@@ -149,7 +149,7 @@ class TaskManager:
             task_id: 任务ID
             task: 要执行的任务
             dry_run: 是否为预览模式
-            cancelled_event: 取消事件
+            cancellation_event: 取消事件
         """
         try:
             # 创建任务仓储注册表
@@ -164,11 +164,11 @@ class TaskManager:
                 task_id=task_id,
                 repository_registry=repository_registry,
                 dry_run=dry_run,
-                cancelled_event=cancelled_event,
+                cancellation_event=cancellation_event,
             )
 
             # 检查是否被取消
-            if cancelled_event.is_set():
+            if cancellation_event.is_set():
                 self.task_repository.update_task(
                     task_id,
                     status=TaskStatus.CANCELLED,

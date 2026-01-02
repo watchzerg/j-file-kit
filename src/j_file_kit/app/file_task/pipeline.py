@@ -102,7 +102,7 @@ class FilePipeline:
     def run(
         self,
         dry_run: bool = False,
-        cancelled_event: threading.Event | None = None,
+        cancellation_event: threading.Event | None = None,
     ) -> None:
         """运行管道
 
@@ -110,14 +110,14 @@ class FilePipeline:
 
         Args:
             dry_run: 是否为预览模式
-            cancelled_event: 取消事件
+            cancellation_event: 取消事件
         """
         try:
             self._start_task(dry_run)
 
             for path, item_type in scan_directory_items(self.scan_root):
                 # 检查是否被取消
-                if cancelled_event and cancelled_event.is_set():
+                if cancellation_event and cancellation_event.is_set():
                     logger.bind(
                         task_id=str(self.task_id),
                         task_name=self.task_name,
@@ -165,13 +165,12 @@ class FilePipeline:
                 task_id=str(self.task_id),
                 task_name=self.task_name,
             ).info("运行在预览模式（dry_run）")
+            return
 
-        # 更新任务状态为运行中
-        if not dry_run:
-            self.task_repository.update_task(
-                self.task_id,
-                status=TaskStatus.RUNNING,
-            )
+        self.task_repository.update_task(
+            self.task_id,
+            status=TaskStatus.RUNNING,
+        )
 
     def _finish_task(self, dry_run: bool) -> None:
         """任务结束处理"""
@@ -194,15 +193,14 @@ class FilePipeline:
                 task_id=str(self.task_id),
                 task_name=self.task_name,
             ).info("预览模式执行完成")
+            return
 
-        # 更新任务状态和统计信息
-        if not dry_run:
-            self.task_repository.update_task(
-                self.task_id,
-                status=TaskStatus.COMPLETED,
-                end_time=datetime.now(),
-                statistics=stats,
-            )
+        self.task_repository.update_task(
+            self.task_id,
+            status=TaskStatus.COMPLETED,
+            end_time=datetime.now(),
+            statistics=stats,
+        )
 
     def _process_file(self, path: Path, dry_run: bool) -> None:
         """处理单个文件

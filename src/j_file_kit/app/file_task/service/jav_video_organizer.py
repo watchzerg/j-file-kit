@@ -85,7 +85,7 @@ class JavVideoOrganizer(BaseTask):
         task_id: int,
         repository_registry: TaskRepositoryRegistry,
         dry_run: bool = False,
-        cancelled_event: threading.Event | None = None,
+        cancellation_event: threading.Event | None = None,
     ) -> None:
         """运行文件整理
 
@@ -93,7 +93,7 @@ class JavVideoOrganizer(BaseTask):
             task_id: 任务ID
             repository_registry: 任务仓储注册表，提供统一的 Repository 获取接口
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
-            cancelled_event: 取消事件，用于检查任务是否被取消
+            cancellation_event: 取消事件，用于检查任务是否被取消
         """
         if self.inbox_dir is None:
             raise ValueError("inbox_dir 未设置")
@@ -117,4 +117,4 @@ class JavVideoOrganizer(BaseTask):
             file_processor_repository=file_processor_repository,
             file_item_repository=file_item_repository,
         )
-        pipeline.run(dry_run=dry_run, cancelled_event=cancelled_event)
+        pipeline.run(dry_run=dry_run, cancellation_event=cancellation_event)
