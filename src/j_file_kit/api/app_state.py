@@ -8,7 +8,6 @@ import os
 from pathlib import Path
 
 from j_file_kit.app.app_config.domain import AppConfig
-from j_file_kit.app.task.service.task_manager import TaskManager
 from j_file_kit.infrastructure.config.config import load_config_from_db
 from j_file_kit.infrastructure.persistence.sqlite.config.config_repository import (
     AppConfigRepository,
@@ -19,6 +18,7 @@ from j_file_kit.infrastructure.persistence.sqlite.connection import (
 from j_file_kit.infrastructure.persistence.sqlite.task.task_repository import (
     TaskRepositoryImpl,
 )
+from j_file_kit.infrastructure.task.task_manager import TaskManager
 from j_file_kit.shared.utils.file_utils import ensure_directory
 
 

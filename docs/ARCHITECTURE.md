@@ -17,7 +17,6 @@ src/j_file_kit/
 │   │   └── ports.py             # 仓储接口
 │   ├── task/                    # 任务调度 domain
 │   │   ├── ports.py             # TaskRepository 协议
-│   │   ├── service/             # TaskManager
 │   │   ├── api.py               # 通用任务 API（列表、查询、取消）
 │   │   └── schemas.py           # 请求/响应模型
 │   └── file_task/               # 文件任务 domain
@@ -40,7 +39,8 @@ src/j_file_kit/
 ├── infrastructure/               # 基础设施层 - 有状态的 I/O 操作
 │   ├── persistence/sqlite/      # 数据库（connection、repositories）
 │   ├── config/                  # 配置加载
-│   └── logging/                 # 日志
+│   ├── logging/                 # 日志
+│   └── task/                    # 任务调度（TaskManager）
 └── api/                          # HTTP 接口层
     ├── app.py                   # FastAPI 应用
     └── app_state.py             # 应用状态管理（Composition Root）
@@ -53,7 +53,7 @@ src/j_file_kit/
 按业务领域组织，每个 domain 自包含，通过 ports 定义接口，由 infrastructure 实现。
 
 - **app_config**: 配置管理（GlobalConfig、AppConfig、TaskConfig）
-- **task**: 任务调度管理（TaskManager、TaskRepository）
+- **task**: 任务协议和 API（TaskRepository 协议、通用任务 API）
 - **file_task**: 文件处理任务（扫描、分析、执行、统计）
 
 ### 2. Shared Layer（共享层）
@@ -66,11 +66,12 @@ src/j_file_kit/
 
 ### 3. Infrastructure Layer（基础设施层）
 
-提供有状态的 I/O 操作，实现 domain 定义的 ports 接口。
+提供有状态的 I/O 操作，实现 domain 定义的 ports 接口，以及任务调度基础设施。
 
 - **persistence/sqlite/**: SQLite 仓储实现
 - **config/**: 配置加载（load_config_from_db）
 - **logging/**: 结构化日志
+- **task/**: 任务调度（TaskManager）
 
 ### 4. API Layer（HTTP 接口层）
 
@@ -137,10 +138,11 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 
 ### TaskManager 职责
 
-TaskManager 是全局任务调度器，位于 `app/task/` domain：
+TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调度基础设施）：
 - 管理任务的生命周期（创建、执行、取消）
 - 控制并发（当前只允许一个任务运行）
 - 通过 BaseTask 协议与具体任务实现解耦
+- 协调运行时依赖组装（创建 TaskRepositoryRegistry）
 
 ### 处理器类型
 
