@@ -57,7 +57,7 @@
 
 | 功能 | 文件 |
 |---|---|
-| 数据目录初始化 | `infrastructure/app_state.py` |
+| 数据目录初始化 | `api/app_state.py` |
 | SQLite 表结构 | `infrastructure/persistence/sqlite/connection.py` |
 | 配置仓储 | `infrastructure/persistence/sqlite/config/config_repository.py` |
 | 日志配置 | `infrastructure/logging/logging_setup.py` |

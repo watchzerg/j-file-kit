@@ -6,13 +6,13 @@
 
 from fastapi import APIRouter, HTTPException, Request, status
 
+from j_file_kit.api.app_state import AppState
 from j_file_kit.app.task.schemas import (
     CancelTaskResponse,
     TaskListItem,
     TaskListResponse,
     TaskStatusResponse,
 )
-from j_file_kit.infrastructure.app_state import AppState
 from j_file_kit.infrastructure.persistence.sqlite.task.file_item_repository import (
     FileItemRepositoryImpl,
 )

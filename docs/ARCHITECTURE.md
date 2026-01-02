@@ -40,10 +40,10 @@ src/j_file_kit/
 ├── infrastructure/               # 基础设施层 - 有状态的 I/O 操作
 │   ├── persistence/sqlite/      # 数据库（connection、repositories）
 │   ├── config/                  # 配置加载
-│   ├── logging/                 # 日志
-│   └── app_state.py             # 应用状态管理
+│   └── logging/                 # 日志
 └── api/                          # HTTP 接口层
-    └── app.py                   # FastAPI 应用
+    ├── app.py                   # FastAPI 应用
+    └── app_state.py             # 应用状态管理（Composition Root）
 ```
 
 ## 架构分层
@@ -71,11 +71,13 @@ src/j_file_kit/
 - **persistence/sqlite/**: SQLite 仓储实现
 - **config/**: 配置加载（load_config_from_db）
 - **logging/**: 结构化日志
-- **app_state.py**: 应用状态管理
 
 ### 4. API Layer（HTTP 接口层）
 
 FastAPI 应用，路由注册，异常处理，生命周期管理。
+
+- **app.py**: FastAPI 应用入口
+- **app_state.py**: 应用状态管理（Composition Root），负责组装所有依赖
 
 ## 依赖关系
 
@@ -110,6 +112,7 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 - app/task: 依赖 shared/
 - app/file_task: 依赖 shared/ 和 app/task
 - infrastructure: 依赖 shared/，实现 domain 的 ports
+- api: 依赖 app/、infrastructure/、shared/（作为 Composition Root 组装所有依赖）
 
 ### 依赖策略
 

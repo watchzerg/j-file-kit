@@ -104,7 +104,7 @@ curl http://localhost:8000/api/tasks
 
 ```python
 from j_file_kit.infrastructure.config.config import load_config
-from j_file_kit.infrastructure.app_state import AppState
+from j_file_kit.api.app_state import AppState
 from j_file_kit.services.jav_video_organizer import JavVideoOrganizer
 
 # 创建应用状态（会自动加载配置）

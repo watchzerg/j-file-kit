@@ -6,19 +6,19 @@
 
 from fastapi import APIRouter, HTTPException, Request, status
 
+from j_file_kit.api.app_state import AppState
 from j_file_kit.app.file_task.schemas import (
     StartTaskRequest,
     StartTaskResponse,
 )
 from j_file_kit.app.file_task.service.jav_video_organizer import JavVideoOrganizer
-from j_file_kit.infrastructure.app_state import AppState
 from j_file_kit.shared.interfaces.task import BaseTask
 from j_file_kit.shared.models.enums import TaskType, TriggerType
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 
-def get_task_instance(task_type: str, app_state: AppState) -> BaseTask:
+def _new_task_instance(task_type: str, app_state: AppState) -> BaseTask:
     """获取任务实例
 
     Args:
@@ -60,7 +60,7 @@ async def start_task(
         HTTPException: 如果任务不存在或已有任务正在运行
     """
     app_state: AppState = request.state.app_state
-    task = get_task_instance(task_type, app_state)
+    task = _new_task_instance(task_type, app_state)
 
     # 解析 trigger_type，默认为 MANUAL
     trigger_type = TriggerType.MANUAL
