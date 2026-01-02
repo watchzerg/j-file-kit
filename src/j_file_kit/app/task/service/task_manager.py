@@ -8,7 +8,7 @@ import logging
 import threading
 from datetime import datetime
 
-from j_file_kit.app.file_task.ports import TaskRepository
+from j_file_kit.app.task.ports import TaskRepository
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )

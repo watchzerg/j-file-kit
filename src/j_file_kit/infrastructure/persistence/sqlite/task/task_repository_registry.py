@@ -7,8 +7,8 @@
 from j_file_kit.app.file_task.ports import (
     FileItemRepository,
     FileProcessorRepository,
-    TaskRepository,
 )
+from j_file_kit.app.task.ports import TaskRepository
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )

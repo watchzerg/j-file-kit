@@ -31,8 +31,8 @@ from j_file_kit.app.file_task.executor import (
 from j_file_kit.app.file_task.ports import (
     FileItemRepository,
     FileProcessorRepository,
-    TaskRepository,
 )
+from j_file_kit.app.task.ports import TaskRepository
 from j_file_kit.infrastructure.logging.logging_setup import (
     configure_task_logger,
     remove_task_logger,

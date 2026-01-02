@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse
 
 from j_file_kit.app.app_config.api import router as config_router
 from j_file_kit.app.file_task.api import router as file_task_router
+from j_file_kit.app.task.api import router as task_router
 from j_file_kit.infrastructure.app_state import AppState
 from j_file_kit.infrastructure.logging.logging_setup import setup_logging
 from j_file_kit.shared.models.exceptions import (
@@ -126,5 +127,6 @@ async def task_error_handler(request: Request, exc: TaskError) -> JSONResponse:
 
 
 # 注册路由
+app.include_router(task_router)
 app.include_router(file_task_router)
 app.include_router(config_router)

@@ -15,6 +15,11 @@ src/j_file_kit/
 │   │   ├── api.py               # API 路由
 │   │   ├── schemas.py           # 请求/响应模型
 │   │   └── ports.py             # 仓储接口
+│   ├── task/                    # 任务调度 domain
+│   │   ├── ports.py             # TaskRepository 协议
+│   │   ├── service/             # TaskManager
+│   │   ├── api.py               # 通用任务 API（列表、查询、取消）
+│   │   └── schemas.py           # 请求/响应模型
 │   └── file_task/               # 文件任务 domain
 │       ├── domain.py            # 领域模型（FileType、PathEntry*、Operation 等）
 │       ├── config.py            # 专属配置（JavVideoOrganizeConfig）
@@ -24,10 +29,10 @@ src/j_file_kit/
 │       │   ├── executors.py     # 执行器
 │       │   ├── initializers.py  # 初始化器
 │       │   └── finalizers.py    # 终结器
-│       ├── service/             # 用例编排（JavVideoOrganizer、TaskManager）
-│       ├── api.py               # API 路由
+│       ├── service/             # 用例编排（JavVideoOrganizer）
+│       ├── api.py               # 文件任务 API（启动任务）
 │       ├── schemas.py           # 请求/响应模型
-│       └── ports.py             # 仓储接口
+│       └── ports.py             # 仓储接口（FileItemRepository 等）
 ├── shared/                       # 共享层 - 跨领域通用代码
 │   ├── models/                  # 通用模型（Task、Enums、PathEntryType 等）
 │   ├── interfaces/              # 通用接口（BaseTask、Processor 协议）
@@ -48,6 +53,7 @@ src/j_file_kit/
 按业务领域组织，每个 domain 自包含，通过 ports 定义接口，由 infrastructure 实现。
 
 - **app_config**: 配置管理（GlobalConfig、AppConfig、TaskConfig）
+- **task**: 任务调度管理（TaskManager、TaskRepository）
 - **file_task**: 文件处理任务（扫描、分析、执行、统计）
 
 ### 2. Shared Layer（共享层）
@@ -81,6 +87,13 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
        ↓
 ┌─────────────┐
 │     App     │  → 业务领域（定义 ports）
+│             │
+│ ┌─────────┐ │
+│ │  task   │←┼──── file_task 依赖 task
+│ └─────────┘ │
+│ ┌─────────┐ │
+│ │file_task│ │
+│ └─────────┘ │
 └──────┬──────┘
        │
        ├──────────────────┐
@@ -94,7 +107,8 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 - shared/models: 无外部依赖
 - shared/interfaces: 依赖 shared/models
 - shared/utils: 依赖 shared/models（如 PathEntryType）
-- app/{domain}: 依赖 shared/
+- app/task: 依赖 shared/
+- app/file_task: 依赖 shared/ 和 app/task
 - infrastructure: 依赖 shared/，实现 domain 的 ports
 
 ### 依赖策略
@@ -117,6 +131,13 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 | **Task** | 业务用例层 | 定义"做什么"，组合处理器，创建 Pipeline |
 | **Pipeline** | 流程协调层 | 定义"怎么做流程"，协调扫描→处理→汇总 |
 | **ProcessorChain** | 处理器执行层 | 定义"怎么执行处理器"，管理执行顺序 |
+
+### TaskManager 职责
+
+TaskManager 是全局任务调度器，位于 `app/task/` domain：
+- 管理任务的生命周期（创建、执行、取消）
+- 控制并发（当前只允许一个任务运行）
+- 通过 BaseTask 协议与具体任务实现解耦
 
 ### 处理器类型
 
@@ -172,10 +193,10 @@ Pipeline 协调执行
 
 ### 添加新任务类型
 
-1. 在 `app/file_task/service/` 创建任务类
-2. 继承 `shared/interfaces/task.py::BaseTask`
+1. 在对应 domain 的 `service/` 创建任务类（如 `app/file_task/service/`）
+2. 实现 `shared/interfaces/task.py::BaseTask` 协议
 3. 实现 `run()` 方法
-4. 在 `app/file_task/api.py` 注册
+4. 在对应的 `api.py` 中注册启动端点
 
 ### 添加新 Domain
 
@@ -190,3 +211,4 @@ Pipeline 协调执行
 2. **路径冲突处理**: "先尝试后生成"模式，使用 `-jfk-xxxx` 后缀
 3. **仓储模式**: domain 定义 ports，infrastructure 实现，实现依赖倒置
 4. **JSON 字段**: 灵活存储不同任务类型的特定数据
+5. **任务调度分离**: TaskManager 独立于具体任务类型，通过 BaseTask 协议解耦

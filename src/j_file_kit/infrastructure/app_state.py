@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from j_file_kit.app.app_config.domain import AppConfig
-from j_file_kit.app.file_task.service.task_manager import TaskManager
+from j_file_kit.app.task.service.task_manager import TaskManager
 from j_file_kit.shared.utils.file_utils import ensure_directory
 
 from .config.config import load_config_from_db
