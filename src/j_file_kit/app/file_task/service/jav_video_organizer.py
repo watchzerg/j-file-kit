@@ -12,13 +12,13 @@ from j_file_kit.app.file_task.analyzer import AnalyzeConfig
 from j_file_kit.app.file_task.config import JavVideoOrganizeConfig
 from j_file_kit.app.file_task.pipeline import FilePipeline
 from j_file_kit.app.file_task.ports import TaskRepositoryRegistry
-from j_file_kit.app.task.domain import BaseTask, TaskType
+from j_file_kit.app.task.domain import TaskRunner, TaskType
 
 
-class JavVideoOrganizer(BaseTask):
+class JavVideoOrganizer(TaskRunner):
     """JAV视频文件整理任务
 
-    Task 是业务用例层，定义"做什么"。
+    TaskRunner 是业务用例层，定义"做什么"。
 
     职责：
     - 定义业务用例，配置 Pipeline

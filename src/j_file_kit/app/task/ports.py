@@ -6,7 +6,7 @@
 from datetime import datetime
 from typing import Any, Protocol
 
-from j_file_kit.app.task.domain import Task, TaskStatus, TaskType, TriggerType
+from j_file_kit.app.task.domain import TaskRecord, TaskStatus, TaskType, TriggerType
 
 
 class TaskRepository(Protocol):
@@ -57,7 +57,7 @@ class TaskRepository(Protocol):
         """
         ...
 
-    def get_task(self, task_id: int) -> Task | None:
+    def get_task(self, task_id: int) -> TaskRecord | None:
         """获取任务记录
 
         Args:
@@ -68,7 +68,7 @@ class TaskRepository(Protocol):
         """
         ...
 
-    def list_tasks(self) -> list[Task]:
+    def list_tasks(self) -> list[TaskRecord]:
         """列出所有任务
 
         Returns:
@@ -76,7 +76,7 @@ class TaskRepository(Protocol):
         """
         ...
 
-    def get_running_task(self) -> Task | None:
+    def get_running_task(self) -> TaskRecord | None:
         """获取运行中的任务
 
         Returns:
@@ -84,7 +84,7 @@ class TaskRepository(Protocol):
         """
         ...
 
-    def get_pending_or_running_tasks(self) -> list[Task]:
+    def get_pending_or_running_tasks(self) -> list[TaskRecord]:
         """获取所有待处理或运行中的任务
 
         Returns:

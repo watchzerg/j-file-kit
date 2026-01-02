@@ -8,7 +8,7 @@ import sqlite3
 from datetime import datetime
 from typing import Any
 
-from j_file_kit.app.task.domain import Task, TaskStatus, TaskType, TriggerType
+from j_file_kit.app.task.domain import TaskRecord, TaskStatus, TaskType, TriggerType
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
@@ -30,16 +30,16 @@ class TaskRepositoryImpl:
         """
         self._conn_manager = connection_manager
 
-    def _row_to_task(self, row: sqlite3.Row) -> Task:
-        """将数据库行转换为 Task 对象
+    def _row_to_record(self, row: sqlite3.Row) -> TaskRecord:
+        """将数据库行转换为 TaskRecord 对象
 
         Args:
             row: 数据库行
 
         Returns:
-            Task 对象
+            TaskRecord 对象
         """
-        return Task(
+        return TaskRecord(
             task_id=row["task_id"],
             task_name=row["task_name"],
             task_type=TaskType(row["task_type"]),
@@ -141,7 +141,7 @@ class TaskRepositoryImpl:
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(query, params)
 
-    def get_task(self, task_id: int) -> Task | None:
+    def get_task(self, task_id: int) -> TaskRecord | None:
         """获取任务记录
 
         Args:
@@ -157,9 +157,9 @@ class TaskRepositoryImpl:
             if not row:
                 return None
 
-            return self._row_to_task(row)
+            return self._row_to_record(row)
 
-    def list_tasks(self) -> list[Task]:
+    def list_tasks(self) -> list[TaskRecord]:
         """列出所有任务
 
         Returns:
@@ -169,9 +169,9 @@ class TaskRepositoryImpl:
             cursor.execute("SELECT * FROM tasks ORDER BY start_time DESC")
             rows = cursor.fetchall()
 
-            return [self._row_to_task(row) for row in rows]
+            return [self._row_to_record(row) for row in rows]
 
-    def get_running_task(self) -> Task | None:
+    def get_running_task(self) -> TaskRecord | None:
         """获取运行中的任务
 
         Returns:
@@ -187,9 +187,9 @@ class TaskRepositoryImpl:
             if not row:
                 return None
 
-            return self._row_to_task(row)
+            return self._row_to_record(row)
 
-    def get_pending_or_running_tasks(self) -> list[Task]:
+    def get_pending_or_running_tasks(self) -> list[TaskRecord]:
         """获取所有待处理或运行中的任务
 
         Returns:
@@ -202,4 +202,4 @@ class TaskRepositoryImpl:
             )
             rows = cursor.fetchall()
 
-            return [self._row_to_task(row) for row in rows]
+            return [self._row_to_record(row) for row in rows]

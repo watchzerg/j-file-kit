@@ -3,13 +3,13 @@
 定义文件任务domain专用的领域模型和核心概念。
 
 本模块包含文件处理相关的所有领域模型，包括：
+- 路径项类型枚举（PathEntryType）
 - 文件类型枚举（FileType）
 - 操作类型枚举（OperationType）
 - 番号值对象（SerialId）
 - 操作记录模型（Operation）
 
 这些模型是文件domain的核心概念，专门用于文件处理任务，不属于跨domain的通用模型。
-注：PathEntryType 已迁移到 shared/models/enums.py（通用文件系统概念）。
 """
 
 import re
@@ -27,6 +27,16 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 # ============================================================================
 # 枚举类型
 # ============================================================================
+
+
+class PathEntryType(str, Enum):
+    """路径项类型枚举
+
+    区分路径项是文件还是文件夹，用于目录扫描和遍历操作。
+    """
+
+    FILE = "file"
+    DIRECTORY = "directory"
 
 
 class FileType(str, Enum):

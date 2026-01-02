@@ -20,7 +20,7 @@ src/j_file_kit/
 │   │   ├── api.py               # 通用任务 API（列表、查询、取消）
 │   │   └── schemas.py           # 请求/响应模型
 │   └── file_task/               # 文件任务 domain
-│       ├── domain.py            # 领域模型（FileType、PathEntry*、Operation 等）
+│       ├── domain.py            # 领域模型（PathEntryType、FileType、Operation 等）
 │       ├── config.py            # 专属配置（JavVideoOrganizeConfig）
 │       ├── pipelines/file/      # 处理管道（流程协调）
 │       ├── processors/file/     # 处理器实现
@@ -33,7 +33,7 @@ src/j_file_kit/
 │       ├── schemas.py           # 请求/响应模型
 │       └── ports.py             # 仓储接口（FileItemRepository 等）
 ├── shared/                       # 共享层 - 跨领域通用代码
-│   ├── models/                  # 通用模型（Task、Enums、PathEntryType 等）
+│   ├── models/                  # 通用模型（预留扩展）
 │   ├── interfaces/              # 通用接口（BaseTask、Processor 协议）
 │   └── utils/                   # 工具函数（文件 I/O、日志配置、扫描等）
 ├── infrastructure/               # 基础设施层 - 有状态的 I/O 操作
@@ -59,7 +59,7 @@ src/j_file_kit/
 
 跨 domain 的通用代码，无业务逻辑，无外部依赖。
 
-- **models/**: PathEntryType 枚举（通用文件系统概念）
+- **models/**: 预留扩展（当前为空）
 - **interfaces/**: BaseTask 协议、Processor 基类
 - **utils/**: 工具函数（文件 I/O、日志配置等稳定的跨切面功能）
 
@@ -105,9 +105,9 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 ```
 
 **依赖规则**：
-- shared/models: 无外部依赖
+- shared/models: 无外部依赖（预留扩展）
 - shared/interfaces: 依赖 shared/models
-- shared/utils: 依赖 shared/models（如 PathEntryType）
+- shared/utils: 无外部依赖（纯文件 I/O 工具）
 - app/task: 依赖 shared/
 - app/file_task: 依赖 shared/ 和 app/task
 - infrastructure: 依赖 shared/ 和 app/（ports、domain models），实现 domain 的 ports

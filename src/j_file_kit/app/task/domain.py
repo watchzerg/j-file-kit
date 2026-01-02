@@ -3,10 +3,10 @@
 定义任务管理领域的核心模型和协议：
 - 枚举：TaskStatus, TaskType, TriggerType
 - 异常：TaskError, TaskNotFoundError, TaskAlreadyRunningError, TaskCancelledError
-- 模型：Task, TaskReport
-- 协议：BaseTask
+- 模型：TaskRecord, TaskReport
+- 协议：TaskRunner
 
-所有具体任务实现必须符合 BaseTask 协议。
+所有具体任务实现必须符合 TaskRunner 协议。
 """
 
 import threading
@@ -133,10 +133,10 @@ class TaskReport(BaseModel):
         self.total_duration_ms = stats.get("total_duration_ms", 0.0)
 
 
-class Task(BaseModel):
-    """任务模型
+class TaskRecord(BaseModel):
+    """任务记录
 
-    表示一个执行中的任务实例。
+    表示任务的持久化记录，对应数据库中的一行。
     """
 
     task_id: int = Field(..., description="任务ID")
@@ -149,10 +149,10 @@ class Task(BaseModel):
     error_message: str | None = Field(None, description="错误消息")
 
 
-class BaseTask(Protocol):
-    """任务基类协议
+class TaskRunner(Protocol):
+    """任务执行器协议
 
-    Task 是业务用例层，定义"做什么"。
+    TaskRunner 是业务用例层，定义"做什么"。
 
     职责：
     - 定义业务用例
@@ -175,7 +175,7 @@ class BaseTask(Protocol):
     ) -> None:
         """运行任务
 
-        Task 通过 `run()` 方法执行任务，内部调用 Pipeline。
+        TaskRunner 通过 `run()` 方法执行任务，内部调用 Pipeline。
 
         Args:
             task_id: 任务ID

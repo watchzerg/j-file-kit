@@ -23,6 +23,7 @@ from j_file_kit.app.file_task.decisions import (
     MoveDecision,
     SkipDecision,
 )
+from j_file_kit.app.file_task.domain import PathEntryType
 from j_file_kit.app.file_task.executor import (
     ExecutionResult,
     ExecutionStatus,
@@ -32,14 +33,10 @@ from j_file_kit.app.file_task.ports import (
     FileItemRepository,
     FileProcessorRepository,
 )
+from j_file_kit.app.file_task.utils import scan_directory_items
 from j_file_kit.app.task.domain import TaskStatus
 from j_file_kit.app.task.ports import TaskRepository
-from j_file_kit.shared.models.enums import PathEntryType
-from j_file_kit.shared.utils.file_utils import (
-    delete_directory,
-    is_directory_empty,
-    scan_directory_items,
-)
+from j_file_kit.shared.utils.file_utils import delete_directory, is_directory_empty
 from j_file_kit.shared.utils.logging import (
     configure_task_logger,
     remove_task_logger,

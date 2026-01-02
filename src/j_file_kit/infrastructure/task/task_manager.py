@@ -9,11 +9,11 @@ import threading
 from datetime import datetime
 
 from j_file_kit.app.task.domain import (
-    BaseTask,
-    Task,
     TaskAlreadyRunningError,
     TaskCancelledError,
     TaskNotFoundError,
+    TaskRecord,
+    TaskRunner,
     TaskStatus,
     TaskType,
     TriggerType,
@@ -81,7 +81,7 @@ class TaskManager:
 
     def start_task(
         self,
-        task: BaseTask,
+        task: TaskRunner,
         trigger_type: TriggerType = TriggerType.MANUAL,
         dry_run: bool = False,
     ) -> int:
@@ -139,7 +139,7 @@ class TaskManager:
     def _execute_task(
         self,
         task_id: int,
-        task: BaseTask,
+        task: TaskRunner,
         dry_run: bool,
         cancellation_event: threading.Event,
     ) -> None:
@@ -240,7 +240,7 @@ class TaskManager:
                     end_time=datetime.now(),
                 )
 
-    def get_task(self, task_id: int) -> Task:
+    def get_task(self, task_id: int) -> TaskRecord:
         """获取任务信息
 
         Args:
@@ -257,7 +257,7 @@ class TaskManager:
             raise TaskNotFoundError(task_id)
         return task_model
 
-    def list_tasks(self) -> list[Task]:
+    def list_tasks(self) -> list[TaskRecord]:
         """列出所有任务
 
         Returns:

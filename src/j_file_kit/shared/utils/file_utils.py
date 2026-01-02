@@ -8,11 +8,7 @@
 - 业务相关的文件操作（如带 -jfk- 后缀的冲突处理）应放在对应 domain 中
 """
 
-import os
-from collections.abc import Generator
 from pathlib import Path
-
-from j_file_kit.shared.models.enums import PathEntryType
 
 # ============================================================================
 # 文件操作
@@ -167,44 +163,3 @@ def is_directory(path: Path) -> bool:
         是否为目录
     """
     return path.is_dir()
-
-
-# ============================================================================
-# 目录扫描
-# ============================================================================
-
-
-def scan_directory_items(root: Path) -> Generator[tuple[Path, PathEntryType]]:
-    """扫描目录下的所有文件和目录（自底向上遍历）
-
-    自底向上遍历确保子目录先于父目录被处理，这样当子目录被删除后，
-    父目录可能变为空目录，可以在后续遍历中被清理。
-    先返回文件再返回目录，确保同一目录下的文件先处理，文件移动后目录可能变空。
-
-    Args:
-        root: 根目录路径
-
-    Yields:
-        (路径, 路径项类型) 元组
-
-    Raises:
-        FileNotFoundError: 目录不存在
-        NotADirectoryError: 路径不是目录
-    """
-    if not path_exists(root):
-        raise FileNotFoundError(f"扫描目录不存在: {root}")
-
-    if not is_directory(root):
-        raise NotADirectoryError(f"路径不是目录: {root}")
-
-    # 使用 os.walk 实现自底向上遍历（topdown=False）
-    for dirpath, _dirnames, filenames in os.walk(root, topdown=False):
-        dir_path = Path(dirpath)
-
-        # 先 yield 所有文件
-        for filename in filenames:
-            file_path = dir_path / filename
-            yield (file_path, PathEntryType.FILE)
-
-        # 再 yield 当前目录
-        yield (dir_path, PathEntryType.DIRECTORY)

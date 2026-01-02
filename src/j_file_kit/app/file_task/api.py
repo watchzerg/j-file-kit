@@ -12,12 +12,12 @@ from j_file_kit.app.file_task.schemas import (
     StartTaskResponse,
 )
 from j_file_kit.app.file_task.service.jav_video_organizer import JavVideoOrganizer
-from j_file_kit.app.task.domain import BaseTask, TaskType, TriggerType
+from j_file_kit.app.task.domain import TaskRunner, TaskType, TriggerType
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 
-def _new_task_instance(task_type: str, app_state: AppState) -> BaseTask:
+def _new_task_instance(task_type: str, app_state: AppState) -> TaskRunner:
     """获取任务实例
 
     Args:
