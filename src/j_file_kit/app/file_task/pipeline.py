@@ -33,15 +33,15 @@ from j_file_kit.app.file_task.ports import (
     FileProcessorRepository,
 )
 from j_file_kit.app.task.ports import TaskRepository
-from j_file_kit.infrastructure.logging.logging_setup import (
-    configure_task_logger,
-    remove_task_logger,
-)
 from j_file_kit.shared.models.enums import PathEntryType, TaskStatus
 from j_file_kit.shared.utils.file_utils import (
     delete_directory,
     is_directory_empty,
     scan_directory_items,
+)
+from j_file_kit.shared.utils.logging import (
+    configure_task_logger,
+    remove_task_logger,
 )
 
 

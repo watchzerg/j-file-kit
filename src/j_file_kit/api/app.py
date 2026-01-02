@@ -14,13 +14,13 @@ from j_file_kit.api.app_state import AppState
 from j_file_kit.app.app_config.api import router as config_router
 from j_file_kit.app.file_task.api import router as file_task_router
 from j_file_kit.app.task.api import router as task_router
-from j_file_kit.infrastructure.logging.logging_setup import setup_logging
 from j_file_kit.shared.models.exceptions import (
     TaskAlreadyRunningError,
     TaskCancelledError,
     TaskError,
     TaskNotFoundError,
 )
+from j_file_kit.shared.utils.logging import setup_logging
 
 
 @asynccontextmanager

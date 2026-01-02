@@ -1,6 +1,11 @@
 """日志配置模块
 
 配置 loguru 日志系统，提供标准库 logging 桥接和任务级别日志文件配置。
+
+设计意图：
+- 日志是稳定的跨切面关注点，API 不常变化，放在 shared 层直接依赖
+- 与文件操作策略一致：无状态、API 稳定、测试简单
+- 使用时直接 `from loguru import logger`，无需 port 抽象
 """
 
 import logging

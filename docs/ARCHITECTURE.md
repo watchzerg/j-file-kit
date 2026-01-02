@@ -35,11 +35,10 @@ src/j_file_kit/
 ├── shared/                       # 共享层 - 跨领域通用代码
 │   ├── models/                  # 通用模型（Task、Enums、PathEntryType 等）
 │   ├── interfaces/              # 通用接口（BaseTask、Processor 协议）
-│   └── utils/                   # 工具函数（文件 I/O、扫描等）
+│   └── utils/                   # 工具函数（文件 I/O、日志配置、扫描等）
 ├── infrastructure/               # 基础设施层 - 有状态的 I/O 操作
 │   ├── persistence/sqlite/      # 数据库（connection、repositories）
 │   ├── config/                  # 配置加载
-│   ├── logging/                 # 日志
 │   └── task/                    # 任务调度（TaskManager）
 └── api/                          # HTTP 接口层
     ├── app.py                   # FastAPI 应用
@@ -62,7 +61,7 @@ src/j_file_kit/
 
 - **models/**: Task、PathEntryType、TaskStatus、枚举、异常
 - **interfaces/**: BaseTask 协议、Processor 基类
-- **utils/**: 文件系统工具函数（move、delete、scan 等纯 I/O 操作）
+- **utils/**: 工具函数（文件 I/O、日志配置等稳定的跨切面功能）
 
 ### 3. Infrastructure Layer（基础设施层）
 
@@ -70,7 +69,6 @@ src/j_file_kit/
 
 - **persistence/sqlite/**: SQLite 仓储实现
 - **config/**: 配置加载（load_config_from_db）
-- **logging/**: 结构化日志
 - **task/**: 任务调度（TaskManager）
 
 ### 4. API Layer（HTTP 接口层）
@@ -123,6 +121,7 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 |------|----------|------|------|
 | **数据库操作** | 通过 ports 注入 | infrastructure/ | 可能迁移数据库、需要事务测试、连接管理复杂 |
 | **文件系统操作** | 直接依赖 | shared/utils/ | API 稳定、用临时目录即可测试、无状态管理 |
+| **日志操作** | 直接依赖 | shared/utils/ | API 稳定、loguru 原生支持测试捕获、无状态管理 |
 
 业务相关的文件操作（如带 `-jfk-` 后缀的冲突处理）应放在对应 domain 的 utils.py 中。
 

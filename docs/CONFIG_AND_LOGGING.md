@@ -60,7 +60,7 @@
 | 数据目录初始化 | `api/app_state.py` |
 | SQLite 表结构 | `infrastructure/persistence/sqlite/connection.py` |
 | 配置仓储 | `infrastructure/persistence/sqlite/config/config_repository.py` |
-| 日志配置 | `infrastructure/logging/logging_setup.py` |
+| 日志配置 | `shared/utils/logging.py` |
 | 文件处理结果 | `infrastructure/persistence/sqlite/task/file_item_repository.py` |
 | 文件操作记录 | `infrastructure/persistence/sqlite/task/file_processor_repository.py` |
 
