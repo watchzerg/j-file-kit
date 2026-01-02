@@ -1,13 +1,23 @@
-"""任务相关模型
+"""任务领域模型和协议
 
-定义任务执行相关的模型，包括任务实例和任务报告。
+定义任务管理领域的核心模型和协议：
+- 枚举：TaskStatus, TaskType, TriggerType
+- 异常：TaskError, TaskNotFoundError, TaskAlreadyRunningError, TaskCancelledError
+- 模型：Task, TaskReport
+- 协议：BaseTask
+
+所有具体任务实现必须符合 BaseTask 协议。
 """
 
+import threading
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from j_file_kit.app.file_task.ports import TaskRepositoryRegistry
 
 
 class TaskStatus(str, Enum):
@@ -31,6 +41,46 @@ class TriggerType(str, Enum):
 
     MANUAL = "manual"
     AUTO = "auto"
+
+
+# ============================================================
+# 领域异常
+# ============================================================
+
+
+class TaskError(Exception):
+    """任务相关异常基类"""
+
+    pass
+
+
+class TaskNotFoundError(TaskError):
+    """任务不存在异常"""
+
+    def __init__(self, task_id: int) -> None:
+        self.task_id = task_id
+        super().__init__(f"任务不存在: {task_id}")
+
+
+class TaskAlreadyRunningError(TaskError):
+    """任务已在运行异常"""
+
+    def __init__(self, running_task_id: int) -> None:
+        self.running_task_id = running_task_id
+        super().__init__(f"已有任务正在运行: {running_task_id}")
+
+
+class TaskCancelledError(TaskError):
+    """任务已取消异常"""
+
+    def __init__(self, task_id: int) -> None:
+        self.task_id = task_id
+        super().__init__(f"任务已取消: {task_id}")
+
+
+# ============================================================
+# 领域模型
+# ============================================================
 
 
 class TaskReport(BaseModel):
@@ -97,3 +147,43 @@ class Task(BaseModel):
     start_time: datetime = Field(..., description="开始时间")
     end_time: datetime | None = Field(None, description="结束时间")
     error_message: str | None = Field(None, description="错误消息")
+
+
+class BaseTask(Protocol):
+    """任务基类协议
+
+    Task 是业务用例层，定义"做什么"。
+
+    职责：
+    - 定义业务用例
+    - 通过 `run()` 方法执行任务
+
+    所有具体任务实现必须符合此协议（通过继承或实现相同接口）。
+    """
+
+    @property
+    def task_type(self) -> TaskType:
+        """任务类型"""
+        ...
+
+    def run(
+        self,
+        task_id: int,
+        repository_registry: TaskRepositoryRegistry,
+        dry_run: bool = False,
+        cancellation_event: threading.Event | None = None,
+    ) -> None:
+        """运行任务
+
+        Task 通过 `run()` 方法执行任务，内部调用 Pipeline。
+
+        Args:
+            task_id: 任务ID
+            repository_registry: 任务仓储注册表，提供统一的 Repository 获取接口
+            dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
+            cancellation_event: 取消事件，用于检查任务是否被取消
+
+        Raises:
+            Exception: 任务执行过程中的任何异常
+        """
+        ...

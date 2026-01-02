@@ -12,8 +12,7 @@ from j_file_kit.app.file_task.schemas import (
     StartTaskResponse,
 )
 from j_file_kit.app.file_task.service.jav_video_organizer import JavVideoOrganizer
-from j_file_kit.shared.interfaces.task import BaseTask
-from j_file_kit.shared.models.enums import TaskType, TriggerType
+from j_file_kit.app.task.domain import BaseTask, TaskType, TriggerType
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 

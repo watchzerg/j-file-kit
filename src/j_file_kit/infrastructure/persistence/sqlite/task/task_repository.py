@@ -8,11 +8,10 @@ import sqlite3
 from datetime import datetime
 from typing import Any
 
+from j_file_kit.app.task.domain import Task, TaskStatus, TaskType, TriggerType
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
-from j_file_kit.shared.models.enums import TaskStatus, TaskType, TriggerType
-from j_file_kit.shared.models.task import Task
 
 
 class TaskRepositoryImpl:

@@ -32,8 +32,9 @@ from j_file_kit.app.file_task.ports import (
     FileItemRepository,
     FileProcessorRepository,
 )
+from j_file_kit.app.task.domain import TaskStatus
 from j_file_kit.app.task.ports import TaskRepository
-from j_file_kit.shared.models.enums import PathEntryType, TaskStatus
+from j_file_kit.shared.models.enums import PathEntryType
 from j_file_kit.shared.utils.file_utils import (
     delete_directory,
     is_directory_empty,

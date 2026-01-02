@@ -8,6 +8,16 @@ import logging
 import threading
 from datetime import datetime
 
+from j_file_kit.app.task.domain import (
+    BaseTask,
+    Task,
+    TaskAlreadyRunningError,
+    TaskCancelledError,
+    TaskNotFoundError,
+    TaskStatus,
+    TaskType,
+    TriggerType,
+)
 from j_file_kit.app.task.ports import TaskRepository
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
@@ -15,14 +25,6 @@ from j_file_kit.infrastructure.persistence.sqlite.connection import (
 from j_file_kit.infrastructure.persistence.sqlite.task.task_repository_registry import (
     TaskRepositoryRegistryImpl,
 )
-from j_file_kit.shared.interfaces.task import BaseTask
-from j_file_kit.shared.models.enums import TaskStatus, TaskType, TriggerType
-from j_file_kit.shared.models.exceptions import (
-    TaskAlreadyRunningError,
-    TaskCancelledError,
-    TaskNotFoundError,
-)
-from j_file_kit.shared.models.task import Task
 
 logger = logging.getLogger(__name__)
 

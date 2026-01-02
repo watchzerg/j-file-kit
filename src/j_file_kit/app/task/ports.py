@@ -6,8 +6,7 @@
 from datetime import datetime
 from typing import Any, Protocol
 
-from j_file_kit.shared.models.enums import TaskStatus, TaskType, TriggerType
-from j_file_kit.shared.models.task import Task
+from j_file_kit.app.task.domain import Task, TaskStatus, TaskType, TriggerType
 
 
 class TaskRepository(Protocol):

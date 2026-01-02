@@ -14,7 +14,7 @@ from j_file_kit.api.app_state import AppState
 from j_file_kit.app.app_config.api import router as config_router
 from j_file_kit.app.file_task.api import router as file_task_router
 from j_file_kit.app.task.api import router as task_router
-from j_file_kit.shared.models.exceptions import (
+from j_file_kit.app.task.domain import (
     TaskAlreadyRunningError,
     TaskCancelledError,
     TaskError,

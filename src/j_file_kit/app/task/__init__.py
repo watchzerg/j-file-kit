@@ -1,6 +1,10 @@
 """任务管理 domain
 
-提供任务相关的协议定义和 API。
-包含 TaskRepository 协议和通用任务 API。
+定义任务管理领域的核心模型、协议和 API：
+- domain.py: 领域模型（Task, TaskReport）、枚举（TaskStatus, TaskType, TriggerType）、协议（BaseTask）
+- ports.py: TaskRepository 协议
+- api.py: 通用任务 API（列表、查询、取消）
+- schemas.py: API 请求/响应模型
+
 TaskManager 位于 infrastructure/task/ 层。
 """

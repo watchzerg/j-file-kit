@@ -59,7 +59,7 @@ src/j_file_kit/
 
 跨 domain 的通用代码，无业务逻辑，无外部依赖。
 
-- **models/**: Task、PathEntryType、TaskStatus、枚举、异常
+- **models/**: PathEntryType 枚举（通用文件系统概念）
 - **interfaces/**: BaseTask 协议、Processor 基类
 - **utils/**: 工具函数（文件 I/O、日志配置等稳定的跨切面功能）
 
@@ -87,7 +87,7 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
        │
        ↓
 ┌─────────────┐
-│     App     │  → 业务领域（定义 ports）
+│     App     │  → 业务领域（定义 ports、domain models、异常）
 │             │
 │ ┌─────────┐ │
 │ │  task   │←┼──── file_task 依赖 task
@@ -100,7 +100,7 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
        ├──────────────────┐
        ↓                  ↓
 ┌─────────────┐    ┌──────────────┐
-│   Shared    │    │Infrastructure│  → 实现 ports
+│   Shared    │    │Infrastructure│  → 实现 ports（依赖 app/）
 └─────────────┘    └──────────────┘
 ```
 
@@ -110,7 +110,7 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 - shared/utils: 依赖 shared/models（如 PathEntryType）
 - app/task: 依赖 shared/
 - app/file_task: 依赖 shared/ 和 app/task
-- infrastructure: 依赖 shared/，实现 domain 的 ports
+- infrastructure: 依赖 shared/ 和 app/（ports、domain models），实现 domain 的 ports
 - api: 依赖 app/、infrastructure/、shared/（作为 Composition Root 组装所有依赖）
 
 ### 依赖策略
