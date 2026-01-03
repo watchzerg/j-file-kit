@@ -1,8 +1,9 @@
 """文件任务配置模型
 
-定义文件任务相关的配置模型。
+定义文件任务相关的配置模型，包括任务配置和分析配置。
 """
 
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
@@ -33,3 +34,27 @@ class JavVideoOrganizeConfig(BaseModel):
             ext if ext.startswith(".") else f".{ext}" for ext in self.archive_extensions
         }
         return self
+
+
+class AnalyzeConfig(BaseModel):
+    """分析配置
+
+    包含分析文件所需的所有配置信息。
+    """
+
+    # 文件类型扩展名
+    video_extensions: set[str] = Field(..., description="视频文件扩展名")
+    image_extensions: set[str] = Field(..., description="图片文件扩展名")
+    archive_extensions: set[str] = Field(..., description="压缩文件扩展名")
+
+    # 目标目录
+    sorted_dir: Path | None = Field(None, description="整理后的视频图片存储目录")
+    unsorted_dir: Path | None = Field(None, description="无番号视频图片存储目录")
+    archive_dir: Path | None = Field(None, description="压缩文件存储目录")
+    misc_dir: Path | None = Field(None, description="Misc文件存储目录")
+
+    # 删除规则
+    misc_file_delete_rules: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Misc文件删除规则配置（keywords, extensions, max_size）",
+    )

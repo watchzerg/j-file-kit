@@ -10,12 +10,12 @@ from typing import Any
 from fastapi import HTTPException, status
 
 from j_file_kit.api.app_state import AppState
-from j_file_kit.app.app_config.domain import AppConfig, GlobalConfig, TaskConfig
-from j_file_kit.app.app_config.schemas import (
+from j_file_kit.app.config.application.config_validator import validate_global_config
+from j_file_kit.app.config.application.schemas import (
     UpdateGlobalConfigRequest,
     UpdateTaskConfigRequest,
 )
-from j_file_kit.app.app_config.service.config_validator import validate_global_config
+from j_file_kit.app.config.domain.models import AppConfig, GlobalConfig, TaskConfig
 
 
 class ConfigService:

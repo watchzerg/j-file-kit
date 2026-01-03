@@ -4,7 +4,7 @@
 配置模型定义在 models/config.py 中。
 """
 
-from j_file_kit.app.app_config.domain import AppConfig
+from j_file_kit.app.config.domain.models import AppConfig
 from j_file_kit.infrastructure.persistence.sqlite.config.config_repository import (
     AppConfigRepository,
 )

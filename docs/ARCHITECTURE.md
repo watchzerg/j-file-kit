@@ -2,56 +2,80 @@
 
 ## 概述
 
-j-file-kit 采用领域驱动设计（DDD）架构，按业务领域组织代码。每个领域包含完整的领域模型、业务逻辑、API 接口和端口定义，遵循依赖倒置原则。
+j-file-kit 采用领域驱动设计（DDD）架构，按业务领域组织代码，每个模块内部分为 domain 层（领域核心）和 application 层（应用编排）。遵循依赖倒置原则，domain 层定义接口（ports），infrastructure 层实现接口。
 
 ## 目录结构
 
 ```
 src/j_file_kit/
-├── app/                          # 应用层 - 业务领域
-│   ├── app_config/              # 配置 domain
-│   │   ├── domain.py            # 配置领域模型
-│   │   ├── service/             # 业务逻辑
-│   │   ├── api.py               # API 路由
-│   │   ├── schemas.py           # 请求/响应模型
-│   │   └── ports.py             # 仓储接口
-│   ├── task/                    # 任务调度 domain
-│   │   ├── ports.py             # TaskRepository 协议
-│   │   ├── api.py               # 通用任务 API（列表、查询、取消）
-│   │   └── schemas.py           # 请求/响应模型
-│   └── file_task/               # 文件任务 domain
-│       ├── domain.py            # 领域模型（PathEntryType、FileType、Operation 等）
-│       ├── config.py            # 专属配置（JavVideoOrganizeConfig）
-│       ├── pipelines/file/      # 处理管道（流程协调）
-│       ├── processors/file/     # 处理器实现
-│       │   ├── analyzers/       # 分析器
-│       │   ├── executors.py     # 执行器
-│       │   ├── initializers.py  # 初始化器
-│       │   └── finalizers.py    # 终结器
-│       ├── service/             # 用例编排（JavVideoOrganizer）
-│       ├── api.py               # 文件任务 API（启动任务）
-│       ├── schemas.py           # 请求/响应模型
-│       └── ports.py             # 仓储接口（FileItemRepository 等）
+├── app/                          # 应用层 - 业务领域模块
+│   ├── config/                   # 配置模块
+│   │   ├── domain/               # 领域层
+│   │   │   ├── models.py         # 配置领域模型（GlobalConfig、TaskConfig、AppConfig）
+│   │   │   └── ports.py          # 仓储接口（AppConfigRepository）
+│   │   ├── application/          # 应用层
+│   │   │   ├── schemas.py        # 请求/响应 DTO
+│   │   │   ├── config_service.py # 配置服务
+│   │   │   └── config_validator.py # 验证逻辑
+│   │   └── api.py                # HTTP 路由
+│   ├── task/                     # 任务调度模块
+│   │   ├── domain/               # 领域层
+│   │   │   ├── models.py         # 领域模型（TaskStatus、TaskRecord、TaskRunner）
+│   │   │   └── ports.py          # 仓储接口（TaskRepository）
+│   │   ├── application/          # 应用层
+│   │   │   └── schemas.py        # 请求/响应 DTO
+│   │   └── api.py                # HTTP 路由（列表、查询、取消）
+│   └── file_task/                # 文件任务模块
+│       ├── domain/               # 领域层
+│       │   ├── models.py         # 领域模型（FileType、SerialId、Operation）
+│       │   ├── decisions.py      # 决策模型（MoveDecision、DeleteDecision、SkipDecision）
+│       │   └── ports.py          # 仓储接口（FileItemRepository、FileProcessorRepository）
+│       ├── application/          # 应用层
+│       │   ├── schemas.py        # 请求/响应 DTO
+│       │   ├── config.py         # 任务配置（JavVideoOrganizeConfig、AnalyzeConfig）
+│       │   ├── analyzer.py       # 分析器（analyze_file）
+│       │   ├── executor.py       # 执行器（execute_decision）
+│       │   ├── pipeline.py       # 处理管道（FilePipeline）
+│       │   ├── jav_video_organizer.py # 具体任务实现
+│       │   ├── utils.py          # 文件处理工具函数
+│       │   └── file_util.py      # JAV 文件名处理函数
+│       └── api.py                # HTTP 路由（启动任务）
 ├── shared/                       # 共享层 - 跨领域通用代码
-│   ├── models/                  # 通用模型（预留扩展）
-│   ├── interfaces/              # 通用接口（BaseTask、Processor 协议）
-│   └── utils/                   # 工具函数（文件 I/O、日志配置、扫描等）
+│   ├── models/                   # 通用模型（预留扩展）
+│   ├── interfaces/               # 通用接口（预留扩展）
+│   └── utils/                    # 工具函数（文件 I/O、日志配置）
 ├── infrastructure/               # 基础设施层 - 有状态的 I/O 操作
-│   ├── persistence/sqlite/      # 数据库（connection、repositories）
-│   ├── config/                  # 配置加载
-│   └── task/                    # 任务调度（TaskManager）
+│   ├── persistence/sqlite/       # 数据库（connection、repositories）
+│   │   ├── config/               # 配置仓储实现
+│   │   └── task/                 # 任务仓储实现
+│   ├── config/                   # 配置加载
+│   └── task/                     # 任务调度（TaskManager）
 └── api/                          # HTTP 接口层
-    ├── app.py                   # FastAPI 应用
-    └── app_state.py             # 应用状态管理（Composition Root）
+    ├── app.py                    # FastAPI 应用
+    └── app_state.py              # 应用状态管理（Composition Root）
 ```
 
 ## 架构分层
 
 ### 1. App Layer（应用层）
 
-按业务领域组织，每个 domain 自包含，通过 ports 定义接口，由 infrastructure 实现。
+按业务领域组织，每个模块包含两个子层：
 
-- **app_config**: 配置管理（GlobalConfig、AppConfig、TaskConfig）
+**Domain 层（领域核心）**：
+- 实体（Entities）：业务核心对象
+- 值对象（Value Objects）：不可变的业务概念
+- 枚举：业务状态和类型定义
+- 领域异常：业务相关的异常类型
+- 仓储接口（Ports）：定义数据访问接口
+
+**Application 层（应用编排）**：
+- 用例服务（Services）：业务逻辑编排
+- DTO（Schemas）：请求/响应数据传输对象
+- 配置模型：任务配置等
+- 管道（Pipeline）：处理流程协调
+
+**各模块职责**：
+- **config**: 配置管理（GlobalConfig、AppConfig、TaskConfig）
 - **task**: 任务协议和 API（TaskRepository 协议、通用任务 API）
 - **file_task**: 文件处理任务（扫描、分析、执行、统计）
 
@@ -60,7 +84,7 @@ src/j_file_kit/
 跨 domain 的通用代码，无业务逻辑，无外部依赖。
 
 - **models/**: 预留扩展（当前为空）
-- **interfaces/**: BaseTask 协议、Processor 基类
+- **interfaces/**: 预留扩展（当前为空）
 - **utils/**: 工具函数（文件 I/O、日志配置等稳定的跨切面功能）
 
 ### 3. Infrastructure Layer（基础设施层）
@@ -81,37 +105,45 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 ## 依赖关系
 
 ```
-┌─────────────┐
-│     API     │  → 路由注册、异常处理
-└──────┬──────┘
-       │
-       ↓
-┌─────────────┐
-│     App     │  → 业务领域（定义 ports、domain models、异常）
-│             │
-│ ┌─────────┐ │
-│ │  task   │←┼──── file_task 依赖 task
-│ └─────────┘ │
-│ ┌─────────┐ │
-│ │file_task│ │
-│ └─────────┘ │
-└──────┬──────┘
-       │
-       ├──────────────────┐
-       ↓                  ↓
-┌─────────────┐    ┌──────────────┐
-│   Shared    │    │Infrastructure│  → 实现 ports（依赖 app/）
-└─────────────┘    └──────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                           API Layer                              │
+│              (路由注册、异常处理、生命周期管理)                    │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                               ↓
+┌─────────────────────────────────────────────────────────────────┐
+│                          App Layer                               │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    各业务模块                              │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐   │   │
+│  │  │   config    │  │    task     │←─│    file_task    │   │   │
+│  │  │ ┌─────────┐ │  │ ┌─────────┐ │  │ ┌─────────────┐ │   │   │
+│  │  │ │ domain  │ │  │ │ domain  │ │  │ │   domain    │ │   │   │
+│  │  │ ├─────────┤ │  │ ├─────────┤ │  │ ├─────────────┤ │   │   │
+│  │  │ │ app层   │ │  │ │ app层   │ │  │ │ application │ │   │   │
+│  │  │ └─────────┘ │  │ └─────────┘ │  │ └─────────────┘ │   │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────────┘   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+            ┌──────────────────┴──────────────────┐
+            ↓                                      ↓
+┌───────────────────────┐              ┌───────────────────────┐
+│    Shared Layer       │              │  Infrastructure Layer │
+│  (无业务逻辑的工具)     │              │  (实现 ports 接口)     │
+└───────────────────────┘              └───────────────────────┘
 ```
 
 **依赖规则**：
-- shared/models: 无外部依赖（预留扩展）
-- shared/interfaces: 依赖 shared/models
-- shared/utils: 无外部依赖（纯文件 I/O 工具）
-- app/task: 依赖 shared/
-- app/file_task: 依赖 shared/ 和 app/task
+- shared/: 无外部依赖（纯工具函数）
+- app/*/domain: 仅依赖 shared/ 和其他模块的 domain 层
+- app/*/application: 依赖 shared/ 和本模块的 domain 层
 - infrastructure: 依赖 shared/ 和 app/（ports、domain models），实现 domain 的 ports
 - api: 依赖 app/、infrastructure/、shared/（作为 Composition Root 组装所有依赖）
+
+### 模块间依赖
+
+- **file_task** 依赖 **task**：file_task.domain.ports 使用 task.domain.ports.TaskRepository
 
 ### 依赖策略
 
@@ -123,34 +155,33 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 | **文件系统操作** | 直接依赖 | shared/utils/ | API 稳定、用临时目录即可测试、无状态管理 |
 | **日志操作** | 直接依赖 | shared/utils/ | API 稳定、loguru 原生支持测试捕获、无状态管理 |
 
-业务相关的文件操作（如带 `-jfk-` 后缀的冲突处理）应放在对应 domain 的 utils.py 中。
+业务相关的文件操作（如带 `-jfk-` 后缀的冲突处理）应放在对应模块的 application/utils.py 中。
 
 ## 核心概念
 
-### Task、Pipeline、ProcessorChain 职责分工
+### Task、Pipeline 职责分工
 
 | 组件 | 层次 | 职责 |
 |------|------|------|
-| **Task** | 业务用例层 | 定义"做什么"，组合处理器，创建 Pipeline |
-| **Pipeline** | 流程协调层 | 定义"怎么做流程"，协调扫描→处理→汇总 |
-| **ProcessorChain** | 处理器执行层 | 定义"怎么执行处理器"，管理执行顺序 |
+| **TaskRunner** | 业务用例层 | 定义"做什么"，配置 Pipeline |
+| **Pipeline** | 流程协调层 | 定义"怎么做流程"，协调扫描→分析→执行 |
+| **Analyzer** | 分析层 | 分析文件，返回 Decision |
+| **Executor** | 执行层 | 根据 Decision 执行操作 |
 
 ### TaskManager 职责
 
 TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调度基础设施）：
 - 管理任务的生命周期（创建、执行、取消）
 - 控制并发（当前只允许一个任务运行）
-- 通过 BaseTask 协议与具体任务实现解耦
+- 通过 TaskRunner 协议与具体任务实现解耦
 - 协调运行时依赖组装（创建 TaskRepositoryRegistry）
 
-### 处理器类型
+### Decision 模式
 
-| 类型 | 级别 | 职责 |
-|------|------|------|
-| **Initializer** | 任务级 | 前置处理（状态、配置验证、资源初始化） |
-| **Analyzer** | Item 级 | 分析（分类、提取番号、决定动作） |
-| **Executor** | Item 级 | 执行操作（移动、删除文件） |
-| **Finalizer** | 任务级 | 后处理（统计信息更新） |
+文件处理使用 Decision 模式，分离"分析"和"执行"：
+- **MoveDecision**: 移动文件到目标目录
+- **DeleteDecision**: 删除文件
+- **SkipDecision**: 跳过不处理
 
 ## 数据存储
 
@@ -177,42 +208,59 @@ TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调
 API 请求 → 创建任务实例 → TaskManager 启动（后台线程）
     ↓
 Pipeline 协调执行
-    ├── Initializers（前置处理）
-    ├── Scanner（扫描文件）
-    ├── ProcessorChain（Analyzers → Executors）
+    ├── 扫描文件（scan_directory_items）
+    ├── 分析文件（analyze_file → Decision）
+    ├── 执行决策（execute_decision）
     ├── 结果持久化
-    └── Finalizers（后处理）
+    └── 任务完成
     ↓
 任务完成，状态更新到数据库
 ```
 
 ## 扩展指南
 
-### 添加新处理器
-
-1. 在 `app/file_task/processors/file/` 创建处理器类
-2. 继承 `shared/interfaces/processors/` 中的基类
-3. 实现 `process()`（Item 级）或 `initialize()`/`finalize()`（任务级）
-4. 在 `jav_video_organizer.py` 的 `create_pipeline()` 中注册
-
 ### 添加新任务类型
 
-1. 在对应 domain 的 `service/` 创建任务类（如 `app/file_task/service/`）
-2. 实现 `shared/interfaces/task.py::BaseTask` 协议
+1. 在对应模块的 `application/` 创建任务类（如 `app/file_task/application/new_task.py`）
+2. 实现 `TaskRunner` 协议
 3. 实现 `run()` 方法
 4. 在对应的 `api.py` 中注册启动端点
 
 ### 添加新 Domain
 
 1. 在 `app/` 下创建目录（如 `app/new_domain/`）
-2. 创建：`domain.py`、`ports.py`、`schemas.py`、`service/`、`api.py`
-3. 在 `infrastructure/persistence/sqlite/` 创建仓储实现
-4. 在 `api/app.py` 注册路由
+2. 创建 domain 层：
+   - `domain/models.py`：领域模型
+   - `domain/ports.py`：仓储接口
+3. 创建 application 层：
+   - `application/schemas.py`：DTO
+   - `application/services.py`：业务服务
+4. 创建 `api.py`：HTTP 路由
+5. 在 `infrastructure/persistence/sqlite/` 创建仓储实现
+6. 在 `api/app.py` 注册路由
+
+### 模块内部结构模板
+
+```
+app/new_domain/
+├── __init__.py
+├── domain/
+│   ├── __init__.py
+│   ├── models.py       # 实体、值对象、枚举、异常
+│   └── ports.py        # 仓储接口
+├── application/
+│   ├── __init__.py
+│   ├── schemas.py      # DTO
+│   └── services.py     # 用例服务
+└── api.py              # HTTP 路由
+```
 
 ## 关键设计决策
 
-1. **SQLite 存储配置**: 统一数据存储，便于管理和备份
-2. **路径冲突处理**: "先尝试后生成"模式，使用 `-jfk-xxxx` 后缀
-3. **仓储模式**: domain 定义 ports，infrastructure 实现，实现依赖倒置
-4. **JSON 字段**: 灵活存储不同任务类型的特定数据
-5. **任务调度分离**: TaskManager 独立于具体任务类型，通过 BaseTask 协议解耦
+1. **Feature-First 模块组织**: 按业务功能划分模块，每个模块内部分 domain 和 application 层
+2. **SQLite 存储配置**: 统一数据存储，便于管理和备份
+3. **路径冲突处理**: "先尝试后生成"模式，使用 `-jfk-xxxx` 后缀
+4. **仓储模式**: domain 定义 ports，infrastructure 实现，实现依赖倒置
+5. **JSON 字段**: 灵活存储不同任务类型的特定数据
+6. **任务调度分离**: TaskManager 独立于具体任务类型，通过 TaskRunner 协议解耦
+7. **Decision 模式**: 分离分析和执行，支持 dry_run 预览

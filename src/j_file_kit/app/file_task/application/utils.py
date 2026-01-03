@@ -17,7 +17,7 @@ import string
 from collections.abc import Generator
 from pathlib import Path
 
-from j_file_kit.app.file_task.domain import FileType, PathEntryType
+from j_file_kit.app.file_task.domain.models import FileType, PathEntryType
 from j_file_kit.shared.utils.file_utils import is_directory, move_file, path_exists
 
 

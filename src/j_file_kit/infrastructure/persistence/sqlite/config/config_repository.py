@@ -8,7 +8,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from j_file_kit.app.app_config.domain import (
+from j_file_kit.app.config.domain.models import (
     GlobalConfig,
     TaskConfig,
     create_default_global_config,

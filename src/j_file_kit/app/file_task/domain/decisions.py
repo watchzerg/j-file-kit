@@ -14,7 +14,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from j_file_kit.app.file_task.domain import FileType, SerialId
+from j_file_kit.app.file_task.domain.models import FileType, SerialId
 
 
 class MoveDecision(BaseModel):

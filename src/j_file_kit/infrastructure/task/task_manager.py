@@ -8,7 +8,7 @@ import logging
 import threading
 from datetime import datetime
 
-from j_file_kit.app.task.domain import (
+from j_file_kit.app.task.domain.models import (
     TaskAlreadyRunningError,
     TaskCancelledError,
     TaskNotFoundError,
@@ -18,7 +18,7 @@ from j_file_kit.app.task.domain import (
     TaskType,
     TriggerType,
 )
-from j_file_kit.app.task.ports import TaskRepository
+from j_file_kit.app.task.domain.ports import TaskRepository
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )

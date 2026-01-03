@@ -7,12 +7,12 @@
 from fastapi import APIRouter, HTTPException, Request, status
 
 from j_file_kit.api.app_state import AppState
-from j_file_kit.app.app_config.domain import AppConfig
-from j_file_kit.app.app_config.schemas import (
+from j_file_kit.app.config.application.config_service import ConfigService
+from j_file_kit.app.config.application.schemas import (
     UpdateConfigRequest,
     UpdateConfigResponse,
 )
-from j_file_kit.app.app_config.service.config_service import ConfigService
+from j_file_kit.app.config.domain.models import AppConfig
 
 router = APIRouter(prefix="/api/config", tags=["config"])
 

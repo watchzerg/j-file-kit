@@ -14,15 +14,17 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from j_file_kit.app.file_task.decisions import (
+from j_file_kit.app.file_task.application.utils import (
+    move_file_with_conflict_resolution,
+)
+from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,
     FileDecision,
     MoveDecision,
     SkipDecision,
 )
-from j_file_kit.app.file_task.domain import FileType, OperationType, SerialId
-from j_file_kit.app.file_task.ports import FileProcessorRepository
-from j_file_kit.app.file_task.utils import move_file_with_conflict_resolution
+from j_file_kit.app.file_task.domain.models import FileType, OperationType, SerialId
+from j_file_kit.app.file_task.domain.ports import FileProcessorRepository
 from j_file_kit.shared.utils.file_utils import delete_file, ensure_directory
 
 

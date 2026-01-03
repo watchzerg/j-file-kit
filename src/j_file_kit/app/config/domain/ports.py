@@ -5,7 +5,7 @@
 
 from typing import Protocol
 
-from j_file_kit.app.app_config.domain import GlobalConfig, TaskConfig
+from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
 
 
 class AppConfigRepository(Protocol):

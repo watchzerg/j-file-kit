@@ -9,7 +9,7 @@
 from datetime import datetime
 from typing import Any
 
-from j_file_kit.app.file_task.decisions import FileItemData
+from j_file_kit.app.file_task.domain.decisions import FileItemData
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )

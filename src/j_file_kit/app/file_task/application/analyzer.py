@@ -12,43 +12,18 @@
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
-
-from j_file_kit.app.file_task.decisions import (
+from j_file_kit.app.file_task.application.config import AnalyzeConfig
+from j_file_kit.app.file_task.application.file_util import (
+    generate_jav_filename,
+    generate_sorted_dir,
+)
+from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,
     FileDecision,
     MoveDecision,
     SkipDecision,
 )
-from j_file_kit.app.file_task.domain import FileType
-from j_file_kit.app.file_task.file_util import (
-    generate_jav_filename,
-    generate_sorted_dir,
-)
-
-
-class AnalyzeConfig(BaseModel):
-    """分析配置
-
-    包含分析文件所需的所有配置信息。
-    """
-
-    # 文件类型扩展名
-    video_extensions: set[str] = Field(..., description="视频文件扩展名")
-    image_extensions: set[str] = Field(..., description="图片文件扩展名")
-    archive_extensions: set[str] = Field(..., description="压缩文件扩展名")
-
-    # 目标目录
-    sorted_dir: Path | None = Field(None, description="整理后的视频图片存储目录")
-    unsorted_dir: Path | None = Field(None, description="无番号视频图片存储目录")
-    archive_dir: Path | None = Field(None, description="压缩文件存储目录")
-    misc_dir: Path | None = Field(None, description="Misc文件存储目录")
-
-    # 删除规则
-    misc_file_delete_rules: dict[str, Any] = Field(
-        default_factory=dict,
-        description="Misc文件删除规则配置（keywords, extensions, max_size）",
-    )
+from j_file_kit.app.file_task.domain.models import FileType
 
 
 def analyze_file(path: Path, config: AnalyzeConfig) -> FileDecision:

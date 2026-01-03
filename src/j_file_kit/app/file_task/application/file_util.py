@@ -30,7 +30,7 @@
 import re
 from pathlib import Path
 
-from j_file_kit.app.file_task.domain import SerialId
+from j_file_kit.app.file_task.domain.models import SerialId
 
 # 默认番号提取正则表达式模式
 DEFAULT_SERIAL_PATTERN = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
@@ -186,7 +186,7 @@ def generate_sorted_dir(serial_id: SerialId) -> Path:
         相对子目录路径（不含基础目录和文件名）
 
     Examples:
-        >>> from j_file_kit.app.file_task.domain import SerialId
+        >>> from j_file_kit.app.file_task.domain.models import SerialId
         >>> generate_sorted_dir(SerialId(prefix="ABCD", number="123"))
         Path("A/AB/ABCD")
 

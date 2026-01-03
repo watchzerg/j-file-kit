@@ -6,9 +6,9 @@
 from pathlib import Path
 from typing import Any, Protocol
 
-from j_file_kit.app.file_task.decisions import FileItemData
-from j_file_kit.app.file_task.domain import Operation, OperationType
-from j_file_kit.app.task.ports import TaskRepository
+from j_file_kit.app.file_task.domain.decisions import FileItemData
+from j_file_kit.app.file_task.domain.models import Operation, OperationType
+from j_file_kit.app.task.domain.ports import TaskRepository
 
 
 class FileItemRepository(Protocol):

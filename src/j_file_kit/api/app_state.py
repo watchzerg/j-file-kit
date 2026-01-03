@@ -7,7 +7,7 @@
 import os
 from pathlib import Path
 
-from j_file_kit.app.app_config.domain import AppConfig
+from j_file_kit.app.config.domain.models import AppConfig
 from j_file_kit.infrastructure.config.config import load_config_from_db
 from j_file_kit.infrastructure.persistence.sqlite.config.config_repository import (
     AppConfigRepository,

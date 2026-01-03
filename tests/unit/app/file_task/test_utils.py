@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 
-from j_file_kit.app.file_task.domain import FileType
-from j_file_kit.app.file_task.utils import (
+from j_file_kit.app.file_task.application.utils import (
     generate_alternative_filename,
     get_file_type,
 )
+from j_file_kit.app.file_task.domain.models import FileType
 
 
 @pytest.mark.unit

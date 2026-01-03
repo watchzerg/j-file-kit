@@ -6,7 +6,12 @@
 from datetime import datetime
 from typing import Any, Protocol
 
-from j_file_kit.app.task.domain import TaskRecord, TaskStatus, TaskType, TriggerType
+from j_file_kit.app.task.domain.models import (
+    TaskRecord,
+    TaskStatus,
+    TaskType,
+    TriggerType,
+)
 
 
 class TaskRepository(Protocol):

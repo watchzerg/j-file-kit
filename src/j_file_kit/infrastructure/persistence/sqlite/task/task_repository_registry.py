@@ -4,11 +4,11 @@
 实现 TaskRepositoryRegistry Protocol。
 """
 
-from j_file_kit.app.file_task.ports import (
+from j_file_kit.app.file_task.domain.ports import (
     FileItemRepository,
     FileProcessorRepository,
 )
-from j_file_kit.app.task.ports import TaskRepository
+from j_file_kit.app.task.domain.ports import TaskRepository
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )

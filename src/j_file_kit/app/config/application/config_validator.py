@@ -7,7 +7,7 @@
 
 from pathlib import Path
 
-from j_file_kit.app.app_config.domain import GlobalConfig
+from j_file_kit.app.config.domain.models import GlobalConfig
 
 
 def _get_all_dir_fields(global_config: GlobalConfig) -> list[tuple[str, Path | None]]:

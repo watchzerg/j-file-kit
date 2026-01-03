@@ -5,7 +5,7 @@
 
 from pydantic import BaseModel, Field
 
-from j_file_kit.app.task.domain import TaskStatus
+from j_file_kit.app.task.domain.models import TaskStatus
 
 
 class StartTaskRequest(BaseModel):

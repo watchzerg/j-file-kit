@@ -15,27 +15,28 @@ from pathlib import Path
 
 from loguru import logger
 
-from j_file_kit.app.file_task.analyzer import AnalyzeConfig, analyze_file
-from j_file_kit.app.file_task.decisions import (
+from j_file_kit.app.file_task.application.analyzer import analyze_file
+from j_file_kit.app.file_task.application.config import AnalyzeConfig
+from j_file_kit.app.file_task.application.executor import (
+    ExecutionResult,
+    ExecutionStatus,
+    execute_decision,
+)
+from j_file_kit.app.file_task.application.utils import scan_directory_items
+from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,
     FileDecision,
     FileItemData,
     MoveDecision,
     SkipDecision,
 )
-from j_file_kit.app.file_task.domain import PathEntryType
-from j_file_kit.app.file_task.executor import (
-    ExecutionResult,
-    ExecutionStatus,
-    execute_decision,
-)
-from j_file_kit.app.file_task.ports import (
+from j_file_kit.app.file_task.domain.models import PathEntryType
+from j_file_kit.app.file_task.domain.ports import (
     FileItemRepository,
     FileProcessorRepository,
 )
-from j_file_kit.app.file_task.utils import scan_directory_items
-from j_file_kit.app.task.domain import TaskStatus
-from j_file_kit.app.task.ports import TaskRepository
+from j_file_kit.app.task.domain.models import TaskStatus
+from j_file_kit.app.task.domain.ports import TaskRepository
 from j_file_kit.shared.utils.file_utils import delete_directory, is_directory_empty
 from j_file_kit.shared.utils.logging import (
     configure_task_logger,

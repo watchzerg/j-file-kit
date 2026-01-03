@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING, Any, Protocol
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
-    from j_file_kit.app.file_task.ports import TaskRepositoryRegistry
+    from j_file_kit.app.file_task.domain.ports import TaskRepositoryRegistry
 
 
 class TaskStatus(str, Enum):
