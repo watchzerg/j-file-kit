@@ -12,12 +12,9 @@
 import threading
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
-
-if TYPE_CHECKING:
-    from j_file_kit.app.file_task.domain.ports import TaskRepositoryRegistry
 
 
 class TaskStatus(str, Enum):
@@ -158,6 +155,11 @@ class TaskRunner(Protocol):
     - 定义业务用例
     - 通过 `run()` 方法执行任务
 
+    设计说明：
+    - TaskRunner 在构造时获得所需的 repositories
+    - run() 只接收运行时参数（task_id、dry_run、cancellation_event）
+    - 这样设计消除了对具体 Repository 类型的依赖，保持 Protocol 通用性
+
     所有具体任务实现必须符合此协议（通过继承或实现相同接口）。
     """
 
@@ -169,7 +171,6 @@ class TaskRunner(Protocol):
     def run(
         self,
         task_id: int,
-        repository_registry: TaskRepositoryRegistry,
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
     ) -> None:
@@ -178,8 +179,7 @@ class TaskRunner(Protocol):
         TaskRunner 通过 `run()` 方法执行任务，内部调用 Pipeline。
 
         Args:
-            task_id: 任务ID
-            repository_registry: 任务仓储注册表，提供统一的 Repository 获取接口
+            task_id: 任务 ID
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancellation_event: 取消事件，用于检查任务是否被取消
 

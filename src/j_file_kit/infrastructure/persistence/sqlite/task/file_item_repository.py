@@ -22,26 +22,26 @@ class FileItemRepositoryImpl:
     使用具体字段存储文件信息，提升查询性能和索引效率。
 
     实现 FileItemRepository Protocol。
+
+    设计说明：方法接收 task_id 参数，支持作为单例复用。
     """
 
     def __init__(
         self,
         connection_manager: SQLiteConnectionManager,
-        task_id: int,
     ) -> None:
         """初始化文件处理结果仓储
 
         Args:
             connection_manager: SQLite 连接管理器
-            task_id: 任务ID
         """
         self._conn_manager = connection_manager
-        self.task_id = task_id
 
-    def save_result(self, result: FileItemData) -> int:
+    def save_result(self, task_id: int, result: FileItemData) -> int:
         """保存单个文件处理结果
 
         Args:
+            task_id: 任务 ID
             result: 文件处理结果数据
 
         Returns:
@@ -73,7 +73,7 @@ class FileItemRepositoryImpl:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    self.task_id,
+                    task_id,
                     path,
                     stem,
                     file_type,
@@ -95,8 +95,11 @@ class FileItemRepositoryImpl:
                 raise RuntimeError("无法获取生成的结果ID")
             return int(result_id)
 
-    def get_statistics(self) -> dict[str, Any]:
+    def get_statistics(self, task_id: int) -> dict[str, Any]:
         """获取任务统计信息
+
+        Args:
+            task_id: 任务 ID
 
         Returns:
             统计信息字典，包含 total_items, success_items, error_items,
@@ -115,7 +118,7 @@ class FileItemRepositoryImpl:
                 FROM file_items
                 WHERE task_id = ?
                 """,
-                (self.task_id,),
+                (task_id,),
             )
             row = cursor.fetchone()
             if row is None:
@@ -137,7 +140,7 @@ class FileItemRepositoryImpl:
                 "total_duration_ms": row["total_duration_ms"] or 0.0,
             }
 
-    def get_detailed_statistics(self) -> dict[str, Any]:
+    def get_detailed_statistics(self, task_id: int) -> dict[str, Any]:
         """获取任务的详细统计信息
 
         包含两个部分：
@@ -151,6 +154,9 @@ class FileItemRepositoryImpl:
           - items_per_second: 处理速度（total_items / (total_duration_ms / 1000)，单位：item/秒）
 
         使用 SQL 聚合查询（SUM, AVG, MIN, MAX, COUNT）直接使用字段计算性能指标。
+
+        Args:
+            task_id: 任务 ID
 
         Returns:
             详细统计字典
@@ -170,7 +176,7 @@ class FileItemRepositoryImpl:
                 WHERE task_id = ? AND file_type IS NOT NULL
                 GROUP BY file_type
                 """,
-                (self.task_id,),
+                (task_id,),
             )
             rows = cursor.fetchall()
 
@@ -198,7 +204,7 @@ class FileItemRepositoryImpl:
                 FROM file_items
                 WHERE task_id = ?
                 """,
-                (self.task_id,),
+                (task_id,),
             )
             row = cursor.fetchone()
 

@@ -143,7 +143,8 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 
 ### 模块间依赖
 
-- **file_task** 依赖 **task**：file_task.domain.ports 使用 task.domain.ports.TaskRepository
+- **file_task** 依赖 **task**：file_task.application 使用 task.domain.models.TaskRunner 和 task.domain.ports.TaskRepository
+- **task** 不依赖 **file_task**：task 模块保持通用，不包含文件任务专属类型
 
 ### 依赖策略
 
@@ -174,7 +175,6 @@ TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调
 - 管理任务的生命周期（创建、执行、取消）
 - 控制并发（当前只允许一个任务运行）
 - 通过 TaskRunner 协议与具体任务实现解耦
-- 协调运行时依赖组装（创建 TaskRepositoryRegistry）
 
 ### Decision 模式
 
@@ -205,7 +205,7 @@ TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调
 ## 任务执行流程
 
 ```
-API 请求 → 创建任务实例 → TaskManager 启动（后台线程）
+API 请求 → 创建任务实例（注入 repositories）→ TaskManager 启动（后台线程）
     ↓
 Pipeline 协调执行
     ├── 扫描文件（scan_directory_items）
@@ -223,8 +223,9 @@ Pipeline 协调执行
 
 1. 在对应模块的 `application/` 创建任务类（如 `app/file_task/application/new_task.py`）
 2. 实现 `TaskRunner` 协议
-3. 实现 `run()` 方法
-4. 在对应的 `api.py` 中注册启动端点
+3. 构造函数接收所需的 repositories（通过 API 层注入）
+4. 实现 `run(task_id, dry_run, cancellation_event)` 方法
+5. 在对应的 `api.py` 中注册启动端点，组装依赖
 
 ### 添加新 Domain
 
@@ -264,3 +265,4 @@ app/new_domain/
 5. **JSON 字段**: 灵活存储不同任务类型的特定数据
 6. **任务调度分离**: TaskManager 独立于具体任务类型，通过 TaskRunner 协议解耦
 7. **Decision 模式**: 分离分析和执行，支持 dry_run 预览
+8. **Repository 参数化设计**: FileItemRepository/FileProcessorRepository 方法接收 task_id 参数而非构造时绑定，支持单例复用，简化依赖注入

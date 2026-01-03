@@ -14,9 +14,6 @@ from j_file_kit.app.task.application.schemas import (
     TaskStatusResponse,
 )
 from j_file_kit.app.task.domain.models import TaskStatus
-from j_file_kit.infrastructure.persistence.sqlite.task.file_item_repository import (
-    FileItemRepositoryImpl,
-)
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -66,11 +63,7 @@ async def get_task_status(
     # 从数据库查询 total_items
     total_items = None
     if task_model.status in (TaskStatus.COMPLETED, TaskStatus.RUNNING):
-        file_item_repository = FileItemRepositoryImpl(
-            app_state.sqlite_conn,
-            task_id_int,
-        )
-        stats = file_item_repository.get_statistics()
+        stats = app_state.file_item_repository.get_statistics(task_id_int)
         # 如果统计信息存在，返回 total_items（0 也是有效值）
         total_items = stats.get("total_items")
 

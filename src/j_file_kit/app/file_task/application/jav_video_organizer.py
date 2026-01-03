@@ -13,11 +13,15 @@ from j_file_kit.app.file_task.application.config import (
     JavVideoOrganizeConfig,
 )
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
-from j_file_kit.app.file_task.domain.ports import TaskRepositoryRegistry
-from j_file_kit.app.task.domain.models import TaskRunner, TaskType
+from j_file_kit.app.file_task.domain.ports import (
+    FileItemRepository,
+    FileProcessorRepository,
+)
+from j_file_kit.app.task.domain.models import TaskType
+from j_file_kit.app.task.domain.ports import TaskRepository
 
 
-class JavVideoOrganizer(TaskRunner):
+class JavVideoOrganizer:
     """JAV视频文件整理任务
 
     TaskRunner 是业务用例层，定义"做什么"。
@@ -29,17 +33,32 @@ class JavVideoOrganizer(TaskRunner):
     设计意图：
     - 使用 Decision 模式进行文件分析和处理
     - 简化的 Pipeline 设计，不使用 ProcessorChain
+    - 构造时注入所需的 repositories，支持依赖注入
     """
 
-    def __init__(self, config: AppConfig, log_dir: Path) -> None:
+    def __init__(
+        self,
+        config: AppConfig,
+        log_dir: Path,
+        task_repository: TaskRepository,
+        file_item_repository: FileItemRepository,
+        file_processor_repository: FileProcessorRepository,
+    ) -> None:
         """初始化JAV视频文件整理任务
 
         Args:
             config: 应用配置
             log_dir: 日志目录
+            task_repository: 任务仓储（更新任务状态）
+            file_item_repository: 文件处理结果仓储
+            file_processor_repository: 文件操作日志仓储
         """
         self.config = config
         self.log_dir = log_dir
+        self._task_repository = task_repository
+        self._file_item_repository = file_item_repository
+        self._file_processor_repository = file_processor_repository
+
         self.task_config = self.config.get_task("jav_video_organizer")
 
         if not self.task_config:
@@ -84,25 +103,18 @@ class JavVideoOrganizer(TaskRunner):
     def run(
         self,
         task_id: int,
-        repository_registry: TaskRepositoryRegistry,
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
     ) -> None:
         """运行文件整理
 
         Args:
-            task_id: 任务ID
-            repository_registry: 任务仓储注册表，提供统一的 Repository 获取接口
+            task_id: 任务 ID
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancellation_event: 取消事件，用于检查任务是否被取消
         """
         if self.inbox_dir is None:
             raise ValueError("inbox_dir 未设置")
-
-        # 从 Registry 获取 Repository
-        task_repository = repository_registry.get_task_repository()
-        file_processor_repository = repository_registry.get_file_processor_repository()
-        file_item_repository = repository_registry.get_file_item_repository()
 
         # 创建分析配置
         analyze_config = self._create_analyze_config()
@@ -114,8 +126,8 @@ class JavVideoOrganizer(TaskRunner):
             scan_root=self.inbox_dir,
             analyze_config=analyze_config,
             log_dir=self.log_dir,
-            task_repository=task_repository,
-            file_processor_repository=file_processor_repository,
-            file_item_repository=file_item_repository,
+            task_repository=self._task_repository,
+            file_processor_repository=self._file_processor_repository,
+            file_item_repository=self._file_item_repository,
         )
         pipeline.run(dry_run=dry_run, cancellation_event=cancellation_event)

@@ -15,6 +15,12 @@ from j_file_kit.infrastructure.persistence.sqlite.config.config_repository impor
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
+from j_file_kit.infrastructure.persistence.sqlite.task.file_item_repository import (
+    FileItemRepositoryImpl,
+)
+from j_file_kit.infrastructure.persistence.sqlite.task.file_processor_repository import (
+    FileProcessorRepositoryImpl,
+)
 from j_file_kit.infrastructure.persistence.sqlite.task.task_repository import (
     TaskRepositoryImpl,
 )
@@ -26,6 +32,11 @@ class AppState:
     """应用状态
 
     管理应用的全局状态，包括配置和任务管理器。
+
+    作为 Composition Root，负责组装所有依赖：
+    - 创建数据库连接
+    - 创建 repositories（单例）
+    - 创建 TaskManager
     """
 
     def __init__(self) -> None:
@@ -57,11 +68,12 @@ class AppState:
         # 创建任务仓储
         self.task_repository = TaskRepositoryImpl(self.sqlite_conn)
 
+        # 创建文件任务 repositories（单例，方法接收 task_id 参数）
+        self.file_item_repository = FileItemRepositoryImpl(self.sqlite_conn)
+        self.file_processor_repository = FileProcessorRepositoryImpl(self.sqlite_conn)
+
         # 创建任务管理器
-        self.task_manager: TaskManager = TaskManager(
-            self.task_repository,
-            self.sqlite_conn,
-        )
+        self.task_manager: TaskManager = TaskManager(self.task_repository)
 
     def reload_config(self) -> None:
         """重新加载配置并更新内存中的配置

@@ -19,12 +19,6 @@ from j_file_kit.app.task.domain.models import (
     TriggerType,
 )
 from j_file_kit.app.task.domain.ports import TaskRepository
-from j_file_kit.infrastructure.persistence.sqlite.connection import (
-    SQLiteConnectionManager,
-)
-from j_file_kit.infrastructure.persistence.sqlite.task.task_repository_registry import (
-    TaskRepositoryRegistryImpl,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -62,16 +56,13 @@ class TaskManager:
     def __init__(
         self,
         task_repository: TaskRepository,
-        sqlite_conn: SQLiteConnectionManager,
     ) -> None:
         """初始化任务管理器
 
         Args:
             task_repository: 任务仓储实例
-            sqlite_conn: SQLite 连接管理器实例
         """
         self.task_repository = task_repository
-        self._sqlite_conn = sqlite_conn
         self._lock = threading.Lock()
         self._running_task_id: int | None = None
         self._cancellation_event: threading.Event | None = None
@@ -154,17 +145,9 @@ class TaskManager:
             cancellation_event: 取消事件
         """
         try:
-            # 创建任务仓储注册表
-            repository_registry = TaskRepositoryRegistryImpl(
-                self._sqlite_conn,
-                task_id,
-                self.task_repository,
-            )
-
             # 执行任务
             task.run(
                 task_id=task_id,
-                repository_registry=repository_registry,
                 dry_run=dry_run,
                 cancellation_event=cancellation_event,
             )

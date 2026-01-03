@@ -24,21 +24,20 @@ class FileProcessorRepositoryImpl:
     只处理文件操作（MOVE、DELETE、RENAME），拒绝目录操作。
 
     实现 FileProcessorRepository Protocol。
+
+    设计说明：方法接收 task_id 参数，支持作为单例复用。
     """
 
     def __init__(
         self,
         connection_manager: SQLiteConnectionManager,
-        task_id: int,
     ) -> None:
         """初始化文件处理操作仓储
 
         Args:
             connection_manager: SQLite 连接管理器
-            task_id: 任务ID
         """
         self._conn_manager = connection_manager
-        self.task_id = task_id
 
     def _row_to_operation(self, row: sqlite3.Row) -> Operation:
         """将数据库行转换为操作记录对象
@@ -66,6 +65,7 @@ class FileProcessorRepositoryImpl:
 
     def create_operation(
         self,
+        task_id: int,
         operation: OperationType,
         source_path: Path,
         target_path: Path | None = None,
@@ -78,6 +78,7 @@ class FileProcessorRepositoryImpl:
         只接受文件操作类型（MOVE、DELETE、RENAME），拒绝目录操作类型。
 
         Args:
+            task_id: 任务 ID
             operation: 操作类型（必须是文件操作，不能是 CREATE_DIR 或 DELETE_DIR）
             source_path: 源路径
             target_path: 目标路径（可选）
@@ -111,7 +112,7 @@ class FileProcessorRepositoryImpl:
                 """,
                 (
                     operation_id,
-                    self.task_id,
+                    task_id,
                     file_item_id,
                     timestamp.isoformat(),
                     operation.value,
@@ -124,8 +125,11 @@ class FileProcessorRepositoryImpl:
 
         return operation_id
 
-    def get_operations(self) -> list[Operation]:
+    def get_operations(self, task_id: int) -> list[Operation]:
         """获取任务的操作记录
+
+        Args:
+            task_id: 任务 ID
 
         Returns:
             操作记录列表
@@ -133,13 +137,13 @@ class FileProcessorRepositoryImpl:
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 "SELECT * FROM file_operations WHERE task_id = ? ORDER BY timestamp",
-                (self.task_id,),
+                (task_id,),
             )
             rows = cursor.fetchall()
 
             return [self._row_to_operation(row) for row in rows]
 
-    def get_operation_statistics(self) -> dict[str, Any]:
+    def get_operation_statistics(self, task_id: int) -> dict[str, Any]:
         """获取任务的操作统计信息
 
         统计操作数量，包含两个维度：
@@ -147,6 +151,9 @@ class FileProcessorRepositoryImpl:
         - by_item_type: 按文件类型统计操作数量
 
         使用冗余字段 file_type 直接统计，无需 JOIN file_items 表。
+
+        Args:
+            task_id: 任务 ID
 
         Returns:
             操作统计字典，格式：
@@ -172,7 +179,7 @@ class FileProcessorRepositoryImpl:
                 WHERE task_id = ?
                 GROUP BY operation
                 """,
-                (self.task_id,),
+                (task_id,),
             )
             rows = cursor.fetchall()
 
@@ -192,7 +199,7 @@ class FileProcessorRepositoryImpl:
                 WHERE task_id = ? AND file_type IS NOT NULL
                 GROUP BY file_type, operation
                 """,
-                (self.task_id,),
+                (task_id,),
             )
             rows = cursor.fetchall()
 

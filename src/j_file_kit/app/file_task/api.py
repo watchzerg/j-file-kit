@@ -20,6 +20,8 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 def _new_task_instance(task_type: str, app_state: AppState) -> TaskRunner:
     """获取任务实例
 
+    在 API 层组装任务实例，注入所需的 repositories。
+
     Args:
         task_type: 任务类型
         app_state: 应用状态
@@ -31,7 +33,13 @@ def _new_task_instance(task_type: str, app_state: AppState) -> TaskRunner:
         HTTPException: 如果任务不存在
     """
     if task_type == TaskType.JAV_VIDEO_ORGANIZER.value:
-        return JavVideoOrganizer(app_state.config, app_state.log_dir)
+        return JavVideoOrganizer(
+            config=app_state.config,
+            log_dir=app_state.log_dir,
+            task_repository=app_state.task_repository,
+            file_item_repository=app_state.file_item_repository,
+            file_processor_repository=app_state.file_processor_repository,
+        )
     else:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

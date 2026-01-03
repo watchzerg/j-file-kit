@@ -141,6 +141,7 @@ class ExecutionResult(BaseModel):
 
 def execute_decision(
     decision: FileDecision,
+    task_id: int,
     dry_run: bool = False,
     file_processor_repository: FileProcessorRepository | None = None,
 ) -> ExecutionResult:
@@ -150,6 +151,7 @@ def execute_decision(
 
     Args:
         decision: 文件处理决策
+        task_id: 任务 ID（用于关联操作日志）
         dry_run: 是否为预览模式
         file_processor_repository: 文件处理操作仓储（用于记录操作日志）
 
@@ -161,9 +163,9 @@ def execute_decision(
 
     match decision:
         case MoveDecision():
-            return _execute_move(decision, file_processor_repository)
+            return _execute_move(decision, task_id, file_processor_repository)
         case DeleteDecision():
-            return _execute_delete(decision, file_processor_repository)
+            return _execute_delete(decision, task_id, file_processor_repository)
         case SkipDecision():
             return ExecutionResult.skipped(
                 source_path=decision.source_path,
@@ -174,12 +176,14 @@ def execute_decision(
 
 def _execute_move(
     decision: MoveDecision,
+    task_id: int,
     file_processor_repository: FileProcessorRepository | None,
 ) -> ExecutionResult:
     """执行移动操作
 
     Args:
         decision: 移动决策
+        task_id: 任务 ID
         file_processor_repository: 文件处理操作仓储
 
     Returns:
@@ -198,6 +202,7 @@ def _execute_move(
         # 记录操作日志
         if file_processor_repository:
             file_processor_repository.create_operation(
+                task_id,
                 OperationType.MOVE,
                 decision.source_path,
                 final_path,
@@ -223,12 +228,14 @@ def _execute_move(
 
 def _execute_delete(
     decision: DeleteDecision,
+    task_id: int,
     file_processor_repository: FileProcessorRepository | None,
 ) -> ExecutionResult:
     """执行删除操作
 
     Args:
         decision: 删除决策
+        task_id: 任务 ID
         file_processor_repository: 文件处理操作仓储
 
     Returns:
@@ -241,6 +248,7 @@ def _execute_delete(
         # 记录操作日志
         if file_processor_repository:
             file_processor_repository.create_operation(
+                task_id,
                 OperationType.DELETE,
                 decision.source_path,
                 None,

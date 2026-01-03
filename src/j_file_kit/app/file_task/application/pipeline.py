@@ -174,7 +174,7 @@ class FilePipeline:
     def _finish_task(self, dry_run: bool) -> None:
         """任务结束处理"""
         # 从数据库获取最终统计信息
-        stats = self.file_item_repository.get_statistics()
+        stats = self.file_item_repository.get_statistics(self.task_id)
 
         # 记录任务结束
         logger.bind(
@@ -219,6 +219,7 @@ class FilePipeline:
             # 执行决策
             result = execute_decision(
                 decision,
+                task_id=self.task_id,
                 dry_run=dry_run,
                 file_processor_repository=self.file_processor_repository,
             )
@@ -228,7 +229,7 @@ class FilePipeline:
 
             # 保存结果
             item_data = self._create_item_data(path, decision, result, duration_ms)
-            self.file_item_repository.save_result(item_data)
+            self.file_item_repository.save_result(self.task_id, item_data)
 
             # 更新统计
             self._update_statistics(result, duration_ms)
@@ -256,7 +257,7 @@ class FilePipeline:
                 error_message=str(e),
                 duration_ms=duration_ms,
             )
-            self.file_item_repository.save_result(error_data)
+            self.file_item_repository.save_result(self.task_id, error_data)
             self.error_items += 1
             self.total_duration_ms += duration_ms
 
