@@ -37,7 +37,7 @@ from j_file_kit.app.file_task.domain.ports import (
 )
 from j_file_kit.app.task.domain.models import TaskStatus
 from j_file_kit.app.task.domain.ports import TaskRepository
-from j_file_kit.shared.utils.file_utils import delete_directory, is_directory_empty
+from j_file_kit.shared.utils.file_utils import delete_directory_if_empty
 from j_file_kit.shared.utils.logging import (
     configure_task_logger,
     remove_task_logger,
@@ -373,19 +373,8 @@ class FilePipeline:
         if path.resolve() == self.scan_root.resolve():
             return
 
-        # 检查目录是否为空
-        if not is_directory_empty(path):
-            return
-
-        try:
-            delete_directory(path)
+        if delete_directory_if_empty(path):
             logger.bind(
                 task_id=str(self.task_id),
                 task_name=self.task_name,
             ).info(f"清理空目录: {path}")
-        except Exception as e:
-            logger.bind(
-                task_id=str(self.task_id),
-                task_name=self.task_name,
-                error=str(e),
-            ).warning(f"清理空目录失败: {path}")

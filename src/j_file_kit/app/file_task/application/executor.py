@@ -25,7 +25,7 @@ from j_file_kit.app.file_task.domain.decisions import (
 )
 from j_file_kit.app.file_task.domain.models import FileType, OperationType, SerialId
 from j_file_kit.app.file_task.domain.ports import FileProcessorRepository
-from j_file_kit.shared.utils.file_utils import delete_file, ensure_directory
+from j_file_kit.shared.utils.file_utils import delete_file_if_exists, ensure_directory
 
 
 class ExecutionStatus(str, Enum):
@@ -243,7 +243,7 @@ def _execute_delete(
     """
     try:
         # 执行删除
-        delete_file(decision.source_path)
+        delete_file_if_exists(decision.source_path)
 
         # 记录操作日志
         if file_processor_repository:

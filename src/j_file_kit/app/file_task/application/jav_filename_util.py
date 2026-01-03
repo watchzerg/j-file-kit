@@ -67,31 +67,6 @@ def _match_serial_id(
     return serial_id, match
 
 
-def trim_separators(text: str) -> str:
-    """去除字符串前后的分隔符
-
-    去除前后的：空格、连字符(-)、下划线(_)、@符号、#符号
-    注意：不处理点号(.)，因为点号可能是文件名内容的一部分
-
-    Args:
-        text: 要处理的字符串
-
-    Returns:
-        处理后的字符串
-
-    Examples:
-        >>> trim_separators("  _abc-123_  ")
-        "abc-123"
-        >>> trim_separators("@ABC-001#")
-        "ABC-001"
-        >>> trim_separators("...ABC-001...")
-        "...ABC-001..."  # 点号不会被trim
-        >>> trim_separators("")
-        ""
-    """
-    return text.strip(FILENAME_SEPARATORS)
-
-
 def generate_jav_filename(filename: str) -> tuple[str, SerialId | None]:
     """根据番号生成新文件名
 
@@ -141,9 +116,9 @@ def generate_jav_filename(filename: str) -> tuple[str, SerialId | None]:
     part3 = part3_with_suffix.removesuffix(suffix) if suffix else part3_with_suffix
     part4 = suffix  # 扩展名
 
-    # 对第1、3部分执行trim操作
-    trimmed_part1 = trim_separators(part1)
-    trimmed_part3 = trim_separators(part3)
+    # 对第1、3部分执行trim操作：去除前后的空格、连字符、下划线、@、#
+    trimmed_part1 = part1.strip(FILENAME_SEPARATORS)
+    trimmed_part3 = part3.strip(FILENAME_SEPARATORS)
 
     # 将 serial_id 转换为字符串用于文件名拼接
     serial_id_str = str(serial_id)

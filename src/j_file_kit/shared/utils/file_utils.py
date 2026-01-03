@@ -1,11 +1,11 @@
 """文件系统工具函数
 
-提供纯 I/O 文件操作的通用工具函数，无业务逻辑。
+提供有业务价值的文件操作工具函数，无业务逻辑。
 
 设计意图：
-- 封装底层文件系统操作，提供统一的接口
+- 只封装需要额外处理（如幂等语义、边界检查）的操作
+- 简单的 pathlib.Path 方法调用（如 exists(), is_dir(), rename()）应直接使用，不封装
 - 所有函数都是无状态的纯工具函数
-- 业务相关的文件操作（如带 -jfk- 后缀的冲突处理）应放在对应 domain 中
 """
 
 from pathlib import Path
@@ -15,25 +15,10 @@ from pathlib import Path
 # ============================================================================
 
 
-def move_file(source: Path, target: Path) -> None:
-    """移动文件
+def delete_file_if_exists(path: Path) -> None:
+    """删除文件（幂等）
 
-    Args:
-        source: 源文件路径
-        target: 目标文件路径
-
-    Raises:
-        FileNotFoundError: 源文件不存在
-        FileExistsError: 目标文件已存在
-        OSError: 移动操作失败
-    """
-    source.rename(target)
-
-
-def delete_file(path: Path) -> None:
-    """删除文件
-
-    静默成功：文件不存在时不抛出异常，其他异常正常抛出。
+    文件不存在时静默成功，其他异常正常抛出。
 
     Args:
         path: 文件路径
@@ -41,40 +26,7 @@ def delete_file(path: Path) -> None:
     Raises:
         OSError: 删除操作失败（文件不存在时不会抛出）
     """
-    try:
-        path.unlink(missing_ok=True)
-    except FileNotFoundError:
-        pass
-
-
-def write_text_file(path: Path, content: str, encoding: str = "utf-8") -> None:
-    """写入文本文件
-
-    Args:
-        path: 文件路径
-        content: 文件内容
-        encoding: 文件编码
-
-    Raises:
-        OSError: 写入操作失败
-    """
-    with open(path, "w", encoding=encoding) as f:
-        f.write(content)
-
-
-def append_text_file(path: Path, content: str, encoding: str = "utf-8") -> None:
-    """追加文本到文件
-
-    Args:
-        path: 文件路径
-        content: 要追加的内容
-        encoding: 文件编码
-
-    Raises:
-        OSError: 写入操作失败
-    """
-    with open(path, "a", encoding=encoding) as f:
-        f.write(content)
+    path.unlink(missing_ok=True)
 
 
 # ============================================================================
@@ -83,7 +35,7 @@ def append_text_file(path: Path, content: str, encoding: str = "utf-8") -> None:
 
 
 def ensure_directory(path: Path, parents: bool = True) -> None:
-    """创建目录
+    """创建目录（幂等，带类型检查）
 
     静默成功：目录已存在时不抛出异常，其他异常正常抛出。
     如果路径已存在但不是目录（如普通文件），抛出 FileExistsError。
@@ -101,65 +53,21 @@ def ensure_directory(path: Path, parents: bool = True) -> None:
     path.mkdir(parents=parents, exist_ok=True)
 
 
-def delete_directory(path: Path) -> None:
-    """删除空目录
+def delete_directory_if_empty(path: Path) -> bool:
+    """删除空目录（幂等）
 
-    静默成功：目录不存在时不抛出异常，其他异常正常抛出。
-    与 delete_file 保持接口一致性。
+    目录非空或不存在时静默跳过，不抛出异常。
 
     Args:
         path: 目录路径
 
-    Raises:
-        OSError: 删除操作失败（目录不存在时不会抛出）
+    Returns:
+        是否实际执行了删除
     """
+    if not path.is_dir():
+        return False
     try:
         path.rmdir()
-    except FileNotFoundError:
-        pass
-
-
-def is_directory_empty(path: Path) -> bool:
-    """检查目录是否为空
-
-    判断目录是否为空（无文件和子目录），用于决定是否可以安全删除。
-
-    Args:
-        path: 目录路径
-
-    Returns:
-        目录是否为空。如果目录不存在或无法访问，返回 False。
-    """
-    try:
-        return next(path.iterdir(), None) is None
-    except (OSError, FileNotFoundError):
+        return True
+    except OSError:
         return False
-
-
-# ============================================================================
-# 路径检查
-# ============================================================================
-
-
-def path_exists(path: Path) -> bool:
-    """检查路径是否存在
-
-    Args:
-        path: 路径
-
-    Returns:
-        路径是否存在
-    """
-    return path.exists()
-
-
-def is_directory(path: Path) -> bool:
-    """检查路径是否为目录
-
-    Args:
-        path: 路径
-
-    Returns:
-        是否为目录
-    """
-    return path.is_dir()

@@ -18,7 +18,6 @@ from collections.abc import Generator
 from pathlib import Path
 
 from j_file_kit.app.file_task.domain.models import FileType, PathEntryType
-from j_file_kit.shared.utils.file_utils import is_directory, move_file, path_exists
 
 
 def get_file_type(
@@ -128,7 +127,7 @@ def move_file_with_conflict_resolution(source: Path, target: Path) -> Path:
 
     for attempt in range(max_attempts):
         try:
-            move_file(source, current_target)
+            source.rename(current_target)
             return current_target
         except FileExistsError:
             if attempt == max_attempts - 1:
@@ -162,10 +161,10 @@ def scan_directory_items(root: Path) -> Generator[tuple[Path, PathEntryType]]:
         FileNotFoundError: 目录不存在
         NotADirectoryError: 路径不是目录
     """
-    if not path_exists(root):
+    if not root.exists():
         raise FileNotFoundError(f"扫描目录不存在: {root}")
 
-    if not is_directory(root):
+    if not root.is_dir():
         raise NotADirectoryError(f"路径不是目录: {root}")
 
     # 使用 os.walk 实现自底向上遍历（topdown=False）
