@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from j_file_kit.app.file_task.application.config import AnalyzeConfig
-from j_file_kit.app.file_task.application.file_util import (
+from j_file_kit.app.file_task.application.jav_filename_util import (
     generate_jav_filename,
     generate_sorted_dir,
 )

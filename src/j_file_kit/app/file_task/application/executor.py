@@ -14,7 +14,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-from j_file_kit.app.file_task.application.utils import (
+from j_file_kit.app.file_task.application.file_ops import (
     move_file_with_conflict_resolution,
 )
 from j_file_kit.app.file_task.domain.decisions import (

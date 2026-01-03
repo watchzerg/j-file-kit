@@ -22,7 +22,7 @@ from j_file_kit.app.file_task.application.executor import (
     ExecutionStatus,
     execute_decision,
 )
-from j_file_kit.app.file_task.application.utils import scan_directory_items
+from j_file_kit.app.file_task.application.file_ops import scan_directory_items
 from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,
     FileDecision,

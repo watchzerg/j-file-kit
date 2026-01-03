@@ -1,13 +1,13 @@
 """文件任务工具函数单元测试
 
-测试 file_task/utils.py 中的工具函数，包括文件类型判断和候选文件名生成。
+测试 file_task/file_ops.py 中的工具函数，包括文件类型判断和候选文件名生成。
 """
 
 from pathlib import Path
 
 import pytest
 
-from j_file_kit.app.file_task.application.utils import (
+from j_file_kit.app.file_task.application.file_ops import (
     generate_alternative_filename,
     get_file_type,
 )
