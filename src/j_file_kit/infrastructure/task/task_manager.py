@@ -4,9 +4,10 @@
 负责任务的生命周期管理，同一时间只允许一个任务运行。
 """
 
-import logging
 import threading
 from datetime import datetime
+
+from loguru import logger
 
 from j_file_kit.app.task.domain.models import (
     TaskAlreadyRunningError,
@@ -19,8 +20,6 @@ from j_file_kit.app.task.domain.models import (
     TriggerType,
 )
 from j_file_kit.app.task.domain.ports import TaskRepository
-
-logger = logging.getLogger(__name__)
 
 
 def generate_task_name(
@@ -276,10 +275,8 @@ class TaskManager:
             self._cancellation_event = None
 
             # 记录恢复日志
-            logger.info(
-                "Recovered %d incomplete task(s) from previous session",
-                len(incomplete_tasks),
-                extra={
-                    "recovered_task_ids": [task.task_id for task in incomplete_tasks],
-                },
+            logger.bind(
+                recovered_task_ids=[task.task_id for task in incomplete_tasks],
+            ).info(
+                f"Recovered {len(incomplete_tasks)} incomplete task(s) from previous session",
             )

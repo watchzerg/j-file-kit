@@ -9,6 +9,8 @@
 """
 
 import logging
+import os
+import sys
 from pathlib import Path
 from types import FrameType
 
@@ -50,10 +52,40 @@ def setup_logging() -> None:
     """初始化日志系统
 
     配置 loguru 的全局设置，并设置标准库 logging 桥接。
-    移除 loguru 默认 handler，配置 InterceptHandler 拦截所有标准库 logging 调用。
+
+    设计意图：
+    - 根据环境变量 J_FILE_KIT_ENV 选择日志格式：
+      * development（默认）：彩色文本格式，便于开发调试
+      * production：JSON 格式，便于日志收集系统解析
+    - 移除 loguru 默认 handler，添加配置好的控制台 handler
+    - 配置 InterceptHandler 拦截所有标准库 logging 调用
     """
     # 移除 loguru 默认 handler
     logger.remove()
+
+    env = os.getenv("J_FILE_KIT_ENV", "development").lower()
+    if env == "production":
+        logger.add(
+            sys.stderr,
+            serialize=True,
+            level="INFO",
+            backtrace=True,
+            diagnose=False,
+        )
+    else:
+        logger.add(
+            sys.stderr,
+            format=(
+                "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
+                "<level>{level: <8}</level> | "
+                "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+                "<level>{message}</level>"
+            ),
+            level="INFO",
+            colorize=True,
+            backtrace=True,
+            diagnose=True,
+        )
 
     # 配置标准库 logging 桥接
     logging.basicConfig(handlers=[InterceptHandler()], level=logging.INFO, force=True)

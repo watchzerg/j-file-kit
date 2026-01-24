@@ -9,6 +9,8 @@ import threading
 from collections.abc import Iterator
 from pathlib import Path
 
+from j_file_kit.app.file_task.domain.models import OperationType
+
 
 class SQLiteConnectionManager:
     """SQLite 连接管理器
@@ -35,6 +37,9 @@ class SQLiteConnectionManager:
         """创建数据库表结构"""
         with self._lock:
             cursor = self._conn.cursor()
+            operation_values = ", ".join(
+                f"'{operation.value}'" for operation in OperationType
+            )
 
             # 创建 tasks 表
             # statistics 字段使用 JSON 格式存储统计信息，便于扩展支持不同类型的任务统计需求
@@ -99,13 +104,13 @@ class SQLiteConnectionManager:
             # 使用具体字段替代 JSON，提升查询性能和索引效率
             # 只记录文件操作，不记录目录操作
             cursor.execute(
-                """
+                f"""
                 CREATE TABLE IF NOT EXISTS file_operations (
                     id TEXT PRIMARY KEY,
                     task_id INTEGER NOT NULL,
                     file_item_id INTEGER,
                     timestamp TEXT NOT NULL,
-                    operation TEXT NOT NULL,
+                    operation TEXT NOT NULL CHECK (operation IN ({operation_values})),
                     source_path TEXT NOT NULL,
                     target_path TEXT,
                     file_type TEXT,

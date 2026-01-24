@@ -91,6 +91,8 @@ class FileProcessorRepositoryImpl:
         Raises:
             ValueError: 如果操作类型是目录操作（CREATE_DIR 或 DELETE_DIR）
         """
+        if not isinstance(operation, OperationType):
+            raise ValueError(f"无效的操作类型: {operation!r}")
         # 检查操作类型，拒绝目录操作
         # 注意：由于 OperationType 枚举中已删除 CREATE_DIR 和 DELETE_DIR，
         # 这里主要是防御性检查，如果未来有人尝试传入这些值会抛出异常
