@@ -116,35 +116,42 @@ class TaskRepositoryImpl:
             statistics: 统计信息字典（可选），将被序列化为 JSON 格式存储
                 使用 JSON 格式便于扩展支持不同类型的任务统计需求
         """
-        updates: list[str] = []
-        params: list[str | int] = []
+        status_value = status.value if status is not None else None
+        end_time_value = end_time.isoformat() if end_time is not None else None
+        error_message_value = error_message
+        statistics_value = (
+            json.dumps(statistics, ensure_ascii=False)
+            if statistics is not None
+            else None
+        )
 
-        if status is not None:
-            updates.append("status = ?")
-            params.append(status.value)
-
-        if end_time is not None:
-            updates.append("end_time = ?")
-            params.append(end_time.isoformat())
-
-        if error_message is not None:
-            updates.append("error_message = ?")
-            params.append(error_message)
-
-        if statistics is not None:
-            updates.append("statistics = ?")
-            # 使用 ensure_ascii=False 支持中文，便于扩展支持不同类型的任务统计需求
-            params.append(json.dumps(statistics, ensure_ascii=False))
-
-        if not updates:
+        if (
+            status_value is None
+            and end_time_value is None
+            and error_message_value is None
+            and statistics_value is None
+        ):
             return
 
-        # 列名是硬编码的字符串字面量，值通过参数化查询传递，因此安全
-        query = "UPDATE tasks SET " + ", ".join(updates) + " WHERE task_id = ?"  # noqa: S608
-        params.append(task_id)
-
         with self._conn_manager.get_cursor() as cursor:
-            cursor.execute(query, params)
+            cursor.execute(
+                """
+                UPDATE tasks
+                SET
+                    status = COALESCE(?, status),
+                    end_time = COALESCE(?, end_time),
+                    error_message = COALESCE(?, error_message),
+                    statistics = COALESCE(?, statistics)
+                WHERE task_id = ?
+                """,
+                (
+                    status_value,
+                    end_time_value,
+                    error_message_value,
+                    statistics_value,
+                    task_id,
+                ),
+            )
 
     def get_task(self, task_id: int) -> TaskRecord | None:
         """获取任务记录

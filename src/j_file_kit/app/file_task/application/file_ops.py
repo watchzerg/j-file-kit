@@ -10,11 +10,11 @@
 """
 
 import os
-import random
 import re
 import string
 from collections.abc import Generator
 from pathlib import Path
+from random import choices as random_choices
 
 from j_file_kit.app.file_task.domain.models import PathEntryType
 
@@ -62,7 +62,7 @@ def generate_alternative_filename(target_path: Path) -> Path:
     # 生成新的候选路径
     chars = string.ascii_lowercase + string.digits
     # 非安全随机即可满足“文件名冲突消解”，不涉及密钥/令牌
-    random_suffix = "-jfk-" + "".join(random.choices(chars, k=4))  # noqa: S311
+    random_suffix = "-jfk-" + "".join(random_choices(chars, k=4))  # noqa: S311
     new_name = f"{original_stem}{random_suffix}{suffix}"
     return parent / new_name
 
