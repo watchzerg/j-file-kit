@@ -85,7 +85,6 @@ src/j_file_kit/
 跨 domain 的通用代码，无业务逻辑，无外部依赖。
 
 - **models/**: 预留扩展（当前为空）
-- **interfaces/**: 预留扩展（当前为空）
 - **utils/**: 工具函数（文件 I/O、日志配置等稳定的跨切面功能）
 
 ### 3. Infrastructure Layer（基础设施层）
@@ -178,6 +177,10 @@ TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调
 - 管理任务的生命周期（创建、执行、取消）
 - 控制并发（当前只允许一个任务运行）
 - 通过 TaskRunner 协议与具体任务实现解耦
+
+**部署约束**：
+- 本项目以单实例 Web 服务方式部署
+- TaskManager 的“单任务运行”约束基于单实例假设
 
 ### Decision 模式
 
