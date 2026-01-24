@@ -34,6 +34,8 @@ class TaskConfig(BaseModel):
     enabled: bool = Field(True, description="是否启用")
     config: dict[str, Any] = Field(..., description="任务特定配置")
 
+    # TODO: 未来将 config 替换为判别联合配置模型，消除 Any 与 type ignore
+    # 方向：为不同任务类型定义显式 Pydantic 配置模型并统一解析入口
     def get_config(self, config_type: type[T]) -> T:  # type: ignore[valid-type]
         """获取类型化的配置对象"""
         return config_type.model_validate(self.config)  # type: ignore[no-any-return, attr-defined]

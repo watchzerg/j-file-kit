@@ -56,6 +56,17 @@ src/j_file_kit/
     └── app_state.py              # 应用状态管理（Composition Root）
 ```
 
+### 测试目录约定
+
+```
+tests/
+├── app/               # 对应 app/ 业务模块
+├── infrastructure/    # 对应 infrastructure/
+└── shared/            # 对应 shared/
+```
+
+测试目录按层级镜像 `src/j_file_kit/`，单元测试放在对应层级下。
+
 ## 架构分层
 
 ### 1. App Layer（应用层）

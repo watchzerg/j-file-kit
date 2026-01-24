@@ -16,6 +16,7 @@ def main() -> None:
     parser.add_argument(
         "--host",
         type=str,
+        # 默认监听所有网卡，便于本地/容器环境访问；生产环境应由部署层控制
         default="0.0.0.0",  # noqa: S104
         help="监听地址（默认: 0.0.0.0）",
     )

@@ -21,6 +21,7 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 # Pydantic model_validator 需要接受 Any 类型
+# 这是框架接口边界：输入可能来自外部原始数据，无法提前类型化
 # ruff: noqa: ANN401
 
 
@@ -142,6 +143,7 @@ class SerialId(BaseModel):
 
     @model_validator(mode="before")
     @classmethod
+    # 保持 Any 是框架要求；这里仅做字符串到结构化数据的桥接
     def parse_string_input(cls, data: Any) -> Any:  # noqa: ANN401
         """支持从字符串自动解析（向后兼容）"""
         if isinstance(data, str):
