@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from j_file_kit.app.file_task.domain.decisions import FileItemData
-from j_file_kit.app.file_task.domain.models import Operation, OperationType
+from j_file_kit.app.file_task.domain.models import OperationType
 
 
 class FileItemRepository(Protocol):
@@ -43,21 +43,6 @@ class FileItemRepository(Protocol):
         Returns:
             统计信息字典，包含 total_items, success_items, error_items,
             skipped_items, warning_items, total_duration_ms
-        """
-        ...
-
-    def get_detailed_statistics(self, task_id: int) -> dict[str, Any]:
-        """获取任务的详细统计信息
-
-        包含两个部分：
-        - by_item_type: 按文件类型统计（video/image/archive/misc）
-        - performance_metrics: 性能指标
-
-        Args:
-            task_id: 任务 ID
-
-        Returns:
-            详细统计字典
         """
         ...
 
@@ -100,33 +85,5 @@ class FileProcessorRepository(Protocol):
 
         Raises:
             ValueError: 如果操作类型是目录操作（CREATE_DIR 或 DELETE_DIR）
-        """
-        ...
-
-    def get_operations(self, task_id: int) -> list[Operation]:
-        """获取任务的操作记录
-
-        Args:
-            task_id: 任务 ID
-
-        Returns:
-            操作记录列表
-        """
-        ...
-
-    def get_operation_statistics(self, task_id: int) -> dict[str, Any]:
-        """获取任务的操作统计信息
-
-        统计操作数量，包含两个维度：
-        - by_operation_type: 按操作类型统计
-        - by_item_type: 按文件类型统计操作数量
-
-        使用冗余字段 file_type 直接统计，无需 JOIN file_items 表。
-
-        Args:
-            task_id: 任务 ID
-
-        Returns:
-            操作统计字典
         """
         ...

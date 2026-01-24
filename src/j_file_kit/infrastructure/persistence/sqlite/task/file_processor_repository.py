@@ -9,7 +9,6 @@ import sqlite3
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from j_file_kit.app.file_task.domain.models import Operation, OperationType
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
@@ -124,97 +123,3 @@ class FileProcessorRepositoryImpl:
             )
 
         return operation_id
-
-    def get_operations(self, task_id: int) -> list[Operation]:
-        """获取任务的操作记录
-
-        Args:
-            task_id: 任务 ID
-
-        Returns:
-            操作记录列表
-        """
-        with self._conn_manager.get_cursor() as cursor:
-            cursor.execute(
-                "SELECT * FROM file_operations WHERE task_id = ? ORDER BY timestamp",
-                (task_id,),
-            )
-            rows = cursor.fetchall()
-
-            return [self._row_to_operation(row) for row in rows]
-
-    def get_operation_statistics(self, task_id: int) -> dict[str, Any]:
-        """获取任务的操作统计信息
-
-        统计操作数量，包含两个维度：
-        - by_operation_type: 按操作类型统计
-        - by_item_type: 按文件类型统计操作数量
-
-        使用冗余字段 file_type 直接统计，无需 JOIN file_items 表。
-
-        Args:
-            task_id: 任务 ID
-
-        Returns:
-            操作统计字典，格式：
-            {
-                "by_operation_type": {
-                    "move": 10,
-                    "delete": 5,
-                    "rename": 2
-                },
-                "by_item_type": {
-                    "video": {"move": 8, "delete": 2},
-                    "image": {"move": 2},
-                    ...
-                }
-            }
-        """
-        with self._conn_manager.get_cursor() as cursor:
-            # 按操作类型统计
-            cursor.execute(
-                """
-                SELECT operation, COUNT(*) as count
-                FROM file_operations
-                WHERE task_id = ?
-                GROUP BY operation
-                """,
-                (task_id,),
-            )
-            rows = cursor.fetchall()
-
-            by_operation_type: dict[str, int] = {}
-            for row in rows:
-                by_operation_type[row["operation"]] = row["count"]
-
-            # 按文件类型统计操作数量
-            # 直接使用 file_type 字段，无需 JOIN
-            cursor.execute(
-                """
-                SELECT
-                    file_type,
-                    operation,
-                    COUNT(*) as count
-                FROM file_operations
-                WHERE task_id = ? AND file_type IS NOT NULL
-                GROUP BY file_type, operation
-                """,
-                (task_id,),
-            )
-            rows = cursor.fetchall()
-
-            by_item_type: dict[str, dict[str, int]] = {}
-            for row in rows:
-                file_type = row["file_type"]
-                operation = row["operation"]
-                count = row["count"]
-
-                if file_type and file_type not in by_item_type:
-                    by_item_type[file_type] = {}
-                if file_type:
-                    by_item_type[file_type][operation] = count
-
-            return {
-                "by_operation_type": by_operation_type,
-                "by_item_type": by_item_type,
-            }
