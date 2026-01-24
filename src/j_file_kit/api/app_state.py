@@ -4,7 +4,6 @@
 在应用启动时初始化，提供统一的配置和任务管理接口。
 """
 
-import os
 from pathlib import Path
 
 from j_file_kit.app.config.domain.models import AppConfig
@@ -25,7 +24,6 @@ from j_file_kit.infrastructure.persistence.sqlite.task.task_repository import (
     TaskRepositoryImpl,
 )
 from j_file_kit.infrastructure.task.task_manager import TaskManager
-from j_file_kit.shared.utils.file_utils import ensure_directory
 
 
 class AppState:
@@ -40,25 +38,24 @@ class AppState:
     - 创建 TaskManager
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        base_dir: Path,
+        sqlite_conn: SQLiteConnectionManager,
+    ) -> None:
         """初始化应用状态
 
-        从环境变量 J_FILE_KIT_BASE_DIR 读取基础目录（默认 `.app-data`），
-        确定固定路径，创建配置仓储，从数据库加载配置。
+        Args:
+            base_dir: 应用基础目录
+            sqlite_conn: SQLite 连接管理器
         """
-        # 从环境变量读取基础目录
-        self.base_dir = Path(os.getenv("J_FILE_KIT_BASE_DIR", ".app-data"))
-
-        # 确定固定路径
-        self.db_path = self.base_dir / "sqlite" / "j_file_kit.db"
+        self.base_dir = base_dir
+        self.db_path = sqlite_conn.db_path
         self.log_dir = self.base_dir / "logs"
 
-        # 创建必要的目录
-        ensure_directory(self.base_dir / "sqlite", parents=True)
-        ensure_directory(self.log_dir, parents=True)
-
-        # 创建 SQLite 连接管理器（表结构在 __init__ 中自动创建）
-        self.sqlite_conn = SQLiteConnectionManager(self.db_path)
+        # 连接管理器由 lifespan 创建并初始化 schema
+        self.sqlite_conn = sqlite_conn
 
         # 创建应用配置仓储（会自动初始化默认配置）
         self.app_config_repository = AppConfigRepositoryImpl(self.sqlite_conn)

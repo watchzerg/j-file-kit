@@ -12,7 +12,7 @@
     └── {task_name}_{task_id}.jsonl  # 任务级别日志（JSON Lines 格式）
 ```
 
-初始化入口：`AppState.__init__()` → 创建目录 + SQLite 连接 + 默认配置
+初始化入口：FastAPI `lifespan` → 创建目录 + SQLite 连接 + schema 初始化
 
 ---
 
@@ -26,7 +26,7 @@
 | `task_configs` | 任务配置 | name, type, enabled, config(JSON)，支持 WebUI 动态修改 |
 
 **加载流程**：
-1. `SQLiteConnectionManager` 创建表结构
+1. `SQLiteSchemaInitializer` 初始化表结构
 2. `AppConfigRepositoryImpl._ensure_default_config()` 初始化默认配置
 3. `load_app_config_from_db()` 加载到内存 `AppConfig` 对象
 
@@ -81,7 +81,7 @@
 | 功能 | 文件 |
 |---|---|
 | 数据目录初始化 | `api/app_state.py` |
-| SQLite 表结构 | `infrastructure/persistence/sqlite/connection.py` |
+| SQLite 表结构 | `infrastructure/persistence/sqlite/schema.py` |
 | 配置仓储 | `infrastructure/persistence/sqlite/config/config_repository.py` |
 | 日志配置 | `shared/utils/logging.py` |
 | 文件处理结果 | `infrastructure/persistence/sqlite/task/file_item_repository.py` |

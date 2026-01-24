@@ -4,8 +4,10 @@
 包含应用生命周期管理和异常处理。
 """
 
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
@@ -30,6 +32,13 @@ from j_file_kit.app.task.domain.models import (
     TaskError,
     TaskNotFoundError,
 )
+from j_file_kit.infrastructure.persistence.sqlite.connection import (
+    SQLiteConnectionManager,
+)
+from j_file_kit.infrastructure.persistence.sqlite.schema import (
+    SQLiteSchemaInitializer,
+)
+from j_file_kit.shared.utils.file_utils import ensure_directory
 from j_file_kit.shared.utils.logging import setup_logging
 
 
@@ -44,7 +53,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     setup_logging()
 
     # 启动时初始化应用状态
-    app.state.app_state = AppState()
+    base_dir = Path(os.getenv("J_FILE_KIT_BASE_DIR", ".app-data"))
+    sqlite_dir = base_dir / "sqlite"
+    log_dir = base_dir / "logs"
+    ensure_directory(sqlite_dir, parents=True)
+    ensure_directory(log_dir, parents=True)
+
+    conn_manager = SQLiteConnectionManager(sqlite_dir / "j_file_kit.db")
+    SQLiteSchemaInitializer(conn_manager).initialize()
+
+    app.state.app_state = AppState(base_dir=base_dir, sqlite_conn=conn_manager)
 
     yield
 

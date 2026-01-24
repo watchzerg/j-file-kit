@@ -11,12 +11,16 @@ from j_file_kit.infrastructure.config.config_loader import load_app_config_from_
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
+from j_file_kit.infrastructure.persistence.sqlite.schema import (
+    SQLiteSchemaInitializer,
+)
 
 pytestmark = pytest.mark.unit
 
 
 def test_load_app_config_from_db_returns_default_config() -> None:
     conn_manager = SQLiteConnectionManager(Path(":memory:"))
+    SQLiteSchemaInitializer(conn_manager).initialize()
 
     config = load_app_config_from_db(conn_manager)
 
@@ -46,6 +50,7 @@ def test_load_app_config_from_db_wraps_repository_errors(
     )
 
     conn_manager = SQLiteConnectionManager(Path(":memory:"))
+    SQLiteSchemaInitializer(conn_manager).initialize()
 
     with pytest.raises(ValueError, match="从数据库加载配置失败"):
         load_app_config_from_db(conn_manager)
