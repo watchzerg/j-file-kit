@@ -102,3 +102,11 @@ def test_scan_directory_items_returns_files_before_dir(tmp_path: Path) -> None:
 def test_scan_directory_items_raises_for_missing_root(tmp_path: Path) -> None:
     with pytest.raises(FileNotFoundError):
         list(file_ops.scan_directory_items(tmp_path / "missing"))
+
+
+def test_scan_directory_items_raises_for_non_directory(tmp_path: Path) -> None:
+    file_path = tmp_path / "file.txt"
+    file_path.write_text("content")
+
+    with pytest.raises(NotADirectoryError):
+        list(file_ops.scan_directory_items(file_path))

@@ -18,10 +18,24 @@ def test_generate_jav_filename_serial_at_start() -> None:
     assert serial_id == SerialId(prefix="ABC", number="001")
 
 
+def test_generate_jav_filename_serial_at_start_without_suffix() -> None:
+    filename, serial_id = generate_jav_filename("ABC-001.mp4")
+
+    assert filename == "ABC-001.mp4"
+    assert serial_id == SerialId(prefix="ABC", number="001")
+
+
 def test_generate_jav_filename_serial_not_at_start() -> None:
     filename, serial_id = generate_jav_filename("video_ABC-001_hd.mp4")
 
     assert filename == "ABC-001 video-serialId-hd.mp4"
+    assert serial_id == SerialId(prefix="ABC", number="001")
+
+
+def test_generate_jav_filename_serial_not_at_start_without_suffix() -> None:
+    filename, serial_id = generate_jav_filename("video_ABC-001.mp4")
+
+    assert filename == "ABC-001 video-serialId.mp4"
     assert serial_id == SerialId(prefix="ABC", number="001")
 
 

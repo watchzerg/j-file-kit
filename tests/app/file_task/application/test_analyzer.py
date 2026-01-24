@@ -66,6 +66,18 @@ def test_analyze_file_misc_skip_when_no_misc_dir(tmp_path: Path) -> None:
     assert "misc_dir 未设置" in decision.reason
 
 
+def test_analyze_file_misc_moves_to_misc_dir(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    path = tmp_path / "note.txt"
+
+    decision = analyze_file(path, config)
+
+    assert isinstance(decision, MoveDecision)
+    assert decision.file_type == FileType.MISC
+    assert config.misc_dir is not None
+    assert decision.target_path == config.misc_dir / path.name
+
+
 def test_analyze_file_archive_moves_to_archive_dir(tmp_path: Path) -> None:
     config = _config(tmp_path)
     path = tmp_path / "archive.zip"
@@ -115,6 +127,17 @@ def test_analyze_file_media_without_serial_moves_unsorted(tmp_path: Path) -> Non
     assert decision.serial_id is None
     assert config.unsorted_dir is not None
     assert decision.target_path == config.unsorted_dir / path.name
+
+
+def test_analyze_file_media_skips_without_unsorted_dir(tmp_path: Path) -> None:
+    config = _config(tmp_path)
+    config.unsorted_dir = None
+    path = tmp_path / "no_serial.mp4"
+
+    decision = analyze_file(path, config)
+
+    assert isinstance(decision, SkipDecision)
+    assert "unsorted_dir 未设置" in decision.reason
 
 
 def test_analyze_file_media_skips_without_sorted_dir(tmp_path: Path) -> None:
