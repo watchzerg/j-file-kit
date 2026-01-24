@@ -130,6 +130,17 @@ class TaskReport(BaseModel):
         self.total_duration_ms = stats.get("total_duration_ms", 0.0)
 
 
+class TaskStatistics(BaseModel):
+    """任务统计信息"""
+
+    total_items: int = Field(0, description="总item数")
+    success_items: int = Field(0, description="成功item数")
+    error_items: int = Field(0, description="失败item数")
+    skipped_items: int = Field(0, description="跳过item数")
+    warning_items: int = Field(0, description="警告item数")
+    total_duration_ms: float = Field(0.0, description="总耗时（毫秒）")
+
+
 class TaskRecord(BaseModel):
     """任务记录
 
@@ -173,7 +184,7 @@ class TaskRunner(Protocol):
         task_id: int,
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
-    ) -> None:
+    ) -> TaskStatistics:
         """运行任务
 
         TaskRunner 通过 `run()` 方法执行任务，内部调用 Pipeline。
@@ -182,6 +193,9 @@ class TaskRunner(Protocol):
             task_id: 任务 ID
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancellation_event: 取消事件，用于检查任务是否被取消
+
+        Returns:
+            任务统计信息
 
         Raises:
             Exception: 任务执行过程中的任何异常

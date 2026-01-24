@@ -135,8 +135,6 @@ class TaskManager:
     ) -> None:
         """执行任务（内部方法）
 
-        任务状态更新已移至 Pipeline 的 Initializer 中执行。
-
         Args:
             task_id: 任务ID
             task: 要执行的任务
@@ -144,8 +142,13 @@ class TaskManager:
             cancellation_event: 取消事件
         """
         try:
+            self.task_repository.update_task(
+                task_id,
+                status=TaskStatus.RUNNING,
+            )
+
             # 执行任务
-            task.run(
+            statistics = task.run(
                 task_id=task_id,
                 dry_run=dry_run,
                 cancellation_event=cancellation_event,
@@ -165,6 +168,7 @@ class TaskManager:
                 task_id,
                 status=TaskStatus.COMPLETED,
                 end_time=datetime.now(),
+                statistics=statistics.model_dump(exclude_none=True),
             )
 
         except Exception as e:

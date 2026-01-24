@@ -1,6 +1,6 @@
 """文件处理管道
 
-协调 scan → analyze → execute 流程，管理任务生命周期。
+协调 scan → analyze → execute 流程，管理任务统计与日志。
 
 设计意图：
 - 简化的 Pipeline 设计，不使用 ProcessorChain
@@ -10,7 +10,6 @@
 
 import threading
 import time
-from datetime import datetime
 from pathlib import Path
 
 from loguru import logger
@@ -35,8 +34,7 @@ from j_file_kit.app.file_task.domain.ports import (
     FileItemRepository,
     FileProcessorRepository,
 )
-from j_file_kit.app.task.domain.models import TaskStatus
-from j_file_kit.app.task.domain.ports import TaskRepository
+from j_file_kit.app.task.domain.models import TaskStatistics
 from j_file_kit.shared.utils.file_utils import delete_directory_if_empty
 from j_file_kit.shared.utils.logging import (
     configure_task_logger,
@@ -47,11 +45,10 @@ from j_file_kit.shared.utils.logging import (
 class FilePipeline:
     """文件处理管道
 
-    设计意图：协调 scan → analyze → execute 流程，管理任务生命周期。
+    设计意图：协调 scan → analyze → execute 流程，管理任务统计与日志。
 
     职责：
     - 协调处理流程（扫描 → 分析 → 执行）
-    - 管理任务生命周期（开始 → 处理 → 结束）
     - 统计信息跟踪
     - 日志记录
     """
@@ -63,7 +60,6 @@ class FilePipeline:
         scan_root: Path,
         analyze_config: AnalyzeConfig,
         log_dir: Path,
-        task_repository: TaskRepository,
         file_processor_repository: FileProcessorRepository,
         file_item_repository: FileItemRepository,
     ) -> None:
@@ -75,7 +71,6 @@ class FilePipeline:
             scan_root: 扫描根目录
             analyze_config: 分析配置
             log_dir: 日志目录
-            task_repository: 任务仓储
             file_processor_repository: 文件处理操作仓储
             file_item_repository: 文件处理结果仓储
         """
@@ -84,7 +79,6 @@ class FilePipeline:
         self.scan_root = scan_root
         self.analyze_config = analyze_config
         self.log_dir = log_dir
-        self.task_repository = task_repository
         self.file_processor_repository = file_processor_repository
         self.file_item_repository = file_item_repository
 
@@ -102,7 +96,7 @@ class FilePipeline:
         self,
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
-    ) -> None:
+    ) -> TaskStatistics:
         """运行管道
 
         协调文件处理流程：扫描 → 分析 → 执行。
@@ -129,7 +123,7 @@ class FilePipeline:
                     # 目录清理（辅助功能）
                     self._cleanup_empty_directory(path, dry_run)
 
-            self._finish_task(dry_run)
+            return self._finish_task(dry_run)
 
         except Exception as e:
             logger.bind(
@@ -166,12 +160,7 @@ class FilePipeline:
             ).info("运行在预览模式（dry_run）")
             return
 
-        self.task_repository.update_task(
-            self.task_id,
-            status=TaskStatus.RUNNING,
-        )
-
-    def _finish_task(self, dry_run: bool) -> None:
+    def _finish_task(self, dry_run: bool) -> TaskStatistics:
         """任务结束处理"""
         # 从数据库获取最终统计信息
         stats = self.file_item_repository.get_statistics(self.task_id)
@@ -192,14 +181,7 @@ class FilePipeline:
                 task_id=str(self.task_id),
                 task_name=self.task_name,
             ).info("预览模式执行完成")
-            return
-
-        self.task_repository.update_task(
-            self.task_id,
-            status=TaskStatus.COMPLETED,
-            end_time=datetime.now(),
-            statistics=stats,
-        )
+        return TaskStatistics.model_validate(stats)
 
     def _process_file(self, path: Path, dry_run: bool) -> None:
         """处理单个文件

@@ -178,9 +178,11 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 | 组件 | 层次 | 职责 |
 |------|------|------|
 | **TaskRunner** | 业务用例层 | 定义"做什么"，配置 Pipeline |
-| **Pipeline** | 流程协调层 | 定义"怎么做流程"，协调扫描→分析→执行 |
+| **Pipeline** | 流程协调层 | 定义"怎么做流程"，协调扫描→分析→执行与统计 |
 | **Analyzer** | 分析层 | 分析文件，返回 Decision |
 | **Executor** | 执行层 | 根据 Decision 执行操作 |
+
+任务状态由 **TaskManager** 统一更新，Pipeline 只负责流程协调、统计与日志。
 
 ### TaskManager 职责
 

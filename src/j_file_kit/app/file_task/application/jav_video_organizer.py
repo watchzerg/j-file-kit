@@ -17,8 +17,7 @@ from j_file_kit.app.file_task.domain.ports import (
     FileItemRepository,
     FileProcessorRepository,
 )
-from j_file_kit.app.task.domain.models import TaskType
-from j_file_kit.app.task.domain.ports import TaskRepository
+from j_file_kit.app.task.domain.models import TaskStatistics, TaskType
 
 
 class JavVideoOrganizer:
@@ -40,7 +39,6 @@ class JavVideoOrganizer:
         self,
         config: AppConfig,
         log_dir: Path,
-        task_repository: TaskRepository,
         file_item_repository: FileItemRepository,
         file_processor_repository: FileProcessorRepository,
     ) -> None:
@@ -49,13 +47,11 @@ class JavVideoOrganizer:
         Args:
             config: 应用配置
             log_dir: 日志目录
-            task_repository: 任务仓储（更新任务状态）
             file_item_repository: 文件处理结果仓储
             file_processor_repository: 文件操作日志仓储
         """
         self.config = config
         self.log_dir = log_dir
-        self._task_repository = task_repository
         self._file_item_repository = file_item_repository
         self._file_processor_repository = file_processor_repository
 
@@ -105,7 +101,7 @@ class JavVideoOrganizer:
         task_id: int,
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
-    ) -> None:
+    ) -> TaskStatistics:
         """运行文件整理
 
         Args:
@@ -126,8 +122,7 @@ class JavVideoOrganizer:
             scan_root=self.inbox_dir,
             analyze_config=analyze_config,
             log_dir=self.log_dir,
-            task_repository=self._task_repository,
             file_processor_repository=self._file_processor_repository,
             file_item_repository=self._file_item_repository,
         )
-        pipeline.run(dry_run=dry_run, cancellation_event=cancellation_event)
+        return pipeline.run(dry_run=dry_run, cancellation_event=cancellation_event)

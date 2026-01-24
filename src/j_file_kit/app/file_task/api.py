@@ -36,7 +36,6 @@ def _new_task_instance(task_type: str, app_state: AppState) -> TaskRunner:
         return JavVideoOrganizer(
             config=app_state.config,
             log_dir=app_state.log_dir,
-            task_repository=app_state.task_repository,
             file_item_repository=app_state.file_item_repository,
             file_processor_repository=app_state.file_processor_repository,
         )
