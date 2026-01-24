@@ -7,15 +7,25 @@
 from pathlib import Path
 from typing import Any
 
-from fastapi import HTTPException, status
-
-from j_file_kit.api.app_state import AppState
 from j_file_kit.app.config.application.config_validator import validate_global_config
 from j_file_kit.app.config.application.schemas import (
     UpdateGlobalConfigRequest,
     UpdateTaskConfigRequest,
 )
+from j_file_kit.app.config.domain.exceptions import (
+    ConfigReloadError,
+    ConfigUpdateError,
+    InvalidConfigError,
+    InvalidPathError,
+    InvalidTaskConfigError,
+    MissingTaskNameError,
+    TaskConfigNotFoundError,
+)
 from j_file_kit.app.config.domain.models import AppConfig, GlobalConfig, TaskConfig
+from j_file_kit.app.config.domain.ports import (
+    AppConfigRepository,
+    ConfigStateManager,
+)
 
 
 class ConfigService:
@@ -134,18 +144,14 @@ class ConfigService:
             合并后的任务列表
 
         Raises:
-            HTTPException: 如果任务更新失败
+            MissingTaskNameError: 如果任务更新缺少任务名称
+            TaskConfigNotFoundError: 如果任务不存在
+            InvalidTaskConfigError: 如果任务配置无效
         """
         merged_tasks = current_tasks.copy()
         for task_update in task_updates:
             if task_update.name is None:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail={
-                        "code": "MISSING_TASK_NAME",
-                        "message": "更新任务配置时必须提供任务名称",
-                    },
-                )
+                raise MissingTaskNameError()
 
             task_index = None
             for i, task in enumerate(merged_tasks):
@@ -154,13 +160,7 @@ class ConfigService:
                     break
 
             if task_index is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail={
-                        "code": "TASK_NOT_FOUND",
-                        "message": f"任务不存在: {task_update.name}",
-                    },
-                )
+                raise TaskConfigNotFoundError(task_update.name)
 
             try:
                 merged_task = ConfigService.merge_task_config(
@@ -169,13 +169,7 @@ class ConfigService:
                 )
                 merged_tasks[task_index] = merged_task
             except Exception as e:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail={
-                        "code": "INVALID_TASK_CONFIG",
-                        "message": f"更新任务 '{task_update.name}' 配置失败: {str(e)}",
-                    },
-                ) from e
+                raise InvalidTaskConfigError(task_update.name, str(e)) from e
 
         return merged_tasks
 
@@ -183,63 +177,51 @@ class ConfigService:
     def validate_and_save_config(
         merged_global: GlobalConfig,
         merged_tasks: list[TaskConfig],
-        app_state: AppState,
+        config_repository: AppConfigRepository,
+        config_manager: ConfigStateManager,
     ) -> None:
         """验证并保存配置
 
         验证配置的有效性，然后保存到数据库并重新加载到内存。
 
+        设计意图：
+        - 接收 Protocol 接口而非具体实现（AppState）
+        - 抛出领域异常而非 HTTPException
+        - 符合依赖倒置原则，application 层不依赖 api 层
+
         Args:
             merged_global: 合并后的全局配置
             merged_tasks: 合并后的任务配置列表
-            app_state: 应用状态
+            config_repository: 配置仓储（用于更新数据库）
+            config_manager: 配置状态管理器（用于刷新内存状态）
 
         Raises:
-            HTTPException: 如果配置验证或保存失败
+            InvalidConfigError: 如果配置验证失败
+            InvalidPathError: 如果路径验证失败
+            ConfigUpdateError: 如果配置更新失败
+            ConfigReloadError: 如果配置重载失败
         """
         # 验证配置模型
         try:
             AppConfig.model_validate({"global": merged_global, "tasks": merged_tasks})
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"code": "INVALID_CONFIG", "message": f"配置验证失败: {str(e)}"},
-            ) from e
+            raise InvalidConfigError(str(e)) from e
 
         # 验证路径（使用统一的验证函数）
         errors = validate_global_config(merged_global)
         if errors:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={
-                    "code": "INVALID_PATH",
-                    "message": "目录配置验证失败:\n"
-                    + "\n".join(f"  - {e}" for e in errors),
-                },
-            )
+            raise InvalidPathError(errors)
 
         # 更新数据库
         try:
-            app_state.app_config_repository.update_global_config(merged_global)
+            config_repository.update_global_config(merged_global)
             for task in merged_tasks:
-                app_state.app_config_repository.update_task(task)
+                config_repository.update_task(task)
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={
-                    "code": "CONFIG_UPDATE_FAILED",
-                    "message": f"更新配置失败: {str(e)}",
-                },
-            ) from e
+            raise ConfigUpdateError(str(e)) from e
 
         # 重新加载配置到内存
         try:
-            app_state.reload_config()
+            config_manager.reload()
         except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={
-                    "code": "CONFIG_RELOAD_FAILED",
-                    "message": f"重新加载配置失败: {str(e)}",
-                },
-            ) from e
+            raise ConfigReloadError(str(e)) from e

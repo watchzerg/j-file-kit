@@ -75,7 +75,12 @@ async def update_config(
     )
 
     # 验证并保存配置
-    ConfigService.validate_and_save_config(merged_global, merged_tasks, app_state)
+    ConfigService.validate_and_save_config(
+        merged_global,
+        merged_tasks,
+        app_state.app_config_repository,
+        app_state.config_manager,
+    )
 
     return UpdateConfigResponse(
         message="配置更新成功",

@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 
 from j_file_kit.app.config.domain.models import AppConfig
-from j_file_kit.infrastructure.config.config import load_config_from_db
+from j_file_kit.infrastructure.config.config_manager import ConfigManagerImpl
 from j_file_kit.infrastructure.persistence.sqlite.config.config_repository import (
     AppConfigRepository,
 )
@@ -36,6 +36,7 @@ class AppState:
     作为 Composition Root，负责组装所有依赖：
     - 创建数据库连接
     - 创建 repositories（单例）
+    - 创建 ConfigManager（管理配置状态）
     - 创建 TaskManager
     """
 
@@ -62,8 +63,8 @@ class AppState:
         # 创建应用配置仓储（会自动初始化默认配置）
         self.app_config_repository = AppConfigRepository(self.sqlite_conn)
 
-        # 从数据库加载配置
-        self.config: AppConfig = load_config_from_db(self.sqlite_conn)
+        # 创建配置管理器（替代原来的 self.config 和 reload_config）
+        self.config_manager = ConfigManagerImpl(self.sqlite_conn)
 
         # 创建任务仓储
         self.task_repository = TaskRepositoryImpl(self.sqlite_conn)
@@ -75,12 +76,11 @@ class AppState:
         # 创建任务管理器
         self.task_manager: TaskManager = TaskManager(self.task_repository)
 
-    def reload_config(self) -> None:
-        """重新加载配置并更新内存中的配置
+    @property
+    def config(self) -> AppConfig:
+        """获取当前配置（委托给 ConfigManager）
 
-        从数据库重新加载配置。
-
-        Raises:
-            ValueError: 如果配置加载失败
+        Returns:
+            当前应用配置对象
         """
-        self.config = load_config_from_db(self.sqlite_conn)
+        return self.config_manager.config

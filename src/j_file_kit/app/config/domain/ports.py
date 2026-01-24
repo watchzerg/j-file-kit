@@ -5,7 +5,7 @@
 
 from typing import Protocol
 
-from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
+from j_file_kit.app.config.domain.models import AppConfig, GlobalConfig, TaskConfig
 
 
 class AppConfigRepository(Protocol):
@@ -83,5 +83,36 @@ class AppConfigRepository(Protocol):
 
         Raises:
             ValueError: 如果任务不存在
+        """
+        ...
+
+
+class ConfigStateManager(Protocol):
+    """配置状态管理协议
+
+    管理配置的内存状态，提供读取和刷新功能。
+
+    设计意图：
+    - 分离 AppState 的配置状态管理职责
+    - 持有配置的内存缓存
+    - 提供重新加载配置的功能
+    """
+
+    @property
+    def config(self) -> AppConfig:
+        """获取当前配置
+
+        Returns:
+            当前应用配置对象
+        """
+        ...
+
+    def reload(self) -> None:
+        """从数据库重新加载配置到内存
+
+        从数据库重新加载配置，更新内存中的配置缓存。
+
+        Raises:
+            ValueError: 如果配置加载失败
         """
         ...
