@@ -103,7 +103,7 @@ tests/
 提供有状态的 I/O 操作，实现 domain 定义的 ports 接口，以及任务调度基础设施。
 
 - **persistence/sqlite/**: SQLite 仓储实现
-- **config/**: 配置加载（load_config_from_db）
+- **config/**: 配置加载（load_app_config_from_db）
 - **task/**: 任务调度（TaskManager）
 
 ### 4. API Layer（HTTP 接口层）
@@ -219,7 +219,7 @@ TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调
 1. `AppState.__init__()` 创建 `SQLiteConnectionManager`
 2. 连接管理器自动创建表结构
 3. `AppConfigRepositoryImpl` 检查并创建默认配置
-4. `load_config_from_db()` 加载配置到内存
+4. `load_app_config_from_db()` 加载配置到内存
 
 ## 任务执行流程
 

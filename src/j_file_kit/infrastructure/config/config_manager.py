@@ -4,7 +4,7 @@
 """
 
 from j_file_kit.app.config.domain.models import AppConfig
-from j_file_kit.infrastructure.config.config import load_config_from_db
+from j_file_kit.infrastructure.config.config_loader import load_app_config_from_db
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
@@ -28,7 +28,7 @@ class ConfigManagerImpl:
             conn_manager: SQLite 连接管理器
         """
         self._conn_manager = conn_manager
-        self._config = load_config_from_db(conn_manager)
+        self._config = load_app_config_from_db(conn_manager)
 
     @property
     def config(self) -> AppConfig:
@@ -47,4 +47,4 @@ class ConfigManagerImpl:
         Raises:
             ValueError: 如果配置加载失败
         """
-        self._config = load_config_from_db(self._conn_manager)
+        self._config = load_app_config_from_db(self._conn_manager)

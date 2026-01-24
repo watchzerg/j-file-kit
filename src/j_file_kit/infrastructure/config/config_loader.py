@@ -13,7 +13,7 @@ from j_file_kit.infrastructure.persistence.sqlite.connection import (
 )
 
 
-def load_config_from_db(conn_manager: SQLiteConnectionManager) -> AppConfig:
+def load_app_config_from_db(conn_manager: SQLiteConnectionManager) -> AppConfig:
     """从数据库加载配置
 
     Args:

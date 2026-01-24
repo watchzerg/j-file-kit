@@ -28,7 +28,7 @@
 **加载流程**：
 1. `SQLiteConnectionManager` 创建表结构
 2. `AppConfigRepositoryImpl._ensure_default_config()` 初始化默认配置
-3. `load_config_from_db()` 加载到内存 `AppConfig` 对象
+3. `load_app_config_from_db()` 加载到内存 `AppConfig` 对象
 
 ---
 
