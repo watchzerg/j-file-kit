@@ -216,7 +216,7 @@ class ConfigService:
         try:
             config_repository.update_global_config(merged_global)
             for task in merged_tasks:
-                config_repository.update_task(task)
+                config_repository.update_task_config(task)
         except Exception as e:
             raise ConfigUpdateError(str(e)) from e
 

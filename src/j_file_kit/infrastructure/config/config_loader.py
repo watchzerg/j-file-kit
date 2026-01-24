@@ -29,7 +29,7 @@ def load_app_config_from_db(conn_manager: SQLiteConnectionManager) -> AppConfig:
 
     try:
         global_config = app_config_repository.get_global_config()
-        tasks = app_config_repository.get_all_tasks()
+        tasks = app_config_repository.get_all_task_configs()
         return AppConfig.model_validate({"global": global_config, "tasks": tasks})
     except Exception as e:
         raise ValueError(f"从数据库加载配置失败: {e}") from e

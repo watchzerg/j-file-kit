@@ -34,7 +34,7 @@ class AppConfigRepository(Protocol):
         """
         ...
 
-    def get_all_tasks(self) -> list[TaskConfig]:
+    def get_all_task_configs(self) -> list[TaskConfig]:
         """获取所有任务配置
 
         Returns:
@@ -42,7 +42,7 @@ class AppConfigRepository(Protocol):
         """
         ...
 
-    def get_task(self, name: str) -> TaskConfig | None:
+    def get_task_config(self, name: str) -> TaskConfig | None:
         """获取单个任务配置
 
         Args:
@@ -53,7 +53,7 @@ class AppConfigRepository(Protocol):
         """
         ...
 
-    def update_task(self, task: TaskConfig) -> None:
+    def update_task_config(self, task: TaskConfig) -> None:
         """更新任务配置
 
         Args:
@@ -64,7 +64,7 @@ class AppConfigRepository(Protocol):
         """
         ...
 
-    def create_task(self, task: TaskConfig) -> None:
+    def create_task_config(self, task: TaskConfig) -> None:
         """创建任务配置
 
         Args:
@@ -75,7 +75,7 @@ class AppConfigRepository(Protocol):
         """
         ...
 
-    def delete_task(self, name: str) -> None:
+    def delete_task_config(self, name: str) -> None:
         """删除任务配置
 
         Args:

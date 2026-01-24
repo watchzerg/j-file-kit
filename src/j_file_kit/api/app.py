@@ -52,20 +52,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     Args:
         app: FastAPI应用实例
     """
-    # 启动时初始化日志系统
+    # 启动流水线：1) 日志系统
     setup_logging()
 
-    # 启动时初始化应用状态
+    # 启动流水线：2) 环境与目录
     base_dir = Path(os.getenv("J_FILE_KIT_BASE_DIR", ".app-data"))
     sqlite_dir = base_dir / "sqlite"
     log_dir = base_dir / "logs"
     ensure_directory(sqlite_dir, parents=True)
     ensure_directory(log_dir, parents=True)
 
+    # 启动流水线：3) 数据库连接与结构初始化
     conn_manager = SQLiteConnectionManager(sqlite_dir / "j_file_kit.db")
     SQLiteSchemaInitializer(conn_manager).initialize()
     DefaultConfigInitializer(conn_manager).initialize()
 
+    # 启动流水线：4) 组装应用状态（Composition Root）
     app.state.app_state = AppState(base_dir=base_dir, sqlite_conn=conn_manager)
 
     yield

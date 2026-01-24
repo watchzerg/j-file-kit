@@ -37,21 +37,27 @@ class _RepoStub(AppConfigRepository):
             raise RuntimeError("db failure")
         self.updated_global = config
 
-    def get_all_tasks(self) -> list[TaskConfig]:  # pragma: no cover - not used
+    def get_all_task_configs(self) -> list[TaskConfig]:  # pragma: no cover - not used
         raise NotImplementedError
 
-    def get_task(self, name: str) -> TaskConfig | None:  # pragma: no cover - not used
+    def get_task_config(
+        self,
+        name: str,
+    ) -> TaskConfig | None:  # pragma: no cover - not used
         raise NotImplementedError
 
-    def update_task(self, task: TaskConfig) -> None:
+    def update_task_config(self, task: TaskConfig) -> None:
         if self.fail_update:
             raise RuntimeError("db failure")
         self.updated_tasks.append(task)
 
-    def create_task(self, task: TaskConfig) -> None:  # pragma: no cover - not used
+    def create_task_config(
+        self,
+        task: TaskConfig,
+    ) -> None:  # pragma: no cover - not used
         raise NotImplementedError
 
-    def delete_task(self, name: str) -> None:  # pragma: no cover - not used
+    def delete_task_config(self, name: str) -> None:  # pragma: no cover - not used
         raise NotImplementedError
 
 
