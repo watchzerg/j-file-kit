@@ -6,7 +6,7 @@
 
 from j_file_kit.app.config.domain.models import AppConfig
 from j_file_kit.infrastructure.persistence.sqlite.config.config_repository import (
-    AppConfigRepository,
+    AppConfigRepositoryImpl,
 )
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
@@ -25,7 +25,7 @@ def load_config_from_db(conn_manager: SQLiteConnectionManager) -> AppConfig:
     Raises:
         ValueError: 如果配置加载失败
     """
-    app_config_repository = AppConfigRepository(conn_manager)
+    app_config_repository = AppConfigRepositoryImpl(conn_manager)
 
     try:
         global_config = app_config_repository.get_global_config()

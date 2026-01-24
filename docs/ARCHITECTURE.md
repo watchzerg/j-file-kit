@@ -12,7 +12,8 @@ src/j_file_kit/
 │   ├── config/                   # 配置模块
 │   │   ├── domain/               # 领域层
 │   │   │   ├── models.py         # 配置领域模型（GlobalConfig、TaskConfig、AppConfig）
-│   │   │   └── ports.py          # 仓储接口（AppConfigRepository）
+│   │   │   ├── ports.py          # 仓储接口（AppConfigRepository、ConfigStateManager）
+│   │   │   └── exceptions.py     # 配置相关异常
 │   │   ├── application/          # 应用层
 │   │   │   ├── schemas.py        # 请求/响应 DTO
 │   │   │   ├── config_service.py # 配置服务
@@ -37,8 +38,8 @@ src/j_file_kit/
 │       │   ├── executor.py       # 执行器（execute_decision）
 │       │   ├── pipeline.py       # 处理管道（FilePipeline）
 │       │   ├── jav_video_organizer.py # 具体任务实现
-│       │   ├── utils.py          # 文件处理工具函数
-│       │   └── file_util.py      # JAV 文件名处理函数
+│       │   ├── file_ops.py       # 文件处理工具函数
+│       │   └── jav_filename_util.py # JAV 文件名处理函数
 │       └── api.py                # HTTP 路由（启动任务）
 ├── shared/                       # 共享层 - 跨领域通用代码
 │   ├── models/                   # 通用模型（预留扩展）
@@ -144,7 +145,9 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 ### 模块间依赖
 
 - **file_task** 依赖 **task**：file_task.application 使用 task.domain.models.TaskRunner 和 task.domain.ports.TaskRepository
+- **file_task** 依赖 **config**：file_task.application 使用 config.domain.models.AppConfig 读取全局配置（目录路径）和任务配置（文件扩展名、删除规则等）
 - **task** 不依赖 **file_task**：task 模块保持通用，不包含文件任务专属类型
+- **config** 不依赖其他业务模块：config 模块作为基础配置模块，保持独立
 
 ### 依赖策略
 
@@ -156,7 +159,7 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 | **文件系统操作** | 直接依赖 | shared/utils/ | API 稳定、用临时目录即可测试、无状态管理 |
 | **日志操作** | 直接依赖 | shared/utils/ | API 稳定、loguru 原生支持测试捕获、无状态管理 |
 
-业务相关的文件操作（如带 `-jfk-` 后缀的冲突处理）应放在对应模块的 application/utils.py 中。
+业务相关的文件操作（如带 `-jfk-` 后缀的冲突处理）应放在对应模块的 `application/file_ops.py` 中。
 
 ## 核心概念
 
@@ -199,7 +202,7 @@ TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调
 
 1. `AppState.__init__()` 创建 `SQLiteConnectionManager`
 2. 连接管理器自动创建表结构
-3. `AppConfigRepository` 检查并创建默认配置
+3. `AppConfigRepositoryImpl` 检查并创建默认配置
 4. `load_config_from_db()` 加载配置到内存
 
 ## 任务执行流程

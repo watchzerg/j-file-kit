@@ -19,10 +19,10 @@ from j_file_kit.infrastructure.persistence.sqlite.connection import (
 )
 
 
-class AppConfigRepository:
-    """应用配置仓储
+class AppConfigRepositoryImpl:
+    """应用配置仓储实现
 
-    提供应用配置数据的持久化操作，管理 AppConfig 的持久化。
+    实现 AppConfigRepository Protocol，提供应用配置数据的持久化操作。
     包括全局配置和任务配置的 CRUD 操作。
     """
 

@@ -10,7 +10,7 @@ from pathlib import Path
 from j_file_kit.app.config.domain.models import AppConfig
 from j_file_kit.infrastructure.config.config_manager import ConfigManagerImpl
 from j_file_kit.infrastructure.persistence.sqlite.config.config_repository import (
-    AppConfigRepository,
+    AppConfigRepositoryImpl,
 )
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
@@ -61,7 +61,7 @@ class AppState:
         self.sqlite_conn = SQLiteConnectionManager(self.db_path)
 
         # 创建应用配置仓储（会自动初始化默认配置）
-        self.app_config_repository = AppConfigRepository(self.sqlite_conn)
+        self.app_config_repository = AppConfigRepositoryImpl(self.sqlite_conn)
 
         # 创建配置管理器（替代原来的 self.config 和 reload_config）
         self.config_manager = ConfigManagerImpl(self.sqlite_conn)
