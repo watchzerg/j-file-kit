@@ -32,6 +32,9 @@ from j_file_kit.app.task.domain.models import (
     TaskError,
     TaskNotFoundError,
 )
+from j_file_kit.infrastructure.persistence.sqlite.config.default_config_initializer import (
+    DefaultConfigInitializer,
+)
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
@@ -61,6 +64,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     conn_manager = SQLiteConnectionManager(sqlite_dir / "j_file_kit.db")
     SQLiteSchemaInitializer(conn_manager).initialize()
+    DefaultConfigInitializer(conn_manager).initialize()
 
     app.state.app_state = AppState(base_dir=base_dir, sqlite_conn=conn_manager)
 

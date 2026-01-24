@@ -12,7 +12,7 @@
     └── {task_name}_{task_id}.jsonl  # 任务级别日志（JSON Lines 格式）
 ```
 
-初始化入口：FastAPI `lifespan` → 创建目录 + SQLite 连接 + schema 初始化
+初始化入口：FastAPI `lifespan` → 创建目录 + SQLite 连接 + schema 初始化 + 默认配置初始化
 
 ---
 
@@ -27,7 +27,7 @@
 
 **加载流程**：
 1. `SQLiteSchemaInitializer` 初始化表结构
-2. `AppConfigRepositoryImpl._ensure_default_config()` 初始化默认配置
+2. `DefaultConfigInitializer` 初始化默认配置
 3. `load_app_config_from_db()` 加载到内存 `AppConfig` 对象
 
 ---

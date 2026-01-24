@@ -8,12 +8,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from j_file_kit.app.config.domain.models import (
-    GlobalConfig,
-    TaskConfig,
-    create_default_global_config,
-    create_default_task_configs,
-)
+from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
@@ -33,7 +28,6 @@ class AppConfigRepositoryImpl:
             connection_manager: SQLite 连接管理器
         """
         self._conn_manager = connection_manager
-        self._ensure_default_config()
 
     def _row_to_global_config(self, row: sqlite3.Row) -> GlobalConfig:
         """将数据库行转换为 GlobalConfig 对象
@@ -84,49 +78,6 @@ class AppConfigRepositoryImpl:
             路径字符串，如果为 None 则返回空字符串
         """
         return str(path) if path else ""
-
-    def _ensure_default_config(self) -> None:
-        """确保默认配置存在
-
-        如果配置表为空，使用 models/config.py 中定义的默认配置进行初始化。
-        """
-
-        with self._conn_manager.get_cursor() as cursor:
-            # 检查并初始化全局配置
-            cursor.execute("SELECT COUNT(*) FROM global_config")
-            if cursor.fetchone()[0] == 0:
-                default_global = create_default_global_config()
-                updated_at = datetime.now().isoformat()
-                cursor.execute(
-                    """
-                    INSERT INTO global_config (id, inbox_dir, sorted_dir, unsorted_dir, archive_dir, misc_dir, starred_dir, updated_at)
-                    VALUES (1, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        self._path_to_str(default_global.inbox_dir),
-                        self._path_to_str(default_global.sorted_dir),
-                        self._path_to_str(default_global.unsorted_dir),
-                        self._path_to_str(default_global.archive_dir),
-                        self._path_to_str(default_global.misc_dir),
-                        self._path_to_str(default_global.starred_dir),
-                        updated_at,
-                    ),
-                )
-
-            # 检查并初始化任务配置
-            cursor.execute("SELECT COUNT(*) FROM task_configs")
-            if cursor.fetchone()[0] == 0:
-                default_tasks = create_default_task_configs()
-                updated_at = datetime.now().isoformat()
-                for task in default_tasks:
-                    config_json = json.dumps(task.config)
-                    cursor.execute(
-                        """
-                        INSERT INTO task_configs (name, type, enabled, config, updated_at)
-                        VALUES (?, ?, ?, ?, ?)
-                        """,
-                        (task.name, task.type, task.enabled, config_json, updated_at),
-                    )
 
     def get_global_config(self) -> GlobalConfig:
         """获取全局配置

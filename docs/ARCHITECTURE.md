@@ -218,8 +218,9 @@ TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调
 
 1. FastAPI `lifespan` 创建 `SQLiteConnectionManager`
 2. `SQLiteSchemaInitializer` 初始化表结构
-3. `AppState` 组装依赖并创建 `AppConfigRepositoryImpl`
-4. `load_app_config_from_db()` 加载配置到内存
+3. `DefaultConfigInitializer` 初始化默认配置数据
+4. `AppState` 组装依赖并创建 `AppConfigRepositoryImpl`
+5. `load_app_config_from_db()` 加载配置到内存
 
 ## 任务执行流程
 
