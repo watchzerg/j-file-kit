@@ -92,7 +92,7 @@ class SQLiteSchemaInitializer:
 
         cursor.execute(
             """
-            CREATE TABLE IF NOT EXISTS global_config (
+            CREATE TABLE IF NOT EXISTS config_global (
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 inbox_dir TEXT NOT NULL,
                 sorted_dir TEXT NOT NULL,
@@ -107,7 +107,7 @@ class SQLiteSchemaInitializer:
 
         cursor.execute(
             """
-            CREATE TABLE IF NOT EXISTS task_configs (
+            CREATE TABLE IF NOT EXISTS config_task (
                 name TEXT PRIMARY KEY,
                 type TEXT NOT NULL,
                 enabled BOOLEAN NOT NULL,

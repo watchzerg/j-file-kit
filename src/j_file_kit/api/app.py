@@ -32,8 +32,11 @@ from j_file_kit.app.task.domain.models import (
     TaskError,
     TaskNotFoundError,
 )
-from j_file_kit.infrastructure.persistence.sqlite.config.default_config_initializer import (
-    DefaultConfigInitializer,
+from j_file_kit.infrastructure.persistence.sqlite.config.default_global_config_initializer import (
+    DefaultGlobalConfigInitializer,
+)
+from j_file_kit.infrastructure.persistence.sqlite.config.default_task_config_initializer import (
+    DefaultTaskConfigInitializer,
 )
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
@@ -65,7 +68,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # 启动流水线：3) 数据库连接与结构初始化
     conn_manager = SQLiteConnectionManager(sqlite_dir / "j_file_kit.db")
     SQLiteSchemaInitializer(conn_manager).initialize()
-    DefaultConfigInitializer(conn_manager).initialize()
+    DefaultGlobalConfigInitializer(conn_manager).initialize()
+    DefaultTaskConfigInitializer(conn_manager).initialize()
 
     # 启动流水线：4) 组装应用状态（Composition Root）
     app.state.app_state = AppState(base_dir=base_dir, sqlite_conn=conn_manager)

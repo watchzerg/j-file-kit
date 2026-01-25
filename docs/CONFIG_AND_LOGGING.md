@@ -22,12 +22,12 @@
 
 | 表 | 用途 | 说明 |
 |---|---|---|
-| `global_config` | 全局目录配置 | 单行表，存储 inbox_dir, sorted_dir, unsorted_dir, archive_dir, misc_dir, starred_dir |
-| `task_configs` | 任务配置 | name, type, enabled, config(JSON)，支持 WebUI 动态修改 |
+| `config_global` | 全局目录配置 | 单行表，存储 inbox_dir, sorted_dir, unsorted_dir, archive_dir, misc_dir, starred_dir |
+| `config_task` | 任务配置 | name, type, enabled, config(JSON)，支持 WebUI 动态修改 |
 
 **加载流程**：
 1. `SQLiteSchemaInitializer` 初始化表结构
-2. `DefaultConfigInitializer` 初始化默认配置
+2. `DefaultGlobalConfigInitializer` / `DefaultTaskConfigInitializer` 初始化默认配置
 3. `load_app_config_from_db()` 加载到内存 `AppConfig` 对象
 
 ---
@@ -82,7 +82,7 @@
 |---|---|
 | 数据目录初始化 | `api/app_state.py` |
 | SQLite 表结构 | `infrastructure/persistence/sqlite/schema.py` |
-| 配置仓储 | `infrastructure/persistence/sqlite/config/config_repository.py` |
+| 配置仓储 | `infrastructure/persistence/sqlite/config/global_config_repository.py` / `infrastructure/persistence/sqlite/config/task_config_repository.py` |
 | 日志配置 | `shared/utils/logging.py` |
 | 文件处理结果 | `infrastructure/persistence/sqlite/task/file_item_repository.py` |
 | 文件操作记录 | `infrastructure/persistence/sqlite/task/file_processor_repository.py` |

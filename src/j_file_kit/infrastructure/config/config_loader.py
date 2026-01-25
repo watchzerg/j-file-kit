@@ -5,8 +5,11 @@
 """
 
 from j_file_kit.app.config.domain.models import AppConfig
-from j_file_kit.infrastructure.persistence.sqlite.config.config_repository import (
-    AppConfigRepositoryImpl,
+from j_file_kit.infrastructure.persistence.sqlite.config.global_config_repository import (
+    GlobalConfigRepositoryImpl,
+)
+from j_file_kit.infrastructure.persistence.sqlite.config.task_config_repository import (
+    TaskConfigRepositoryImpl,
 )
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
@@ -25,11 +28,12 @@ def load_app_config_from_db(conn_manager: SQLiteConnectionManager) -> AppConfig:
     Raises:
         ValueError: 如果配置加载失败
     """
-    app_config_repository = AppConfigRepositoryImpl(conn_manager)
+    global_config_repository = GlobalConfigRepositoryImpl(conn_manager)
+    task_config_repository = TaskConfigRepositoryImpl(conn_manager)
 
     try:
-        global_config = app_config_repository.get_global_config()
-        tasks = app_config_repository.get_all_task_configs()
+        global_config = global_config_repository.get_global_config()
+        tasks = task_config_repository.get_all_task_configs()
         return AppConfig.model_validate({"global": global_config, "tasks": tasks})
     except Exception as e:
         raise ValueError(f"从数据库加载配置失败: {e}") from e

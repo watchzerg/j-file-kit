@@ -23,8 +23,9 @@ from j_file_kit.app.config.domain.exceptions import (
 )
 from j_file_kit.app.config.domain.models import AppConfig, GlobalConfig, TaskConfig
 from j_file_kit.app.config.domain.ports import (
-    AppConfigRepository,
     ConfigStateManager,
+    GlobalConfigRepository,
+    TaskConfigRepository,
 )
 
 
@@ -177,7 +178,8 @@ class ConfigService:
     def validate_and_save_config(
         merged_global: GlobalConfig,
         merged_tasks: list[TaskConfig],
-        config_repository: AppConfigRepository,
+        global_config_repository: GlobalConfigRepository,
+        task_config_repository: TaskConfigRepository,
         config_manager: ConfigStateManager,
     ) -> None:
         """验证并保存配置
@@ -192,7 +194,8 @@ class ConfigService:
         Args:
             merged_global: 合并后的全局配置
             merged_tasks: 合并后的任务配置列表
-            config_repository: 配置仓储（用于更新数据库）
+            global_config_repository: 全局配置仓储（用于更新数据库）
+            task_config_repository: 任务配置仓储（用于更新数据库）
             config_manager: 配置状态管理器（用于刷新内存状态）
 
         Raises:
@@ -214,9 +217,9 @@ class ConfigService:
 
         # 更新数据库
         try:
-            config_repository.update_global_config(merged_global)
+            global_config_repository.update_global_config(merged_global)
             for task in merged_tasks:
-                config_repository.update_task_config(task)
+                task_config_repository.update_task_config(task)
         except Exception as e:
             raise ConfigUpdateError(str(e)) from e
 

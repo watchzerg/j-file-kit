@@ -8,11 +8,10 @@ from typing import Protocol
 from j_file_kit.app.config.domain.models import AppConfig, GlobalConfig, TaskConfig
 
 
-class AppConfigRepository(Protocol):
-    """应用配置仓储协议
+class GlobalConfigRepository(Protocol):
+    """全局配置仓储协议
 
-    定义配置数据持久化操作的接口。
-    提供全局配置和任务配置的 CRUD 操作。
+    定义全局配置数据持久化操作的接口。
     """
 
     def get_global_config(self) -> GlobalConfig:
@@ -33,6 +32,13 @@ class AppConfigRepository(Protocol):
             config: 全局配置对象
         """
         ...
+
+
+class TaskConfigRepository(Protocol):
+    """任务配置仓储协议
+
+    定义任务配置数据持久化操作的接口。
+    """
 
     def get_all_task_configs(self) -> list[TaskConfig]:
         """获取所有任务配置

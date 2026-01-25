@@ -78,7 +78,8 @@ async def update_config(
     ConfigService.validate_and_save_config(
         merged_global,
         merged_tasks,
-        app_state.app_config_repository,
+        app_state.global_config_repository,
+        app_state.task_config_repository,
         app_state.config_manager,
     )
 

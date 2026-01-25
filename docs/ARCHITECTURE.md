@@ -12,7 +12,7 @@ src/j_file_kit/
 │   ├── config/                   # 配置模块
 │   │   ├── domain/               # 领域层
 │   │   │   ├── models.py         # 配置领域模型（GlobalConfig、TaskConfig、AppConfig）
-│   │   │   ├── ports.py          # 仓储接口（AppConfigRepository、ConfigStateManager）
+│   │   │   ├── ports.py          # 仓储接口（GlobalConfigRepository、TaskConfigRepository、ConfigStateManager）
 │   │   │   └── exceptions.py     # 配置相关异常
 │   │   ├── application/          # 应用层
 │   │   │   ├── schemas.py        # 请求/响应 DTO
@@ -208,8 +208,8 @@ TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调
 
 | 表 | 用途 |
 |---|---|
-| `global_config` | 全局配置（单行，scan_root） |
-| `task_configs` | 任务配置（name、type、enabled、config JSON） |
+| `config_global` | 全局配置（单行，scan_root） |
+| `config_task` | 任务配置（name、type、enabled、config JSON） |
 | `tasks` | 任务实例（状态、时间、统计） |
 | `file_items` | 文件处理结果 |
 | `file_operations` | 文件操作历史 |
@@ -218,8 +218,8 @@ TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调
 
 1. FastAPI `lifespan` 创建 `SQLiteConnectionManager`
 2. `SQLiteSchemaInitializer` 初始化表结构
-3. `DefaultConfigInitializer` 初始化默认配置数据
-4. `AppState` 组装依赖并创建 `AppConfigRepositoryImpl`
+3. `DefaultGlobalConfigInitializer` 与 `DefaultTaskConfigInitializer` 初始化默认配置数据
+4. `AppState` 组装依赖并创建 `GlobalConfigRepositoryImpl` 与 `TaskConfigRepositoryImpl`
 5. `load_app_config_from_db()` 加载配置到内存
 
 ## 任务执行流程
