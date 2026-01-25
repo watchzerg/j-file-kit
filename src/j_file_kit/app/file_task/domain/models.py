@@ -5,17 +5,13 @@
 本模块包含文件处理相关的所有领域模型，包括：
 - 路径项类型枚举（PathEntryType）
 - 文件类型枚举（FileType）
-- 操作类型枚举（OperationType）
 - 番号值对象（SerialId）
-- 操作记录模型（Operation）
 
 这些模型是文件domain的核心概念，专门用于文件处理任务，不属于跨domain的通用模型。
 """
 
 import re
-from datetime import datetime
 from enum import Enum
-from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -51,18 +47,6 @@ class FileType(str, Enum):
     IMAGE = "image"
     ARCHIVE = "archive"
     MISC = "misc"
-
-
-class OperationType(str, Enum):
-    """操作类型枚举
-
-    只用于文件操作，不包含目录操作。
-    用于记录文件操作历史（移动、删除、重命名等）。
-    """
-
-    RENAME = "rename"
-    MOVE = "move"
-    DELETE = "delete"
 
 
 # ============================================================================
@@ -153,31 +137,3 @@ class SerialId(BaseModel):
     def __str__(self) -> str:
         """转换为字符串格式：PREFIX-NUMBER"""
         return f"{self.prefix}-{self.number}"
-
-
-# ============================================================================
-# 数据模型
-# ============================================================================
-
-
-class Operation(BaseModel):
-    """操作记录模型
-
-    表示一个文件操作记录，包含操作类型、路径信息、时间戳等。
-    用于持久化文件操作历史，支持查询和统计。
-    只记录文件操作，不记录目录操作。
-
-    设计意图：
-    - 记录文件操作历史，支持审计和统计
-    - 使用冗余字段（file_type、serial_id）避免JOIN查询，提高性能
-    """
-
-    id: str = Field(..., description="操作ID（UUID字符串）")
-    task_id: int = Field(..., description="任务ID")
-    file_item_id: int | None = Field(None, description="文件项ID（可选）")
-    timestamp: datetime = Field(..., description="操作时间")
-    operation: OperationType = Field(..., description="操作类型")
-    source_path: Path = Field(..., description="源路径")
-    target_path: Path | None = Field(None, description="目标路径（可选）")
-    file_type: str | None = Field(None, description="文件类型（冗余字段，避免JOIN）")
-    serial_id: str | None = Field(None, description="番号（冗余字段，避免JOIN）")
