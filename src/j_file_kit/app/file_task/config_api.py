@@ -24,7 +24,7 @@ async def get_jav_video_organizer_config(request: Request) -> GetFileTaskConfigR
     """获取 JAV 视频整理任务配置"""
     app_state: AppState = request.state.app_state
 
-    task_config = app_state.config_manager.get_task_config_by_type(
+    task_config = app_state.task_config_manager.get_task_config_by_type(
         TASK_TYPE_JAV_VIDEO_ORGANIZER,
     )
     if task_config is None:
@@ -50,7 +50,7 @@ async def update_jav_video_organizer_config(
 
     try:
         current_typed_config = FileTaskConfigService.get_jav_video_organizer_config(
-            app_state.config_manager,
+            app_state.task_config_manager,
         )
 
         if body.config is not None:
@@ -61,7 +61,7 @@ async def update_jav_video_organizer_config(
         else:
             merged_config = current_typed_config
 
-        task_config = app_state.config_manager.get_task_config_by_type(
+        task_config = app_state.task_config_manager.get_task_config_by_type(
             TASK_TYPE_JAV_VIDEO_ORGANIZER,
         )
         if task_config is None:
@@ -79,7 +79,7 @@ async def update_jav_video_organizer_config(
         updated_task_config = task_config.model_copy(update=update_dict)
 
         app_state.task_config_repository.update(updated_task_config)
-        app_state.config_manager.reload_task(TASK_TYPE_JAV_VIDEO_ORGANIZER)
+        app_state.task_config_manager.reload_task(TASK_TYPE_JAV_VIDEO_ORGANIZER)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

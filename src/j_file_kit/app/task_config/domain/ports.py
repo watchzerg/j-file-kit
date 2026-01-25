@@ -6,7 +6,6 @@ Infrastructure 层负责实现这些接口。
 
 from typing import Protocol
 
-from j_file_kit.app.global_config.domain.models import GlobalConfig
 from j_file_kit.app.task_config.domain.models import TaskConfig
 
 
@@ -39,25 +38,16 @@ class TaskConfigRepository(Protocol):
         ...
 
 
-class ConfigStateManager(Protocol):
-    """配置状态管理协议
+class TaskConfigManager(Protocol):
+    """任务配置管理器协议
 
-    管理配置的内存状态，提供读取和刷新功能。
+    管理任务配置的内存状态，提供读取和刷新功能。
 
     设计意图：
-    - 分离 AppState 的配置状态管理职责
-    - 持有配置的内存缓存（包括全局配置和任务配置）
+    - 持有任务配置的内存缓存
     - 提供重新加载配置的功能
-    - 虽然管理两种配置，但作为配置管理的通用基础设施定义在 task_config app
+    - 专注于任务配置管理，不涉及全局配置
     """
-
-    def get_global_config(self) -> GlobalConfig:
-        """获取当前全局配置
-
-        Returns:
-            当前全局配置对象
-        """
-        ...
 
     def get_task_config_by_type(self, task_type: str) -> TaskConfig | None:
         """根据任务类型获取任务配置
@@ -67,14 +57,6 @@ class ConfigStateManager(Protocol):
 
         Returns:
             任务配置对象，如果不存在则返回 None
-        """
-        ...
-
-    def reload_global(self) -> None:
-        """从数据库重新加载全局配置到内存
-
-        Raises:
-            ValueError: 如果配置加载失败
         """
         ...
 

@@ -5,10 +5,9 @@ from j_file_kit.app.file_task.application.file_task_config_service import (
     FileTaskConfigService,
 )
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
-from j_file_kit.app.global_config.domain.models import GlobalConfig
 from j_file_kit.app.task_config.domain.models import TaskConfig
 from j_file_kit.app.task_config.domain.ports import (
-    ConfigStateManager,
+    TaskConfigManager,
     TaskConfigRepository,
 )
 
@@ -28,13 +27,10 @@ def _task_config() -> TaskConfig:
     )
 
 
-class _ConfigManagerStub(ConfigStateManager):
+class _ConfigManagerStub(TaskConfigManager):
     def __init__(self, task_config: TaskConfig | None) -> None:
         self._task_config = task_config
         self.reload_calls: list[str] = []
-
-    def get_global_config(self) -> GlobalConfig:  # pragma: no cover - unused
-        raise NotImplementedError
 
     def get_task_config_by_type(self, task_type: str) -> TaskConfig | None:
         if self._task_config is None:
@@ -42,9 +38,6 @@ class _ConfigManagerStub(ConfigStateManager):
         if self._task_config.type != task_type:
             return None
         return self._task_config
-
-    def reload_global(self) -> None:  # pragma: no cover - unused
-        raise NotImplementedError
 
     def reload_task(self, task_type: str) -> None:
         self.reload_calls.append(task_type)

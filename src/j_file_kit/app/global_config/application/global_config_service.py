@@ -20,8 +20,10 @@ from j_file_kit.app.global_config.domain.exceptions import (
     InvalidPathError,
 )
 from j_file_kit.app.global_config.domain.models import GlobalConfig
-from j_file_kit.app.global_config.domain.ports import GlobalConfigRepository
-from j_file_kit.app.task_config.domain.ports import ConfigStateManager
+from j_file_kit.app.global_config.domain.ports import (
+    GlobalConfigManager,
+    GlobalConfigRepository,
+)
 
 
 class GlobalConfigService:
@@ -84,7 +86,7 @@ class GlobalConfigService:
     def validate_and_save_global_config(
         merged_global: GlobalConfig,
         global_config_repository: GlobalConfigRepository,
-        config_manager: ConfigStateManager,
+        global_config_manager: GlobalConfigManager,
     ) -> None:
         """验证并保存全局配置
 
@@ -98,7 +100,7 @@ class GlobalConfigService:
         Args:
             merged_global: 合并后的全局配置
             global_config_repository: 全局配置仓储（用于更新数据库）
-            config_manager: 配置状态管理器（用于刷新内存状态）
+            global_config_manager: 全局配置管理器（用于刷新内存状态）
 
         Raises:
             InvalidConfigError: 如果配置验证失败
@@ -121,6 +123,6 @@ class GlobalConfigService:
             raise ConfigUpdateError(str(e)) from e
 
         try:
-            config_manager.reload_global()
+            global_config_manager.reload_global()
         except Exception as e:
             raise ConfigReloadError(str(e)) from e

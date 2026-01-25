@@ -12,7 +12,7 @@ src/j_file_kit/
 │   ├── global_config/            # 全局配置模块
 │   │   ├── domain/               # 领域层
 │   │   │   ├── models.py         # GlobalConfig 模型
-│   │   │   ├── ports.py          # GlobalConfigRepository 接口
+│   │   │   ├── ports.py          # GlobalConfigRepository、GlobalConfigManager 接口
 │   │   │   └── exceptions.py     # 全局配置异常
 │   │   ├── application/          # 应用层
 │   │   │   ├── schemas.py        # 请求/响应 DTO
@@ -22,7 +22,7 @@ src/j_file_kit/
 │   ├── task_config/              # 任务配置基础设施
 │   │   ├── domain/               # 领域层
 │   │   │   ├── models.py         # TaskConfig 模型
-│   │   │   ├── ports.py          # TaskConfigRepository、ConfigStateManager 接口
+│   │   │   ├── ports.py          # TaskConfigRepository、TaskConfigManager 接口
 │   │   │   └── exceptions.py     # 任务配置异常
 │   │   └── application/          # 应用层（预留扩展）
 │   ├── task/                     # 任务调度模块

@@ -16,9 +16,10 @@ from j_file_kit.app.global_config.domain.exceptions import (
     InvalidPathError,
 )
 from j_file_kit.app.global_config.domain.models import GlobalConfig
-from j_file_kit.app.global_config.domain.ports import GlobalConfigRepository
-from j_file_kit.app.task_config.domain.models import TaskConfig
-from j_file_kit.app.task_config.domain.ports import ConfigStateManager
+from j_file_kit.app.global_config.domain.ports import (
+    GlobalConfigManager,
+    GlobalConfigRepository,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -37,7 +38,7 @@ class _GlobalRepoStub(GlobalConfigRepository):
         self.updated_global = config
 
 
-class _ManagerStub(ConfigStateManager):
+class _ManagerStub(GlobalConfigManager):
     def __init__(self, *, fail_reload: bool = False) -> None:
         self.fail_reload = fail_reload
         self.reload_global_called = False
@@ -45,20 +46,10 @@ class _ManagerStub(ConfigStateManager):
     def get_global_config(self) -> GlobalConfig:  # pragma: no cover - not used
         return _global_config()
 
-    def get_task_config_by_type(
-        self,
-        _task_type: str,
-    ) -> TaskConfig | None:  # pragma: no cover - not used
-        return None
-
     def reload_global(self) -> None:
         if self.fail_reload:
             raise RuntimeError("reload failure")
         self.reload_global_called = True
-
-    def reload_task(self, _task_type: str) -> None:
-        if self.fail_reload:
-            raise RuntimeError("reload failure")
 
 
 def _global_config(inbox: str | None = "inbox") -> GlobalConfig:
@@ -118,7 +109,7 @@ def test_validate_and_save_global_config_success() -> None:
     GlobalConfigService.validate_and_save_global_config(
         merged_global=global_config,
         global_config_repository=global_repo,
-        config_manager=manager,
+        global_config_manager=manager,
     )
 
     assert global_repo.updated_global is global_config
@@ -134,7 +125,7 @@ def test_validate_and_save_global_config_invalid_config_raises() -> None:
         GlobalConfigService.validate_and_save_global_config(
             merged_global=invalid_global,
             global_config_repository=global_repo,
-            config_manager=manager,
+            global_config_manager=manager,
         )
 
 
@@ -146,7 +137,7 @@ def test_validate_and_save_global_config_invalid_path_raises() -> None:
         GlobalConfigService.validate_and_save_global_config(
             merged_global=_global_config(inbox=None),
             global_config_repository=global_repo,
-            config_manager=manager,
+            global_config_manager=manager,
         )
 
 
@@ -158,7 +149,7 @@ def test_validate_and_save_global_config_update_error_raises() -> None:
         GlobalConfigService.validate_and_save_global_config(
             merged_global=_global_config(),
             global_config_repository=global_repo,
-            config_manager=manager,
+            global_config_manager=manager,
         )
 
 
@@ -170,5 +161,5 @@ def test_validate_and_save_global_config_reload_error_raises() -> None:
         GlobalConfigService.validate_and_save_global_config(
             merged_global=_global_config(),
             global_config_repository=global_repo,
-            config_manager=manager,
+            global_config_manager=manager,
         )
