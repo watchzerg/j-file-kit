@@ -3,6 +3,9 @@ from pathlib import Path
 import pytest
 
 from j_file_kit.app.config.domain.models import create_default_global_config
+from j_file_kit.app.file_task.application.config import (
+    create_default_jav_video_organizer_task_config,
+)
 from j_file_kit.infrastructure.config.config_loader import (
     load_global_config_from_db,
 )
@@ -26,7 +29,10 @@ def test_load_global_config_from_db_returns_default_config() -> None:
     conn_manager = SQLiteConnectionManager(Path(":memory:"))
     SQLiteSchemaInitializer(conn_manager).initialize()
     DefaultGlobalConfigInitializer(conn_manager).initialize()
-    DefaultTaskConfigInitializer(conn_manager).initialize()
+    DefaultTaskConfigInitializer(
+        conn_manager,
+        [create_default_jav_video_organizer_task_config()],
+    ).initialize()
 
     config = load_global_config_from_db(conn_manager)
 
@@ -51,7 +57,10 @@ def test_load_global_config_from_db_wraps_repository_errors(
     conn_manager = SQLiteConnectionManager(Path(":memory:"))
     SQLiteSchemaInitializer(conn_manager).initialize()
     DefaultGlobalConfigInitializer(conn_manager).initialize()
-    DefaultTaskConfigInitializer(conn_manager).initialize()
+    DefaultTaskConfigInitializer(
+        conn_manager,
+        [create_default_jav_video_organizer_task_config()],
+    ).initialize()
 
     with pytest.raises(ValueError, match="从数据库加载全局配置失败"):
         load_global_config_from_db(conn_manager)

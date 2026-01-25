@@ -8,6 +8,9 @@ from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
+from j_file_kit.app.config.domain.models import TaskConfig
+from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+
 
 class JavVideoOrganizeConfig(BaseModel):
     """JAV视频文件整理任务配置"""
@@ -57,4 +60,50 @@ class AnalyzeConfig(BaseModel):
     misc_file_delete_rules: dict[str, Any] = Field(
         default_factory=dict,
         description="Misc文件删除规则配置（keywords, extensions, max_size）",
+    )
+
+
+def create_default_jav_video_organizer_task_config() -> TaskConfig:
+    """创建 jav_video_organizer 默认任务配置。
+
+    Returns:
+        单个任务配置对象（对应一行任务记录）
+    """
+    return TaskConfig(
+        type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
+        enabled=True,
+        config={
+            "video_extensions": [
+                ".mp4",
+                ".avi",
+                ".mkv",
+                ".mov",
+                ".wmv",
+                ".flv",
+                ".webm",
+            ],
+            "image_extensions": [
+                ".jpg",
+                ".jpeg",
+                ".png",
+                ".webp",
+                ".bmp",
+                ".gif",
+                ".tiff",
+            ],
+            "archive_extensions": [
+                ".zip",
+                ".rar",
+                ".7z",
+                ".tar",
+                ".gz",
+                ".bz2",
+                ".xz",
+            ],
+            "misc_file_delete_rules": {
+                "keywords": ["rarbg", "sample", "preview", "temp"],
+                "extensions": [".tmp", ".temp", ".bak", ".old"],
+                "max_size": 1048576,
+            },
+        },
     )

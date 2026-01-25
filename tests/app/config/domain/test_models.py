@@ -7,7 +7,9 @@ from j_file_kit.app.config.domain.models import (
     GlobalConfig,
     TaskConfig,
     create_default_global_config,
-    create_default_task_configs,
+)
+from j_file_kit.app.file_task.application.config import (
+    create_default_jav_video_organizer_task_config,
 )
 
 pytestmark = pytest.mark.unit
@@ -60,10 +62,7 @@ def test_create_default_global_config_has_none_fields() -> None:
     assert global_config.starred_dir is None
 
 
-def test_create_default_task_configs_contains_default_task() -> None:
-    tasks = create_default_task_configs()
-
-    assert len(tasks) == 1
-    task = tasks[0]
+def test_create_default_jav_video_organizer_task_config() -> None:
+    task = create_default_jav_video_organizer_task_config()
     assert task.type == "jav_video_organizer"
     assert task.enabled is True

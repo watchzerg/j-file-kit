@@ -25,6 +25,9 @@ from j_file_kit.app.config.domain.exceptions import (
     TaskConfigNotFoundError,
 )
 from j_file_kit.app.file_task.api import router as file_task_router
+from j_file_kit.app.file_task.application.config import (
+    create_default_jav_video_organizer_task_config,
+)
 from j_file_kit.app.file_task.config_api import router as file_task_config_router
 from j_file_kit.app.task.api import router as task_router
 from j_file_kit.app.task.domain.models import (
@@ -70,7 +73,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     conn_manager = SQLiteConnectionManager(sqlite_dir / "j_file_kit.db")
     SQLiteSchemaInitializer(conn_manager).initialize()
     DefaultGlobalConfigInitializer(conn_manager).initialize()
-    DefaultTaskConfigInitializer(conn_manager).initialize()
+    DefaultTaskConfigInitializer(
+        conn_manager,
+        default_task_configs=[create_default_jav_video_organizer_task_config()],
+    ).initialize()
 
     # 启动流水线：4) 组装应用状态（Composition Root）
     app.state.app_state = AppState(base_dir=base_dir, sqlite_conn=conn_manager)

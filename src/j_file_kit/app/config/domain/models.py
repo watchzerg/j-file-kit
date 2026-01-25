@@ -1,7 +1,8 @@
-"""配置领域模型
+"""配置领域模型。
 
 定义应用配置相关的数据模型，包括全局配置、任务配置等。
 这些模型是纯数据模型，无外部依赖（仅标准库和Pydantic）。
+不包含任何业务任务的默认配置。
 """
 
 from pathlib import Path
@@ -54,51 +55,3 @@ def create_default_global_config() -> GlobalConfig:
         misc_dir=None,
         starred_dir=None,
     )
-
-
-def create_default_task_configs() -> list[TaskConfig]:
-    """创建默认任务配置
-
-    Returns:
-        默认任务配置列表（包含 jav_video_organizer）
-    """
-    return [
-        TaskConfig(
-            type="jav_video_organizer",
-            enabled=True,
-            config={
-                "video_extensions": [
-                    ".mp4",
-                    ".avi",
-                    ".mkv",
-                    ".mov",
-                    ".wmv",
-                    ".flv",
-                    ".webm",
-                ],
-                "image_extensions": [
-                    ".jpg",
-                    ".jpeg",
-                    ".png",
-                    ".webp",
-                    ".bmp",
-                    ".gif",
-                    ".tiff",
-                ],
-                "archive_extensions": [
-                    ".zip",
-                    ".rar",
-                    ".7z",
-                    ".tar",
-                    ".gz",
-                    ".bz2",
-                    ".xz",
-                ],
-                "misc_file_delete_rules": {
-                    "keywords": ["rarbg", "sample", "preview", "temp"],
-                    "extensions": [".tmp", ".temp", ".bak", ".old"],
-                    "max_size": 1048576,
-                },
-            },
-        ),
-    ]
