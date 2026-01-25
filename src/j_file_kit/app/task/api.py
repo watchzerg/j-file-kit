@@ -63,7 +63,7 @@ async def get_task_status(
     # 从数据库查询 total_items
     total_items = None
     if task_model.status in (TaskStatus.COMPLETED, TaskStatus.RUNNING):
-        stats = app_state.file_item_repository.get_statistics(task_id_int)
+        stats = app_state.file_result_repository.get_statistics(task_id_int)
         # 如果统计信息存在，返回 total_items（0 也是有效值）
         total_items = stats.get("total_items")
 

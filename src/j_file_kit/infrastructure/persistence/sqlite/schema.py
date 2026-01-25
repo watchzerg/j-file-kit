@@ -2,7 +2,6 @@
 
 import sqlite3
 
-from j_file_kit.app.file_task.domain.models import OperationType
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
@@ -28,10 +27,6 @@ class SQLiteSchemaInitializer:
             conn.commit()
 
     def _create_tables(self, cursor: sqlite3.Cursor) -> None:
-        operation_values = ", ".join(
-            f"'{operation.value}'" for operation in OperationType
-        )
-
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS tasks (
@@ -50,42 +45,20 @@ class SQLiteSchemaInitializer:
 
         cursor.execute(
             """
-            CREATE TABLE IF NOT EXISTS file_items (
+            CREATE TABLE IF NOT EXISTS file_results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 task_id INTEGER NOT NULL,
-                path TEXT NOT NULL,
-                stem TEXT NOT NULL,
+                source_path TEXT NOT NULL,
+                file_stem TEXT NOT NULL,
                 file_type TEXT,
                 serial_id TEXT,
+                decision_type TEXT NOT NULL,
+                target_path TEXT,
                 success BOOLEAN NOT NULL,
-                has_errors BOOLEAN NOT NULL,
-                has_warnings BOOLEAN NOT NULL,
-                was_skipped BOOLEAN NOT NULL,
                 error_message TEXT,
-                total_duration_ms REAL NOT NULL,
-                processor_count INTEGER NOT NULL,
-                context_data TEXT,
-                processor_results TEXT,
+                duration_ms REAL NOT NULL,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (task_id) REFERENCES tasks(task_id)
-            )
-            """,
-        )
-
-        cursor.execute(
-            f"""
-            CREATE TABLE IF NOT EXISTS file_operations (
-                id TEXT PRIMARY KEY,
-                task_id INTEGER NOT NULL,
-                file_item_id INTEGER,
-                timestamp TEXT NOT NULL,
-                operation TEXT NOT NULL CHECK (operation IN ({operation_values})),
-                source_path TEXT NOT NULL,
-                target_path TEXT,
-                file_type TEXT,
-                serial_id TEXT,
-                FOREIGN KEY (task_id) REFERENCES tasks(task_id),
-                FOREIGN KEY (file_item_id) REFERENCES file_items(id)
             )
             """,
         )
@@ -118,26 +91,14 @@ class SQLiteSchemaInitializer:
 
     def _create_indexes(self, cursor: sqlite3.Cursor) -> None:
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_file_items_task_id ON file_items(task_id)",
+            "CREATE INDEX IF NOT EXISTS idx_file_results_task_id ON file_results(task_id)",
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_file_items_success ON file_items(task_id, success)",
+            "CREATE INDEX IF NOT EXISTS idx_file_results_decision_type ON file_results(task_id, decision_type)",
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_file_items_file_type ON file_items(file_type)",
+            "CREATE INDEX IF NOT EXISTS idx_file_results_file_type ON file_results(file_type)",
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_file_items_serial_id ON file_items(serial_id)",
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_file_operations_task_id ON file_operations(task_id)",
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_file_operations_file_item_id ON file_operations(file_item_id)",
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_file_operations_file_type ON file_operations(file_type)",
-        )
-        cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_file_operations_timestamp ON file_operations(timestamp)",
+            "CREATE INDEX IF NOT EXISTS idx_file_results_serial_id ON file_results(serial_id)",
         )

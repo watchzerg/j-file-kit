@@ -22,11 +22,8 @@ from j_file_kit.infrastructure.persistence.sqlite.config.task_config_repository 
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
-from j_file_kit.infrastructure.persistence.sqlite.task.file_item_repository import (
-    FileItemRepositoryImpl,
-)
-from j_file_kit.infrastructure.persistence.sqlite.task.file_processor_repository import (
-    FileProcessorRepositoryImpl,
+from j_file_kit.infrastructure.persistence.sqlite.task.file_result_repository import (
+    FileResultRepositoryImpl,
 )
 from j_file_kit.infrastructure.persistence.sqlite.task.task_repository import (
     TaskRepositoryImpl,
@@ -77,8 +74,7 @@ class AppState:
         self.task_repository = TaskRepositoryImpl(self.sqlite_conn)
 
         # 创建文件任务 repositories（单例，方法接收 task_id 参数）
-        self.file_item_repository = FileItemRepositoryImpl(self.sqlite_conn)
-        self.file_processor_repository = FileProcessorRepositoryImpl(self.sqlite_conn)
+        self.file_result_repository = FileResultRepositoryImpl(self.sqlite_conn)
 
         # 创建任务管理器
         self.task_manager: TaskManager = TaskManager(self.task_repository)

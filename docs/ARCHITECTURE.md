@@ -123,7 +123,7 @@ API 请求 → TaskManager.start_task() → 后台线程执行
 
 Repository 方法接收 `task_id` 参数（而非构造时绑定），支持单例复用：
 ```python
-file_item_repository.save_file_item(task_id=123, item=...)
+file_result_repository.save_result(task_id=123, result=...)
 ```
 
 ## 数据存储
@@ -133,8 +133,7 @@ file_item_repository.save_file_item(task_id=123, item=...)
 | `config_global` | 全局配置 |
 | `config_task` | 任务配置（按 type 区分） |
 | `tasks` | 任务实例（状态、统计） |
-| `file_items` | 文件处理结果 |
-| `file_operations` | 文件操作历史 |
+| `file_results` | 文件处理结果（决策 + 执行） |
 
 ## 扩展指南
 

@@ -1,9 +1,9 @@
 """文件处理结果仓储
 
-提供 file_items 表的 CRUD 操作。
+提供 file_results 表的 CRUD 操作。
 记录文件处理结果，支持流式写入。
 使用具体字段存储文件信息，提升查询性能和索引效率。
-专门存储文件处理结果，不存储目录操作（目录操作已在 operations 表中记录）。
+专门存储文件处理结果，不存储目录操作。
 """
 
 from datetime import datetime
@@ -15,13 +15,13 @@ from j_file_kit.infrastructure.persistence.sqlite.connection import (
 )
 
 
-class FileItemRepositoryImpl:
+class FileResultRepositoryImpl:
     """文件处理结果仓储实现
 
     提供文件处理结果的持久化操作，支持流式写入。
     使用具体字段存储文件信息，提升查询性能和索引效率。
 
-    实现 FileItemRepository Protocol。
+    实现 FileResultRepository Protocol。
 
     设计说明：方法接收 task_id 参数，支持作为单例复用。
     """
@@ -49,44 +49,34 @@ class FileItemRepositoryImpl:
         """
         created_at = datetime.now()
 
-        # 提取字段
-        path = str(result.path)
-        stem = result.stem
+        source_path = str(result.path)
+        file_stem = result.stem
         file_type = result.file_type.value if result.file_type else None
         serial_id = str(result.serial_id) if result.serial_id else None
-
-        # 根据 decision_type 判断状态
-        success = result.success
-        was_skipped = result.decision_type == "skip"
-        has_errors = not success
-        has_warnings = False  # 简化设计，不再使用 warnings
+        decision_type = result.decision_type
+        target_path = str(result.target_path) if result.target_path else None
 
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO file_items (
-                    task_id, path, stem, file_type, serial_id,
-                    success, has_errors, has_warnings, was_skipped,
-                    error_message, total_duration_ms, processor_count,
-                    context_data, processor_results, created_at
+                INSERT INTO file_results (
+                    task_id, source_path, file_stem, file_type, serial_id,
+                    decision_type, target_path, success, error_message,
+                    duration_ms, created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     task_id,
-                    path,
-                    stem,
+                    source_path,
+                    file_stem,
                     file_type,
                     serial_id,
-                    success,
-                    has_errors,
-                    has_warnings,
-                    was_skipped,
+                    decision_type,
+                    target_path,
+                    result.success,
                     result.error_message,
                     result.duration_ms,
-                    1,  # processor_count 固定为 1（简化设计）
-                    "{}",  # context_data 不再使用
-                    "[]",  # processor_results 不再使用
                     created_at.isoformat(),
                 ),
             )
@@ -110,12 +100,11 @@ class FileItemRepositoryImpl:
                 """
                 SELECT
                     COUNT(*) as total_items,
-                    SUM(CASE WHEN success = 1 AND was_skipped = 0 AND has_warnings = 0 THEN 1 ELSE 0 END) as success_items,
+                    SUM(CASE WHEN success = 1 AND decision_type != 'skip' THEN 1 ELSE 0 END) as success_items,
                     SUM(CASE WHEN success = 0 THEN 1 ELSE 0 END) as error_items,
-                    SUM(CASE WHEN was_skipped = 1 THEN 1 ELSE 0 END) as skipped_items,
-                    SUM(CASE WHEN has_warnings = 1 AND was_skipped = 0 THEN 1 ELSE 0 END) as warning_items,
-                    SUM(total_duration_ms) as total_duration_ms
-                FROM file_items
+                    SUM(CASE WHEN decision_type = 'skip' THEN 1 ELSE 0 END) as skipped_items,
+                    SUM(duration_ms) as total_duration_ms
+                FROM file_results
                 WHERE task_id = ?
                 """,
                 (task_id,),
@@ -136,6 +125,6 @@ class FileItemRepositoryImpl:
                 "success_items": row["success_items"] or 0,
                 "error_items": row["error_items"] or 0,
                 "skipped_items": row["skipped_items"] or 0,
-                "warning_items": row["warning_items"] or 0,
+                "warning_items": 0,
                 "total_duration_ms": row["total_duration_ms"] or 0.0,
             }

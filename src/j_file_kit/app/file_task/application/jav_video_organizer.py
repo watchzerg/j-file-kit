@@ -13,10 +13,7 @@ from j_file_kit.app.file_task.application.config import (
 )
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
-from j_file_kit.app.file_task.domain.ports import (
-    FileItemRepository,
-    FileProcessorRepository,
-)
+from j_file_kit.app.file_task.domain.ports import FileResultRepository
 from j_file_kit.app.global_config.domain.models import GlobalConfig
 from j_file_kit.app.task.domain.models import TaskStatistics
 from j_file_kit.app.task_config.domain.models import TaskConfig
@@ -42,8 +39,7 @@ class JavVideoOrganizer:
         global_config: GlobalConfig,
         task_config: TaskConfig,
         log_dir: Path,
-        file_item_repository: FileItemRepository,
-        file_processor_repository: FileProcessorRepository,
+        file_result_repository: FileResultRepository,
     ) -> None:
         """初始化JAV视频文件整理任务
 
@@ -51,14 +47,12 @@ class JavVideoOrganizer:
             global_config: 全局配置
             task_config: 任务配置
             log_dir: 日志目录
-            file_item_repository: 文件处理结果仓储
-            file_processor_repository: 文件操作日志仓储
+            file_result_repository: 文件处理结果仓储
         """
         self._global_config = global_config
         self._task_config = task_config
         self.log_dir = log_dir
-        self._file_item_repository = file_item_repository
-        self._file_processor_repository = file_processor_repository
+        self._file_result_repository = file_result_repository
 
         # 获取类型化的配置对象
         self.file_config: JavVideoOrganizeConfig = self._task_config.get_config(
@@ -122,7 +116,6 @@ class JavVideoOrganizer:
             scan_root=self.inbox_dir,
             analyze_config=analyze_config,
             log_dir=self.log_dir,
-            file_processor_repository=self._file_processor_repository,
-            file_item_repository=self._file_item_repository,
+            file_result_repository=self._file_result_repository,
         )
         return pipeline.run(dry_run=dry_run, cancellation_event=cancellation_event)

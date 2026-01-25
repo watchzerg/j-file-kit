@@ -6,7 +6,6 @@
 设计意图：
 - 根据 Decision 类型执行对应操作
 - 支持 dry_run 预览：返回预览结果而不实际执行
-- 记录操作日志到 Repository
 """
 
 from enum import Enum
@@ -23,8 +22,7 @@ from j_file_kit.app.file_task.domain.decisions import (
     MoveDecision,
     SkipDecision,
 )
-from j_file_kit.app.file_task.domain.models import FileType, OperationType, SerialId
-from j_file_kit.app.file_task.domain.ports import FileProcessorRepository
+from j_file_kit.app.file_task.domain.models import FileType, SerialId
 from j_file_kit.shared.utils.file_utils import delete_file_if_exists, ensure_directory
 
 
@@ -141,9 +139,7 @@ class ExecutionResult(BaseModel):
 
 def execute_decision(
     decision: FileDecision,
-    task_id: int,
     dry_run: bool = False,
-    file_processor_repository: FileProcessorRepository | None = None,
 ) -> ExecutionResult:
     """执行文件操作决策
 
@@ -151,9 +147,7 @@ def execute_decision(
 
     Args:
         decision: 文件处理决策
-        task_id: 任务 ID（用于关联操作日志）
         dry_run: 是否为预览模式
-        file_processor_repository: 文件处理操作仓储（用于记录操作日志）
 
     Returns:
         执行结果
@@ -163,9 +157,9 @@ def execute_decision(
 
     match decision:
         case MoveDecision():
-            return _execute_move(decision, task_id, file_processor_repository)
+            return _execute_move(decision)
         case DeleteDecision():
-            return _execute_delete(decision, task_id, file_processor_repository)
+            return _execute_delete(decision)
         case SkipDecision():
             return ExecutionResult.skipped(
                 source_path=decision.source_path,
@@ -174,17 +168,11 @@ def execute_decision(
             )
 
 
-def _execute_move(
-    decision: MoveDecision,
-    task_id: int,
-    file_processor_repository: FileProcessorRepository | None,
-) -> ExecutionResult:
+def _execute_move(decision: MoveDecision) -> ExecutionResult:
     """执行移动操作
 
     Args:
         decision: 移动决策
-        task_id: 任务 ID
-        file_processor_repository: 文件处理操作仓储
 
     Returns:
         执行结果
@@ -198,17 +186,6 @@ def _execute_move(
             decision.source_path,
             decision.target_path,
         )
-
-        # 记录操作日志
-        if file_processor_repository:
-            file_processor_repository.create_operation(
-                task_id,
-                OperationType.MOVE,
-                decision.source_path,
-                final_path,
-                file_type=decision.file_type.value if decision.file_type else None,
-                serial_id=str(decision.serial_id) if decision.serial_id else None,
-            )
 
         return ExecutionResult.success(
             source_path=decision.source_path,
@@ -226,17 +203,11 @@ def _execute_move(
         )
 
 
-def _execute_delete(
-    decision: DeleteDecision,
-    task_id: int,
-    file_processor_repository: FileProcessorRepository | None,
-) -> ExecutionResult:
+def _execute_delete(decision: DeleteDecision) -> ExecutionResult:
     """执行删除操作
 
     Args:
         decision: 删除决策
-        task_id: 任务 ID
-        file_processor_repository: 文件处理操作仓储
 
     Returns:
         执行结果
@@ -244,16 +215,6 @@ def _execute_delete(
     try:
         # 执行删除
         delete_file_if_exists(decision.source_path)
-
-        # 记录操作日志
-        if file_processor_repository:
-            file_processor_repository.create_operation(
-                task_id,
-                OperationType.DELETE,
-                decision.source_path,
-                None,
-                file_type=decision.file_type.value if decision.file_type else None,
-            )
 
         return ExecutionResult.success(
             source_path=decision.source_path,

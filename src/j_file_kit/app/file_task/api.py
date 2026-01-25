@@ -50,8 +50,7 @@ def _new_task_instance(task_type: str, app_state: AppState) -> TaskRunner:
             global_config=app_state.get_global_config(),
             task_config=_get_task_config(task_type, app_state),
             log_dir=app_state.log_dir,
-            file_item_repository=app_state.file_item_repository,
-            file_processor_repository=app_state.file_processor_repository,
+            file_result_repository=app_state.file_result_repository,
         )
     else:
         raise HTTPException(

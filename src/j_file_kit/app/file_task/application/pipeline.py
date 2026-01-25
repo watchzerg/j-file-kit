@@ -30,10 +30,7 @@ from j_file_kit.app.file_task.domain.decisions import (
     SkipDecision,
 )
 from j_file_kit.app.file_task.domain.models import PathEntryType
-from j_file_kit.app.file_task.domain.ports import (
-    FileItemRepository,
-    FileProcessorRepository,
-)
+from j_file_kit.app.file_task.domain.ports import FileResultRepository
 from j_file_kit.app.task.domain.models import TaskStatistics
 from j_file_kit.shared.utils.file_utils import delete_directory_if_empty
 from j_file_kit.shared.utils.logging import (
@@ -60,8 +57,7 @@ class FilePipeline:
         scan_root: Path,
         analyze_config: AnalyzeConfig,
         log_dir: Path,
-        file_processor_repository: FileProcessorRepository,
-        file_item_repository: FileItemRepository,
+        file_result_repository: FileResultRepository,
     ) -> None:
         """初始化文件处理管道
 
@@ -71,16 +67,14 @@ class FilePipeline:
             scan_root: 扫描根目录
             analyze_config: 分析配置
             log_dir: 日志目录
-            file_processor_repository: 文件处理操作仓储
-            file_item_repository: 文件处理结果仓储
+            file_result_repository: 文件处理结果仓储
         """
         self.task_id = task_id
         self.task_name = task_name
         self.scan_root = scan_root
         self.analyze_config = analyze_config
         self.log_dir = log_dir
-        self.file_processor_repository = file_processor_repository
-        self.file_item_repository = file_item_repository
+        self.file_result_repository = file_result_repository
 
         # 统计信息
         self.total_items = 0
@@ -163,7 +157,7 @@ class FilePipeline:
     def _finish_task(self, dry_run: bool) -> TaskStatistics:
         """任务结束处理"""
         # 从数据库获取最终统计信息
-        stats = self.file_item_repository.get_statistics(self.task_id)
+        stats = self.file_result_repository.get_statistics(self.task_id)
 
         # 记录任务结束
         logger.bind(
@@ -201,9 +195,7 @@ class FilePipeline:
             # 执行决策
             result = execute_decision(
                 decision,
-                task_id=self.task_id,
                 dry_run=dry_run,
-                file_processor_repository=self.file_processor_repository,
             )
 
             # 计算耗时
@@ -211,7 +203,7 @@ class FilePipeline:
 
             # 保存结果
             item_data = self._create_item_data(path, decision, result, duration_ms)
-            self.file_item_repository.save_result(self.task_id, item_data)
+            self.file_result_repository.save_result(self.task_id, item_data)
 
             # 更新统计
             self._update_statistics(result, duration_ms)
@@ -239,7 +231,7 @@ class FilePipeline:
                 error_message=str(e),
                 duration_ms=duration_ms,
             )
-            self.file_item_repository.save_result(self.task_id, error_data)
+            self.file_result_repository.save_result(self.task_id, error_data)
             self.error_items += 1
             self.total_duration_ms += duration_ms
 
