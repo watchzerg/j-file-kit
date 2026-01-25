@@ -2,313 +2,161 @@
 
 ## 概述
 
-j-file-kit 采用领域驱动设计（DDD）架构，按业务领域组织代码，每个模块内部分为 domain 层（领域核心）和 application 层（应用编排）。遵循依赖倒置原则，domain 层定义接口（ports），infrastructure 层实现接口。
+j-file-kit 采用 DDD 架构，按业务领域组织代码。每个模块内部分为 domain（领域核心）和 application（应用编排）两层。遵循依赖倒置：domain 定义 ports 接口，infrastructure 实现接口。
 
 ## 目录结构
 
 ```
 src/j_file_kit/
-├── app/                          # 应用层 - 业务领域模块
-│   ├── global_config/            # 全局配置模块
-│   │   ├── domain/               # 领域层
-│   │   │   ├── models.py         # GlobalConfig 模型
-│   │   │   ├── ports.py          # GlobalConfigRepository、GlobalConfigManager 接口
-│   │   │   └── exceptions.py     # 全局配置异常
-│   │   ├── application/          # 应用层
-│   │   │   ├── schemas.py        # 请求/响应 DTO
-│   │   │   ├── global_config_service.py # 配置服务
-│   │   │   └── global_config_validator.py # 验证逻辑
-│   │   └── api.py                # HTTP 路由
-│   ├── task_config/              # 任务配置基础设施
-│   │   ├── domain/               # 领域层
-│   │   │   ├── models.py         # TaskConfig 模型
-│   │   │   ├── ports.py          # TaskConfigRepository、TaskConfigManager 接口
-│   │   │   └── exceptions.py     # 任务配置异常
-│   │   └── application/          # 应用层（预留扩展）
-│   ├── task/                     # 任务调度模块
-│   │   ├── domain/               # 领域层
-│   │   │   ├── models.py         # 领域模型（TaskStatus、TaskRecord、TaskRunner）
-│   │   │   └── ports.py          # 仓储接口（TaskRepository）
-│   │   ├── application/          # 应用层
-│   │   │   └── schemas.py        # 请求/响应 DTO
-│   │   └── api.py                # HTTP 路由（列表、查询、取消）
-│   └── file_task/                # 文件任务模块
-│       ├── domain/               # 领域层
-│       │   ├── models.py         # 领域模型（FileType、SerialId、Operation）
-│       │   ├── decisions.py      # 决策模型（MoveDecision、DeleteDecision、SkipDecision）
-│       │   └── ports.py          # 仓储接口（FileItemRepository、FileProcessorRepository）
-│       ├── application/          # 应用层
-│       │   ├── schemas.py        # 请求/响应 DTO
-│       │   ├── config.py         # 任务配置（JavVideoOrganizeConfig、AnalyzeConfig）
-│       │   ├── analyzer.py       # 分析器（analyze_file）
-│       │   ├── executor.py       # 执行器（execute_decision）
-│       │   ├── pipeline.py       # 处理管道（FilePipeline）
-│       │   ├── jav_video_organizer.py # 具体任务实现
-│       │   ├── file_ops.py       # 文件处理工具函数
-│       │   └── jav_filename_util.py # JAV 文件名处理函数
-│       └── api.py                # HTTP 路由（启动任务）
-├── shared/                       # 共享层 - 跨领域通用代码
-│   ├── models/                   # 通用模型（预留扩展）
-│   ├── interfaces/               # 通用接口（预留扩展）
-│   └── utils/                    # 工具函数（文件 I/O、日志配置）
-├── infrastructure/               # 基础设施层 - 有状态的 I/O 操作
-│   ├── persistence/sqlite/       # 数据库（connection、repositories）
-│   │   ├── config/               # 配置仓储实现
-│   │   └── task/                 # 任务仓储实现
-│   ├── config/                   # 配置加载
-│   └── task/                     # 任务调度（TaskManager）
-└── api/                          # HTTP 接口层
-    ├── app.py                    # FastAPI 应用
-    └── app_state.py              # 应用状态管理（Composition Root）
+├── app/                          # 业务领域模块
+│   ├── global_config/            # 全局配置（业务目录路径）
+│   ├── task_config/              # 任务配置基础设施（模型、接口）
+│   ├── task/                     # 任务调度协议（TaskRunner、TaskRepository）
+│   └── file_task/                # 文件处理任务（扫描、分析、执行）
+├── shared/utils/                 # 跨领域工具（文件 I/O、日志）
+├── infrastructure/               # 有状态 I/O 实现
+│   ├── persistence/sqlite/       # SQLite 仓储实现
+│   ├── config/                   # ConfigManager 实现
+│   └── task/                     # TaskManager 调度器
+└── api/                          # FastAPI 应用入口
+    ├── app.py                    # 路由注册、生命周期
+    └── app_state.py              # Composition Root（组装依赖）
 ```
 
-### 测试目录约定
+### 模块内部结构
 
 ```
-tests/
-├── app/               # 对应 app/ 业务模块
-├── infrastructure/    # 对应 infrastructure/
-└── shared/            # 对应 shared/
+app/<module>/
+├── domain/
+│   ├── models.py                 # 实体、值对象、枚举
+│   ├── ports.py                  # 仓储接口（Protocol）
+│   ├── exceptions.py             # 领域异常
+│   └── constants.py              # 类型常量（如 task_type）
+└── application/
+    ├── schemas.py                # 请求/响应 DTO
+    ├── services.py               # 业务逻辑编排
+    └── config.py                 # 任务配置模型
 ```
 
-测试目录按层级镜像 `src/j_file_kit/`，单元测试放在对应层级下。
-
-## 架构分层
-
-### 1. App Layer（应用层）
-
-按业务领域组织，每个模块包含两个子层：
-
-**Domain 层（领域核心）**：
-- 实体（Entities）：业务核心对象
-- 值对象（Value Objects）：不可变的业务概念
-- 枚举：业务状态和类型定义
-- 领域异常：业务相关的异常类型
-- 仓储接口（Ports）：定义数据访问接口
-
-**Application 层（应用编排）**：
-- 用例服务（Services）：业务逻辑编排
-- DTO（Schemas）：请求/响应数据传输对象
-- 配置模型：任务配置等
-- 管道（Pipeline）：处理流程协调
-
-**各模块职责**：
-- **global_config**: 全局配置管理（管理应用的业务目录配置，如 inbox_dir、sorted_dir 等）
-- **task_config**: 任务配置基础设施（提供 TaskConfig 模型和管理接口，供所有 task app 依赖）
-- **task**: 任务协议和 API（TaskRepository 协议、通用任务 API）
-- **file_task**: 文件处理任务（扫描、分析、执行、统计）
-
-### 2. Shared Layer（共享层）
-
-跨 domain 的通用代码，无业务逻辑，无外部依赖。
-
-- **models/**: 预留扩展（当前为空）
-- **utils/**: 工具函数（文件 I/O、日志配置等稳定的跨切面功能）
-
-### 3. Infrastructure Layer（基础设施层）
-
-提供有状态的 I/O 操作，实现 domain 定义的 ports 接口，以及任务调度基础设施。
-
-- **persistence/sqlite/**: SQLite 仓储实现
-- **config/**: 配置加载（load_app_config_from_db）
-- **task/**: 任务调度（TaskManager）
-
-### 4. API Layer（HTTP 接口层）
-
-FastAPI 应用，路由注册，异常处理，生命周期管理。
-
-- **app.py**: FastAPI 应用入口
-- **app_state.py**: 应用状态管理（Composition Root），负责组装所有依赖
-
-## 依赖关系
+### 运行时目录
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                           API Layer                              │
-│              (路由注册、异常处理、生命周期管理)                    │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-                               ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                          App Layer                               │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    各业务模块                              │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐   │   │
-│  │  │   config    │  │    task     │←─│    file_task    │   │   │
-│  │  │ ┌─────────┐ │  │ ┌─────────┐ │  │ ┌─────────────┐ │   │   │
-│  │  │ │ domain  │ │  │ │ domain  │ │  │ │   domain    │ │   │   │
-│  │  │ ├─────────┤ │  │ ├─────────┤ │  │ ├─────────────┤ │   │   │
-│  │  │ │ app层   │ │  │ │ app层   │ │  │ │ application │ │   │   │
-│  │  │ └─────────┘ │  │ └─────────┘ │  │ └─────────────┘ │   │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────────┘   │   │
-│  └──────────────────────────────────────────────────────────┘   │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-            ┌──────────────────┴──────────────────┐
-            ↓                                      ↓
-┌───────────────────────┐              ┌───────────────────────┐
-│    Shared Layer       │              │  Infrastructure Layer │
-│  (无业务逻辑的工具)     │              │  (实现 ports 接口)     │
-└───────────────────────┘              └───────────────────────┘
+{base_dir}/                       # 默认 .app-data，可通过 J_FILE_KIT_BASE_DIR 覆盖
+├── sqlite/j_file_kit.db          # SQLite 数据库
+└── logs/{task_name}_{task_id}.jsonl  # 任务日志（JSON Lines）
 ```
 
-**依赖规则**：
-- shared/: 无外部依赖（纯工具函数）
-- app/*/domain: 仅依赖 shared/ 和其他模块的 domain 层
-- app/*/application: 依赖 shared/ 和本模块的 domain 层
-- infrastructure: 依赖 shared/ 和 app/（ports、domain models），实现 domain 的 ports
-- api: 依赖 app/、infrastructure/、shared/（作为 Composition Root 组装所有依赖）
+**初始化流程**：`lifespan` → 创建目录 → SQLite 连接 → schema 初始化 → 默认配置初始化
 
-### 模块间依赖
+## 依赖规则
 
-- **file_task** 依赖 **task**：file_task.application 使用 task.domain.models.TaskRunner 和 task.domain.ports.TaskRepository
-- **file_task** 依赖 **global_config** 和 **task_config**：
-  - 使用 global_config.domain.models.GlobalConfig 读取全局配置（业务目录路径）
-  - 使用 task_config.domain.models.TaskConfig 和 task_config.domain.ports 读取/更新任务配置
-- **task** 不依赖 **file_task**：task 模块保持通用，不包含文件任务专属类型
-- **global_config** 和 **task_config** 相互独立：两个配置模块职责完全分离，互不依赖
-- **task_config** 的 ConfigStateManager 管理两种配置：虽然管理 global 和 task 两种配置，但作为配置管理的通用基础设施定义在 task_config app
+```
+API Layer  ──────────────────────────────────────────────────────────────
+    │                 （路由、异常处理、生命周期）
+    ↓
+App Layer  ──────────────────────────────────────────────────────────────
+    │   ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+    │   │global_config│  │    task     │←─│  file_task  │
+    │   │task_config  │  │  (protocol) │  │  (concrete) │
+    │   └─────────────┘  └─────────────┘  └─────────────┘
+    │
+    ├───────────────────────┬────────────────────────────
+    ↓                       ↓
+Shared Layer          Infrastructure Layer
+（无业务逻辑工具）      （实现 ports 接口）
+```
 
-### 依赖策略
+**依赖方向**：
+- `shared/`：无外部依赖
+- `app/*/domain`：仅依赖 shared 和其他模块的 domain
+- `app/*/application`：依赖 shared 和本模块 domain
+- `infrastructure`：依赖 shared 和 app/（实现 ports）
+- `api`：作为 Composition Root 组装所有依赖
 
-根据 I/O 操作的特性采用不同的依赖方式：
+**模块间依赖**：
+- `file_task` → `task`（使用 TaskRunner 协议）
+- `file_task` → `global_config`/`task_config`（读取配置）
+- `global_config` ↔ `task_config`（相互独立）
 
-| 类型 | 依赖方式 | 位置 | 原因 |
-|------|----------|------|------|
-| **数据库操作** | 通过 ports 注入 | infrastructure/ | 可能迁移数据库、需要事务测试、连接管理复杂 |
-| **文件系统操作** | 直接依赖 | shared/utils/ | API 稳定、用临时目录即可测试、无状态管理 |
-| **日志操作** | 直接依赖 | shared/utils/ | API 稳定、loguru 原生支持测试捕获、无状态管理 |
+## 核心设计
 
-业务相关的文件操作（如带 `-jfk-` 后缀的冲突处理）应放在对应模块的 `application/file_ops.py` 中。
+### Task 执行模型
 
-## 核心概念
+| 组件 | 职责 |
+|------|------|
+| **TaskRunner** (Protocol) | 定义"做什么"，业务用例入口 |
+| **TaskManager** | 任务调度（创建/执行/取消），并发控制（单任务） |
+| **Pipeline** | 流程协调：扫描 → 分析 → 执行 |
+| **Analyzer** | 分析文件，返回 Decision |
+| **Executor** | 根据 Decision 执行操作 |
 
-### Task、Pipeline 职责分工
-
-| 组件 | 层次 | 职责 |
-|------|------|------|
-| **TaskRunner** | 业务用例层 | 定义"做什么"，配置 Pipeline |
-| **Pipeline** | 流程协调层 | 定义"怎么做流程"，协调扫描→分析→执行与统计 |
-| **Analyzer** | 分析层 | 分析文件，返回 Decision |
-| **Executor** | 执行层 | 根据 Decision 执行操作 |
-
-任务状态由 **TaskManager** 统一更新，Pipeline 只负责流程协调、统计与日志。
-
-### TaskManager 职责
-
-TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调度基础设施）：
-- 管理任务的生命周期（创建、执行、取消）
-- 控制并发（当前只允许一个任务运行）
-- 通过 TaskRunner 协议与具体任务实现解耦
-
-**部署约束**：
-- 本项目以单实例 Web 服务方式部署
-- TaskManager 的“单任务运行”约束基于单实例假设
+**执行流程**：
+```
+API 请求 → TaskManager.start_task() → 后台线程执行
+    → TaskRunner.run() → Pipeline 协调
+        → scan → analyze (Decision) → execute → 持久化
+    → 更新任务状态
+```
 
 ### Decision 模式
 
-文件处理使用 Decision 模式，分离"分析"和"执行"：
-- **MoveDecision**: 移动文件到目标目录
-- **DeleteDecision**: 删除文件
-- **SkipDecision**: 跳过不处理
+分离"分析"和"执行"，支持 dry_run 预览：
+- `MoveDecision`：移动文件
+- `DeleteDecision`：删除文件
+- `SkipDecision`：跳过
+
+### 配置管理
+
+- **GlobalConfig**：应用级配置（业务目录路径）
+- **TaskConfig**：按 task_type 区分的任务配置（JSON 存储）
+- **ConfigManager**：启动时加载全局配置，任务配置按需懒加载并缓存
+
+### 依赖注入策略
+
+| 类型 | 方式 | 原因 |
+|------|------|------|
+| 数据库 | ports 注入 | 可替换、需事务测试 |
+| 文件系统 | 直接依赖 shared/utils | API 稳定、临时目录可测 |
+| 日志 | 直接依赖 shared/utils | API 稳定、loguru 原生支持 |
+
+### Repository 参数化
+
+Repository 方法接收 `task_id` 参数（而非构造时绑定），支持单例复用：
+```python
+file_item_repository.save_file_item(task_id=123, item=...)
+```
 
 ## 数据存储
 
-### SQLite 表结构
-
 | 表 | 用途 |
 |---|---|
-| `config_global` | 全局配置（单行，scan_root） |
-| `config_task` | 任务配置（name、type、enabled、config JSON） |
-| `tasks` | 任务实例（状态、时间、统计） |
+| `config_global` | 全局配置 |
+| `config_task` | 任务配置（按 type 区分） |
+| `tasks` | 任务实例（状态、统计） |
 | `file_items` | 文件处理结果 |
 | `file_operations` | 文件操作历史 |
-
-### 配置管理设计
-
-- **Global config** 由 `global_config` 模块管理，提供独立 API 进行 CRUD
-- **Task config** 由各 task app 管理（例如 `file_task`），每个 task app 只操作自己的配置
-- **config_task 表** 统一存储，按 `type` 字段区分任务配置
-- **任务类型标识** 使用字符串常量（例如 `jav_video_organizer`），避免跨模块枚举依赖
-- **缓存策略** 由 `ConfigStateManager` 集中管理，支持按 `task_type` 单条刷新
-- **架构分离** `global_config` 和 `task_config` 是两个独立的 app，职责完全分离：
-  - `global_config`：管理应用的业务目录配置
-  - `task_config`：提供任务配置的通用基础设施（模型、接口、状态管理）
-
-### 配置加载流程
-
-1. FastAPI `lifespan` 创建 `SQLiteConnectionManager`
-2. `SQLiteSchemaInitializer` 初始化表结构
-3. `DefaultGlobalConfigInitializer` 与 `DefaultTaskConfigInitializer` 初始化默认配置数据
-4. `AppState` 组装依赖并创建 `GlobalConfigRepositoryImpl` 与 `TaskConfigRepositoryImpl`
-5. `ConfigManagerImpl` 启动时加载全局配置，任务配置按 `task_type` 懒加载并缓存
-
-## 任务执行流程
-
-```
-API 请求 → 创建任务实例（注入 repositories）→ TaskManager 启动（后台线程）
-    ↓
-Pipeline 协调执行
-    ├── 扫描文件（scan_directory_items）
-    ├── 分析文件（analyze_file → Decision）
-    ├── 执行决策（execute_decision）
-    ├── 结果持久化
-    └── 任务完成
-    ↓
-任务完成，状态更新到数据库
-```
 
 ## 扩展指南
 
 ### 添加新任务类型
 
-1. 在对应模块的 `application/` 创建任务类（如 `app/file_task/application/new_task.py`）
-2. 实现 `TaskRunner` 协议
-3. 构造函数接收所需的 repositories（通过 API 层注入）
-4. 实现 `run(task_id, dry_run, cancellation_event)` 方法
-5. 在对应的 `api.py` 中注册启动端点，组装依赖
-6. 为该任务添加配置管理：
-   - 定义任务类型常量（如 `app/<task>/domain/constants.py`）
-   - 定义配置 schema（`application/config.py`）
-   - 实现配置 service（读取、合并、保存、刷新缓存）
-   - 提供配置 API（独立路由文件）
+1. 在 `app/file_task/application/` 创建任务类，实现 `TaskRunner` 协议
+2. 定义任务类型常量（`domain/constants.py`）
+3. 定义配置 schema（`application/config_schemas.py`）
+4. 在 `api.py` 注册端点，组装依赖
 
 ### 添加新 Domain
 
-1. 在 `app/` 下创建目录（如 `app/new_domain/`）
-2. 创建 domain 层：
-   - `domain/models.py`：领域模型
-   - `domain/ports.py`：仓储接口
-3. 创建 application 层：
-   - `application/schemas.py`：DTO
-   - `application/services.py`：业务服务
-4. 创建 `api.py`：HTTP 路由
-5. 在 `infrastructure/persistence/sqlite/` 创建仓储实现
-6. 在 `api/app.py` 注册路由
+1. 创建 `app/<domain>/domain/`（models、ports）
+2. 创建 `app/<domain>/application/`（schemas、services）
+3. 创建 `api.py` 路由
+4. 在 `infrastructure/persistence/sqlite/` 实现仓储
+5. 在 `api/app.py` 注册路由
 
-### 模块内部结构模板
+## 关键决策
 
-```
-app/new_domain/
-├── __init__.py
-├── domain/
-│   ├── __init__.py
-│   ├── models.py       # 实体、值对象、枚举、异常
-│   └── ports.py        # 仓储接口
-├── application/
-│   ├── __init__.py
-│   ├── schemas.py      # DTO
-│   └── services.py     # 用例服务
-└── api.py              # HTTP 路由
-```
-
-## 关键设计决策
-
-1. **Feature-First 模块组织**: 按业务功能划分模块，每个模块内部分 domain 和 application 层
-2. **SQLite 存储配置**: 统一数据存储，便于管理和备份
-3. **路径冲突处理**: "先尝试后生成"模式，使用 `-jfk-xxxx` 后缀
-4. **仓储模式**: domain 定义 ports，infrastructure 实现，实现依赖倒置
-5. **JSON 字段**: 灵活存储不同任务类型的特定数据
-6. **任务调度分离**: TaskManager 独立于具体任务类型，通过 TaskRunner 协议解耦
-7. **Decision 模式**: 分离分析和执行，支持 dry_run 预览
-8. **Repository 参数化设计**: FileItemRepository/FileProcessorRepository 方法接收 task_id 参数而非构造时绑定，支持单例复用，简化依赖注入
+1. **Feature-First**：按业务功能划分模块
+2. **SQLite 统一存储**：便于管理和备份
+3. **TaskRunner 协议**：解耦调度与具体任务
+4. **Decision 模式**：分析/执行分离，支持预览
+5. **单实例部署**：TaskManager 的单任务约束基于此假设
