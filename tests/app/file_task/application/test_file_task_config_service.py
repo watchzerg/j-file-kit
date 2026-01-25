@@ -1,12 +1,16 @@
 import pytest
 
-from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
-from j_file_kit.app.config.domain.ports import ConfigStateManager, TaskConfigRepository
 from j_file_kit.app.file_task.application.config import JavVideoOrganizeConfig
 from j_file_kit.app.file_task.application.file_task_config_service import (
     FileTaskConfigService,
 )
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.global_config.domain.models import GlobalConfig
+from j_file_kit.app.task_config.domain.models import TaskConfig
+from j_file_kit.app.task_config.domain.ports import (
+    ConfigStateManager,
+    TaskConfigRepository,
+)
 
 pytestmark = pytest.mark.unit
 

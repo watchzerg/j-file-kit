@@ -1,18 +1,20 @@
-"""配置API路由
+"""全局配置 API 路由
 
-定义配置管理的HTTP API路由处理函数。
+定义全局配置管理的 HTTP API 路由处理函数。
 提供配置的查询和更新功能，支持部分更新。
 """
 
 from fastapi import APIRouter, HTTPException, Request, status
 
 from j_file_kit.api.app_state import AppState
-from j_file_kit.app.config.application.config_service import ConfigService
-from j_file_kit.app.config.application.schemas import (
+from j_file_kit.app.global_config.application.global_config_service import (
+    GlobalConfigService,
+)
+from j_file_kit.app.global_config.application.schemas import (
     UpdateConfigResponse,
     UpdateGlobalConfigRequest,
 )
-from j_file_kit.app.config.domain.models import GlobalConfig
+from j_file_kit.app.global_config.domain.models import GlobalConfig
 
 router = APIRouter(prefix="/api/config", tags=["config"])
 
@@ -34,14 +36,14 @@ async def update_global_config(
     current_global = app_state.get_global_config()
 
     try:
-        merged_global = ConfigService.merge_global_config(current_global, body)
+        merged_global = GlobalConfigService.merge_global_config(current_global, body)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "INVALID_GLOBAL_CONFIG", "message": str(e)},
         ) from e
 
-    ConfigService.validate_and_save_global_config(
+    GlobalConfigService.validate_and_save_global_config(
         merged_global,
         app_state.global_config_repository,
         app_state.config_manager,

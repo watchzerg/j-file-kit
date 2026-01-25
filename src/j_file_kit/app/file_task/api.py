@@ -7,7 +7,6 @@
 from fastapi import APIRouter, HTTPException, Request, status
 
 from j_file_kit.api.app_state import AppState
-from j_file_kit.app.config.domain.models import TaskConfig
 from j_file_kit.app.file_task.application.jav_video_organizer import JavVideoOrganizer
 from j_file_kit.app.file_task.application.schemas import (
     StartTaskRequest,
@@ -15,6 +14,7 @@ from j_file_kit.app.file_task.application.schemas import (
 )
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.task.domain.models import TaskRunner, TriggerType
+from j_file_kit.app.task_config.domain.models import TaskConfig
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 

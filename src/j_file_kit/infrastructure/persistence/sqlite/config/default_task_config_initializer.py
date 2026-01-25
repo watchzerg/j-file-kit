@@ -4,7 +4,7 @@ import json
 import sqlite3
 from datetime import datetime
 
-from j_file_kit.app.config.domain.models import TaskConfig
+from j_file_kit.app.task_config.domain.models import TaskConfig
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )

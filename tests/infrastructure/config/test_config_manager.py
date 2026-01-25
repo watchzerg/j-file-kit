@@ -2,7 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
+from j_file_kit.app.global_config.domain.models import GlobalConfig
+from j_file_kit.app.task_config.domain.models import TaskConfig
 from j_file_kit.infrastructure.config import config_manager as config_manager_module
 from j_file_kit.infrastructure.config.config_manager import ConfigManagerImpl
 from j_file_kit.infrastructure.persistence.sqlite.connection import (

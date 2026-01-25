@@ -9,16 +9,22 @@ j-file-kit 采用领域驱动设计（DDD）架构，按业务领域组织代码
 ```
 src/j_file_kit/
 ├── app/                          # 应用层 - 业务领域模块
-│   ├── config/                   # 配置模块
+│   ├── global_config/            # 全局配置模块
 │   │   ├── domain/               # 领域层
-│   │   │   ├── models.py         # 配置领域模型（GlobalConfig、TaskConfig、AppConfig）
-│   │   │   ├── ports.py          # 仓储接口（GlobalConfigRepository、TaskConfigRepository、ConfigStateManager）
-│   │   │   └── exceptions.py     # 配置相关异常
+│   │   │   ├── models.py         # GlobalConfig 模型
+│   │   │   ├── ports.py          # GlobalConfigRepository 接口
+│   │   │   └── exceptions.py     # 全局配置异常
 │   │   ├── application/          # 应用层
 │   │   │   ├── schemas.py        # 请求/响应 DTO
-│   │   │   ├── config_service.py # 配置服务
-│   │   │   └── config_validator.py # 验证逻辑
+│   │   │   ├── global_config_service.py # 配置服务
+│   │   │   └── global_config_validator.py # 验证逻辑
 │   │   └── api.py                # HTTP 路由
+│   ├── task_config/              # 任务配置基础设施
+│   │   ├── domain/               # 领域层
+│   │   │   ├── models.py         # TaskConfig 模型
+│   │   │   ├── ports.py          # TaskConfigRepository、ConfigStateManager 接口
+│   │   │   └── exceptions.py     # 任务配置异常
+│   │   └── application/          # 应用层（预留扩展）
 │   ├── task/                     # 任务调度模块
 │   │   ├── domain/               # 领域层
 │   │   │   ├── models.py         # 领域模型（TaskStatus、TaskRecord、TaskRunner）
@@ -87,7 +93,8 @@ tests/
 - 管道（Pipeline）：处理流程协调
 
 **各模块职责**：
-- **config**: 配置管理（GlobalConfig、AppConfig、TaskConfig）
+- **global_config**: 全局配置管理（管理应用的业务目录配置，如 inbox_dir、sorted_dir 等）
+- **task_config**: 任务配置基础设施（提供 TaskConfig 模型和管理接口，供所有 task app 依赖）
 - **task**: 任务协议和 API（TaskRepository 协议、通用任务 API）
 - **file_task**: 文件处理任务（扫描、分析、执行、统计）
 
@@ -155,9 +162,12 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 ### 模块间依赖
 
 - **file_task** 依赖 **task**：file_task.application 使用 task.domain.models.TaskRunner 和 task.domain.ports.TaskRepository
-- **file_task** 依赖 **config**：file_task.application 使用 config.domain.models.GlobalConfig 读取全局配置，并通过 config.domain.ports 读取/更新任务配置
+- **file_task** 依赖 **global_config** 和 **task_config**：
+  - 使用 global_config.domain.models.GlobalConfig 读取全局配置（业务目录路径）
+  - 使用 task_config.domain.models.TaskConfig 和 task_config.domain.ports 读取/更新任务配置
 - **task** 不依赖 **file_task**：task 模块保持通用，不包含文件任务专属类型
-- **config** 不依赖其他业务模块：config 模块作为基础配置模块，保持独立
+- **global_config** 和 **task_config** 相互独立：两个配置模块职责完全分离，互不依赖
+- **task_config** 的 ConfigStateManager 管理两种配置：虽然管理 global 和 task 两种配置，但作为配置管理的通用基础设施定义在 task_config app
 
 ### 依赖策略
 
@@ -216,11 +226,14 @@ TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调
 
 ### 配置管理设计
 
-- **Global config** 由 `config` 模块集中管理，提供独立 API 进行 CRUD
+- **Global config** 由 `global_config` 模块管理，提供独立 API 进行 CRUD
 - **Task config** 由各 task app 管理（例如 `file_task`），每个 task app 只操作自己的配置
 - **config_task 表** 统一存储，按 `type` 字段区分任务配置
 - **任务类型标识** 使用字符串常量（例如 `jav_video_organizer`），避免跨模块枚举依赖
 - **缓存策略** 由 `ConfigStateManager` 集中管理，支持按 `task_type` 单条刷新
+- **架构分离** `global_config` 和 `task_config` 是两个独立的 app，职责完全分离：
+  - `global_config`：管理应用的业务目录配置
+  - `task_config`：提供任务配置的通用基础设施（模型、接口、状态管理）
 
 ### 配置加载流程
 

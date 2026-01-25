@@ -1,9 +1,10 @@
 """配置状态管理器
 
-实现 ConfigStateManager Protocol，管理配置的内存状态。
+实现 ConfigStateManager Protocol（来自 task_config app），管理配置的内存状态。
 """
 
-from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
+from j_file_kit.app.global_config.domain.models import GlobalConfig
+from j_file_kit.app.task_config.domain.models import TaskConfig
 from j_file_kit.infrastructure.config.config_loader import load_global_config_from_db
 from j_file_kit.infrastructure.persistence.sqlite.config.task_config_repository import (
     TaskConfigRepositoryImpl,

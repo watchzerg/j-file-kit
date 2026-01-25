@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from j_file_kit.app.config.domain.models import GlobalConfig
+from j_file_kit.app.global_config.domain.models import GlobalConfig
 from j_file_kit.infrastructure.config.config_manager import ConfigManagerImpl
 from j_file_kit.infrastructure.persistence.sqlite.config.global_config_repository import (
     GlobalConfigRepositoryImpl,

@@ -3,19 +3,22 @@ from typing import cast
 
 import pytest
 
-from j_file_kit.app.config.application.config_service import ConfigService
-from j_file_kit.app.config.application.schemas import UpdateGlobalConfigRequest
-from j_file_kit.app.config.domain.exceptions import (
+from j_file_kit.app.global_config.application.global_config_service import (
+    GlobalConfigService,
+)
+from j_file_kit.app.global_config.application.schemas import (
+    UpdateGlobalConfigRequest,
+)
+from j_file_kit.app.global_config.domain.exceptions import (
     ConfigReloadError,
     ConfigUpdateError,
     InvalidConfigError,
     InvalidPathError,
 )
-from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
-from j_file_kit.app.config.domain.ports import (
-    ConfigStateManager,
-    GlobalConfigRepository,
-)
+from j_file_kit.app.global_config.domain.models import GlobalConfig
+from j_file_kit.app.global_config.domain.ports import GlobalConfigRepository
+from j_file_kit.app.task_config.domain.models import TaskConfig
+from j_file_kit.app.task_config.domain.ports import ConfigStateManager
 
 pytestmark = pytest.mark.unit
 
@@ -92,7 +95,7 @@ def test_merge_global_config_returns_current_when_no_updates() -> None:
     current = _global_config()
     update = _global_update()
 
-    merged = ConfigService.merge_global_config(current, update)
+    merged = GlobalConfigService.merge_global_config(current, update)
 
     assert merged is current
 
@@ -101,7 +104,7 @@ def test_merge_global_config_updates_and_clears_fields() -> None:
     current = _global_config()
     update = _global_update(inbox_dir="/new/inbox", sorted_dir="")
 
-    merged = ConfigService.merge_global_config(current, update)
+    merged = GlobalConfigService.merge_global_config(current, update)
 
     assert merged.inbox_dir == Path("/new/inbox")
     assert merged.sorted_dir is None
@@ -112,7 +115,7 @@ def test_validate_and_save_global_config_success() -> None:
     manager = _ManagerStub()
     global_config = _global_config()
 
-    ConfigService.validate_and_save_global_config(
+    GlobalConfigService.validate_and_save_global_config(
         merged_global=global_config,
         global_config_repository=global_repo,
         config_manager=manager,
@@ -128,7 +131,7 @@ def test_validate_and_save_global_config_invalid_config_raises() -> None:
     invalid_global = cast(GlobalConfig, "invalid")
 
     with pytest.raises(InvalidConfigError):
-        ConfigService.validate_and_save_global_config(
+        GlobalConfigService.validate_and_save_global_config(
             merged_global=invalid_global,
             global_config_repository=global_repo,
             config_manager=manager,
@@ -140,7 +143,7 @@ def test_validate_and_save_global_config_invalid_path_raises() -> None:
     manager = _ManagerStub()
 
     with pytest.raises(InvalidPathError):
-        ConfigService.validate_and_save_global_config(
+        GlobalConfigService.validate_and_save_global_config(
             merged_global=_global_config(inbox=None),
             global_config_repository=global_repo,
             config_manager=manager,
@@ -152,7 +155,7 @@ def test_validate_and_save_global_config_update_error_raises() -> None:
     manager = _ManagerStub()
 
     with pytest.raises(ConfigUpdateError):
-        ConfigService.validate_and_save_global_config(
+        GlobalConfigService.validate_and_save_global_config(
             merged_global=_global_config(),
             global_config_repository=global_repo,
             config_manager=manager,
@@ -164,7 +167,7 @@ def test_validate_and_save_global_config_reload_error_raises() -> None:
     manager = _ManagerStub(fail_reload=True)
 
     with pytest.raises(ConfigReloadError):
-        ConfigService.validate_and_save_global_config(
+        GlobalConfigService.validate_and_save_global_config(
             merged_global=_global_config(),
             global_config_repository=global_repo,
             config_manager=manager,

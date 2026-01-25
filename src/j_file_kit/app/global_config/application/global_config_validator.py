@@ -1,4 +1,4 @@
-"""配置验证工具函数
+"""全局配置验证工具函数
 
 提供配置验证相关的纯函数，无副作用。
 仅验证配置数据本身（格式、必需字段、冲突），不涉及文件系统检查。
@@ -7,7 +7,7 @@
 
 from pathlib import Path
 
-from j_file_kit.app.config.domain.models import GlobalConfig
+from j_file_kit.app.global_config.domain.models import GlobalConfig
 
 
 def _get_all_dir_fields(global_config: GlobalConfig) -> list[tuple[str, Path | None]]:
@@ -32,7 +32,7 @@ def _get_all_dir_fields(global_config: GlobalConfig) -> list[tuple[str, Path | N
 
 
 def validate_inbox_dir(global_config: GlobalConfig) -> list[str]:
-    """验证inbox_dir配置
+    """验证 inbox_dir 配置
 
     仅验证配置项是否设置，不检查目录存在性或文件系统状态。
 

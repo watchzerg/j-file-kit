@@ -2,12 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from j_file_kit.app.config.application.config_validator import (
+from j_file_kit.app.global_config.application.global_config_validator import (
     check_dir_conflicts,
     validate_global_config,
     validate_inbox_dir,
 )
-from j_file_kit.app.config.domain.models import GlobalConfig
+from j_file_kit.app.global_config.domain.models import GlobalConfig
 
 pytestmark = pytest.mark.unit
 

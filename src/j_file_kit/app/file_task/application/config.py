@@ -8,8 +8,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
-from j_file_kit.app.config.domain.models import TaskConfig
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.task_config.domain.models import TaskConfig
 
 
 class JavVideoOrganizeConfig(BaseModel):

@@ -1,6 +1,6 @@
-"""配置API请求和响应模型
+"""全局配置 API 请求和响应模型
 
-定义配置管理相关的HTTP API请求和响应数据结构。
+定义全局配置管理相关的 HTTP API 请求和响应数据结构。
 """
 
 from pydantic import BaseModel, Field

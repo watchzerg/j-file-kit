@@ -13,28 +13,31 @@ from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from j_file_kit.api.app_state import AppState
-from j_file_kit.app.config.api import router as config_router
-from j_file_kit.app.config.domain.exceptions import (
-    ConfigError,
-    ConfigReloadError,
-    ConfigUpdateError,
-    InvalidConfigError,
-    InvalidPathError,
-    InvalidTaskConfigError,
-    MissingTaskNameError,
-    TaskConfigNotFoundError,
-)
 from j_file_kit.app.file_task.api import router as file_task_router
 from j_file_kit.app.file_task.application.config import (
     create_default_jav_video_organizer_task_config,
 )
 from j_file_kit.app.file_task.config_api import router as file_task_config_router
+from j_file_kit.app.global_config.api import router as config_router
+from j_file_kit.app.global_config.domain.exceptions import (
+    ConfigReloadError,
+    ConfigUpdateError,
+    GlobalConfigError,
+    InvalidConfigError,
+    InvalidPathError,
+)
 from j_file_kit.app.task.api import router as task_router
 from j_file_kit.app.task.domain.models import (
     TaskAlreadyRunningError,
     TaskCancelledError,
     TaskError,
     TaskNotFoundError,
+)
+from j_file_kit.app.task_config.domain.exceptions import (
+    InvalidTaskConfigError,
+    MissingTaskNameError,
+    TaskConfigError,
+    TaskConfigNotFoundError,
 )
 from j_file_kit.infrastructure.persistence.sqlite.config.default_global_config_initializer import (
     DefaultGlobalConfigInitializer,
@@ -311,9 +314,12 @@ async def config_reload_error_handler(
     )
 
 
-@app.exception_handler(ConfigError)
-async def config_error_handler(request: Request, exc: ConfigError) -> JSONResponse:
-    """配置相关异常处理器（兜底）
+@app.exception_handler(GlobalConfigError)
+async def global_config_error_handler(
+    request: Request,
+    exc: GlobalConfigError,
+) -> JSONResponse:
+    """全局配置相关异常处理器（兜底）
 
     Args:
         request: 请求对象
@@ -324,7 +330,27 @@ async def config_error_handler(request: Request, exc: ConfigError) -> JSONRespon
     """
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"code": "CONFIG_ERROR", "message": str(exc)},
+        content={"code": "GLOBAL_CONFIG_ERROR", "message": str(exc)},
+    )
+
+
+@app.exception_handler(TaskConfigError)
+async def task_config_error_handler(
+    request: Request,
+    exc: TaskConfigError,
+) -> JSONResponse:
+    """任务配置相关异常处理器（兜底）
+
+    Args:
+        request: 请求对象
+        exc: 异常对象
+
+    Returns:
+        JSON响应
+    """
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"code": "TASK_CONFIG_ERROR", "message": str(exc)},
     )
 
 

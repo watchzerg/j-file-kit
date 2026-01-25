@@ -5,13 +5,13 @@
 
 from typing import Any
 
-from j_file_kit.app.config.domain.models import TaskConfig
-from j_file_kit.app.config.domain.ports import (
+from j_file_kit.app.file_task.application.config import JavVideoOrganizeConfig
+from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.task_config.domain.models import TaskConfig
+from j_file_kit.app.task_config.domain.ports import (
     ConfigStateManager,
     TaskConfigRepository,
 )
-from j_file_kit.app.file_task.application.config import JavVideoOrganizeConfig
-from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 
 
 class FileTaskConfigService:

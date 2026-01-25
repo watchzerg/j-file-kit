@@ -4,7 +4,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-from j_file_kit.app.config.domain.models import create_default_global_config
+from j_file_kit.app.global_config.domain.models import create_default_global_config
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )

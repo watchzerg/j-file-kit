@@ -1,10 +1,9 @@
 """配置加载
 
-提供从数据库加载配置的功能。
-配置模型定义在 models/config.py 中。
+提供从数据库加载全局配置的功能。
 """
 
-from j_file_kit.app.config.domain.models import GlobalConfig
+from j_file_kit.app.global_config.domain.models import GlobalConfig
 from j_file_kit.infrastructure.persistence.sqlite.config.global_config_repository import (
     GlobalConfigRepositoryImpl,
 )

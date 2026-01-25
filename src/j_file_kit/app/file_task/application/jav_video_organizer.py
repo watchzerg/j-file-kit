@@ -7,7 +7,6 @@
 import threading
 from pathlib import Path
 
-from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
 from j_file_kit.app.file_task.application.config import (
     AnalyzeConfig,
     JavVideoOrganizeConfig,
@@ -18,7 +17,9 @@ from j_file_kit.app.file_task.domain.ports import (
     FileItemRepository,
     FileProcessorRepository,
 )
+from j_file_kit.app.global_config.domain.models import GlobalConfig
 from j_file_kit.app.task.domain.models import TaskStatistics
+from j_file_kit.app.task_config.domain.models import TaskConfig
 
 
 class JavVideoOrganizer:

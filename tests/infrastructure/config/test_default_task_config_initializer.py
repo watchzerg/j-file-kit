@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from j_file_kit.app.config.domain.models import TaskConfig
+from j_file_kit.app.task_config.domain.models import TaskConfig
 from j_file_kit.infrastructure.persistence.sqlite.config.default_task_config_initializer import (
     DefaultTaskConfigInitializer,
 )
