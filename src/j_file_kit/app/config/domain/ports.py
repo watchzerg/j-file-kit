@@ -5,7 +5,7 @@
 
 from typing import Protocol
 
-from j_file_kit.app.config.domain.models import AppConfig, GlobalConfig, TaskConfig
+from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
 
 
 class GlobalConfigRepository(Protocol):
@@ -104,19 +104,32 @@ class ConfigStateManager(Protocol):
     - 提供重新加载配置的功能
     """
 
-    @property
-    def config(self) -> AppConfig:
-        """获取当前配置
+    def get_global_config(self) -> GlobalConfig:
+        """获取当前全局配置
 
         Returns:
-            当前应用配置对象
+            当前全局配置对象
         """
         ...
 
-    def reload(self) -> None:
-        """从数据库重新加载配置到内存
+    def get_task_configs(self) -> list[TaskConfig]:
+        """获取当前任务配置列表
 
-        从数据库重新加载配置，更新内存中的配置缓存。
+        Returns:
+            当前任务配置列表
+        """
+        ...
+
+    def reload_global(self) -> None:
+        """从数据库重新加载全局配置到内存
+
+        Raises:
+            ValueError: 如果配置加载失败
+        """
+        ...
+
+    def reload_tasks(self) -> None:
+        """从数据库重新加载任务配置到内存
 
         Raises:
             ValueError: 如果配置加载失败

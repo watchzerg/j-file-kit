@@ -4,7 +4,6 @@ import pytest
 from pydantic import BaseModel
 
 from j_file_kit.app.config.domain.models import (
-    AppConfig,
     GlobalConfig,
     TaskConfig,
     create_default_global_config,
@@ -49,29 +48,6 @@ def test_task_config_get_config_returns_typed_model() -> None:
 
     assert isinstance(parsed, _DummyConfig)
     assert parsed.enabled is True
-
-
-def test_app_config_enabled_tasks_filters_disabled(tmp_path: Path) -> None:
-    global_config = _global_config(inbox_dir=tmp_path / "inbox")
-    tasks = [
-        TaskConfig(name="a", type="file_organize", enabled=True, config={}),
-        TaskConfig(name="b", type="file_organize", enabled=False, config={}),
-    ]
-
-    app_config = AppConfig.model_validate({"global": global_config, "tasks": tasks})
-
-    assert [task.name for task in app_config.enabled_tasks] == ["a"]
-
-
-def test_app_config_get_task_returns_match_or_none(tmp_path: Path) -> None:
-    global_config = _global_config(inbox_dir=tmp_path / "inbox")
-    tasks = [
-        TaskConfig(name="a", type="file_organize", enabled=True, config={}),
-    ]
-    app_config = AppConfig.model_validate({"global": global_config, "tasks": tasks})
-
-    assert app_config.get_task("a") is tasks[0]
-    assert app_config.get_task("missing") is None
 
 
 def test_create_default_global_config_has_none_fields() -> None:

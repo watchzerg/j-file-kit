@@ -7,6 +7,7 @@
 from fastapi import APIRouter, HTTPException, Request, status
 
 from j_file_kit.api.app_state import AppState
+from j_file_kit.app.config.domain.models import TaskConfig
 from j_file_kit.app.file_task.application.jav_video_organizer import JavVideoOrganizer
 from j_file_kit.app.file_task.application.schemas import (
     StartTaskRequest,
@@ -15,6 +16,17 @@ from j_file_kit.app.file_task.application.schemas import (
 from j_file_kit.app.task.domain.models import TaskRunner, TaskType, TriggerType
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
+
+
+def _get_task_config(task_name: str, app_state: AppState) -> TaskConfig:
+    """获取指定任务配置"""
+    for task_config in app_state.get_task_configs():
+        if task_config.name == task_name:
+            return task_config
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"任务配置不存在: {task_name}",
+    )
 
 
 def _new_task_instance(task_type: str, app_state: AppState) -> TaskRunner:
@@ -34,7 +46,8 @@ def _new_task_instance(task_type: str, app_state: AppState) -> TaskRunner:
     """
     if task_type == TaskType.JAV_VIDEO_ORGANIZER.value:
         return JavVideoOrganizer(
-            config=app_state.config,
+            global_config=app_state.get_global_config(),
+            task_config=_get_task_config("jav_video_organizer", app_state),
             log_dir=app_state.log_dir,
             file_item_repository=app_state.file_item_repository,
             file_processor_repository=app_state.file_processor_repository,

@@ -21,7 +21,7 @@ from j_file_kit.app.config.domain.exceptions import (
     MissingTaskNameError,
     TaskConfigNotFoundError,
 )
-from j_file_kit.app.config.domain.models import AppConfig, GlobalConfig, TaskConfig
+from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
 from j_file_kit.app.config.domain.ports import (
     ConfigStateManager,
     GlobalConfigRepository,
@@ -175,16 +175,14 @@ class ConfigService:
         return merged_tasks
 
     @staticmethod
-    def validate_and_save_config(
+    def validate_and_save_global_config(
         merged_global: GlobalConfig,
-        merged_tasks: list[TaskConfig],
         global_config_repository: GlobalConfigRepository,
-        task_config_repository: TaskConfigRepository,
         config_manager: ConfigStateManager,
     ) -> None:
-        """验证并保存配置
+        """验证并保存全局配置
 
-        验证配置的有效性，然后保存到数据库并重新加载到内存。
+        验证全局配置的有效性，然后保存到数据库并重新加载到内存。
 
         设计意图：
         - 接收 Protocol 接口而非具体实现（AppState）
@@ -193,9 +191,7 @@ class ConfigService:
 
         Args:
             merged_global: 合并后的全局配置
-            merged_tasks: 合并后的任务配置列表
             global_config_repository: 全局配置仓储（用于更新数据库）
-            task_config_repository: 任务配置仓储（用于更新数据库）
             config_manager: 配置状态管理器（用于刷新内存状态）
 
         Raises:
@@ -204,27 +200,58 @@ class ConfigService:
             ConfigUpdateError: 如果配置更新失败
             ConfigReloadError: 如果配置重载失败
         """
-        # 验证配置模型
         try:
-            AppConfig.model_validate({"global": merged_global, "tasks": merged_tasks})
+            GlobalConfig.model_validate(merged_global.model_dump(exclude_none=True))
         except Exception as e:
             raise InvalidConfigError(str(e)) from e
 
-        # 验证路径（使用统一的验证函数）
         errors = validate_global_config(merged_global)
         if errors:
             raise InvalidPathError(errors)
 
-        # 更新数据库
         try:
             global_config_repository.update_global_config(merged_global)
+        except Exception as e:
+            raise ConfigUpdateError(str(e)) from e
+
+        try:
+            config_manager.reload_global()
+        except Exception as e:
+            raise ConfigReloadError(str(e)) from e
+
+    @staticmethod
+    def validate_and_save_task_configs(
+        merged_tasks: list[TaskConfig],
+        task_config_repository: TaskConfigRepository,
+        config_manager: ConfigStateManager,
+    ) -> None:
+        """验证并保存任务配置列表
+
+        验证任务配置的有效性，然后保存到数据库并重新加载到内存。
+
+        Args:
+            merged_tasks: 合并后的任务配置列表
+            task_config_repository: 任务配置仓储（用于更新数据库）
+            config_manager: 配置状态管理器（用于刷新内存状态）
+
+        Raises:
+            InvalidConfigError: 如果配置验证失败
+            ConfigUpdateError: 如果配置更新失败
+            ConfigReloadError: 如果配置重载失败
+        """
+        try:
+            for task in merged_tasks:
+                TaskConfig.model_validate(task.model_dump())
+        except Exception as e:
+            raise InvalidConfigError(str(e)) from e
+
+        try:
             for task in merged_tasks:
                 task_config_repository.update_task_config(task)
         except Exception as e:
             raise ConfigUpdateError(str(e)) from e
 
-        # 重新加载配置到内存
         try:
-            config_manager.reload()
+            config_manager.reload_tasks()
         except Exception as e:
             raise ConfigReloadError(str(e)) from e

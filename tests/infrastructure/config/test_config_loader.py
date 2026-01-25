@@ -3,11 +3,13 @@ from pathlib import Path
 import pytest
 
 from j_file_kit.app.config.domain.models import (
-    AppConfig,
     create_default_global_config,
     create_default_task_configs,
 )
-from j_file_kit.infrastructure.config.config_loader import load_app_config_from_db
+from j_file_kit.infrastructure.config.config_loader import (
+    load_global_config_from_db,
+    load_task_configs_from_db,
+)
 from j_file_kit.infrastructure.persistence.sqlite.config.default_global_config_initializer import (
     DefaultGlobalConfigInitializer,
 )
@@ -24,22 +26,18 @@ from j_file_kit.infrastructure.persistence.sqlite.schema import (
 pytestmark = pytest.mark.unit
 
 
-def test_load_app_config_from_db_returns_default_config() -> None:
+def test_load_global_config_from_db_returns_default_config() -> None:
     conn_manager = SQLiteConnectionManager(Path(":memory:"))
     SQLiteSchemaInitializer(conn_manager).initialize()
     DefaultGlobalConfigInitializer(conn_manager).initialize()
     DefaultTaskConfigInitializer(conn_manager).initialize()
 
-    config = load_app_config_from_db(conn_manager)
+    config = load_global_config_from_db(conn_manager)
 
-    assert isinstance(config, AppConfig)
-    assert config.global_.model_dump() == create_default_global_config().model_dump()
-    assert [task.model_dump() for task in config.tasks] == [
-        task.model_dump() for task in create_default_task_configs()
-    ]
+    assert config.model_dump() == create_default_global_config().model_dump()
 
 
-def test_load_app_config_from_db_wraps_repository_errors(
+def test_load_global_config_from_db_wraps_repository_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     class _GlobalRepositoryStub:
@@ -49,17 +47,43 @@ def test_load_app_config_from_db_wraps_repository_errors(
         def get_global_config(self) -> None:
             raise RuntimeError("boom")
 
+    monkeypatch.setattr(
+        "j_file_kit.infrastructure.config.config_loader.GlobalConfigRepositoryImpl",
+        _GlobalRepositoryStub,
+    )
+
+    conn_manager = SQLiteConnectionManager(Path(":memory:"))
+    SQLiteSchemaInitializer(conn_manager).initialize()
+    DefaultGlobalConfigInitializer(conn_manager).initialize()
+    DefaultTaskConfigInitializer(conn_manager).initialize()
+
+    with pytest.raises(ValueError, match="从数据库加载全局配置失败"):
+        load_global_config_from_db(conn_manager)
+
+
+def test_load_task_configs_from_db_returns_default_config() -> None:
+    conn_manager = SQLiteConnectionManager(Path(":memory:"))
+    SQLiteSchemaInitializer(conn_manager).initialize()
+    DefaultGlobalConfigInitializer(conn_manager).initialize()
+    DefaultTaskConfigInitializer(conn_manager).initialize()
+
+    tasks = load_task_configs_from_db(conn_manager)
+
+    assert [task.model_dump() for task in tasks] == [
+        task.model_dump() for task in create_default_task_configs()
+    ]
+
+
+def test_load_task_configs_from_db_wraps_repository_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     class _TaskRepositoryStub:
         def __init__(self, _conn_manager: SQLiteConnectionManager) -> None:
             pass
 
         def get_all_task_configs(self) -> list[object]:
-            return []
+            raise RuntimeError("boom")
 
-    monkeypatch.setattr(
-        "j_file_kit.infrastructure.config.config_loader.GlobalConfigRepositoryImpl",
-        _GlobalRepositoryStub,
-    )
     monkeypatch.setattr(
         "j_file_kit.infrastructure.config.config_loader.TaskConfigRepositoryImpl",
         _TaskRepositoryStub,
@@ -70,5 +94,5 @@ def test_load_app_config_from_db_wraps_repository_errors(
     DefaultGlobalConfigInitializer(conn_manager).initialize()
     DefaultTaskConfigInitializer(conn_manager).initialize()
 
-    with pytest.raises(ValueError, match="从数据库加载配置失败"):
-        load_app_config_from_db(conn_manager)
+    with pytest.raises(ValueError, match="从数据库加载任务配置失败"):
+        load_task_configs_from_db(conn_manager)

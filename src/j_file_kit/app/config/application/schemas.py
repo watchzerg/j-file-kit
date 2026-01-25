@@ -27,15 +27,10 @@ class UpdateTaskConfigRequest(BaseModel):
     config: dict[str, Any] | None = Field(None, description="任务特定配置")
 
 
-class UpdateConfigRequest(BaseModel):
-    """更新配置请求（部分更新）"""
+class UpdateTaskConfigsRequest(BaseModel):
+    """更新任务配置请求（批量部分更新）"""
 
-    global_: UpdateGlobalConfigRequest | None = Field(
-        None,
-        alias="global",
-        description="全局配置",
-    )
-    tasks: list[UpdateTaskConfigRequest] | None = Field(None, description="任务列表")
+    tasks: list[UpdateTaskConfigRequest] = Field(..., description="任务列表")
 
 
 class UpdateConfigResponse(BaseModel):

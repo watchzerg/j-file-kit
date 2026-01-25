@@ -7,7 +7,7 @@
 import threading
 from pathlib import Path
 
-from j_file_kit.app.config.domain.models import AppConfig
+from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
 from j_file_kit.app.file_task.application.config import (
     AnalyzeConfig,
     JavVideoOrganizeConfig,
@@ -37,7 +37,8 @@ class JavVideoOrganizer:
 
     def __init__(
         self,
-        config: AppConfig,
+        global_config: GlobalConfig,
+        task_config: TaskConfig,
         log_dir: Path,
         file_item_repository: FileItemRepository,
         file_processor_repository: FileProcessorRepository,
@@ -45,32 +46,29 @@ class JavVideoOrganizer:
         """初始化JAV视频文件整理任务
 
         Args:
-            config: 应用配置
+            global_config: 全局配置
+            task_config: 任务配置
             log_dir: 日志目录
             file_item_repository: 文件处理结果仓储
             file_processor_repository: 文件操作日志仓储
         """
-        self.config = config
+        self._global_config = global_config
+        self._task_config = task_config
         self.log_dir = log_dir
         self._file_item_repository = file_item_repository
         self._file_processor_repository = file_processor_repository
 
-        self.task_config = self.config.get_task("jav_video_organizer")
-
-        if not self.task_config:
-            raise ValueError("未找到 jav_video_organizer 任务配置")
-
         # 获取类型化的配置对象
-        self.file_config: JavVideoOrganizeConfig = self.task_config.get_config(
+        self.file_config: JavVideoOrganizeConfig = self._task_config.get_config(
             JavVideoOrganizeConfig,
         )
 
         # 从 GlobalConfig 获取目录路径
-        self.inbox_dir: Path | None = self.config.global_.inbox_dir
-        self.sorted_dir: Path | None = self.config.global_.sorted_dir
-        self.unsorted_dir: Path | None = self.config.global_.unsorted_dir
-        self.archive_dir: Path | None = self.config.global_.archive_dir
-        self.misc_dir: Path | None = self.config.global_.misc_dir
+        self.inbox_dir: Path | None = self._global_config.inbox_dir
+        self.sorted_dir: Path | None = self._global_config.sorted_dir
+        self.unsorted_dir: Path | None = self._global_config.unsorted_dir
+        self.archive_dir: Path | None = self._global_config.archive_dir
+        self.misc_dir: Path | None = self._global_config.misc_dir
 
     @property
     def task_type(self) -> TaskType:

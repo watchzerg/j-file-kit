@@ -7,7 +7,7 @@
 from pathlib import Path
 from typing import Any, Literal, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -39,31 +39,6 @@ class TaskConfig(BaseModel):
     def get_config(self, config_type: type[T]) -> T:  # type: ignore[valid-type]
         """获取类型化的配置对象"""
         return config_type.model_validate(self.config)  # type: ignore[no-any-return, attr-defined]
-
-
-class AppConfig(BaseModel):
-    """应用级配置
-
-    应用级配置聚合根，包含全局配置和所有任务配置列表。
-    这是应用配置的顶层模型，用于管理整个应用的配置状态。
-    """
-
-    model_config = ConfigDict(populate_by_name=True)
-
-    global_: GlobalConfig = Field(alias="global", description="全局配置")
-    tasks: list[TaskConfig] = Field(..., description="任务配置列表")
-
-    @property
-    def enabled_tasks(self) -> list[TaskConfig]:
-        """获取启用的任务配置"""
-        return [task for task in self.tasks if task.enabled]
-
-    def get_task(self, name: str) -> TaskConfig | None:
-        """根据名称获取任务配置"""
-        for task in self.tasks:
-            if task.name == name:
-                return task
-        return None
 
 
 def create_default_global_config() -> GlobalConfig:

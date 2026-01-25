@@ -9,81 +9,70 @@ from fastapi import APIRouter, HTTPException, Request, status
 from j_file_kit.api.app_state import AppState
 from j_file_kit.app.config.application.config_service import ConfigService
 from j_file_kit.app.config.application.schemas import (
-    UpdateConfigRequest,
     UpdateConfigResponse,
+    UpdateGlobalConfigRequest,
+    UpdateTaskConfigsRequest,
 )
-from j_file_kit.app.config.domain.models import AppConfig
+from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
 
 router = APIRouter(prefix="/api/config", tags=["config"])
 
 
-@router.get("", response_model=AppConfig)
-async def get_config(request: Request) -> AppConfig:
-    """获取当前配置
-
-    Args:
-        request: HTTP请求对象
-
-    Returns:
-        当前应用配置对象
-    """
+@router.get("/global", response_model=GlobalConfig)
+async def get_global_config(request: Request) -> GlobalConfig:
+    """获取当前全局配置"""
     app_state: AppState = request.state.app_state
-    config: AppConfig = app_state.config
-    return config
+    return app_state.get_global_config()
 
 
-@router.patch("", response_model=UpdateConfigResponse)
-async def update_config(
-    body: UpdateConfigRequest,
+@router.patch("/global", response_model=UpdateConfigResponse)
+async def update_global_config(
+    body: UpdateGlobalConfigRequest,
     request: Request,
 ) -> UpdateConfigResponse:
-    """更新配置（部分更新）
-
-    Args:
-        body: 更新配置请求
-        request: HTTP请求对象
-
-    Returns:
-        更新配置响应
-
-    Raises:
-        HTTPException: 如果配置更新失败或路径验证失败
-    """
+    """更新全局配置（部分更新）"""
     app_state: AppState = request.state.app_state
-    current_config = app_state.config
+    current_global = app_state.get_global_config()
 
-    # 合并全局配置
-    if body.global_ is not None:
-        try:
-            merged_global = ConfigService.merge_global_config(
-                current_config.global_,
-                body.global_,
-            )
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"code": "INVALID_GLOBAL_CONFIG", "message": str(e)},
-            ) from e
-    else:
-        merged_global = current_config.global_
+    try:
+        merged_global = ConfigService.merge_global_config(current_global, body)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "INVALID_GLOBAL_CONFIG", "message": str(e)},
+        ) from e
 
-    # 合并任务配置
-    merged_tasks = (
-        ConfigService.merge_all_task_configs(current_config.tasks, body.tasks)
-        if body.tasks is not None
-        else current_config.tasks.copy()
+    ConfigService.validate_and_save_global_config(
+        merged_global,
+        app_state.global_config_repository,
+        app_state.config_manager,
     )
 
-    # 验证并保存配置
-    ConfigService.validate_and_save_config(
-        merged_global,
+    return UpdateConfigResponse(message="全局配置更新成功", code="SUCCESS")
+
+
+@router.get("/tasks", response_model=list[TaskConfig])
+async def get_task_configs(request: Request) -> list[TaskConfig]:
+    """获取当前任务配置列表"""
+    app_state: AppState = request.state.app_state
+    return app_state.get_task_configs()
+
+
+@router.patch("/tasks", response_model=UpdateConfigResponse)
+async def update_task_configs(
+    body: UpdateTaskConfigsRequest,
+    request: Request,
+) -> UpdateConfigResponse:
+    """更新任务配置（批量部分更新）"""
+    app_state: AppState = request.state.app_state
+    current_tasks = app_state.get_task_configs()
+
+    merged_tasks = ConfigService.merge_all_task_configs(current_tasks, body.tasks)
+
+    ConfigService.validate_and_save_task_configs(
         merged_tasks,
-        app_state.global_config_repository,
         app_state.task_config_repository,
         app_state.config_manager,
     )
 
-    return UpdateConfigResponse(
-        message="配置更新成功",
-        code="SUCCESS",
-    )
+    return UpdateConfigResponse(message="任务配置更新成功", code="SUCCESS")

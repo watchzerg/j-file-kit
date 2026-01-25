@@ -6,7 +6,7 @@
 
 from pathlib import Path
 
-from j_file_kit.app.config.domain.models import AppConfig
+from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
 from j_file_kit.infrastructure.config.config_manager import ConfigManagerImpl
 from j_file_kit.infrastructure.persistence.sqlite.config.global_config_repository import (
     GlobalConfigRepositoryImpl,
@@ -77,11 +77,10 @@ class AppState:
         # 创建任务管理器
         self.task_manager: TaskManager = TaskManager(self.task_repository)
 
-    @property
-    def config(self) -> AppConfig:
-        """获取当前配置（委托给 ConfigManager）
+    def get_global_config(self) -> GlobalConfig:
+        """获取当前全局配置（委托给 ConfigManager）"""
+        return self.config_manager.get_global_config()
 
-        Returns:
-            当前应用配置对象
-        """
-        return self.config_manager.config
+    def get_task_configs(self) -> list[TaskConfig]:
+        """获取当前任务配置列表（委托给 ConfigManager）"""
+        return self.config_manager.get_task_configs()

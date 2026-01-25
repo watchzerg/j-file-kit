@@ -17,7 +17,7 @@ from j_file_kit.app.config.domain.exceptions import (
     MissingTaskNameError,
     TaskConfigNotFoundError,
 )
-from j_file_kit.app.config.domain.models import AppConfig, GlobalConfig, TaskConfig
+from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
 from j_file_kit.app.config.domain.ports import (
     ConfigStateManager,
     GlobalConfigRepository,
@@ -73,16 +73,24 @@ class _TaskRepoStub(TaskConfigRepository):
 class _ManagerStub(ConfigStateManager):
     def __init__(self, *, fail_reload: bool = False) -> None:
         self.fail_reload = fail_reload
-        self.reload_called = False
+        self.reload_global_called = False
+        self.reload_tasks_called = False
 
-    @property
-    def config(self) -> AppConfig:  # pragma: no cover - not used
-        raise NotImplementedError
+    def get_global_config(self) -> GlobalConfig:  # pragma: no cover - not used
+        return _global_config()
 
-    def reload(self) -> None:
+    def get_task_configs(self) -> list[TaskConfig]:  # pragma: no cover - not used
+        return [_task_config()]
+
+    def reload_global(self) -> None:
         if self.fail_reload:
             raise RuntimeError("reload failure")
-        self.reload_called = True
+        self.reload_global_called = True
+
+    def reload_tasks(self) -> None:
+        if self.fail_reload:
+            raise RuntimeError("reload failure")
+        self.reload_tasks_called = True
 
 
 def _global_config(inbox: str | None = "inbox") -> GlobalConfig:
@@ -207,83 +215,117 @@ def test_merge_all_task_configs_wraps_merge_errors(
         )
 
 
-def test_validate_and_save_config_success() -> None:
+def test_validate_and_save_global_config_success() -> None:
     global_repo = _GlobalRepoStub()
-    task_repo = _TaskRepoStub()
     manager = _ManagerStub()
     global_config = _global_config()
-    tasks = [_task_config(name="a"), _task_config(name="b")]
 
-    ConfigService.validate_and_save_config(
+    ConfigService.validate_and_save_global_config(
         merged_global=global_config,
-        merged_tasks=tasks,
         global_config_repository=global_repo,
-        task_config_repository=task_repo,
         config_manager=manager,
     )
 
     assert global_repo.updated_global is global_config
-    assert task_repo.updated_tasks == tasks
-    assert manager.reload_called is True
+    assert manager.reload_global_called is True
 
 
-def test_validate_and_save_config_invalid_config_raises() -> None:
+def test_validate_and_save_global_config_invalid_config_raises() -> None:
     global_repo = _GlobalRepoStub()
-    task_repo = _TaskRepoStub()
     manager = _ManagerStub()
-    global_config = _global_config()
-    bad_tasks = cast(list[TaskConfig], ["invalid"])
+    invalid_global = cast(GlobalConfig, "invalid")
 
     with pytest.raises(InvalidConfigError):
-        ConfigService.validate_and_save_config(
-            merged_global=global_config,
-            merged_tasks=bad_tasks,
+        ConfigService.validate_and_save_global_config(
+            merged_global=invalid_global,
             global_config_repository=global_repo,
-            task_config_repository=task_repo,
             config_manager=manager,
         )
 
 
-def test_validate_and_save_config_invalid_path_raises() -> None:
+def test_validate_and_save_global_config_invalid_path_raises() -> None:
     global_repo = _GlobalRepoStub()
-    task_repo = _TaskRepoStub()
     manager = _ManagerStub()
 
     with pytest.raises(InvalidPathError):
-        ConfigService.validate_and_save_config(
+        ConfigService.validate_and_save_global_config(
             merged_global=_global_config(inbox=None),
-            merged_tasks=[_task_config()],
             global_config_repository=global_repo,
-            task_config_repository=task_repo,
             config_manager=manager,
         )
 
 
-def test_validate_and_save_config_update_error_raises() -> None:
+def test_validate_and_save_global_config_update_error_raises() -> None:
     global_repo = _GlobalRepoStub(fail_update=True)
-    task_repo = _TaskRepoStub()
     manager = _ManagerStub()
 
     with pytest.raises(ConfigUpdateError):
-        ConfigService.validate_and_save_config(
+        ConfigService.validate_and_save_global_config(
             merged_global=_global_config(),
-            merged_tasks=[_task_config()],
             global_config_repository=global_repo,
+            config_manager=manager,
+        )
+
+
+def test_validate_and_save_global_config_reload_error_raises() -> None:
+    global_repo = _GlobalRepoStub()
+    manager = _ManagerStub(fail_reload=True)
+
+    with pytest.raises(ConfigReloadError):
+        ConfigService.validate_and_save_global_config(
+            merged_global=_global_config(),
+            global_config_repository=global_repo,
+            config_manager=manager,
+        )
+
+
+def test_validate_and_save_task_configs_success() -> None:
+    task_repo = _TaskRepoStub()
+    manager = _ManagerStub()
+    tasks = [_task_config(name="a"), _task_config(name="b")]
+
+    ConfigService.validate_and_save_task_configs(
+        merged_tasks=tasks,
+        task_config_repository=task_repo,
+        config_manager=manager,
+    )
+
+    assert task_repo.updated_tasks == tasks
+    assert manager.reload_tasks_called is True
+
+
+def test_validate_and_save_task_configs_invalid_config_raises() -> None:
+    task_repo = _TaskRepoStub()
+    manager = _ManagerStub()
+    bad_tasks = cast(list[TaskConfig], ["invalid"])
+
+    with pytest.raises(InvalidConfigError):
+        ConfigService.validate_and_save_task_configs(
+            merged_tasks=bad_tasks,
             task_config_repository=task_repo,
             config_manager=manager,
         )
 
 
-def test_validate_and_save_config_reload_error_raises() -> None:
-    global_repo = _GlobalRepoStub()
+def test_validate_and_save_task_configs_update_error_raises() -> None:
+    task_repo = _TaskRepoStub(fail_update=True)
+    manager = _ManagerStub()
+
+    with pytest.raises(ConfigUpdateError):
+        ConfigService.validate_and_save_task_configs(
+            merged_tasks=[_task_config()],
+            task_config_repository=task_repo,
+            config_manager=manager,
+        )
+
+
+def test_validate_and_save_task_configs_reload_error_raises() -> None:
     task_repo = _TaskRepoStub()
     manager = _ManagerStub(fail_reload=True)
 
     with pytest.raises(ConfigReloadError):
-        ConfigService.validate_and_save_config(
-            merged_global=_global_config(),
+        ConfigService.validate_and_save_task_configs(
             merged_tasks=[_task_config()],
-            global_config_repository=global_repo,
             task_config_repository=task_repo,
             config_manager=manager,
         )
