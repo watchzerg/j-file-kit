@@ -26,10 +26,9 @@ class GlobalConfig(BaseModel):
 class TaskConfig(BaseModel):
     """任务配置
 
-    定义单个任务的配置，包括任务名称、类型、启用状态和任务特定配置。
+    定义单个任务的配置，包括任务类型、启用状态和任务特定配置。
     """
 
-    name: str = Field(..., description="任务名称")
     type: str = Field(..., description="任务类型（如 jav_video_organizer）")
     enabled: bool = Field(True, description="是否启用")
     config: dict[str, Any] = Field(..., description="任务特定配置")
@@ -65,7 +64,6 @@ def create_default_task_configs() -> list[TaskConfig]:
     """
     return [
         TaskConfig(
-            name="jav_video_organizer",
             type="jav_video_organizer",
             enabled=True,
             config={

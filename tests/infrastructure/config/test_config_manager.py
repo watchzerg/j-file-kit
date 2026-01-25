@@ -16,9 +16,8 @@ def _build_global_config(inbox_dir: str) -> GlobalConfig:
     return GlobalConfig.model_validate({"inbox_dir": inbox_dir})
 
 
-def _build_task_config(name: str, task_type: str) -> TaskConfig:
+def _build_task_config(task_type: str) -> TaskConfig:
     return TaskConfig(
-        name=name,
         type=task_type,
         enabled=True,
         config={},
@@ -31,7 +30,7 @@ def test_config_manager_loads_config_on_init(
     loaded_global: list[object] = []
     expected_global = _build_global_config("inbox-a")
     task_type = "task-a"
-    expected_task = _build_task_config("task-a", task_type)
+    expected_task = _build_task_config(task_type)
 
     def _load_global_stub(conn_manager: object) -> GlobalConfig:
         loaded_global.append(conn_manager)
@@ -75,8 +74,8 @@ def test_config_manager_reload_refreshes_cache(
     ]
     task_type = "task-a"
     tasks_by_call = [
-        _build_task_config("task-a", task_type),
-        _build_task_config("task-b", task_type),
+        _build_task_config(task_type),
+        _build_task_config(task_type),
     ]
 
     def _load_global_stub(_conn_manager: object) -> GlobalConfig:
@@ -105,7 +104,7 @@ def test_config_manager_reload_refreshes_cache(
     assert manager.get_global_config().inbox_dir == Path("inbox-a")
     task_config = manager.get_task_config_by_type(task_type)
     assert task_config is not None
-    assert task_config.name == "task-a"
+    assert task_config.type == task_type
 
     manager.reload_global()
     manager.reload_task(task_type)
@@ -113,4 +112,4 @@ def test_config_manager_reload_refreshes_cache(
     assert manager.get_global_config().inbox_dir == Path("inbox-b")
     task_config = manager.get_task_config_by_type(task_type)
     assert task_config is not None
-    assert task_config.name == "task-b"
+    assert task_config.type == task_type

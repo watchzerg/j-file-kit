@@ -35,7 +35,6 @@ class TaskConfigRepositoryImpl:
         """
         config_dict = json.loads(row["config"])
         return TaskConfig(
-            name=row["name"],
             type=row["type"],
             enabled=bool(row["enabled"]),
             config=config_dict,
@@ -52,7 +51,7 @@ class TaskConfigRepositoryImpl:
         """
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
-                "SELECT name, type, enabled, config FROM config_task WHERE type = ?",
+                "SELECT type, enabled, config FROM config_task WHERE type = ?",
                 (task_type,),
             )
             row = cursor.fetchone()
@@ -73,7 +72,7 @@ class TaskConfigRepositoryImpl:
         """
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
-                "SELECT name FROM config_task WHERE type = ?",
+                "SELECT type FROM config_task WHERE type = ?",
                 (config.type,),
             )
             if cursor.fetchone() is None:
@@ -84,8 +83,8 @@ class TaskConfigRepositoryImpl:
             cursor.execute(
                 """
                 UPDATE config_task
-                SET name = ?, enabled = ?, config = ?, updated_at = ?
+                SET enabled = ?, config = ?, updated_at = ?
                 WHERE type = ?
                 """,
-                (config.name, config.enabled, config_json, updated_at, config.type),
+                (config.enabled, config_json, updated_at, config.type),
             )

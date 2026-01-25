@@ -33,8 +33,8 @@ class DefaultTaskConfigInitializer:
             config_json = json.dumps(task.config)
             cursor.execute(
                 """
-                INSERT INTO config_task (name, type, enabled, config, updated_at)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO config_task (type, enabled, config, updated_at)
+                VALUES (?, ?, ?, ?)
                 """,
-                (task.name, task.type, task.enabled, config_json, updated_at),
+                (task.type, task.enabled, config_json, updated_at),
             )

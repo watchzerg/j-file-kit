@@ -13,7 +13,6 @@ pytestmark = pytest.mark.unit
 
 def _task_config() -> TaskConfig:
     return TaskConfig(
-        name="jav_video_organizer",
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         enabled=True,
         config={

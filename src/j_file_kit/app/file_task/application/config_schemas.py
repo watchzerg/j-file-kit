@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 class GetFileTaskConfigResponse(BaseModel):
     """获取 file task 配置响应"""
 
-    name: str = Field(..., description="任务名称")
+    type: str = Field(..., description="任务类型")
     enabled: bool = Field(..., description="是否启用")
     config: dict[str, Any] = Field(..., description="任务配置")
 

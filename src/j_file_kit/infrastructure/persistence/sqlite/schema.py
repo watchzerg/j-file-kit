@@ -108,8 +108,7 @@ class SQLiteSchemaInitializer:
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS config_task (
-                name TEXT PRIMARY KEY,
-                type TEXT NOT NULL,
+                type TEXT PRIMARY KEY,
                 enabled BOOLEAN NOT NULL,
                 config TEXT NOT NULL,
                 updated_at TEXT NOT NULL

@@ -34,7 +34,7 @@ async def get_jav_video_organizer_config(request: Request) -> GetFileTaskConfigR
         )
 
     return GetFileTaskConfigResponse(
-        name=task_config.name,
+        type=task_config.type,
         enabled=task_config.enabled,
         config=task_config.config,
     )

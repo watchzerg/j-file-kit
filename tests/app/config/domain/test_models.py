@@ -38,7 +38,6 @@ class _DummyConfig(BaseModel):
 
 def test_task_config_get_config_returns_typed_model() -> None:
     task_config = TaskConfig(
-        name="demo",
         type="file_organize",
         enabled=True,
         config={"enabled": True},
@@ -66,6 +65,5 @@ def test_create_default_task_configs_contains_default_task() -> None:
 
     assert len(tasks) == 1
     task = tasks[0]
-    assert task.name == "jav_video_organizer"
     assert task.type == "jav_video_organizer"
     assert task.enabled is True
