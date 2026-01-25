@@ -67,5 +67,5 @@ def test_create_default_task_configs_contains_default_task() -> None:
     assert len(tasks) == 1
     task = tasks[0]
     assert task.name == "jav_video_organizer"
-    assert task.type == "file_organize"
+    assert task.type == "jav_video_organizer"
     assert task.enabled is True

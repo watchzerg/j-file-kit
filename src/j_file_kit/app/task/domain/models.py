@@ -1,7 +1,7 @@
 """任务领域模型和协议
 
 定义任务管理领域的核心模型和协议：
-- 枚举：TaskStatus, TaskType, TriggerType
+- 枚举：TaskStatus, TriggerType
 - 异常：TaskError, TaskNotFoundError, TaskAlreadyRunningError, TaskCancelledError
 - 模型：TaskRecord, TaskReport
 - 协议：TaskRunner
@@ -25,12 +25,6 @@ class TaskStatus(str, Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     CANCELLED = "cancelled"
-
-
-class TaskType(str, Enum):
-    """任务类型枚举"""
-
-    JAV_VIDEO_ORGANIZER = "jav_video_organizer"
 
 
 class TriggerType(str, Enum):
@@ -149,7 +143,7 @@ class TaskRecord(BaseModel):
 
     task_id: int = Field(..., description="任务ID")
     task_name: str = Field(..., description="任务名称")
-    task_type: TaskType = Field(..., description="任务类型")
+    task_type: str = Field(..., description="任务类型")
     trigger_type: TriggerType = Field(..., description="触发类型")
     status: TaskStatus = Field(..., description="任务状态")
     start_time: datetime = Field(..., description="开始时间")
@@ -175,7 +169,7 @@ class TaskRunner(Protocol):
     """
 
     @property
-    def task_type(self) -> TaskType:
+    def task_type(self) -> str:
         """任务类型"""
         ...
 

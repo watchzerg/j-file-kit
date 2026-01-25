@@ -6,12 +6,7 @@
 from datetime import datetime
 from typing import Any, Protocol
 
-from j_file_kit.app.task.domain.models import (
-    TaskRecord,
-    TaskStatus,
-    TaskType,
-    TriggerType,
-)
+from j_file_kit.app.task.domain.models import TaskRecord, TaskStatus, TriggerType
 
 
 class TaskRepository(Protocol):
@@ -24,7 +19,7 @@ class TaskRepository(Protocol):
     def create_task(
         self,
         task_name: str,
-        task_type: TaskType,
+        task_type: str,
         trigger_type: TriggerType,
         status: TaskStatus,
         start_time: datetime,

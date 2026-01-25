@@ -13,11 +13,12 @@ from j_file_kit.app.file_task.application.config import (
     JavVideoOrganizeConfig,
 )
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
+from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.file_task.domain.ports import (
     FileItemRepository,
     FileProcessorRepository,
 )
-from j_file_kit.app.task.domain.models import TaskStatistics, TaskType
+from j_file_kit.app.task.domain.models import TaskStatistics
 
 
 class JavVideoOrganizer:
@@ -71,9 +72,9 @@ class JavVideoOrganizer:
         self.misc_dir: Path | None = self._global_config.misc_dir
 
     @property
-    def task_type(self) -> TaskType:
+    def task_type(self) -> str:
         """任务类型"""
-        return TaskType.JAV_VIDEO_ORGANIZER
+        return TASK_TYPE_JAV_VIDEO_ORGANIZER
 
     def _create_analyze_config(self) -> AnalyzeConfig:
         """创建分析配置
@@ -116,7 +117,7 @@ class JavVideoOrganizer:
         # 创建并运行 Pipeline
         pipeline = FilePipeline(
             task_id=task_id,
-            task_name=self.task_type.value,
+            task_name=self.task_type,
             scan_root=self.inbox_dir,
             analyze_config=analyze_config,
             log_dir=self.log_dir,

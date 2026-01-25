@@ -3,6 +3,7 @@ from datetime import datetime
 
 import pytest
 
+from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.task.domain.models import (
     TaskAlreadyRunningError,
     TaskCancelledError,
@@ -10,7 +11,6 @@ from j_file_kit.app.task.domain.models import (
     TaskRecord,
     TaskStatistics,
     TaskStatus,
-    TaskType,
     TriggerType,
 )
 from j_file_kit.app.task.domain.ports import TaskRepository
@@ -29,7 +29,7 @@ class _TaskRepositoryStub(TaskRepository):
     def create_task(
         self,
         task_name: str,
-        task_type: TaskType,
+        task_type: str,
         trigger_type: TriggerType,
         status: TaskStatus,
         start_time: datetime,
@@ -102,8 +102,8 @@ class _TaskRunnerSuccess:
         self._stats = stats
 
     @property
-    def task_type(self) -> TaskType:
-        return TaskType.JAV_VIDEO_ORGANIZER
+    def task_type(self) -> str:
+        return TASK_TYPE_JAV_VIDEO_ORGANIZER
 
     def run(
         self,
@@ -116,8 +116,8 @@ class _TaskRunnerSuccess:
 
 class _TaskRunnerFailure:
     @property
-    def task_type(self) -> TaskType:
-        return TaskType.JAV_VIDEO_ORGANIZER
+    def task_type(self) -> str:
+        return TASK_TYPE_JAV_VIDEO_ORGANIZER
 
     def run(
         self,
@@ -133,7 +133,7 @@ def test_execute_task_sets_running_and_completed_with_stats() -> None:
     manager = TaskManager(repo)
     task_id = repo.create_task(
         task_name="task",
-        task_type=TaskType.JAV_VIDEO_ORGANIZER,
+        task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         trigger_type=TriggerType.MANUAL,
         status=TaskStatus.PENDING,
         start_time=datetime.now(),
@@ -165,7 +165,7 @@ def test_execute_task_sets_failed_on_exception() -> None:
     manager = TaskManager(repo)
     task_id = repo.create_task(
         task_name="task",
-        task_type=TaskType.JAV_VIDEO_ORGANIZER,
+        task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         trigger_type=TriggerType.MANUAL,
         status=TaskStatus.PENDING,
         start_time=datetime.now(),
@@ -187,7 +187,7 @@ def test_start_task_raises_when_running_task_exists() -> None:
     manager = TaskManager(repo)
     repo.create_task(
         task_name="running",
-        task_type=TaskType.JAV_VIDEO_ORGANIZER,
+        task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         trigger_type=TriggerType.MANUAL,
         status=TaskStatus.RUNNING,
         start_time=datetime.now(),
@@ -213,7 +213,7 @@ def test_cancel_task_marks_pending_as_cancelled() -> None:
     manager = TaskManager(repo)
     task_id = repo.create_task(
         task_name="pending",
-        task_type=TaskType.JAV_VIDEO_ORGANIZER,
+        task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         trigger_type=TriggerType.MANUAL,
         status=TaskStatus.PENDING,
         start_time=datetime.now(),
@@ -229,7 +229,7 @@ def test_cancel_task_marks_running_as_cancelled_and_sets_event() -> None:
     manager = TaskManager(repo)
     task_id = repo.create_task(
         task_name="running",
-        task_type=TaskType.JAV_VIDEO_ORGANIZER,
+        task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         trigger_type=TriggerType.MANUAL,
         status=TaskStatus.RUNNING,
         start_time=datetime.now(),
@@ -256,7 +256,7 @@ def test_cancel_task_raises_when_already_done() -> None:
     manager = TaskManager(repo)
     task_id = repo.create_task(
         task_name="done",
-        task_type=TaskType.JAV_VIDEO_ORGANIZER,
+        task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         trigger_type=TriggerType.MANUAL,
         status=TaskStatus.COMPLETED,
         start_time=datetime.now(),

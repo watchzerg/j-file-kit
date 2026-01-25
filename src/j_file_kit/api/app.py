@@ -25,6 +25,7 @@ from j_file_kit.app.config.domain.exceptions import (
     TaskConfigNotFoundError,
 )
 from j_file_kit.app.file_task.api import router as file_task_router
+from j_file_kit.app.file_task.config_api import router as file_task_config_router
 from j_file_kit.app.task.api import router as task_router
 from j_file_kit.app.task.domain.models import (
     TaskAlreadyRunningError,
@@ -324,4 +325,5 @@ async def config_error_handler(request: Request, exc: ConfigError) -> JSONRespon
 # 注册路由
 app.include_router(task_router)
 app.include_router(file_task_router)
+app.include_router(file_task_config_router)
 app.include_router(config_router)

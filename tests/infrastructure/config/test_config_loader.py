@@ -2,13 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from j_file_kit.app.config.domain.models import (
-    create_default_global_config,
-    create_default_task_configs,
-)
+from j_file_kit.app.config.domain.models import create_default_global_config
 from j_file_kit.infrastructure.config.config_loader import (
     load_global_config_from_db,
-    load_task_configs_from_db,
 )
 from j_file_kit.infrastructure.persistence.sqlite.config.default_global_config_initializer import (
     DefaultGlobalConfigInitializer,
@@ -59,40 +55,3 @@ def test_load_global_config_from_db_wraps_repository_errors(
 
     with pytest.raises(ValueError, match="从数据库加载全局配置失败"):
         load_global_config_from_db(conn_manager)
-
-
-def test_load_task_configs_from_db_returns_default_config() -> None:
-    conn_manager = SQLiteConnectionManager(Path(":memory:"))
-    SQLiteSchemaInitializer(conn_manager).initialize()
-    DefaultGlobalConfigInitializer(conn_manager).initialize()
-    DefaultTaskConfigInitializer(conn_manager).initialize()
-
-    tasks = load_task_configs_from_db(conn_manager)
-
-    assert [task.model_dump() for task in tasks] == [
-        task.model_dump() for task in create_default_task_configs()
-    ]
-
-
-def test_load_task_configs_from_db_wraps_repository_errors(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    class _TaskRepositoryStub:
-        def __init__(self, _conn_manager: SQLiteConnectionManager) -> None:
-            pass
-
-        def get_all_task_configs(self) -> list[object]:
-            raise RuntimeError("boom")
-
-    monkeypatch.setattr(
-        "j_file_kit.infrastructure.config.config_loader.TaskConfigRepositoryImpl",
-        _TaskRepositoryStub,
-    )
-
-    conn_manager = SQLiteConnectionManager(Path(":memory:"))
-    SQLiteSchemaInitializer(conn_manager).initialize()
-    DefaultGlobalConfigInitializer(conn_manager).initialize()
-    DefaultTaskConfigInitializer(conn_manager).initialize()
-
-    with pytest.raises(ValueError, match="从数据库加载任务配置失败"):
-        load_task_configs_from_db(conn_manager)

@@ -5,7 +5,7 @@
 """
 
 from pathlib import Path
-from typing import Any, Literal, TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, Field
 
@@ -30,7 +30,7 @@ class TaskConfig(BaseModel):
     """
 
     name: str = Field(..., description="任务名称")
-    type: Literal["file_organize", "db_update"] = Field(..., description="任务类型")
+    type: str = Field(..., description="任务类型（如 jav_video_organizer）")
     enabled: bool = Field(True, description="是否启用")
     config: dict[str, Any] = Field(..., description="任务特定配置")
 
@@ -66,7 +66,7 @@ def create_default_task_configs() -> list[TaskConfig]:
     return [
         TaskConfig(
             name="jav_video_organizer",
-            type="file_organize",
+            type="jav_video_organizer",
             enabled=True,
             config={
                 "video_extensions": [

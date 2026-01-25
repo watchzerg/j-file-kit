@@ -11,9 +11,8 @@ from j_file_kit.app.config.application.config_service import ConfigService
 from j_file_kit.app.config.application.schemas import (
     UpdateConfigResponse,
     UpdateGlobalConfigRequest,
-    UpdateTaskConfigsRequest,
 )
-from j_file_kit.app.config.domain.models import GlobalConfig, TaskConfig
+from j_file_kit.app.config.domain.models import GlobalConfig
 
 router = APIRouter(prefix="/api/config", tags=["config"])
 
@@ -49,30 +48,3 @@ async def update_global_config(
     )
 
     return UpdateConfigResponse(message="全局配置更新成功", code="SUCCESS")
-
-
-@router.get("/tasks", response_model=list[TaskConfig])
-async def get_task_configs(request: Request) -> list[TaskConfig]:
-    """获取当前任务配置列表"""
-    app_state: AppState = request.state.app_state
-    return app_state.get_task_configs()
-
-
-@router.patch("/tasks", response_model=UpdateConfigResponse)
-async def update_task_configs(
-    body: UpdateTaskConfigsRequest,
-    request: Request,
-) -> UpdateConfigResponse:
-    """更新任务配置（批量部分更新）"""
-    app_state: AppState = request.state.app_state
-    current_tasks = app_state.get_task_configs()
-
-    merged_tasks = ConfigService.merge_all_task_configs(current_tasks, body.tasks)
-
-    ConfigService.validate_and_save_task_configs(
-        merged_tasks,
-        app_state.task_config_repository,
-        app_state.config_manager,
-    )
-
-    return UpdateConfigResponse(message="任务配置更新成功", code="SUCCESS")

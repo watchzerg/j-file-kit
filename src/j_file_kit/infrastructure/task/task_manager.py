@@ -16,14 +16,13 @@ from j_file_kit.app.task.domain.models import (
     TaskRecord,
     TaskRunner,
     TaskStatus,
-    TaskType,
     TriggerType,
 )
 from j_file_kit.app.task.domain.ports import TaskRepository
 
 
 def generate_task_name(
-    task_type: TaskType,
+    task_type: str,
     trigger_type: TriggerType,
     start_time: datetime,
 ) -> str:
@@ -42,7 +41,7 @@ def generate_task_name(
     """
     date_time_str = start_time.strftime("%Y%m%d%H%M%S")
     millisecond = f"{start_time.microsecond // 1000:03d}"
-    return f"{task_type.value}-{trigger_type.value}-{date_time_str}{millisecond}"
+    return f"{task_type}-{trigger_type.value}-{date_time_str}{millisecond}"
 
 
 class TaskManager:

@@ -3,8 +3,6 @@
 定义配置管理相关的HTTP API请求和响应数据结构。
 """
 
-from typing import Any
-
 from pydantic import BaseModel, Field
 
 
@@ -17,20 +15,6 @@ class UpdateGlobalConfigRequest(BaseModel):
     archive_dir: str | None = Field(None, description="归档目录")
     misc_dir: str | None = Field(None, description="杂项目录")
     starred_dir: str | None = Field(None, description="精选/收藏目录")
-
-
-class UpdateTaskConfigRequest(BaseModel):
-    """更新任务配置请求（部分更新）"""
-
-    name: str | None = Field(None, description="任务名称")
-    enabled: bool | None = Field(None, description="是否启用")
-    config: dict[str, Any] | None = Field(None, description="任务特定配置")
-
-
-class UpdateTaskConfigsRequest(BaseModel):
-    """更新任务配置请求（批量部分更新）"""
-
-    tasks: list[UpdateTaskConfigRequest] = Field(..., description="任务列表")
 
 
 class UpdateConfigResponse(BaseModel):

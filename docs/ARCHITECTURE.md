@@ -155,7 +155,7 @@ FastAPI 应用，路由注册，异常处理，生命周期管理。
 ### 模块间依赖
 
 - **file_task** 依赖 **task**：file_task.application 使用 task.domain.models.TaskRunner 和 task.domain.ports.TaskRepository
-- **file_task** 依赖 **config**：file_task.application 使用 config.domain.models.AppConfig 读取全局配置（目录路径）和任务配置（文件扩展名、删除规则等）
+- **file_task** 依赖 **config**：file_task.application 使用 config.domain.models.GlobalConfig 读取全局配置，并通过 config.domain.ports 读取/更新任务配置
 - **task** 不依赖 **file_task**：task 模块保持通用，不包含文件任务专属类型
 - **config** 不依赖其他业务模块：config 模块作为基础配置模块，保持独立
 
@@ -214,13 +214,21 @@ TaskManager 是全局任务调度器，位于 `infrastructure/task/`（任务调
 | `file_items` | 文件处理结果 |
 | `file_operations` | 文件操作历史 |
 
+### 配置管理设计
+
+- **Global config** 由 `config` 模块集中管理，提供独立 API 进行 CRUD
+- **Task config** 由各 task app 管理（例如 `file_task`），每个 task app 只操作自己的配置
+- **config_task 表** 统一存储，按 `type` 字段区分任务配置
+- **任务类型标识** 使用字符串常量（例如 `jav_video_organizer`），避免跨模块枚举依赖
+- **缓存策略** 由 `ConfigStateManager` 集中管理，支持按 `task_type` 单条刷新
+
 ### 配置加载流程
 
 1. FastAPI `lifespan` 创建 `SQLiteConnectionManager`
 2. `SQLiteSchemaInitializer` 初始化表结构
 3. `DefaultGlobalConfigInitializer` 与 `DefaultTaskConfigInitializer` 初始化默认配置数据
 4. `AppState` 组装依赖并创建 `GlobalConfigRepositoryImpl` 与 `TaskConfigRepositoryImpl`
-5. `load_app_config_from_db()` 加载配置到内存
+5. `ConfigManagerImpl` 启动时加载全局配置，任务配置按 `task_type` 懒加载并缓存
 
 ## 任务执行流程
 
@@ -246,6 +254,11 @@ Pipeline 协调执行
 3. 构造函数接收所需的 repositories（通过 API 层注入）
 4. 实现 `run(task_id, dry_run, cancellation_event)` 方法
 5. 在对应的 `api.py` 中注册启动端点，组装依赖
+6. 为该任务添加配置管理：
+   - 定义任务类型常量（如 `app/<task>/domain/constants.py`）
+   - 定义配置 schema（`application/config.py`）
+   - 实现配置 service（读取、合并、保存、刷新缓存）
+   - 提供配置 API（独立路由文件）
 
 ### 添加新 Domain
 

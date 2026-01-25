@@ -40,52 +40,22 @@ class TaskConfigRepository(Protocol):
     定义任务配置数据持久化操作的接口。
     """
 
-    def get_all_task_configs(self) -> list[TaskConfig]:
-        """获取所有任务配置
-
-        Returns:
-            任务配置列表
-        """
-        ...
-
-    def get_task_config(self, name: str) -> TaskConfig | None:
-        """获取单个任务配置
+    def get_by_type(self, task_type: str) -> TaskConfig | None:
+        """根据任务类型获取任务配置
 
         Args:
-            name: 任务名称
+            task_type: 任务类型（如 "jav_video_organizer"）
 
         Returns:
             任务配置对象，如果不存在则返回 None
         """
         ...
 
-    def update_task_config(self, task: TaskConfig) -> None:
+    def update(self, config: TaskConfig) -> None:
         """更新任务配置
 
         Args:
-            task: 任务配置对象
-
-        Raises:
-            ValueError: 如果任务不存在
-        """
-        ...
-
-    def create_task_config(self, task: TaskConfig) -> None:
-        """创建任务配置
-
-        Args:
-            task: 任务配置对象
-
-        Raises:
-            ValueError: 如果任务已存在
-        """
-        ...
-
-    def delete_task_config(self, name: str) -> None:
-        """删除任务配置
-
-        Args:
-            name: 任务名称
+            config: 任务配置对象
 
         Raises:
             ValueError: 如果任务不存在
@@ -112,11 +82,14 @@ class ConfigStateManager(Protocol):
         """
         ...
 
-    def get_task_configs(self) -> list[TaskConfig]:
-        """获取当前任务配置列表
+    def get_task_config_by_type(self, task_type: str) -> TaskConfig | None:
+        """根据任务类型获取任务配置
+
+        Args:
+            task_type: 任务类型（如 "jav_video_organizer"）
 
         Returns:
-            当前任务配置列表
+            任务配置对象，如果不存在则返回 None
         """
         ...
 
@@ -128,8 +101,11 @@ class ConfigStateManager(Protocol):
         """
         ...
 
-    def reload_tasks(self) -> None:
-        """从数据库重新加载任务配置到内存
+    def reload_task(self, task_type: str) -> None:
+        """从数据库重新加载指定任务配置到内存
+
+        Args:
+            task_type: 任务类型（如 "jav_video_organizer"）
 
         Raises:
             ValueError: 如果配置加载失败

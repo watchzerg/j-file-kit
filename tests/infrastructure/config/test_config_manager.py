@@ -16,32 +16,35 @@ def _build_global_config(inbox_dir: str) -> GlobalConfig:
     return GlobalConfig.model_validate({"inbox_dir": inbox_dir})
 
 
-def _build_task_configs(name: str) -> list[TaskConfig]:
-    return [
-        TaskConfig(
-            name=name,
-            type="file_organize",
-            enabled=True,
-            config={},
-        ),
-    ]
+def _build_task_config(name: str, task_type: str) -> TaskConfig:
+    return TaskConfig(
+        name=name,
+        type=task_type,
+        enabled=True,
+        config={},
+    )
 
 
 def test_config_manager_loads_config_on_init(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     loaded_global: list[object] = []
-    loaded_tasks: list[object] = []
     expected_global = _build_global_config("inbox-a")
-    expected_tasks = _build_task_configs("task-a")
+    task_type = "task-a"
+    expected_task = _build_task_config("task-a", task_type)
 
     def _load_global_stub(conn_manager: object) -> GlobalConfig:
         loaded_global.append(conn_manager)
         return expected_global
 
-    def _load_tasks_stub(conn_manager: object) -> list[TaskConfig]:
-        loaded_tasks.append(conn_manager)
-        return expected_tasks
+    tasks_by_call: list[TaskConfig] = [expected_task]
+
+    class _TaskRepositoryStub:
+        def __init__(self, _conn_manager: object) -> None:
+            pass
+
+        def get_by_type(self, _task_type: str) -> TaskConfig | None:
+            return tasks_by_call.pop(0)
 
     monkeypatch.setattr(
         config_manager_module,
@@ -50,17 +53,17 @@ def test_config_manager_loads_config_on_init(
     )
     monkeypatch.setattr(
         config_manager_module,
-        "load_task_configs_from_db",
-        _load_tasks_stub,
+        "TaskConfigRepositoryImpl",
+        _TaskRepositoryStub,
     )
 
     conn_manager = SQLiteConnectionManager(Path(":memory:"))
     manager = ConfigManagerImpl(conn_manager)
 
     assert loaded_global == [conn_manager]
-    assert loaded_tasks == [conn_manager]
     assert manager.get_global_config() == expected_global
-    assert manager.get_task_configs() == expected_tasks
+    assert tasks_by_call == [expected_task]
+    assert manager.get_task_config_by_type(task_type) == expected_task
 
 
 def test_config_manager_reload_refreshes_cache(
@@ -70,16 +73,21 @@ def test_config_manager_reload_refreshes_cache(
         _build_global_config("inbox-a"),
         _build_global_config("inbox-b"),
     ]
-    tasks = [
-        _build_task_configs("task-a"),
-        _build_task_configs("task-b"),
+    task_type = "task-a"
+    tasks_by_call = [
+        _build_task_config("task-a", task_type),
+        _build_task_config("task-b", task_type),
     ]
 
     def _load_global_stub(_conn_manager: object) -> GlobalConfig:
         return globals_.pop(0)
 
-    def _load_tasks_stub(_conn_manager: object) -> list[TaskConfig]:
-        return tasks.pop(0)
+    class _TaskRepositoryStub:
+        def __init__(self, _conn_manager: object) -> None:
+            pass
+
+        def get_by_type(self, _task_type: str) -> TaskConfig | None:
+            return tasks_by_call.pop(0)
 
     monkeypatch.setattr(
         config_manager_module,
@@ -88,17 +96,21 @@ def test_config_manager_reload_refreshes_cache(
     )
     monkeypatch.setattr(
         config_manager_module,
-        "load_task_configs_from_db",
-        _load_tasks_stub,
+        "TaskConfigRepositoryImpl",
+        _TaskRepositoryStub,
     )
 
     manager = ConfigManagerImpl(SQLiteConnectionManager(Path(":memory:")))
 
     assert manager.get_global_config().inbox_dir == Path("inbox-a")
-    assert manager.get_task_configs()[0].name == "task-a"
+    task_config = manager.get_task_config_by_type(task_type)
+    assert task_config is not None
+    assert task_config.name == "task-a"
 
     manager.reload_global()
-    manager.reload_tasks()
+    manager.reload_task(task_type)
 
     assert manager.get_global_config().inbox_dir == Path("inbox-b")
-    assert manager.get_task_configs()[0].name == "task-b"
+    task_config = manager.get_task_config_by_type(task_type)
+    assert task_config is not None
+    assert task_config.name == "task-b"

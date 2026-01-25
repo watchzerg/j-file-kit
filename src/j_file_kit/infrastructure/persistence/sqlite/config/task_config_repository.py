@@ -13,7 +13,7 @@ from j_file_kit.infrastructure.persistence.sqlite.connection import (
 class TaskConfigRepositoryImpl:
     """任务配置仓储实现。
 
-    仅处理任务配置的读取、创建、更新与删除。
+    仅处理任务配置的读取与更新（按任务类型单条操作）。
     """
 
     def __init__(self, connection_manager: SQLiteConnectionManager) -> None:
@@ -41,33 +41,19 @@ class TaskConfigRepositoryImpl:
             config=config_dict,
         )
 
-    def get_all_task_configs(self) -> list[TaskConfig]:
-        """获取所有任务配置。
-
-        Returns:
-            任务配置列表
-        """
-        with self._conn_manager.get_cursor() as cursor:
-            cursor.execute(
-                "SELECT name, type, enabled, config FROM config_task ORDER BY name",
-            )
-            rows = cursor.fetchall()
-
-            return [self._row_to_task_config(row) for row in rows]
-
-    def get_task_config(self, name: str) -> TaskConfig | None:
-        """获取单个任务配置。
+    def get_by_type(self, task_type: str) -> TaskConfig | None:
+        """根据任务类型获取任务配置。
 
         Args:
-            name: 任务名称
+            task_type: 任务类型
 
         Returns:
             任务配置对象，如果不存在则返回 None
         """
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
-                "SELECT name, type, enabled, config FROM config_task WHERE name = ?",
-                (name,),
+                "SELECT name, type, enabled, config FROM config_task WHERE type = ?",
+                (task_type,),
             )
             row = cursor.fetchone()
 
@@ -76,67 +62,30 @@ class TaskConfigRepositoryImpl:
 
             return self._row_to_task_config(row)
 
-    def update_task_config(self, task: TaskConfig) -> None:
+    def update(self, config: TaskConfig) -> None:
         """更新任务配置。
 
         Args:
-            task: 任务配置对象
+            config: 任务配置对象
 
         Raises:
             ValueError: 如果任务不存在
         """
         with self._conn_manager.get_cursor() as cursor:
-            cursor.execute("SELECT name FROM config_task WHERE name = ?", (task.name,))
+            cursor.execute(
+                "SELECT name FROM config_task WHERE type = ?",
+                (config.type,),
+            )
             if cursor.fetchone() is None:
-                raise ValueError(f"任务不存在: {task.name}")
+                raise ValueError(f"任务配置不存在: {config.type}")
 
-            config_json = json.dumps(task.config)
+            config_json = json.dumps(config.config)
             updated_at = datetime.now().isoformat()
             cursor.execute(
                 """
                 UPDATE config_task
-                SET type = ?, enabled = ?, config = ?, updated_at = ?
-                WHERE name = ?
+                SET name = ?, enabled = ?, config = ?, updated_at = ?
+                WHERE type = ?
                 """,
-                (task.type, task.enabled, config_json, updated_at, task.name),
+                (config.name, config.enabled, config_json, updated_at, config.type),
             )
-
-    def create_task_config(self, task: TaskConfig) -> None:
-        """创建任务配置。
-
-        Args:
-            task: 任务配置对象
-
-        Raises:
-            ValueError: 如果任务已存在
-        """
-        with self._conn_manager.get_cursor() as cursor:
-            cursor.execute("SELECT name FROM config_task WHERE name = ?", (task.name,))
-            if cursor.fetchone() is not None:
-                raise ValueError(f"任务已存在: {task.name}")
-
-            config_json = json.dumps(task.config)
-            updated_at = datetime.now().isoformat()
-            cursor.execute(
-                """
-                INSERT INTO config_task (name, type, enabled, config, updated_at)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                (task.name, task.type, task.enabled, config_json, updated_at),
-            )
-
-    def delete_task_config(self, name: str) -> None:
-        """删除任务配置。
-
-        Args:
-            name: 任务名称
-
-        Raises:
-            ValueError: 如果任务不存在
-        """
-        with self._conn_manager.get_cursor() as cursor:
-            cursor.execute("SELECT name FROM config_task WHERE name = ?", (name,))
-            if cursor.fetchone() is None:
-                raise ValueError(f"任务不存在: {name}")
-
-            cursor.execute("DELETE FROM config_task WHERE name = ?", (name,))

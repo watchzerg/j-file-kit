@@ -11,7 +11,6 @@ from typing import Any
 from j_file_kit.app.task.domain.models import (
     TaskRecord,
     TaskStatus,
-    TaskType,
     TriggerType,
 )
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
@@ -47,7 +46,7 @@ class TaskRepositoryImpl:
         return TaskRecord(
             task_id=row["task_id"],
             task_name=row["task_name"],
-            task_type=TaskType(row["task_type"]),
+            task_type=row["task_type"],
             trigger_type=TriggerType(row["trigger_type"]),
             status=TaskStatus(row["status"]),
             start_time=datetime.fromisoformat(row["start_time"]),
@@ -60,7 +59,7 @@ class TaskRepositoryImpl:
     def create_task(
         self,
         task_name: str,
-        task_type: TaskType,
+        task_type: str,
         trigger_type: TriggerType,
         status: TaskStatus,
         start_time: datetime,
@@ -85,7 +84,7 @@ class TaskRepositoryImpl:
                 """,
                 (
                     task_name,
-                    task_type.value,
+                    task_type,
                     trigger_type.value,
                     status.value,
                     start_time.isoformat(),
