@@ -11,13 +11,13 @@
 
 import threading
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
 
 
-class TaskStatus(str, Enum):
+class TaskStatus(StrEnum):
     """任务状态枚举"""
 
     PENDING = "pending"
@@ -27,7 +27,7 @@ class TaskStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-class TriggerType(str, Enum):
+class TriggerType(StrEnum):
     """触发类型枚举"""
 
     MANUAL = "manual"

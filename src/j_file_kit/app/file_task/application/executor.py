@@ -8,7 +8,7 @@
 - 支持 dry_run 预览：返回预览结果而不实际执行
 """
 
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -26,7 +26,7 @@ from j_file_kit.app.file_task.domain.models import FileType, SerialId
 from j_file_kit.shared.utils.file_utils import delete_file_if_exists, ensure_directory
 
 
-class ExecutionStatus(str, Enum):
+class ExecutionStatus(StrEnum):
     """执行状态枚举"""
 
     SUCCESS = "success"

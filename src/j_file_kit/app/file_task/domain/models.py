@@ -11,7 +11,7 @@
 """
 
 import re
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 # ============================================================================
 
 
-class PathEntryType(str, Enum):
+class PathEntryType(StrEnum):
     """路径项类型枚举
 
     区分路径项是文件还是文件夹，用于目录扫描和遍历操作。
@@ -36,7 +36,7 @@ class PathEntryType(str, Enum):
     DIRECTORY = "directory"
 
 
-class FileType(str, Enum):
+class FileType(StrEnum):
     """文件类型枚举
 
     用于区分不同类型的文件（视频、图片、压缩包、其他）。
