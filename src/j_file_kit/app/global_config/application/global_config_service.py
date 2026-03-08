@@ -14,16 +14,12 @@ from j_file_kit.app.global_config.application.schemas import (
     UpdateGlobalConfigRequest,
 )
 from j_file_kit.app.global_config.domain.exceptions import (
-    ConfigReloadError,
     ConfigUpdateError,
     InvalidConfigError,
     InvalidPathError,
 )
 from j_file_kit.app.global_config.domain.models import GlobalConfig
-from j_file_kit.app.global_config.domain.ports import (
-    GlobalConfigManager,
-    GlobalConfigRepository,
-)
+from j_file_kit.app.global_config.domain.ports import GlobalConfigRepository
 
 
 class GlobalConfigService:
@@ -86,11 +82,10 @@ class GlobalConfigService:
     def validate_and_save_global_config(
         merged_global: GlobalConfig,
         global_config_repository: GlobalConfigRepository,
-        global_config_manager: GlobalConfigManager,
     ) -> None:
         """验证并保存全局配置
 
-        验证全局配置的有效性，然后保存到数据库并重新加载到内存。
+        验证全局配置的有效性，然后保存到数据库。
 
         设计意图：
         - 接收 Protocol 接口而非具体实现（AppState）
@@ -100,13 +95,11 @@ class GlobalConfigService:
         Args:
             merged_global: 合并后的全局配置
             global_config_repository: 全局配置仓储（用于更新数据库）
-            global_config_manager: 全局配置管理器（用于刷新内存状态）
 
         Raises:
             InvalidConfigError: 如果配置验证失败
             InvalidPathError: 如果路径验证失败
             ConfigUpdateError: 如果配置更新失败
-            ConfigReloadError: 如果配置重载失败
         """
         try:
             GlobalConfig.model_validate(merged_global.model_dump(exclude_none=True))
@@ -121,8 +114,3 @@ class GlobalConfigService:
             global_config_repository.update_global_config(merged_global)
         except Exception as e:
             raise ConfigUpdateError(str(e)) from e
-
-        try:
-            global_config_manager.reload_global()
-        except Exception as e:
-            raise ConfigReloadError(str(e)) from e

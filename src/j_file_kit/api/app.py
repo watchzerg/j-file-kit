@@ -20,7 +20,6 @@ from j_file_kit.app.file_task.application.config import (
 from j_file_kit.app.file_task.config_api import router as file_task_config_router
 from j_file_kit.app.global_config.api import router as config_router
 from j_file_kit.app.global_config.domain.exceptions import (
-    ConfigReloadError,
     ConfigUpdateError,
     GlobalConfigError,
     InvalidConfigError,
@@ -291,26 +290,6 @@ async def config_update_error_handler(
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"code": "CONFIG_UPDATE_FAILED", "message": str(exc)},
-    )
-
-
-@app.exception_handler(ConfigReloadError)
-async def config_reload_error_handler(
-    request: Request,
-    exc: ConfigReloadError,
-) -> JSONResponse:
-    """配置重载失败异常处理器
-
-    Args:
-        request: 请求对象
-        exc: 异常对象
-
-    Returns:
-        JSON响应
-    """
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"code": "CONFIG_RELOAD_FAILED", "message": str(exc)},
     )
 
 

@@ -8,10 +8,7 @@ from typing import Any
 from j_file_kit.app.file_task.application.config import JavVideoOrganizeConfig
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.task_config.domain.models import TaskConfig
-from j_file_kit.app.task_config.domain.ports import (
-    TaskConfigManager,
-    TaskConfigRepository,
-)
+from j_file_kit.app.task_config.domain.ports import TaskConfigRepository
 
 
 class FileTaskConfigService:
@@ -22,12 +19,12 @@ class FileTaskConfigService:
 
     @staticmethod
     def get_jav_video_organizer_config(
-        task_config_manager: TaskConfigManager,
+        task_config_repository: TaskConfigRepository,
     ) -> JavVideoOrganizeConfig:
         """获取 JAV 视频整理任务配置。
 
         Args:
-            task_config_manager: 任务配置管理器
+            task_config_repository: 任务配置仓储
 
         Returns:
             类型化的配置对象
@@ -35,7 +32,7 @@ class FileTaskConfigService:
         Raises:
             ValueError: 如果配置不存在或解析失败
         """
-        task_config = task_config_manager.get_task_config_by_type(
+        task_config = task_config_repository.get_by_type(
             TASK_TYPE_JAV_VIDEO_ORGANIZER,
         )
         if task_config is None:
@@ -68,20 +65,18 @@ class FileTaskConfigService:
     def validate_and_save_jav_video_organizer_config(
         merged_config: JavVideoOrganizeConfig,
         task_config_repository: TaskConfigRepository,
-        task_config_manager: TaskConfigManager,
     ) -> None:
         """验证并保存 JAV 视频整理任务配置。
 
         Args:
             merged_config: 合并后的配置
             task_config_repository: 任务配置仓储
-            task_config_manager: 任务配置管理器
 
         Raises:
             ValueError: 如果配置验证或保存失败
         """
         task_config = FileTaskConfigService._get_jav_video_task_config(
-            task_config_manager,
+            task_config_repository,
         )
 
         updated_task_config = task_config.model_copy(
@@ -89,13 +84,12 @@ class FileTaskConfigService:
         )
 
         task_config_repository.update(updated_task_config)
-        task_config_manager.reload_task(TASK_TYPE_JAV_VIDEO_ORGANIZER)
 
     @staticmethod
     def _get_jav_video_task_config(
-        task_config_manager: TaskConfigManager,
+        task_config_repository: TaskConfigRepository,
     ) -> TaskConfig:
-        task_config = task_config_manager.get_task_config_by_type(
+        task_config = task_config_repository.get_by_type(
             TASK_TYPE_JAV_VIDEO_ORGANIZER,
         )
         if task_config is None:

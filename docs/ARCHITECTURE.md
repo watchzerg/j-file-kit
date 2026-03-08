@@ -16,7 +16,6 @@ src/j_file_kit/
 ├── shared/utils/                 # 跨领域工具（文件 I/O、日志）
 ├── infrastructure/               # 有状态 I/O 实现
 │   ├── persistence/sqlite/       # SQLite 仓储实现
-│   ├── config/                   # ConfigManager 实现
 │   └── task/                     # TaskManager 调度器
 └── api/                          # FastAPI 应用入口
     ├── app.py                    # 路由注册、生命周期
@@ -109,7 +108,7 @@ API 请求 → TaskManager.start_task() → 后台线程执行
 
 - **GlobalConfig**：应用级配置（业务目录路径）
 - **TaskConfig**：按 task_type 区分的任务配置（JSON 存储）
-- **ConfigManager**：启动时加载全局配置，任务配置按需懒加载并缓存
+- 配置无内存缓存，每次读取直接查 SQLite Repository（任务启动非高频，无需缓存）
 
 ### 依赖注入策略
 

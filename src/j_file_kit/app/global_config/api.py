@@ -46,7 +46,6 @@ async def update_global_config(
     GlobalConfigService.validate_and_save_global_config(
         merged_global,
         app_state.global_config_repository,
-        app_state.global_config_manager,
     )
 
     return UpdateConfigResponse(message="全局配置更新成功", code="SUCCESS")

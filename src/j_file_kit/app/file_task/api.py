@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 def _get_task_config(task_type: str, app_state: AppState) -> TaskConfig:
     """获取指定任务配置"""
-    task_config = app_state.task_config_manager.get_task_config_by_type(task_type)
+    task_config = app_state.task_config_repository.get_by_type(task_type)
     if task_config is not None:
         return task_config
     raise HTTPException(

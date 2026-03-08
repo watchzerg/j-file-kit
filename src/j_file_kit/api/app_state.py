@@ -7,12 +7,6 @@
 from pathlib import Path
 
 from j_file_kit.app.global_config.domain.models import GlobalConfig
-from j_file_kit.infrastructure.config.global_config_manager import (
-    GlobalConfigManagerImpl,
-)
-from j_file_kit.infrastructure.config.task_config_manager import (
-    TaskConfigManagerImpl,
-)
 from j_file_kit.infrastructure.persistence.sqlite.config.global_config_repository import (
     GlobalConfigRepositoryImpl,
 )
@@ -39,7 +33,7 @@ class AppState:
     作为 Composition Root，负责组装所有依赖：
     - 创建数据库连接
     - 创建 repositories（单例）
-    - 创建 GlobalConfigManager 和 TaskConfigManager（管理配置状态）
+    - 创建配置仓储（读取与更新）
     - 创建 TaskManager
     """
 
@@ -66,10 +60,6 @@ class AppState:
         self.global_config_repository = GlobalConfigRepositoryImpl(self.sqlite_conn)
         self.task_config_repository = TaskConfigRepositoryImpl(self.sqlite_conn)
 
-        # 创建配置管理器（按职责拆分为 global 和 task）
-        self.global_config_manager = GlobalConfigManagerImpl(self.sqlite_conn)
-        self.task_config_manager = TaskConfigManagerImpl(self.sqlite_conn)
-
         # 创建任务仓储
         self.task_repository = TaskRepositoryImpl(self.sqlite_conn)
 
@@ -80,5 +70,5 @@ class AppState:
         self.task_manager: TaskManager = TaskManager(self.task_repository)
 
     def get_global_config(self) -> GlobalConfig:
-        """获取当前全局配置（委托给 GlobalConfigManager）"""
-        return self.global_config_manager.get_global_config()
+        """获取当前全局配置"""
+        return self.global_config_repository.get_global_config()

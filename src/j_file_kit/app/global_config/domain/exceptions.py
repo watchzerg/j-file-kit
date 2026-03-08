@@ -43,14 +43,3 @@ class ConfigUpdateError(GlobalConfigError):
     def __init__(self, reason: str) -> None:
         self.reason = reason
         super().__init__(f"更新配置失败: {reason}")
-
-
-class ConfigReloadError(GlobalConfigError):
-    """配置重载失败异常
-
-    当从数据库重新加载全局配置到内存失败时抛出。
-    """
-
-    def __init__(self, reason: str) -> None:
-        self.reason = reason
-        super().__init__(f"重新加载配置失败: {reason}")
