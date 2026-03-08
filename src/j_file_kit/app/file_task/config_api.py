@@ -61,24 +61,11 @@ async def update_jav_video_organizer_config(
         else:
             merged_config = current_typed_config
 
-        task_config = app_state.task_config_repository.get_by_type(
-            TASK_TYPE_JAV_VIDEO_ORGANIZER,
+        FileTaskConfigService.validate_and_save_jav_video_organizer_config(
+            merged_config,
+            app_state.task_config_repository,
+            enabled=body.enabled,
         )
-        if task_config is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail={"code": "CONFIG_NOT_FOUND", "message": "任务配置不存在"},
-            )
-
-        update_dict: dict[str, object] = {
-            "config": merged_config.model_dump(exclude_none=True),
-        }
-        if body.enabled is not None:
-            update_dict["enabled"] = body.enabled
-
-        updated_task_config = task_config.model_copy(update=update_dict)
-
-        app_state.task_config_repository.update(updated_task_config)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

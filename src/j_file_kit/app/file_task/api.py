@@ -47,7 +47,6 @@ def _new_task_instance(task_type: str, app_state: AppState) -> TaskRunner:
     """
     if task_type == TASK_TYPE_JAV_VIDEO_ORGANIZER:
         return JavVideoOrganizer(
-            global_config=app_state.get_global_config(),
             task_config=_get_task_config(task_type, app_state),
             log_dir=app_state.log_dir,
             file_result_repository=app_state.file_result_repository,
@@ -81,7 +80,6 @@ async def start_task(
     app_state: AppState = request.state.app_state
     task = _new_task_instance(task_type, app_state)
 
-    # 解析 trigger_type，默认为 MANUAL
     trigger_type = TriggerType.MANUAL
     if body.trigger_type:
         try:

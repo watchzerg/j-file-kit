@@ -63,32 +63,6 @@ class SQLiteSchemaInitializer:
             """,
         )
 
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS config_global (
-                id INTEGER PRIMARY KEY CHECK (id = 1),
-                inbox_dir TEXT NOT NULL,
-                sorted_dir TEXT NOT NULL,
-                unsorted_dir TEXT NOT NULL,
-                archive_dir TEXT NOT NULL,
-                misc_dir TEXT NOT NULL,
-                starred_dir TEXT NOT NULL,
-                updated_at TEXT NOT NULL
-            )
-            """,
-        )
-
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS config_task (
-                type TEXT PRIMARY KEY,
-                enabled BOOLEAN NOT NULL,
-                config TEXT NOT NULL,
-                updated_at TEXT NOT NULL
-            )
-            """,
-        )
-
     def _create_indexes(self, cursor: sqlite3.Cursor) -> None:
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_file_results_task_id ON file_results(task_id)",

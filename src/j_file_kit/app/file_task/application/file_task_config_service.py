@@ -6,6 +6,9 @@
 from typing import Any
 
 from j_file_kit.app.file_task.application.config import JavVideoOrganizeConfig
+from j_file_kit.app.file_task.application.config_validator import (
+    validate_jav_video_organizer_config,
+)
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.task_config.domain.models import TaskConfig
 from j_file_kit.app.task_config.domain.ports import TaskConfigRepository
@@ -65,24 +68,38 @@ class FileTaskConfigService:
     def validate_and_save_jav_video_organizer_config(
         merged_config: JavVideoOrganizeConfig,
         task_config_repository: TaskConfigRepository,
+        enabled: bool | None = None,
     ) -> None:
         """验证并保存 JAV 视频整理任务配置。
+
+        验证目录配置（inbox_dir 必填、路径冲突检查），然后在单次写入中同时持久化
+        config 和可选的 enabled 字段，避免多次 I/O。
 
         Args:
             merged_config: 合并后的配置
             task_config_repository: 任务配置仓储
+            enabled: 可选，如果提供则同时更新启用状态
 
         Raises:
-            ValueError: 如果配置验证或保存失败
+            ValueError: 如果配置验证失败（目录缺失、路径冲突等）
         """
+        errors = validate_jav_video_organizer_config(merged_config)
+        if errors:
+            raise ValueError(
+                "目录配置验证失败:\n" + "\n".join(f"  - {e}" for e in errors),
+            )
+
         task_config = FileTaskConfigService._get_jav_video_task_config(
             task_config_repository,
         )
 
-        updated_task_config = task_config.model_copy(
-            update={"config": merged_config.model_dump(exclude_none=True)},
-        )
+        update_dict: dict[str, object] = {
+            "config": merged_config.model_dump(mode="json"),
+        }
+        if enabled is not None:
+            update_dict["enabled"] = enabled
 
+        updated_task_config = task_config.model_copy(update=update_dict)
         task_config_repository.update(updated_task_config)
 
     @staticmethod

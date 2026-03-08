@@ -13,7 +13,17 @@ from j_file_kit.app.task_config.domain.models import TaskConfig
 
 
 class JavVideoOrganizeConfig(BaseModel):
-    """JAV视频文件整理任务配置"""
+    """JAV视频文件整理任务配置
+
+    包含目录路径和文件处理规则的完整配置。
+    目录路径从原 GlobalConfig 合并而来，实现每个任务类型自治管理自己的配置。
+    """
+
+    inbox_dir: Path | None = Field(default=None, description="待处理目录")
+    sorted_dir: Path | None = Field(default=None, description="已整理目录（有番号）")
+    unsorted_dir: Path | None = Field(default=None, description="未整理目录（无番号）")
+    archive_dir: Path | None = Field(default=None, description="归档目录")
+    misc_dir: Path | None = Field(default=None, description="杂项目录")
 
     video_extensions: set[str] = Field(..., description="视频文件扩展名")
     image_extensions: set[str] = Field(..., description="图片文件扩展名")
@@ -51,10 +61,16 @@ class AnalyzeConfig(BaseModel):
     archive_extensions: set[str] = Field(..., description="压缩文件扩展名")
 
     # 目标目录
-    sorted_dir: Path | None = Field(None, description="整理后的视频图片存储目录")
-    unsorted_dir: Path | None = Field(None, description="无番号视频图片存储目录")
-    archive_dir: Path | None = Field(None, description="压缩文件存储目录")
-    misc_dir: Path | None = Field(None, description="Misc文件存储目录")
+    sorted_dir: Path | None = Field(
+        default=None,
+        description="整理后的视频图片存储目录",
+    )
+    unsorted_dir: Path | None = Field(
+        default=None,
+        description="无番号视频图片存储目录",
+    )
+    archive_dir: Path | None = Field(default=None, description="压缩文件存储目录")
+    misc_dir: Path | None = Field(default=None, description="Misc文件存储目录")
 
     # 删除规则
     misc_file_delete_rules: dict[str, Any] = Field(
@@ -73,6 +89,11 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         enabled=True,
         config={
+            "inbox_dir": None,
+            "sorted_dir": None,
+            "unsorted_dir": None,
+            "archive_dir": None,
+            "misc_dir": None,
             "video_extensions": [
                 ".mp4",
                 ".avi",
