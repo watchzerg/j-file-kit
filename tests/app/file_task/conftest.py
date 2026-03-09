@@ -2,3 +2,36 @@
 
 适合放置：mock 仓储实现、示例 TaskConfig、通用领域对象构造器。
 """
+
+from pathlib import Path
+
+import pytest
+
+from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.file_task.domain.models import TaskConfig
+
+
+@pytest.fixture
+def task_config_factory(tmp_path: Path):
+    def _create(
+        task_type: str = TASK_TYPE_JAV_VIDEO_ORGANIZER,
+        enabled: bool = True,
+        inbox_dir: Path | None = None,
+        **config_overrides: object,
+    ) -> TaskConfig:
+        inbox = inbox_dir if inbox_dir is not None else tmp_path / "inbox"
+        config = {
+            "inbox_dir": str(inbox),
+            "sorted_dir": str(tmp_path / "sorted"),
+            "unsorted_dir": str(tmp_path / "unsorted"),
+            "archive_dir": str(tmp_path / "archive"),
+            "misc_dir": str(tmp_path / "misc"),
+            "video_extensions": [".mp4"],
+            "image_extensions": [".jpg"],
+            "archive_extensions": [".zip"],
+            "misc_file_delete_rules": {},
+            **config_overrides,
+        }
+        return TaskConfig(type=task_type, enabled=enabled, config=config)
+
+    return _create
