@@ -130,12 +130,12 @@ async def start_task(
                 detail=f"无效的触发类型: {body.trigger_type}",
             ) from None
 
-    task_id = app_state.task_manager.start_task(
+    task_id = app_state.file_task_manager.start_task(
         task,
         trigger_type=trigger_type,
         dry_run=body.dry_run,
     )
-    task_model = app_state.task_manager.get_task(task_id)
+    task_model = app_state.file_task_manager.get_task(task_id)
 
     return StartTaskResponse(
         task_id=task_id,
@@ -163,7 +163,7 @@ async def get_task_status(
     """
     app_state: AppState = request.state.app_state
     task_id_int = _parse_task_id(task_id)
-    task_model = app_state.task_manager.get_task(task_id_int)
+    task_model = app_state.file_task_manager.get_task(task_id_int)
 
     total_items = None
     if task_model.status in (FileTaskStatus.COMPLETED, FileTaskStatus.RUNNING):
@@ -201,7 +201,7 @@ async def cancel_task(
     app_state: AppState = request.state.app_state
     task_id_int = _parse_task_id(task_id)
     # FileTaskCancelledError 会被 app.py 中的异常处理器自动处理
-    app_state.task_manager.cancel_task(task_id_int)
+    app_state.file_task_manager.cancel_task(task_id_int)
     return CancelFileTaskResponse(
         task_id=task_id_int,
         message="任务已取消",
@@ -221,7 +221,7 @@ async def list_tasks(
         任务列表响应
     """
     app_state: AppState = request.state.app_state
-    tasks = app_state.task_manager.list_tasks()
+    tasks = app_state.file_task_manager.list_tasks()
     task_items = [
         FileTaskListItem(
             task_id=task.task_id,

@@ -57,14 +57,14 @@ class FileTaskManager:
 
     def __init__(
         self,
-        task_repository: FileTaskRepository,
+        file_task_repository: FileTaskRepository,
     ) -> None:
         """初始化文件任务管理器
 
         Args:
-            task_repository: 任务仓储实例
+            file_task_repository: 任务仓储实例
         """
-        self.task_repository = task_repository
+        self.file_task_repository = file_task_repository
         self._lock = threading.Lock()
         self._running_task_id: int | None = None
         self._cancellation_event: threading.Event | None = None
@@ -91,7 +91,7 @@ class FileTaskManager:
             FileTaskAlreadyRunningError: 如果已有任务正在运行
         """
         with self._lock:
-            running_task = self.task_repository.get_running_task()
+            running_task = self.file_task_repository.get_running_task()
             if running_task:
                 raise FileTaskAlreadyRunningError(running_task.task_id)
 
@@ -103,7 +103,7 @@ class FileTaskManager:
                 start_time=start_time,
             )
 
-            task_id = self.task_repository.create_task(
+            task_id = self.file_task_repository.create_task(
                 task_name=task_name,
                 task_type=task.task_type,
                 trigger_type=trigger_type,
@@ -140,7 +140,7 @@ class FileTaskManager:
             cancellation_event: 取消事件
         """
         try:
-            self.task_repository.update_task(
+            self.file_task_repository.update_task(
                 task_id,
                 status=FileTaskStatus.RUNNING,
             )
@@ -152,14 +152,14 @@ class FileTaskManager:
             )
 
             if cancellation_event.is_set():
-                self.task_repository.update_task(
+                self.file_task_repository.update_task(
                     task_id,
                     status=FileTaskStatus.CANCELLED,
                     end_time=datetime.now(),
                 )
                 return
 
-            self.task_repository.update_task(
+            self.file_task_repository.update_task(
                 task_id,
                 status=FileTaskStatus.COMPLETED,
                 end_time=datetime.now(),
@@ -167,7 +167,7 @@ class FileTaskManager:
             )
 
         except Exception as e:
-            self.task_repository.update_task(
+            self.file_task_repository.update_task(
                 task_id,
                 status=FileTaskStatus.FAILED,
                 end_time=datetime.now(),
@@ -190,7 +190,7 @@ class FileTaskManager:
             FileTaskCancelledError: 如果任务已完成、失败或已取消
         """
         with self._lock:
-            task_model = self.task_repository.get_task(task_id)
+            task_model = self.file_task_repository.get_task(task_id)
             if not task_model:
                 raise FileTaskNotFoundError(task_id)
 
@@ -204,13 +204,13 @@ class FileTaskManager:
             if task_model.status == FileTaskStatus.RUNNING:
                 if self._cancellation_event:
                     self._cancellation_event.set()
-                self.task_repository.update_task(
+                self.file_task_repository.update_task(
                     task_id,
                     status=FileTaskStatus.CANCELLED,
                     end_time=datetime.now(),
                 )
             elif task_model.status == FileTaskStatus.PENDING:
-                self.task_repository.update_task(
+                self.file_task_repository.update_task(
                     task_id,
                     status=FileTaskStatus.CANCELLED,
                     end_time=datetime.now(),
@@ -228,7 +228,7 @@ class FileTaskManager:
         Raises:
             FileTaskNotFoundError: 如果任务不存在
         """
-        task_model = self.task_repository.get_task(task_id)
+        task_model = self.file_task_repository.get_task(task_id)
         if task_model is None:
             raise FileTaskNotFoundError(task_id)
         return task_model
@@ -239,7 +239,7 @@ class FileTaskManager:
         Returns:
             任务列表
         """
-        return self.task_repository.list_tasks()
+        return self.file_task_repository.list_tasks()
 
     def _recover_from_crash(self) -> None:
         """从崩溃中恢复：将历史遗留的 PENDING/RUNNING 任务标记为 FAILED
@@ -248,7 +248,7 @@ class FileTaskManager:
         统一标记为 FAILED 并记录恢复日志。
         """
         with self._lock:
-            incomplete_tasks = self.task_repository.get_pending_or_running_tasks()
+            incomplete_tasks = self.file_task_repository.get_pending_or_running_tasks()
 
             if not incomplete_tasks:
                 return
@@ -257,7 +257,7 @@ class FileTaskManager:
             error_message = "Task interrupted due to system restart"
 
             for task in incomplete_tasks:
-                self.task_repository.update_task(
+                self.file_task_repository.update_task(
                     task_id=task.task_id,
                     status=FileTaskStatus.FAILED,
                     end_time=recovery_time,

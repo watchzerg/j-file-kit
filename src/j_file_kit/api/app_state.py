@@ -1,6 +1,6 @@
 """应用状态管理
 
-管理应用的全局状态，包括配置和任务管理器。
+管理应用的全局状态，包括配置和文件任务管理器。
 在应用启动时初始化，提供统一的配置和任务管理接口。
 """
 
@@ -24,7 +24,7 @@ from j_file_kit.infrastructure.persistence.yaml.task_config_repository import (
 class AppState:
     """应用状态
 
-    管理应用的全局状态，包括配置和任务管理器。
+    管理应用的全局状态，包括配置和文件任务管理器。
 
     作为 Composition Root，负责组装所有依赖：
     - 创建数据库连接（用于任务执行记录）
@@ -57,10 +57,12 @@ class AppState:
         self.task_config_repository = TaskConfigRepositoryImpl(config_path)
 
         # 文件任务仓储（SQLite）
-        self.task_repository = FileTaskRepositoryImpl(self.sqlite_conn)
+        self.file_task_repository = FileTaskRepositoryImpl(self.sqlite_conn)
 
         # 文件处理结果仓储（单例，方法接收 task_id 参数）
         self.file_result_repository = FileResultRepositoryImpl(self.sqlite_conn)
 
         # 文件任务管理器
-        self.task_manager: FileTaskManager = FileTaskManager(self.task_repository)
+        self.file_task_manager: FileTaskManager = FileTaskManager(
+            self.file_task_repository,
+        )
