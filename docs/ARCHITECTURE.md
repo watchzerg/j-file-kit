@@ -184,3 +184,47 @@ file_result_repository.save_result(run_id=123, result=...)
 3. **FileTaskRunner 协议**：解耦调度与具体任务，定义在 `domain/models.py`
 4. **Decision 模式**：分析/执行分离，支持预览
 5. **单实例部署**：FileTaskRunManager 的单执行实例约束基于此假设
+
+## 测试策略
+
+### 目录结构
+
+```
+tests/
+├── conftest.py                               # 全局 fixtures
+├── shared/utils/                             # 镜像 src/shared/utils/
+├── app/
+│   └── file_task/
+│       ├── conftest.py                       # mock 仓储、示例 TaskConfig
+│       ├── domain/                           # 镜像 src/.../domain/
+│       └── application/
+│           ├── conftest.py                   # 临时 YAML 文件、配置对象构造器
+│           └── ...
+└── infrastructure/
+    ├── conftest.py                           # 真实文件系统临时目录、SQLite 连接
+    ├── file_task/                            # 镜像 src/infrastructure/file_task/
+    └── persistence/yaml/                     # 镜像 src/infrastructure/persistence/yaml/
+```
+
+### 核心原则
+
+- **镜像源码结构**：`tests/` 目录结构与 `src/j_file_kit/` 完全对应，按模块导航测试文件
+- **Marker 分层，而非目录分层**：用 `pytestmark = pytest.mark.unit / integration` 区分类型，而非 `tests/unit/` + `tests/integration/` 双目录；同一模块的单元与集成测试可共存于同一文件
+- **`conftest.py` 分层放置**：利用 pytest fixture 继承机制，在每个有公共 fixtures 需求的目录放置 `conftest.py`，子目录自动继承父级 fixtures
+
+### 测试类型划分
+
+| 标记 | 适用场景 | 典型示例 |
+|------|----------|----------|
+| `unit` | 纯函数、Pydantic 模型验证、无 I/O 的 domain/application 逻辑 | `test_jav_filename_util.py`、`test_config_validator.py` |
+| `integration` | 涉及真实文件系统（YAML/SQLite）或外部 I/O | `test_file_task_config_repository.py`、`test_file_task_run_manager.py` |
+| `slow` | 端到端 pipeline、大量文件操作 | 完整 `FilePipeline` 流程测试 |
+
+### conftest.py 分层职责
+
+| 层级 | 放置内容 |
+|------|----------|
+| `tests/conftest.py` | 全局通用 fixtures（如扩展 `tmp_path`） |
+| `tests/app/file_task/conftest.py` | mock 仓储实现、示例 `TaskConfig` 构造器 |
+| `tests/app/file_task/application/conftest.py` | 临时 YAML 配置文件路径、具体任务配置对象 |
+| `tests/infrastructure/conftest.py` | 真实临时数据目录、SQLite 连接、YAML 仓储实例 |

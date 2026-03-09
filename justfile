@@ -44,3 +44,19 @@ py-upgrade VERSION:
     uv venv --refresh
     uv sync --all-groups
     uv run python -V
+
+# 运行所有测试
+test:
+    uv run pytest
+
+# 仅运行单元测试（快速，无 I/O）
+test-unit:
+    uv run pytest -m unit
+
+# 仅运行集成测试（涉及文件系统 / 数据库）
+test-int:
+    uv run pytest -m integration
+
+# 运行测试并输出覆盖率报告
+test-cov:
+    uv run pytest --cov=src/j_file_kit --cov-report=term-missing
