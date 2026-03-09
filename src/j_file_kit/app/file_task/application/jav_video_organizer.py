@@ -13,9 +13,8 @@ from j_file_kit.app.file_task.application.config import (
 )
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
-from j_file_kit.app.file_task.domain.models import FileTaskStatistics
+from j_file_kit.app.file_task.domain.models import FileTaskStatistics, TaskConfig
 from j_file_kit.app.file_task.domain.ports import FileResultRepository
-from j_file_kit.app.task_config.domain.models import TaskConfig
 
 
 class JavVideoOrganizer:

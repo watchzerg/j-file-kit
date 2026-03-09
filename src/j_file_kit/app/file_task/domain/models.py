@@ -15,13 +15,16 @@
 - FileTaskStatistics：任务统计快照（由 FileTaskRunner.run() 返回）
 - FileTaskRecord：任务持久化记录（对应数据库行）
 - FileTaskRunner：任务执行器协议（定义 run() 接口，所有具体任务须实现）
+
+任务配置：
+- TaskConfig：通用任务配置容器（type + enabled + config dict），被所有 file task 业务逻辑依赖
 """
 
 import re
 import threading
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Protocol
+from typing import Any, Protocol, TypeVar
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -327,3 +330,43 @@ class FileTaskRunner(Protocol):
             Exception: 任务执行过程中的任何异常
         """
         ...
+
+
+# ============================================================================
+# 任务配置
+# ============================================================================
+
+_T = TypeVar("_T", bound=BaseModel)
+
+
+class TaskConfig(BaseModel):
+    """任务配置
+
+    通用任务配置容器，被所有 file task 业务逻辑依赖。
+
+    config 字段存储任务特定的配置数据（dict），通过 get_config() 转换为
+    类型化的 Pydantic 模型，提供类型安全访问。
+
+    设计意图：
+    - 提供统一的任务配置结构（type + enabled + config dict）
+    - 通过 get_config() 方法提供类型安全的配置访问
+    - 未来可替换为判别联合配置模型，消除 Any 与 type ignore
+
+    TODO: 未来将 config 替换为判别联合配置模型，消除 Any 与 type ignore
+    方向：为不同任务类型定义显式 Pydantic 配置模型并统一解析入口
+    """
+
+    type: str = Field(..., description="任务类型（如 jav_video_organizer）")
+    enabled: bool = Field(True, description="是否启用")
+    config: dict[str, Any] = Field(..., description="任务特定配置")
+
+    def get_config(self, config_type: type[_T]) -> _T:  # type: ignore[valid-type]
+        """将字典配置转换为具体的 Pydantic 模型，提供类型安全访问。
+
+        Args:
+            config_type: 目标配置模型类型
+
+        Returns:
+            类型化的配置对象
+        """
+        return config_type.model_validate(self.config)  # type: ignore[no-any-return, attr-defined]

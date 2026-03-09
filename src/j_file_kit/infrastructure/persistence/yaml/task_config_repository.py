@@ -11,7 +11,7 @@ from typing import Any
 
 import yaml
 
-from j_file_kit.app.task_config.domain.models import TaskConfig
+from j_file_kit.app.file_task.domain.models import TaskConfig
 
 
 class TaskConfigRepositoryImpl:

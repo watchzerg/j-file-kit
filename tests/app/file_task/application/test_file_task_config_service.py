@@ -7,8 +7,8 @@ from j_file_kit.app.file_task.application.file_task_config_service import (
     FileTaskConfigService,
 )
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
-from j_file_kit.app.task_config.domain.models import TaskConfig
-from j_file_kit.app.task_config.domain.ports import TaskConfigRepository
+from j_file_kit.app.file_task.domain.models import TaskConfig
+from j_file_kit.app.file_task.domain.ports import TaskConfigRepository
 
 pytestmark = pytest.mark.unit
 

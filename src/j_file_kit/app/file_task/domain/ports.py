@@ -3,6 +3,7 @@
 定义文件任务 domain 的全部仓储协议，遵循依赖倒置原则：
 - FileTaskRepository：任务记录的持久化（状态、统计），由 FileTaskManager 使用
 - FileResultRepository：文件处理结果的持久化，由 FilePipeline 使用
+- TaskConfigRepository：任务配置的持久化（YAML），由 FileTaskConfigService 使用
 
 Repository 方法接收 task_id 参数而非构造时绑定，支持单例复用，简化依赖注入。
 """
@@ -15,6 +16,7 @@ from j_file_kit.app.file_task.domain.models import (
     FileTaskRecord,
     FileTaskStatus,
     FileTaskTriggerType,
+    TaskConfig,
 )
 
 
@@ -133,5 +135,35 @@ class FileResultRepository(Protocol):
         Returns:
             统计信息字典，包含 total_items, success_items, error_items,
             skipped_items, warning_items, total_duration_ms
+        """
+        ...
+
+
+class TaskConfigRepository(Protocol):
+    """任务配置仓储协议
+
+    定义任务配置数据持久化操作的接口，遵循依赖倒置原则。
+    Infrastructure 层负责实现此接口。
+    """
+
+    def get_by_type(self, task_type: str) -> TaskConfig | None:
+        """根据任务类型获取任务配置，不存在则返回 None
+
+        Args:
+            task_type: 任务类型（如 "jav_video_organizer"）
+
+        Returns:
+            任务配置对象，如果不存在则返回 None
+        """
+        ...
+
+    def update(self, config: TaskConfig) -> None:
+        """更新任务配置
+
+        Args:
+            config: 任务配置对象
+
+        Raises:
+            ValueError: 如果任务不存在
         """
         ...

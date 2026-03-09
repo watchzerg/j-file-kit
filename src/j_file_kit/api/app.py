@@ -24,12 +24,6 @@ from j_file_kit.app.file_task.domain.models import (
     FileTaskError,
     FileTaskNotFoundError,
 )
-from j_file_kit.app.task_config.domain.exceptions import (
-    InvalidTaskConfigError,
-    MissingTaskNameError,
-    TaskConfigError,
-    TaskConfigNotFoundError,
-)
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
@@ -133,54 +127,6 @@ async def file_task_error_handler(
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"code": "TASK_ERROR", "message": str(exc)},
-    )
-
-
-@app.exception_handler(MissingTaskNameError)
-async def missing_task_name_handler(
-    request: Request,
-    exc: MissingTaskNameError,
-) -> JSONResponse:
-    """缺少任务名称异常处理器"""
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={"code": "MISSING_TASK_NAME", "message": str(exc)},
-    )
-
-
-@app.exception_handler(TaskConfigNotFoundError)
-async def task_config_not_found_handler(
-    request: Request,
-    exc: TaskConfigNotFoundError,
-) -> JSONResponse:
-    """任务配置不存在异常处理器"""
-    return JSONResponse(
-        status_code=status.HTTP_404_NOT_FOUND,
-        content={"code": "TASK_CONFIG_NOT_FOUND", "message": str(exc)},
-    )
-
-
-@app.exception_handler(InvalidTaskConfigError)
-async def invalid_task_config_handler(
-    request: Request,
-    exc: InvalidTaskConfigError,
-) -> JSONResponse:
-    """无效任务配置异常处理器"""
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={"code": "INVALID_TASK_CONFIG", "message": str(exc)},
-    )
-
-
-@app.exception_handler(TaskConfigError)
-async def task_config_error_handler(
-    request: Request,
-    exc: TaskConfigError,
-) -> JSONResponse:
-    """任务配置相关异常处理器（兜底）"""
-    return JSONResponse(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"code": "TASK_CONFIG_ERROR", "message": str(exc)},
     )
 
 

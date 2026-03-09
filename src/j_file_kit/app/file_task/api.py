@@ -24,8 +24,8 @@ from j_file_kit.app.file_task.domain.models import (
     FileTaskRunner,
     FileTaskStatus,
     FileTaskTriggerType,
+    TaskConfig,
 )
-from j_file_kit.app.task_config.domain.models import TaskConfig
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
