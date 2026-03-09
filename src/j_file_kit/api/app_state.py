@@ -61,7 +61,7 @@ class AppState:
         # 文件任务执行实例仓储（SQLite）
         self.file_task_run_repository = FileTaskRunRepositoryImpl(self.sqlite_conn)
 
-        # 文件处理结果仓储（单例，方法接收 run_id 参数）
+        # 文件处理结果仓储（按 run_id 区分查询）
         self.file_result_repository = FileResultRepositoryImpl(self.sqlite_conn)
 
         # 文件任务执行管理器

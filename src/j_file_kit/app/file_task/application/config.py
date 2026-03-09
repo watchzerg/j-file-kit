@@ -15,8 +15,7 @@ from j_file_kit.app.file_task.domain.models import TaskConfig
 class JavVideoOrganizeConfig(BaseModel):
     """JAV视频文件整理任务配置
 
-    包含目录路径和文件处理规则的完整配置。
-    目录路径从原 GlobalConfig 合并而来，实现每个任务类型自治管理自己的配置。
+    包含目录路径和文件处理规则的完整配置，各任务类型独立管理自身配置。
     """
 
     inbox_dir: Path | None = Field(default=None, description="待处理目录")
@@ -35,8 +34,7 @@ class JavVideoOrganizeConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_extensions(self) -> JavVideoOrganizeConfig:
-        """验证扩展名格式"""
-        # 确保扩展名以点号开头
+        """规范化扩展名格式（确保以点号开头）"""
         self.video_extensions = {
             ext if ext.startswith(".") else f".{ext}" for ext in self.video_extensions
         }
@@ -83,7 +81,7 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
     """创建 jav_video_organizer 默认任务配置。
 
     Returns:
-        单个任务配置对象（对应一行任务记录）
+        默认任务配置对象
     """
     return TaskConfig(
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,

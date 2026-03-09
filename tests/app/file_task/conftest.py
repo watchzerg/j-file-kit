@@ -13,6 +13,8 @@ from j_file_kit.app.file_task.domain.models import TaskConfig
 
 @pytest.fixture
 def task_config_factory(tmp_path: Path):
+    """创建 TaskConfig 的工厂，支持覆盖默认配置。"""
+
     def _create(
         task_type: str = TASK_TYPE_JAV_VIDEO_ORGANIZER,
         enabled: bool = True,

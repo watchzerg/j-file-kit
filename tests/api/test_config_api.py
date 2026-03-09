@@ -61,7 +61,7 @@ class TestUpdateConfig:
         assert response.json()["code"] == "SUCCESS"
 
     def test_update_config_validation_failure(self, client, tmp_path: Path) -> None:
-        """非法配置返回 400"""
+        """校验失败（如目录重复）时返回 400"""
         path = tmp_path / "shared"
         path.mkdir()
         response = client.patch(

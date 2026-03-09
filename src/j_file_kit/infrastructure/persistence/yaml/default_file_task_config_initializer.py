@@ -23,6 +23,12 @@ class DefaultFileTaskConfigInitializer:
         config_path: Path,
         default_task_configs: list[TaskConfig],
     ) -> None:
+        """初始化默认配置初始化器。
+
+        Args:
+            config_path: YAML 配置文件路径
+            default_task_configs: 默认任务配置列表
+        """
         self._config_path = config_path
         self._default_task_configs = default_task_configs
 
