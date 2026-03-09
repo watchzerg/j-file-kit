@@ -117,7 +117,7 @@ async def start_task(
     Raises:
         HTTPException: 如果任务不存在或已有执行实例正在运行
     """
-    app_state: AppState = request.state.app_state
+    app_state: AppState = request.app.state.app_state
     task = _new_task_instance(task_type, app_state)
 
     trigger_type = FileTaskTriggerType.MANUAL
@@ -161,7 +161,7 @@ async def get_run_status(
     Raises:
         HTTPException: 如果执行实例不存在或 run_id 格式无效
     """
-    app_state: AppState = request.state.app_state
+    app_state: AppState = request.app.state.app_state
     run_id_int = _parse_run_id(run_id)
     run = app_state.file_task_run_manager.get_run(run_id_int)
 
@@ -198,7 +198,7 @@ async def cancel_run(
     Raises:
         HTTPException: 如果执行实例不存在或 run_id 格式无效
     """
-    app_state: AppState = request.state.app_state
+    app_state: AppState = request.app.state.app_state
     run_id_int = _parse_run_id(run_id)
     app_state.file_task_run_manager.cancel_run(run_id_int)
     return CancelFileTaskRunResponse(
@@ -219,7 +219,7 @@ async def list_runs(
     Returns:
         执行实例列表响应
     """
-    app_state: AppState = request.state.app_state
+    app_state: AppState = request.app.state.app_state
     runs = app_state.file_task_run_manager.list_runs()
     run_items = [
         FileTaskRunListItem(

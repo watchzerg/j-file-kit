@@ -22,7 +22,7 @@ router = APIRouter(prefix="/api/file-task/config", tags=["file-task-config"])
 @router.get("/jav-video-organizer", response_model=GetFileTaskConfigResponse)
 async def get_jav_video_organizer_config(request: Request) -> GetFileTaskConfigResponse:
     """获取 JAV 视频整理任务配置"""
-    app_state: AppState = request.state.app_state
+    app_state: AppState = request.app.state.app_state
 
     task_config = app_state.file_task_config_repository.get_by_type(
         TASK_TYPE_JAV_VIDEO_ORGANIZER,
@@ -46,7 +46,7 @@ async def update_jav_video_organizer_config(
     request: Request,
 ) -> UpdateFileTaskConfigResponse:
     """更新 JAV 视频整理任务配置（部分更新）"""
-    app_state: AppState = request.state.app_state
+    app_state: AppState = request.app.state.app_state
 
     try:
         current_typed_config = FileTaskConfigService.get_jav_video_organizer_config(

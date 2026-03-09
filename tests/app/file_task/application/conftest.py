@@ -1,6 +1,7 @@
 """file_task application 层测试 fixtures
 
 适合放置：临时 YAML 配置文件路径、具体任务配置对象构造器。
+Pipeline 集成测试需真实 SQLite 和 FileResultRepository。
 """
 
 from collections.abc import Callable
@@ -13,6 +14,14 @@ from j_file_kit.app.file_task.application.config import (
     AnalyzeConfig,
     JavVideoOrganizeConfig,
 )
+from j_file_kit.app.file_task.application.pipeline import FilePipeline
+from j_file_kit.infrastructure.persistence.sqlite.connection import (
+    SQLiteConnectionManager,
+)
+from j_file_kit.infrastructure.persistence.sqlite.file_task.file_result_repository import (
+    FileResultRepositoryImpl,
+)
+from j_file_kit.infrastructure.persistence.sqlite.schema import SQLiteSchemaInitializer
 
 
 @pytest.fixture
@@ -73,3 +82,45 @@ def analyze_config_factory(
         )
 
     return _create
+
+
+@pytest.fixture
+def sqlite_connection_manager() -> SQLiteConnectionManager:
+    """Pipeline 集成测试用：内存 SQLite 连接"""
+    manager = SQLiteConnectionManager(Path(":memory:"))
+    SQLiteSchemaInitializer(manager).initialize()
+    return manager
+
+
+@pytest.fixture
+def file_result_repository(sqlite_connection_manager: SQLiteConnectionManager):
+    """Pipeline 集成测试用：真实 FileResultRepository"""
+    return FileResultRepositoryImpl(sqlite_connection_manager)
+
+
+@pytest.fixture
+def pipeline_with_real_repo(
+    tmp_path: Path,
+    analyze_config_factory: Callable[..., AnalyzeConfig],
+    file_result_repository: FileResultRepositoryImpl,
+) -> FilePipeline:
+    """Pipeline 集成测试用：带真实仓储的 FilePipeline"""
+    config = analyze_config_factory(
+        sorted_dir=tmp_path / "sorted",
+        unsorted_dir=tmp_path / "unsorted",
+        archive_dir=tmp_path / "archive",
+        misc_dir=tmp_path / "misc",
+        misc_file_delete_rules={
+            "keywords": ["rarbg", "sample"],
+            "extensions": [".tmp", ".temp"],
+            "max_size": 1048576,
+        },
+    )
+    return FilePipeline(
+        run_id=1,
+        run_name="test",
+        scan_root=tmp_path / "inbox",
+        analyze_config=config,
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
