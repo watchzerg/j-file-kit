@@ -30,8 +30,8 @@ from j_file_kit.infrastructure.persistence.sqlite.connection import (
 from j_file_kit.infrastructure.persistence.sqlite.schema import (
     SQLiteSchemaInitializer,
 )
-from j_file_kit.infrastructure.persistence.yaml.default_task_config_initializer import (
-    DefaultTaskConfigInitializer,
+from j_file_kit.infrastructure.persistence.yaml.default_file_task_config_initializer import (
+    DefaultFileTaskConfigInitializer,
 )
 from j_file_kit.shared.utils.file_utils import ensure_directory
 from j_file_kit.shared.utils.logging import setup_logging
@@ -60,7 +60,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
 
     # YAML：任务配置
     config_path = config_dir / "task_config.yaml"
-    DefaultTaskConfigInitializer(
+    DefaultFileTaskConfigInitializer(
         config_path,
         default_task_configs=[create_default_jav_video_organizer_task_config()],
     ).initialize()

@@ -4,8 +4,8 @@ import pytest
 import yaml
 
 from j_file_kit.app.file_task.domain.models import TaskConfig
-from j_file_kit.infrastructure.persistence.yaml.task_config_repository import (
-    TaskConfigRepositoryImpl,
+from j_file_kit.infrastructure.persistence.yaml.file_task_config_repository import (
+    FileTaskConfigRepositoryImpl,
 )
 
 pytestmark = pytest.mark.unit
@@ -34,7 +34,7 @@ class TestGetByType:
     def test_returns_task_config_when_exists(self, tmp_path: Path) -> None:
         config_path = tmp_path / "config.yaml"
         _write_yaml(config_path, _sample_yaml_data())
-        repo = TaskConfigRepositoryImpl(config_path)
+        repo = FileTaskConfigRepositoryImpl(config_path)
 
         result = repo.get_by_type("test_task")
 
@@ -46,7 +46,7 @@ class TestGetByType:
     def test_returns_none_when_type_not_found(self, tmp_path: Path) -> None:
         config_path = tmp_path / "config.yaml"
         _write_yaml(config_path, _sample_yaml_data())
-        repo = TaskConfigRepositoryImpl(config_path)
+        repo = FileTaskConfigRepositoryImpl(config_path)
 
         result = repo.get_by_type("nonexistent")
 
@@ -54,7 +54,7 @@ class TestGetByType:
 
     def test_returns_none_when_file_missing(self, tmp_path: Path) -> None:
         config_path = tmp_path / "missing.yaml"
-        repo = TaskConfigRepositoryImpl(config_path)
+        repo = FileTaskConfigRepositoryImpl(config_path)
 
         result = repo.get_by_type("test_task")
 
@@ -63,7 +63,7 @@ class TestGetByType:
     def test_raises_on_invalid_yaml(self, tmp_path: Path) -> None:
         config_path = tmp_path / "config.yaml"
         config_path.write_text("{{invalid yaml", encoding="utf-8")
-        repo = TaskConfigRepositoryImpl(config_path)
+        repo = FileTaskConfigRepositoryImpl(config_path)
 
         with pytest.raises(ValueError, match="YAML 配置文件解析失败"):
             repo.get_by_type("test_task")
@@ -71,7 +71,7 @@ class TestGetByType:
     def test_raises_on_non_dict_yaml(self, tmp_path: Path) -> None:
         config_path = tmp_path / "config.yaml"
         config_path.write_text("- item1\n- item2\n", encoding="utf-8")
-        repo = TaskConfigRepositoryImpl(config_path)
+        repo = FileTaskConfigRepositoryImpl(config_path)
 
         with pytest.raises(ValueError, match="顶层应为字典"):
             repo.get_by_type("test_task")
@@ -81,7 +81,7 @@ class TestUpdate:
     def test_updates_existing_config(self, tmp_path: Path) -> None:
         config_path = tmp_path / "config.yaml"
         _write_yaml(config_path, _sample_yaml_data())
-        repo = TaskConfigRepositoryImpl(config_path)
+        repo = FileTaskConfigRepositoryImpl(config_path)
 
         updated = TaskConfig(
             type="test_task",
@@ -98,7 +98,7 @@ class TestUpdate:
     def test_raises_when_type_not_found(self, tmp_path: Path) -> None:
         config_path = tmp_path / "config.yaml"
         _write_yaml(config_path, _sample_yaml_data())
-        repo = TaskConfigRepositoryImpl(config_path)
+        repo = FileTaskConfigRepositoryImpl(config_path)
 
         with pytest.raises(ValueError, match="任务配置不存在"):
             repo.update(TaskConfig(type="nonexistent", enabled=True, config={}))
@@ -106,7 +106,7 @@ class TestUpdate:
     def test_atomic_write_preserves_file_on_success(self, tmp_path: Path) -> None:
         config_path = tmp_path / "config.yaml"
         _write_yaml(config_path, _sample_yaml_data())
-        repo = TaskConfigRepositoryImpl(config_path)
+        repo = FileTaskConfigRepositoryImpl(config_path)
 
         repo.update(TaskConfig(type="test_task", enabled=True, config={"key": "val"}))
 

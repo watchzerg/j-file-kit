@@ -24,7 +24,7 @@ async def get_jav_video_organizer_config(request: Request) -> GetFileTaskConfigR
     """获取 JAV 视频整理任务配置"""
     app_state: AppState = request.state.app_state
 
-    task_config = app_state.task_config_repository.get_by_type(
+    task_config = app_state.file_task_config_repository.get_by_type(
         TASK_TYPE_JAV_VIDEO_ORGANIZER,
     )
     if task_config is None:
@@ -50,7 +50,7 @@ async def update_jav_video_organizer_config(
 
     try:
         current_typed_config = FileTaskConfigService.get_jav_video_organizer_config(
-            app_state.task_config_repository,
+            app_state.file_task_config_repository,
         )
 
         if body.config is not None:
@@ -63,7 +63,7 @@ async def update_jav_video_organizer_config(
 
         FileTaskConfigService.validate_and_save_jav_video_organizer_config(
             merged_config,
-            app_state.task_config_repository,
+            app_state.file_task_config_repository,
             enabled=body.enabled,
         )
     except ValueError as e:

@@ -1,7 +1,7 @@
 """YAML 任务配置仓储实现。
 
 将任务配置持久化到 YAML 文件，实现 TaskConfigRepository Protocol。
-每个顶层 key 对应一个 task type。
+每个顶层 key 对应一个 file task type。
 """
 
 import os
@@ -14,7 +14,7 @@ import yaml
 from j_file_kit.app.file_task.domain.models import TaskConfig
 
 
-class TaskConfigRepositoryImpl:
+class FileTaskConfigRepositoryImpl:
     """YAML 任务配置仓储实现。
 
     读写 YAML 文件来存储任务配置。

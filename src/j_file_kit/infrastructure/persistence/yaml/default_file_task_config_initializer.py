@@ -1,4 +1,4 @@
-"""默认任务配置 YAML 初始化器。
+"""默认 file task 配置 YAML 初始化器。
 
 在 YAML 配置文件不存在时，从默认配置生成并写入。
 """
@@ -12,8 +12,8 @@ import yaml
 from j_file_kit.app.file_task.domain.models import TaskConfig
 
 
-class DefaultTaskConfigInitializer:
-    """默认任务配置 YAML 初始化器。
+class DefaultFileTaskConfigInitializer:
+    """默认 file task 配置 YAML 初始化器。
 
     默认配置由组合根提供，本类仅在 YAML 文件不存在时创建并写入默认数据。
     """
@@ -27,7 +27,7 @@ class DefaultTaskConfigInitializer:
         self._default_task_configs = default_task_configs
 
     def initialize(self) -> None:
-        """初始化默认任务配置 YAML 文件。
+        """初始化默认 file task 配置 YAML 文件。
 
         如果文件已存在则跳过，不覆盖用户修改。
         """

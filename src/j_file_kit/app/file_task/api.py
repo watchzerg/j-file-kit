@@ -64,7 +64,7 @@ def _get_task_config(task_type: str, app_state: AppState) -> TaskConfig:
     Raises:
         HTTPException: 如果任务配置不存在
     """
-    task_config = app_state.task_config_repository.get_by_type(task_type)
+    task_config = app_state.file_task_config_repository.get_by_type(task_type)
     if task_config is not None:
         return task_config
     raise HTTPException(

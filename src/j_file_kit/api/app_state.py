@@ -16,8 +16,8 @@ from j_file_kit.infrastructure.persistence.sqlite.file_task.file_result_reposito
 from j_file_kit.infrastructure.persistence.sqlite.file_task.file_task_repository import (
     FileTaskRepositoryImpl,
 )
-from j_file_kit.infrastructure.persistence.yaml.task_config_repository import (
-    TaskConfigRepositoryImpl,
+from j_file_kit.infrastructure.persistence.yaml.file_task_config_repository import (
+    FileTaskConfigRepositoryImpl,
 )
 
 
@@ -54,7 +54,7 @@ class AppState:
         self.sqlite_conn = sqlite_conn
 
         # 任务配置仓储（YAML）
-        self.task_config_repository = TaskConfigRepositoryImpl(config_path)
+        self.file_task_config_repository = FileTaskConfigRepositoryImpl(config_path)
 
         # 文件任务仓储（SQLite）
         self.file_task_repository = FileTaskRepositoryImpl(self.sqlite_conn)
