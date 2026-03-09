@@ -29,9 +29,9 @@ class SQLiteSchemaInitializer:
     def _create_tables(self, cursor: sqlite3.Cursor) -> None:
         cursor.execute(
             """
-            CREATE TABLE IF NOT EXISTS file_tasks (
-                task_id INTEGER PRIMARY KEY,
-                task_name TEXT NOT NULL,
+            CREATE TABLE IF NOT EXISTS file_task_runs (
+                run_id INTEGER PRIMARY KEY,
+                run_name TEXT NOT NULL,
                 task_type TEXT NOT NULL,
                 trigger_type TEXT NOT NULL,
                 status TEXT NOT NULL,
@@ -47,7 +47,7 @@ class SQLiteSchemaInitializer:
             """
             CREATE TABLE IF NOT EXISTS file_results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                task_id INTEGER NOT NULL,
+                run_id INTEGER NOT NULL,
                 source_path TEXT NOT NULL,
                 file_stem TEXT NOT NULL,
                 file_type TEXT,
@@ -58,17 +58,17 @@ class SQLiteSchemaInitializer:
                 error_message TEXT,
                 duration_ms REAL NOT NULL,
                 created_at TEXT NOT NULL,
-                FOREIGN KEY (task_id) REFERENCES file_tasks(task_id)
+                FOREIGN KEY (run_id) REFERENCES file_task_runs(run_id)
             )
             """,
         )
 
     def _create_indexes(self, cursor: sqlite3.Cursor) -> None:
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_file_results_task_id ON file_results(task_id)",
+            "CREATE INDEX IF NOT EXISTS idx_file_results_run_id ON file_results(run_id)",
         )
         cursor.execute(
-            "CREATE INDEX IF NOT EXISTS idx_file_results_decision_type ON file_results(task_id, decision_type)",
+            "CREATE INDEX IF NOT EXISTS idx_file_results_decision_type ON file_results(run_id, decision_type)",
         )
         cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_file_results_file_type ON file_results(file_type)",

@@ -23,7 +23,7 @@ class FileResultRepositoryImpl:
 
     实现 FileResultRepository Protocol。
 
-    设计说明：方法接收 task_id 参数，支持作为单例复用。
+    设计说明：方法接收 run_id 参数，支持作为单例复用。
     """
 
     def __init__(
@@ -37,11 +37,11 @@ class FileResultRepositoryImpl:
         """
         self._conn_manager = connection_manager
 
-    def save_result(self, task_id: int, result: FileItemData) -> int:
+    def save_result(self, run_id: int, result: FileItemData) -> int:
         """保存单个文件处理结果
 
         Args:
-            task_id: 任务 ID
+            run_id: 执行实例 ID
             result: 文件处理结果数据
 
         Returns:
@@ -60,14 +60,14 @@ class FileResultRepositoryImpl:
             cursor.execute(
                 """
                 INSERT INTO file_results (
-                    task_id, source_path, file_stem, file_type, serial_id,
+                    run_id, source_path, file_stem, file_type, serial_id,
                     decision_type, target_path, success, error_message,
                     duration_ms, created_at
                 )
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    task_id,
+                    run_id,
                     source_path,
                     file_stem,
                     file_type,
@@ -85,11 +85,11 @@ class FileResultRepositoryImpl:
                 raise RuntimeError("无法获取生成的结果ID")
             return int(result_id)
 
-    def get_statistics(self, task_id: int) -> dict[str, Any]:
-        """获取任务统计信息
+    def get_statistics(self, run_id: int) -> dict[str, Any]:
+        """获取执行实例统计信息
 
         Args:
-            task_id: 任务 ID
+            run_id: 执行实例 ID
 
         Returns:
             统计信息字典，包含 total_items, success_items, error_items,
@@ -105,9 +105,9 @@ class FileResultRepositoryImpl:
                     SUM(CASE WHEN decision_type = 'skip' THEN 1 ELSE 0 END) as skipped_items,
                     SUM(duration_ms) as total_duration_ms
                 FROM file_results
-                WHERE task_id = ?
+                WHERE run_id = ?
                 """,
-                (task_id,),
+                (run_id,),
             )
             row = cursor.fetchone()
             if row is None:

@@ -2,14 +2,14 @@ from datetime import datetime
 
 import pytest
 
-from j_file_kit.app.file_task.domain.models import FileTaskReport
+from j_file_kit.app.file_task.domain.models import FileTaskRunReport
 
 pytestmark = pytest.mark.unit
 
 
-def test_file_task_report_rates_with_zero_total() -> None:
-    report = FileTaskReport(
-        task_name="demo",
+def test_file_task_run_report_rates_with_zero_total() -> None:
+    report = FileTaskRunReport(
+        run_name="demo",
         start_time=datetime(2024, 1, 1),
         end_time=datetime(2024, 1, 1),
         total_items=0,
@@ -24,9 +24,9 @@ def test_file_task_report_rates_with_zero_total() -> None:
     assert report.error_rate == 0.0
 
 
-def test_file_task_report_rates_with_items() -> None:
-    report = FileTaskReport(
-        task_name="demo",
+def test_file_task_run_report_rates_with_items() -> None:
+    report = FileTaskRunReport(
+        run_name="demo",
         start_time=datetime(2024, 1, 1),
         end_time=datetime(2024, 1, 1),
         total_items=10,
@@ -41,9 +41,9 @@ def test_file_task_report_rates_with_items() -> None:
     assert report.error_rate == 0.2
 
 
-def test_file_task_report_duration_seconds() -> None:
-    report = FileTaskReport(
-        task_name="demo",
+def test_file_task_run_report_duration_seconds() -> None:
+    report = FileTaskRunReport(
+        run_name="demo",
         start_time=datetime(2024, 1, 1),
         end_time=datetime(2024, 1, 1),
         total_items=0,
@@ -57,9 +57,9 @@ def test_file_task_report_duration_seconds() -> None:
     assert report.duration_seconds == 2.5
 
 
-def test_file_task_report_update_from_stats_fills_defaults() -> None:
-    report = FileTaskReport(
-        task_name="demo",
+def test_file_task_run_report_update_from_stats_fills_defaults() -> None:
+    report = FileTaskRunReport(
+        run_name="demo",
         start_time=datetime(2024, 1, 1),
         end_time=datetime(2024, 1, 1),
         total_items=0,

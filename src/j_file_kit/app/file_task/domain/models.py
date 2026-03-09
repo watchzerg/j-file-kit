@@ -7,13 +7,13 @@
 - FileType：文件类型（视频/图片/压缩包/其他）
 - SerialId：番号值对象
 
-任务生命周期：
-- FileTaskStatus：任务状态枚举
+任务执行实例（Run）：
+- FileTaskRunStatus：执行状态枚举
 - FileTaskTriggerType：触发类型枚举
 - FileTaskError / FileTaskNotFoundError / FileTaskAlreadyRunningError / FileTaskCancelledError：领域异常
-- FileTaskReport：任务汇总报告（含成功率、耗时等派生属性）
-- FileTaskStatistics：任务统计快照（由 FileTaskRunner.run() 返回）
-- FileTaskRecord：任务持久化记录（对应数据库行）
+- FileTaskRunReport：执行汇总报告（含成功率、耗时等派生属性）
+- FileTaskRunStatistics：执行统计快照（由 FileTaskRunner.run() 返回）
+- FileTaskRun：执行实例持久化记录（对应数据库行）
 - FileTaskRunner：任务执行器协议（定义 run() 接口，所有具体任务须实现）
 
 任务配置：
@@ -146,12 +146,12 @@ class SerialId(BaseModel):
 
 
 # ============================================================================
-# 任务状态枚举
+# 任务执行状态枚举
 # ============================================================================
 
 
-class FileTaskStatus(StrEnum):
-    """文件任务状态枚举"""
+class FileTaskRunStatus(StrEnum):
+    """文件任务执行状态枚举"""
 
     PENDING = "pending"
     RUNNING = "running"
@@ -179,42 +179,42 @@ class FileTaskError(Exception):
 
 
 class FileTaskNotFoundError(FileTaskError):
-    """任务不存在异常"""
+    """任务执行实例不存在异常"""
 
-    def __init__(self, task_id: int) -> None:
-        self.task_id = task_id
-        super().__init__(f"任务不存在: {task_id}")
+    def __init__(self, run_id: int) -> None:
+        self.run_id = run_id
+        super().__init__(f"任务执行实例不存在: {run_id}")
 
 
 class FileTaskAlreadyRunningError(FileTaskError):
     """任务已在运行异常"""
 
-    def __init__(self, running_task_id: int) -> None:
-        self.running_task_id = running_task_id
-        super().__init__(f"已有任务正在运行: {running_task_id}")
+    def __init__(self, running_run_id: int) -> None:
+        self.running_run_id = running_run_id
+        super().__init__(f"已有任务正在运行: {running_run_id}")
 
 
 class FileTaskCancelledError(FileTaskError):
     """任务已取消异常"""
 
-    def __init__(self, task_id: int) -> None:
-        self.task_id = task_id
-        super().__init__(f"任务已取消: {task_id}")
+    def __init__(self, run_id: int) -> None:
+        self.run_id = run_id
+        super().__init__(f"任务已取消: {run_id}")
 
 
 # ============================================================================
-# 任务领域模型
+# 任务执行实例领域模型
 # ============================================================================
 
 
-class FileTaskReport(BaseModel):
-    """文件任务汇总报告
+class FileTaskRunReport(BaseModel):
+    """文件任务执行汇总报告
 
     记录任务执行的完整统计结果，包含成功率、错误率、耗时等派生属性。
     通常在任务完成后由 Pipeline 构建，用于日志和展示。
     """
 
-    task_name: str = Field(..., description="任务名称")
+    run_name: str = Field(..., description="执行实例名称")
     start_time: datetime = Field(..., description="开始时间")
     end_time: datetime = Field(..., description="结束时间")
     total_items: int = Field(0, description="总item数")
@@ -258,10 +258,10 @@ class FileTaskReport(BaseModel):
         self.total_duration_ms = stats.get("total_duration_ms", 0.0)
 
 
-class FileTaskStatistics(BaseModel):
-    """文件任务统计快照
+class FileTaskRunStatistics(BaseModel):
+    """文件任务执行统计快照
 
-    由 FileTaskRunner.run() 返回，交由 FileTaskManager 持久化到数据库。
+    由 FileTaskRunner.run() 返回，交由 FileTaskRunManager 持久化到数据库。
     """
 
     total_items: int = Field(0, description="总item数")
@@ -272,17 +272,17 @@ class FileTaskStatistics(BaseModel):
     total_duration_ms: float = Field(0.0, description="总耗时（毫秒）")
 
 
-class FileTaskRecord(BaseModel):
-    """文件任务持久化记录
+class FileTaskRun(BaseModel):
+    """文件任务执行实例持久化记录
 
-    对应数据库 file_tasks 表中的一行，由 FileTaskRepository 读写。
+    对应数据库 file_task_runs 表中的一行，由 FileTaskRunRepository 读写。
     """
 
-    task_id: int = Field(..., description="任务ID")
-    task_name: str = Field(..., description="任务名称")
+    run_id: int = Field(..., description="执行实例ID")
+    run_name: str = Field(..., description="执行实例名称")
     task_type: str = Field(..., description="任务类型")
     trigger_type: FileTaskTriggerType = Field(..., description="触发类型")
-    status: FileTaskStatus = Field(..., description="任务状态")
+    status: FileTaskRunStatus = Field(..., description="执行状态")
     start_time: datetime = Field(..., description="开始时间")
     end_time: datetime | None = Field(None, description="结束时间")
     error_message: str | None = Field(None, description="错误消息")
@@ -299,7 +299,7 @@ class FileTaskRunner(Protocol):
 
     设计说明：
     - FileTaskRunner 在构造时获得所需的 repositories
-    - run() 只接收运行时参数（task_id、dry_run、cancellation_event）
+    - run() 只接收运行时参数（run_id、dry_run、cancellation_event）
     - 这样设计消除了对具体 Repository 类型的依赖，保持 Protocol 通用性
 
     所有具体任务实现必须符合此协议（通过结构子类型匹配，无需显式继承）。
@@ -312,14 +312,14 @@ class FileTaskRunner(Protocol):
 
     def run(
         self,
-        task_id: int,
+        run_id: int,
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
-    ) -> FileTaskStatistics:
+    ) -> FileTaskRunStatistics:
         """执行任务，返回统计快照
 
         Args:
-            task_id: 任务 ID
+            run_id: 执行实例 ID
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancellation_event: 取消事件，用于检查任务是否被取消
 

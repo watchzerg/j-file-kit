@@ -15,7 +15,7 @@ src/j_file_kit/
 ├── infrastructure/               # 有状态 I/O 实现
 │   ├── persistence/sqlite/       # SQLite 仓储实现（任务执行记录）
 │   ├── persistence/yaml/         # YAML 仓储实现（任务配置）
-│   └── file_task/                # FileTaskManager 调度器
+│   └── file_task/                # FileTaskRunManager 调度器
 └── api/                          # FastAPI 应用入口
     ├── app.py                    # 路由注册、生命周期
     └── app_state.py              # Composition Root（组装依赖）
@@ -43,10 +43,17 @@ app/<module>/
 {base_dir}/                       # 默认 .app-data，可通过 J_FILE_KIT_BASE_DIR 覆盖
 ├── config/task_config.yaml       # 任务配置（YAML）
 ├── sqlite/j_file_kit.db          # SQLite 数据库（任务执行记录）
-└── logs/{task_name}_{task_id}.jsonl  # 任务日志（JSON Lines）
+└── logs/{run_name}_{run_id}.jsonl  # 任务日志（JSON Lines）
 ```
 
 **初始化流程**：`lifespan` → 创建目录 → SQLite 连接 → schema 初始化 → YAML 默认配置初始化
+
+## 概念层次
+
+file_task 领域内有两个核心概念层：
+
+- **Task Type（任务类型）**：定义一类任务的行为和配置，由 `task_type` 字符串常量 + `TaskConfig` + `FileTaskRunner` 协议组合表达
+- **FileTaskRun（执行实例）**：每次任务执行的记录，包含 `run_id`、`run_name`、状态、统计等
 
 ## 依赖规则
 
@@ -83,17 +90,17 @@ Shared Layer          Infrastructure Layer
 | 组件 | 职责 |
 |------|------|
 | **FileTaskRunner** (Protocol) | 定义"做什么"，业务用例入口 |
-| **FileTaskManager** | 任务调度（创建/执行/取消），并发控制（单任务） |
+| **FileTaskRunManager** | 执行实例调度（创建/执行/取消），并发控制（单实例） |
 | **FilePipeline** | 流程协调：扫描 → 分析 → 执行 |
 | **Analyzer** | 分析文件，返回 Decision |
 | **Executor** | 根据 Decision 执行操作 |
 
 **执行流程**：
 ```
-API 请求 → FileTaskManager.start_task() → 后台线程执行
+API 请求 → FileTaskRunManager.start_run() → 后台线程执行
     → FileTaskRunner.run() → FilePipeline 协调
         → scan → analyze (Decision) → execute → 持久化
-    → 更新任务状态
+    → 更新执行实例状态
 ```
 
 ### Decision 模式
@@ -119,9 +126,9 @@ API 请求 → FileTaskManager.start_task() → 后台线程执行
 
 ### Repository 参数化
 
-Repository 方法接收 `task_id` 参数（而非构造时绑定），支持单例复用：
+Repository 方法接收 `run_id` 参数（而非构造时绑定），支持单例复用：
 ```python
-file_result_repository.save_result(task_id=123, result=...)
+file_result_repository.save_result(run_id=123, result=...)
 ```
 
 ## 数据存储
@@ -129,7 +136,7 @@ file_result_repository.save_result(task_id=123, result=...)
 | 存储 | 用途 |
 |------|------|
 | `config/task_config.yaml` | 任务配置（YAML，按 task_type 区分） |
-| `sqlite/file_tasks` 表 | 任务实例（状态、统计） |
+| `sqlite/file_task_runs` 表 | 执行实例（状态、统计） |
 | `sqlite/file_results` 表 | 文件处理结果（决策 + 执行） |
 
 ## 扩展指南
@@ -156,4 +163,4 @@ file_result_repository.save_result(task_id=123, result=...)
 2. **存储分离**：YAML 存配置、SQLite 存运行数据，各取所长
 3. **FileTaskRunner 协议**：解耦调度与具体任务
 4. **Decision 模式**：分析/执行分离，支持预览
-5. **单实例部署**：FileTaskManager 的单任务约束基于此假设
+5. **单实例部署**：FileTaskRunManager 的单执行实例约束基于此假设

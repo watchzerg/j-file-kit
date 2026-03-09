@@ -13,7 +13,7 @@ from j_file_kit.app.file_task.application.config import (
 )
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
-from j_file_kit.app.file_task.domain.models import FileTaskStatistics, TaskConfig
+from j_file_kit.app.file_task.domain.models import FileTaskRunStatistics, TaskConfig
 from j_file_kit.app.file_task.domain.ports import FileResultRepository
 
 
@@ -80,14 +80,14 @@ class JavVideoOrganizer:
 
     def run(
         self,
-        task_id: int,
+        run_id: int,
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
-    ) -> FileTaskStatistics:
+    ) -> FileTaskRunStatistics:
         """运行文件整理
 
         Args:
-            task_id: 任务 ID
+            run_id: 执行实例 ID
             dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
             cancellation_event: 取消事件，用于检查任务是否被取消
         """
@@ -97,8 +97,8 @@ class JavVideoOrganizer:
         analyze_config = self._create_analyze_config()
 
         pipeline = FilePipeline(
-            task_id=task_id,
-            task_name=self.task_type,
+            run_id=run_id,
+            run_name=self.task_type,
             scan_root=self.file_config.inbox_dir,
             analyze_config=analyze_config,
             log_dir=self.log_dir,

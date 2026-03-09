@@ -2,16 +2,16 @@
 
 定义文件任务相关的全部 HTTP API 请求和响应数据结构：
 - StartTaskRequest / StartTaskResponse：启动任务
-- FileTaskStatusResponse：查询任务状态
-- CancelFileTaskResponse：取消任务
-- FileTaskListItem / FileTaskListResponse：任务列表
+- FileTaskRunStatusResponse：查询执行实例状态
+- CancelFileTaskRunResponse：取消执行实例
+- FileTaskRunListItem / FileTaskRunListResponse：执行实例列表
 """
 
 from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from j_file_kit.app.file_task.domain.models import FileTaskStatus
+from j_file_kit.app.file_task.domain.models import FileTaskRunStatus
 
 
 class StartTaskRequest(BaseModel):
@@ -24,41 +24,41 @@ class StartTaskRequest(BaseModel):
 class StartTaskResponse(BaseModel):
     """启动任务响应"""
 
-    task_id: int = Field(..., description="任务ID")
-    task_name: str = Field(..., description="任务名称")
-    status: FileTaskStatus = Field(..., description="任务状态")
+    run_id: int = Field(..., description="执行实例ID")
+    run_name: str = Field(..., description="执行实例名称")
+    status: FileTaskRunStatus = Field(..., description="执行状态")
 
 
-class FileTaskStatusResponse(BaseModel):
-    """任务状态响应"""
+class FileTaskRunStatusResponse(BaseModel):
+    """执行实例状态响应"""
 
-    task_id: int = Field(..., description="任务ID")
-    task_name: str = Field(..., description="任务名称")
-    status: FileTaskStatus = Field(..., description="任务状态")
+    run_id: int = Field(..., description="执行实例ID")
+    run_name: str = Field(..., description="执行实例名称")
+    status: FileTaskRunStatus = Field(..., description="执行状态")
     start_time: datetime = Field(..., description="开始时间")
     end_time: datetime | None = Field(None, description="结束时间")
     error_message: str | None = Field(None, description="错误消息")
     total_items: int | None = Field(None, description="已处理item数")
 
 
-class CancelFileTaskResponse(BaseModel):
-    """取消任务响应"""
+class CancelFileTaskRunResponse(BaseModel):
+    """取消执行实例响应"""
 
-    task_id: int = Field(..., description="任务ID")
+    run_id: int = Field(..., description="执行实例ID")
     message: str = Field(..., description="消息")
 
 
-class FileTaskListItem(BaseModel):
-    """任务列表项"""
+class FileTaskRunListItem(BaseModel):
+    """执行实例列表项"""
 
-    task_id: int = Field(..., description="任务ID")
-    task_name: str = Field(..., description="任务名称")
-    status: FileTaskStatus = Field(..., description="任务状态")
+    run_id: int = Field(..., description="执行实例ID")
+    run_name: str = Field(..., description="执行实例名称")
+    status: FileTaskRunStatus = Field(..., description="执行状态")
     start_time: datetime = Field(..., description="开始时间")
     end_time: datetime | None = Field(None, description="结束时间")
 
 
-class FileTaskListResponse(BaseModel):
-    """任务列表响应"""
+class FileTaskRunListResponse(BaseModel):
+    """执行实例列表响应"""
 
-    tasks: list[FileTaskListItem] = Field(..., description="任务列表")
+    runs: list[FileTaskRunListItem] = Field(..., description="执行实例列表")
