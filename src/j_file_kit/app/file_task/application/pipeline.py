@@ -29,9 +29,8 @@ from j_file_kit.app.file_task.domain.decisions import (
     MoveDecision,
     SkipDecision,
 )
-from j_file_kit.app.file_task.domain.models import PathEntryType
+from j_file_kit.app.file_task.domain.models import FileTaskStatistics, PathEntryType
 from j_file_kit.app.file_task.domain.ports import FileResultRepository
-from j_file_kit.app.task.domain.models import TaskStatistics
 from j_file_kit.shared.utils.file_utils import delete_directory_if_empty
 from j_file_kit.shared.utils.logging import (
     configure_task_logger,
@@ -90,7 +89,7 @@ class FilePipeline:
         self,
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
-    ) -> TaskStatistics:
+    ) -> FileTaskStatistics:
         """运行管道
 
         协调文件处理流程：扫描 → 分析 → 执行。
@@ -154,7 +153,7 @@ class FilePipeline:
             ).info("运行在预览模式（dry_run）")
             return
 
-    def _finish_task(self, dry_run: bool) -> TaskStatistics:
+    def _finish_task(self, dry_run: bool) -> FileTaskStatistics:
         """任务结束处理"""
         # 从数据库获取最终统计信息
         stats = self.file_result_repository.get_statistics(self.task_id)
@@ -175,7 +174,7 @@ class FilePipeline:
                 task_id=str(self.task_id),
                 task_name=self.task_name,
             ).info("预览模式执行完成")
-        return TaskStatistics.model_validate(stats)
+        return FileTaskStatistics.model_validate(stats)
 
     def _process_file(self, path: Path, dry_run: bool) -> None:
         """处理单个文件

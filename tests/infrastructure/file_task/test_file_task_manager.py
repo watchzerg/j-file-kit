@@ -4,25 +4,25 @@ from datetime import datetime
 import pytest
 
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
-from j_file_kit.app.task.domain.models import (
-    TaskAlreadyRunningError,
-    TaskCancelledError,
-    TaskNotFoundError,
-    TaskRecord,
-    TaskStatistics,
-    TaskStatus,
-    TriggerType,
+from j_file_kit.app.file_task.domain.models import (
+    FileTaskAlreadyRunningError,
+    FileTaskCancelledError,
+    FileTaskNotFoundError,
+    FileTaskRecord,
+    FileTaskStatistics,
+    FileTaskStatus,
+    FileTaskTriggerType,
 )
-from j_file_kit.app.task.domain.ports import TaskRepository
-from j_file_kit.infrastructure.task.task_manager import TaskManager
+from j_file_kit.app.file_task.domain.ports import FileTaskRepository
+from j_file_kit.infrastructure.file_task.file_task_manager import FileTaskManager
 
 pytestmark = pytest.mark.unit
 
 
-class _TaskRepositoryStub(TaskRepository):
+class _FileTaskRepositoryStub(FileTaskRepository):
     def __init__(self) -> None:
         self._next_id = 1
-        self.tasks: dict[int, TaskRecord] = {}
+        self.tasks: dict[int, FileTaskRecord] = {}
         self.statistics_by_task: dict[int, dict[str, float | int]] = {}
         self.update_calls: list[dict[str, object]] = []
 
@@ -30,13 +30,13 @@ class _TaskRepositoryStub(TaskRepository):
         self,
         task_name: str,
         task_type: str,
-        trigger_type: TriggerType,
-        status: TaskStatus,
+        trigger_type: FileTaskTriggerType,
+        status: FileTaskStatus,
         start_time: datetime,
     ) -> int:
         task_id = self._next_id
         self._next_id += 1
-        self.tasks[task_id] = TaskRecord(
+        self.tasks[task_id] = FileTaskRecord(
             task_id=task_id,
             task_name=task_name,
             task_type=task_type,
@@ -51,7 +51,7 @@ class _TaskRepositoryStub(TaskRepository):
     def update_task(
         self,
         task_id: int,
-        status: TaskStatus | None = None,
+        status: FileTaskStatus | None = None,
         end_time: datetime | None = None,
         error_message: str | None = None,
         statistics: dict[str, float | int] | None = None,
@@ -77,28 +77,28 @@ class _TaskRepositoryStub(TaskRepository):
         if statistics is not None:
             self.statistics_by_task[task_id] = statistics
 
-    def get_task(self, task_id: int) -> TaskRecord | None:
+    def get_task(self, task_id: int) -> FileTaskRecord | None:
         return self.tasks.get(task_id)
 
-    def list_tasks(self) -> list[TaskRecord]:
+    def list_tasks(self) -> list[FileTaskRecord]:
         return list(self.tasks.values())
 
-    def get_running_task(self) -> TaskRecord | None:
+    def get_running_task(self) -> FileTaskRecord | None:
         for task in self.tasks.values():
-            if task.status == TaskStatus.RUNNING:
+            if task.status == FileTaskStatus.RUNNING:
                 return task
         return None
 
-    def get_pending_or_running_tasks(self) -> list[TaskRecord]:
+    def get_pending_or_running_tasks(self) -> list[FileTaskRecord]:
         return [
             task
             for task in self.tasks.values()
-            if task.status in (TaskStatus.PENDING, TaskStatus.RUNNING)
+            if task.status in (FileTaskStatus.PENDING, FileTaskStatus.RUNNING)
         ]
 
 
-class _TaskRunnerSuccess:
-    def __init__(self, stats: TaskStatistics) -> None:
+class _FileTaskRunnerSuccess:
+    def __init__(self, stats: FileTaskStatistics) -> None:
         self._stats = stats
 
     @property
@@ -110,11 +110,11 @@ class _TaskRunnerSuccess:
         task_id: int,
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
-    ) -> TaskStatistics:
+    ) -> FileTaskStatistics:
         return self._stats
 
 
-class _TaskRunnerFailure:
+class _FileTaskRunnerFailure:
     @property
     def task_type(self) -> str:
         return TASK_TYPE_JAV_VIDEO_ORGANIZER
@@ -124,21 +124,21 @@ class _TaskRunnerFailure:
         task_id: int,
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
-    ) -> TaskStatistics:
+    ) -> FileTaskStatistics:
         raise RuntimeError("boom")
 
 
 def test_execute_task_sets_running_and_completed_with_stats() -> None:
-    repo = _TaskRepositoryStub()
-    manager = TaskManager(repo)
+    repo = _FileTaskRepositoryStub()
+    manager = FileTaskManager(repo)
     task_id = repo.create_task(
         task_name="task",
         task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
-        trigger_type=TriggerType.MANUAL,
-        status=TaskStatus.PENDING,
+        trigger_type=FileTaskTriggerType.MANUAL,
+        status=FileTaskStatus.PENDING,
         start_time=datetime.now(),
     )
-    stats = TaskStatistics(
+    stats = FileTaskStatistics(
         total_items=3,
         success_items=2,
         error_items=1,
@@ -149,54 +149,54 @@ def test_execute_task_sets_running_and_completed_with_stats() -> None:
 
     manager._execute_task(
         task_id=task_id,
-        task=_TaskRunnerSuccess(stats),
+        task=_FileTaskRunnerSuccess(stats),
         dry_run=True,
         cancellation_event=threading.Event(),
     )
 
-    assert repo.tasks[task_id].status == TaskStatus.COMPLETED
+    assert repo.tasks[task_id].status == FileTaskStatus.COMPLETED
     assert repo.statistics_by_task[task_id] == stats.model_dump()
-    assert repo.update_calls[0]["status"] == TaskStatus.RUNNING
-    assert repo.update_calls[-1]["status"] == TaskStatus.COMPLETED
+    assert repo.update_calls[0]["status"] == FileTaskStatus.RUNNING
+    assert repo.update_calls[-1]["status"] == FileTaskStatus.COMPLETED
 
 
 def test_execute_task_sets_failed_on_exception() -> None:
-    repo = _TaskRepositoryStub()
-    manager = TaskManager(repo)
+    repo = _FileTaskRepositoryStub()
+    manager = FileTaskManager(repo)
     task_id = repo.create_task(
         task_name="task",
         task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
-        trigger_type=TriggerType.MANUAL,
-        status=TaskStatus.PENDING,
+        trigger_type=FileTaskTriggerType.MANUAL,
+        status=FileTaskStatus.PENDING,
         start_time=datetime.now(),
     )
 
     manager._execute_task(
         task_id=task_id,
-        task=_TaskRunnerFailure(),
+        task=_FileTaskRunnerFailure(),
         dry_run=False,
         cancellation_event=threading.Event(),
     )
 
-    assert repo.tasks[task_id].status == TaskStatus.FAILED
+    assert repo.tasks[task_id].status == FileTaskStatus.FAILED
     assert repo.update_calls[-1]["error_message"] == "boom"
 
 
 def test_start_task_raises_when_running_task_exists() -> None:
-    repo = _TaskRepositoryStub()
-    manager = TaskManager(repo)
+    repo = _FileTaskRepositoryStub()
+    manager = FileTaskManager(repo)
     repo.create_task(
         task_name="running",
         task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
-        trigger_type=TriggerType.MANUAL,
-        status=TaskStatus.RUNNING,
+        trigger_type=FileTaskTriggerType.MANUAL,
+        status=FileTaskStatus.RUNNING,
         start_time=datetime.now(),
     )
 
-    with pytest.raises(TaskAlreadyRunningError):
+    with pytest.raises(FileTaskAlreadyRunningError):
         manager.start_task(
-            _TaskRunnerSuccess(
-                TaskStatistics(
+            _FileTaskRunnerSuccess(
+                FileTaskStatistics(
                     total_items=0,
                     success_items=0,
                     error_items=0,
@@ -209,29 +209,29 @@ def test_start_task_raises_when_running_task_exists() -> None:
 
 
 def test_cancel_task_marks_pending_as_cancelled() -> None:
-    repo = _TaskRepositoryStub()
-    manager = TaskManager(repo)
+    repo = _FileTaskRepositoryStub()
+    manager = FileTaskManager(repo)
     task_id = repo.create_task(
         task_name="pending",
         task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
-        trigger_type=TriggerType.MANUAL,
-        status=TaskStatus.PENDING,
+        trigger_type=FileTaskTriggerType.MANUAL,
+        status=FileTaskStatus.PENDING,
         start_time=datetime.now(),
     )
 
     manager.cancel_task(task_id)
 
-    assert repo.tasks[task_id].status == TaskStatus.CANCELLED
+    assert repo.tasks[task_id].status == FileTaskStatus.CANCELLED
 
 
 def test_cancel_task_marks_running_as_cancelled_and_sets_event() -> None:
-    repo = _TaskRepositoryStub()
-    manager = TaskManager(repo)
+    repo = _FileTaskRepositoryStub()
+    manager = FileTaskManager(repo)
     task_id = repo.create_task(
         task_name="running",
         task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
-        trigger_type=TriggerType.MANUAL,
-        status=TaskStatus.RUNNING,
+        trigger_type=FileTaskTriggerType.MANUAL,
+        status=FileTaskStatus.RUNNING,
         start_time=datetime.now(),
     )
     cancellation_event = threading.Event()
@@ -240,27 +240,27 @@ def test_cancel_task_marks_running_as_cancelled_and_sets_event() -> None:
     manager.cancel_task(task_id)
 
     assert cancellation_event.is_set()
-    assert repo.tasks[task_id].status == TaskStatus.CANCELLED
+    assert repo.tasks[task_id].status == FileTaskStatus.CANCELLED
 
 
 def test_cancel_task_raises_when_missing() -> None:
-    repo = _TaskRepositoryStub()
-    manager = TaskManager(repo)
+    repo = _FileTaskRepositoryStub()
+    manager = FileTaskManager(repo)
 
-    with pytest.raises(TaskNotFoundError):
+    with pytest.raises(FileTaskNotFoundError):
         manager.cancel_task(999)
 
 
 def test_cancel_task_raises_when_already_done() -> None:
-    repo = _TaskRepositoryStub()
-    manager = TaskManager(repo)
+    repo = _FileTaskRepositoryStub()
+    manager = FileTaskManager(repo)
     task_id = repo.create_task(
         task_name="done",
         task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
-        trigger_type=TriggerType.MANUAL,
-        status=TaskStatus.COMPLETED,
+        trigger_type=FileTaskTriggerType.MANUAL,
+        status=FileTaskStatus.COMPLETED,
         start_time=datetime.now(),
     )
 
-    with pytest.raises(TaskCancelledError):
+    with pytest.raises(FileTaskCancelledError):
         manager.cancel_task(task_id)

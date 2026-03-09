@@ -13,15 +13,15 @@ from j_file_kit.app.file_task.application.config import (
 )
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.file_task.domain.models import FileTaskStatistics
 from j_file_kit.app.file_task.domain.ports import FileResultRepository
-from j_file_kit.app.task.domain.models import TaskStatistics
 from j_file_kit.app.task_config.domain.models import TaskConfig
 
 
 class JavVideoOrganizer:
     """JAV视频文件整理任务
 
-    TaskRunner 是业务用例层，定义"做什么"。
+    FileTaskRunner 是业务用例层，定义"做什么"。
 
     职责：
     - 定义业务用例，配置 Pipeline
@@ -84,7 +84,7 @@ class JavVideoOrganizer:
         task_id: int,
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
-    ) -> TaskStatistics:
+    ) -> FileTaskStatistics:
         """运行文件整理
 
         Args:

@@ -18,12 +18,11 @@ from j_file_kit.app.file_task.application.config import (
     create_default_jav_video_organizer_task_config,
 )
 from j_file_kit.app.file_task.config_api import router as file_task_config_router
-from j_file_kit.app.task.api import router as task_router
-from j_file_kit.app.task.domain.models import (
-    TaskAlreadyRunningError,
-    TaskCancelledError,
-    TaskError,
-    TaskNotFoundError,
+from j_file_kit.app.file_task.domain.models import (
+    FileTaskAlreadyRunningError,
+    FileTaskCancelledError,
+    FileTaskError,
+    FileTaskNotFoundError,
 )
 from j_file_kit.app.task_config.domain.exceptions import (
     InvalidTaskConfigError,
@@ -89,10 +88,10 @@ app = FastAPI(
 )
 
 
-@app.exception_handler(TaskNotFoundError)
-async def task_not_found_handler(
+@app.exception_handler(FileTaskNotFoundError)
+async def file_task_not_found_handler(
     request: Request,
-    exc: TaskNotFoundError,
+    exc: FileTaskNotFoundError,
 ) -> JSONResponse:
     """任务不存在异常处理器"""
     return JSONResponse(
@@ -101,10 +100,10 @@ async def task_not_found_handler(
     )
 
 
-@app.exception_handler(TaskAlreadyRunningError)
-async def task_already_running_handler(
+@app.exception_handler(FileTaskAlreadyRunningError)
+async def file_task_already_running_handler(
     request: Request,
-    exc: TaskAlreadyRunningError,
+    exc: FileTaskAlreadyRunningError,
 ) -> JSONResponse:
     """任务已在运行异常处理器"""
     return JSONResponse(
@@ -113,10 +112,10 @@ async def task_already_running_handler(
     )
 
 
-@app.exception_handler(TaskCancelledError)
-async def task_cancelled_handler(
+@app.exception_handler(FileTaskCancelledError)
+async def file_task_cancelled_handler(
     request: Request,
-    exc: TaskCancelledError,
+    exc: FileTaskCancelledError,
 ) -> JSONResponse:
     """任务已取消异常处理器"""
     return JSONResponse(
@@ -125,9 +124,12 @@ async def task_cancelled_handler(
     )
 
 
-@app.exception_handler(TaskError)
-async def task_error_handler(request: Request, exc: TaskError) -> JSONResponse:
-    """任务相关异常处理器"""
+@app.exception_handler(FileTaskError)
+async def file_task_error_handler(
+    request: Request,
+    exc: FileTaskError,
+) -> JSONResponse:
+    """文件任务相关异常处理器（兜底）"""
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"code": "TASK_ERROR", "message": str(exc)},
@@ -183,6 +185,5 @@ async def task_config_error_handler(
 
 
 # 注册路由
-app.include_router(task_router)
 app.include_router(file_task_router)
 app.include_router(file_task_config_router)

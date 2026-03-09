@@ -1,6 +1,6 @@
-"""任务管理器
+"""文件任务管理器
 
-管理任务的执行、状态跟踪和取消。
+管理文件任务的执行、状态跟踪和取消。
 负责任务的生命周期管理，同一时间只允许一个任务运行。
 """
 
@@ -9,21 +9,21 @@ from datetime import datetime
 
 from loguru import logger
 
-from j_file_kit.app.task.domain.models import (
-    TaskAlreadyRunningError,
-    TaskCancelledError,
-    TaskNotFoundError,
-    TaskRecord,
-    TaskRunner,
-    TaskStatus,
-    TriggerType,
+from j_file_kit.app.file_task.domain.models import (
+    FileTaskAlreadyRunningError,
+    FileTaskCancelledError,
+    FileTaskNotFoundError,
+    FileTaskRecord,
+    FileTaskRunner,
+    FileTaskStatus,
+    FileTaskTriggerType,
 )
-from j_file_kit.app.task.domain.ports import TaskRepository
+from j_file_kit.app.file_task.domain.ports import FileTaskRepository
 
 
 def generate_task_name(
     task_type: str,
-    trigger_type: TriggerType,
+    trigger_type: FileTaskTriggerType,
     start_time: datetime,
 ) -> str:
     """生成任务可读名称
@@ -44,18 +44,22 @@ def generate_task_name(
     return f"{task_type}-{trigger_type.value}-{date_time_str}{millisecond}"
 
 
-class TaskManager:
-    """任务管理器
+class FileTaskManager:
+    """文件任务管理器
 
-    负责管理任务的执行、状态跟踪和取消。
+    负责管理文件任务的执行、状态跟踪和取消。
     同一时间只允许一个任务运行。
+
+    设计说明：
+    - 任务状态以数据库为权威来源，内存中只保存运行中的 task_id 和取消事件
+    - 启动时执行崩溃恢复：将历史遗留的 PENDING/RUNNING 任务标记为 FAILED
     """
 
     def __init__(
         self,
-        task_repository: TaskRepository,
+        task_repository: FileTaskRepository,
     ) -> None:
-        """初始化任务管理器
+        """初始化文件任务管理器
 
         Args:
             task_repository: 任务仓储实例
@@ -65,16 +69,15 @@ class TaskManager:
         self._running_task_id: int | None = None
         self._cancellation_event: threading.Event | None = None
 
-        # 启动时恢复：清理历史异常状态
         self._recover_from_crash()
 
     def start_task(
         self,
-        task: TaskRunner,
-        trigger_type: TriggerType = TriggerType.MANUAL,
+        task: FileTaskRunner,
+        trigger_type: FileTaskTriggerType = FileTaskTriggerType.MANUAL,
         dry_run: bool = False,
     ) -> int:
-        """启动任务
+        """启动任务，返回 task_id
 
         Args:
             task: 要执行的任务
@@ -85,29 +88,26 @@ class TaskManager:
             任务ID
 
         Raises:
-            TaskAlreadyRunningError: 如果已有任务正在运行
+            FileTaskAlreadyRunningError: 如果已有任务正在运行
         """
         with self._lock:
-            # 检查是否有运行中的任务（从数据库查询，更可靠）
             running_task = self.task_repository.get_running_task()
             if running_task:
-                raise TaskAlreadyRunningError(running_task.task_id)
+                raise FileTaskAlreadyRunningError(running_task.task_id)
 
             start_time = datetime.now()
 
-            # 在插入前生成完整的 task_name
             task_name = generate_task_name(
                 task_type=task.task_type,
                 trigger_type=trigger_type,
                 start_time=start_time,
             )
 
-            # 创建新任务并获取生成的 task_id
             task_id = self.task_repository.create_task(
                 task_name=task_name,
                 task_type=task.task_type,
                 trigger_type=trigger_type,
-                status=TaskStatus.PENDING,
+                status=FileTaskStatus.PENDING,
                 start_time=start_time,
             )
 
@@ -115,7 +115,6 @@ class TaskManager:
             self._cancellation_event = cancellation_event
             self._running_task_id = task_id
 
-            # 在后台线程中执行任务
             thread = threading.Thread(
                 target=self._execute_task,
                 args=(task_id, task, dry_run, cancellation_event),
@@ -128,11 +127,11 @@ class TaskManager:
     def _execute_task(
         self,
         task_id: int,
-        task: TaskRunner,
+        task: FileTaskRunner,
         dry_run: bool,
         cancellation_event: threading.Event,
     ) -> None:
-        """执行任务（内部方法）
+        """执行任务（后台线程入口）
 
         Args:
             task_id: 任务ID
@@ -143,43 +142,38 @@ class TaskManager:
         try:
             self.task_repository.update_task(
                 task_id,
-                status=TaskStatus.RUNNING,
+                status=FileTaskStatus.RUNNING,
             )
 
-            # 执行任务
             statistics = task.run(
                 task_id=task_id,
                 dry_run=dry_run,
                 cancellation_event=cancellation_event,
             )
 
-            # 检查是否被取消
             if cancellation_event.is_set():
                 self.task_repository.update_task(
                     task_id,
-                    status=TaskStatus.CANCELLED,
+                    status=FileTaskStatus.CANCELLED,
                     end_time=datetime.now(),
                 )
                 return
 
-            # 任务完成
             self.task_repository.update_task(
                 task_id,
-                status=TaskStatus.COMPLETED,
+                status=FileTaskStatus.COMPLETED,
                 end_time=datetime.now(),
                 statistics=statistics.model_dump(exclude_none=True),
             )
 
         except Exception as e:
-            # 任务失败
             self.task_repository.update_task(
                 task_id,
-                status=TaskStatus.FAILED,
+                status=FileTaskStatus.FAILED,
                 end_time=datetime.now(),
                 error_message=str(e),
             )
         finally:
-            # 清理运行中的任务ID
             with self._lock:
                 if self._running_task_id == task_id:
                     self._running_task_id = None
@@ -192,58 +186,55 @@ class TaskManager:
             task_id: 任务ID
 
         Raises:
-            TaskNotFoundError: 如果任务不存在
-            TaskCancelledError: 如果任务已完成、失败或已取消
+            FileTaskNotFoundError: 如果任务不存在
+            FileTaskCancelledError: 如果任务已完成、失败或已取消
         """
         with self._lock:
             task_model = self.task_repository.get_task(task_id)
             if not task_model:
-                raise TaskNotFoundError(task_id)
+                raise FileTaskNotFoundError(task_id)
 
-            # 检查任务状态
             if task_model.status in (
-                TaskStatus.COMPLETED,
-                TaskStatus.FAILED,
-                TaskStatus.CANCELLED,
+                FileTaskStatus.COMPLETED,
+                FileTaskStatus.FAILED,
+                FileTaskStatus.CANCELLED,
             ):
-                raise TaskCancelledError(task_id)
+                raise FileTaskCancelledError(task_id)
 
-            # 如果任务正在运行，设置取消事件
-            if task_model.status == TaskStatus.RUNNING:
+            if task_model.status == FileTaskStatus.RUNNING:
                 if self._cancellation_event:
                     self._cancellation_event.set()
                 self.task_repository.update_task(
                     task_id,
-                    status=TaskStatus.CANCELLED,
+                    status=FileTaskStatus.CANCELLED,
                     end_time=datetime.now(),
                 )
-            elif task_model.status == TaskStatus.PENDING:
-                # 如果任务还在等待，直接标记为取消
+            elif task_model.status == FileTaskStatus.PENDING:
                 self.task_repository.update_task(
                     task_id,
-                    status=TaskStatus.CANCELLED,
+                    status=FileTaskStatus.CANCELLED,
                     end_time=datetime.now(),
                 )
 
-    def get_task(self, task_id: int) -> TaskRecord:
+    def get_task(self, task_id: int) -> FileTaskRecord:
         """获取任务信息
 
         Args:
             task_id: 任务ID
 
         Returns:
-            任务模型
+            任务记录
 
         Raises:
-            TaskNotFoundError: 如果任务不存在
+            FileTaskNotFoundError: 如果任务不存在
         """
         task_model = self.task_repository.get_task(task_id)
         if task_model is None:
-            raise TaskNotFoundError(task_id)
+            raise FileTaskNotFoundError(task_id)
         return task_model
 
-    def list_tasks(self) -> list[TaskRecord]:
-        """列出所有任务
+    def list_tasks(self) -> list[FileTaskRecord]:
+        """列出所有任务（按开始时间降序）
 
         Returns:
             任务列表
@@ -251,10 +242,10 @@ class TaskManager:
         return self.task_repository.list_tasks()
 
     def _recover_from_crash(self) -> None:
-        """从崩溃中恢复：清理历史异常状态的任务
+        """从崩溃中恢复：将历史遗留的 PENDING/RUNNING 任务标记为 FAILED
 
-        在系统重启后，将数据库中所有 PENDING 或 RUNNING 状态的任务
-        标记为 FAILED，因为系统已重启，这些任务无法继续执行。
+        在系统重启后，数据库中残留的 PENDING 或 RUNNING 任务无法继续执行，
+        统一标记为 FAILED 并记录恢复日志。
         """
         with self._lock:
             incomplete_tasks = self.task_repository.get_pending_or_running_tasks()
@@ -268,16 +259,14 @@ class TaskManager:
             for task in incomplete_tasks:
                 self.task_repository.update_task(
                     task_id=task.task_id,
-                    status=TaskStatus.FAILED,
+                    status=FileTaskStatus.FAILED,
                     end_time=recovery_time,
                     error_message=error_message,
                 )
 
-            # 确保内存状态为 None
             self._running_task_id = None
             self._cancellation_event = None
 
-            # 记录恢复日志
             logger.bind(
                 recovered_task_ids=[task.task_id for task in incomplete_tasks],
             ).info(

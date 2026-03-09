@@ -1,18 +1,27 @@
 """文件任务领域模型
 
-定义文件任务domain专用的领域模型和核心概念。
+定义文件任务 domain 的全部核心模型：
 
-本模块包含文件处理相关的所有领域模型，包括：
-- 路径项类型枚举（PathEntryType）
-- 文件类型枚举（FileType）
-- 番号值对象（SerialId）
+文件相关：
+- PathEntryType：路径项类型（文件/目录）
+- FileType：文件类型（视频/图片/压缩包/其他）
+- SerialId：番号值对象
 
-这些模型是文件domain的核心概念，专门用于文件处理任务，不属于跨domain的通用模型。
+任务生命周期：
+- FileTaskStatus：任务状态枚举
+- FileTaskTriggerType：触发类型枚举
+- FileTaskError / FileTaskNotFoundError / FileTaskAlreadyRunningError / FileTaskCancelledError：领域异常
+- FileTaskReport：任务汇总报告（含成功率、耗时等派生属性）
+- FileTaskStatistics：任务统计快照（由 FileTaskRunner.run() 返回）
+- FileTaskRecord：任务持久化记录（对应数据库行）
+- FileTaskRunner：任务执行器协议（定义 run() 接口，所有具体任务须实现）
 """
 
 import re
+import threading
+from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Protocol
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -22,7 +31,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # ============================================================================
-# 枚举类型
+# 文件相关枚举和值对象
 # ============================================================================
 
 
@@ -40,7 +49,7 @@ class FileType(StrEnum):
     """文件类型枚举
 
     用于区分不同类型的文件（视频、图片、压缩包、其他）。
-    这是文件domain的核心概念，用于文件分类和处理决策。
+    这是文件 domain 的核心概念，用于文件分类和处理决策。
     """
 
     VIDEO = "video"
@@ -49,17 +58,12 @@ class FileType(StrEnum):
     MISC = "misc"
 
 
-# ============================================================================
-# 值对象
-# ============================================================================
-
-
 class SerialId(BaseModel):
     """番号值对象
 
     结构化表示番号，包含字母前缀和数字部分。
     支持从字符串解析（"ABC-123"、"ABC_123"、"ABC123"）和转换为字符串。
-    这是文件domain的核心值对象，用于JAV视频文件的番号识别和整理。
+    这是文件 domain 的核心值对象，用于 JAV 视频文件的番号识别和整理。
 
     设计意图：
     - 封装番号的验证逻辑，确保番号格式的一致性
@@ -116,7 +120,6 @@ class SerialId(BaseModel):
             >>> SerialId.from_string("ABC123")
             SerialId(prefix='ABC', number='123')
         """
-        # 支持连字符、下划线或无分隔符
         pattern = r"^([A-Za-z]{2,5})[-_]?(\d{2,5})$"
         match = re.match(pattern, value)
         if not match:
@@ -137,3 +140,190 @@ class SerialId(BaseModel):
     def __str__(self) -> str:
         """转换为字符串格式：PREFIX-NUMBER"""
         return f"{self.prefix}-{self.number}"
+
+
+# ============================================================================
+# 任务状态枚举
+# ============================================================================
+
+
+class FileTaskStatus(StrEnum):
+    """文件任务状态枚举"""
+
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class FileTaskTriggerType(StrEnum):
+    """文件任务触发类型枚举"""
+
+    MANUAL = "manual"
+    AUTO = "auto"
+
+
+# ============================================================================
+# 领域异常
+# ============================================================================
+
+
+class FileTaskError(Exception):
+    """文件任务相关异常基类"""
+
+    pass
+
+
+class FileTaskNotFoundError(FileTaskError):
+    """任务不存在异常"""
+
+    def __init__(self, task_id: int) -> None:
+        self.task_id = task_id
+        super().__init__(f"任务不存在: {task_id}")
+
+
+class FileTaskAlreadyRunningError(FileTaskError):
+    """任务已在运行异常"""
+
+    def __init__(self, running_task_id: int) -> None:
+        self.running_task_id = running_task_id
+        super().__init__(f"已有任务正在运行: {running_task_id}")
+
+
+class FileTaskCancelledError(FileTaskError):
+    """任务已取消异常"""
+
+    def __init__(self, task_id: int) -> None:
+        self.task_id = task_id
+        super().__init__(f"任务已取消: {task_id}")
+
+
+# ============================================================================
+# 任务领域模型
+# ============================================================================
+
+
+class FileTaskReport(BaseModel):
+    """文件任务汇总报告
+
+    记录任务执行的完整统计结果，包含成功率、错误率、耗时等派生属性。
+    通常在任务完成后由 Pipeline 构建，用于日志和展示。
+    """
+
+    task_name: str = Field(..., description="任务名称")
+    start_time: datetime = Field(..., description="开始时间")
+    end_time: datetime = Field(..., description="结束时间")
+    total_items: int = Field(0, description="总item数")
+    success_items: int = Field(0, description="成功item数")
+    error_items: int = Field(0, description="失败item数")
+    skipped_items: int = Field(0, description="跳过item数")
+    warning_items: int = Field(0, description="警告item数")
+    total_duration_ms: float = Field(0.0, description="总耗时（毫秒）")
+
+    @property
+    def success_rate(self) -> float:
+        """成功率"""
+        if self.total_items == 0:
+            return 0.0
+        return self.success_items / self.total_items
+
+    @property
+    def error_rate(self) -> float:
+        """错误率"""
+        if self.total_items == 0:
+            return 0.0
+        return self.error_items / self.total_items
+
+    @property
+    def duration_seconds(self) -> float:
+        """耗时（秒）"""
+        return self.total_duration_ms / 1000.0
+
+    def update_from_stats(self, stats: dict[str, Any]) -> None:
+        """从统计信息字典更新报告字段
+
+        Args:
+            stats: 统计信息字典，包含 total_items, success_items, error_items,
+                   skipped_items, warning_items, total_duration_ms
+        """
+        self.total_items = stats.get("total_items", 0)
+        self.success_items = stats.get("success_items", 0)
+        self.error_items = stats.get("error_items", 0)
+        self.skipped_items = stats.get("skipped_items", 0)
+        self.warning_items = stats.get("warning_items", 0)
+        self.total_duration_ms = stats.get("total_duration_ms", 0.0)
+
+
+class FileTaskStatistics(BaseModel):
+    """文件任务统计快照
+
+    由 FileTaskRunner.run() 返回，交由 FileTaskManager 持久化到数据库。
+    """
+
+    total_items: int = Field(0, description="总item数")
+    success_items: int = Field(0, description="成功item数")
+    error_items: int = Field(0, description="失败item数")
+    skipped_items: int = Field(0, description="跳过item数")
+    warning_items: int = Field(0, description="警告item数")
+    total_duration_ms: float = Field(0.0, description="总耗时（毫秒）")
+
+
+class FileTaskRecord(BaseModel):
+    """文件任务持久化记录
+
+    对应数据库 file_tasks 表中的一行，由 FileTaskRepository 读写。
+    """
+
+    task_id: int = Field(..., description="任务ID")
+    task_name: str = Field(..., description="任务名称")
+    task_type: str = Field(..., description="任务类型")
+    trigger_type: FileTaskTriggerType = Field(..., description="触发类型")
+    status: FileTaskStatus = Field(..., description="任务状态")
+    start_time: datetime = Field(..., description="开始时间")
+    end_time: datetime | None = Field(None, description="结束时间")
+    error_message: str | None = Field(None, description="错误消息")
+
+
+class FileTaskRunner(Protocol):
+    """文件任务执行器协议
+
+    FileTaskRunner 是业务用例层，定义"做什么"。
+
+    职责：
+    - 定义业务用例
+    - 通过 `run()` 方法执行任务
+
+    设计说明：
+    - FileTaskRunner 在构造时获得所需的 repositories
+    - run() 只接收运行时参数（task_id、dry_run、cancellation_event）
+    - 这样设计消除了对具体 Repository 类型的依赖，保持 Protocol 通用性
+
+    所有具体任务实现必须符合此协议（通过结构子类型匹配，无需显式继承）。
+    """
+
+    @property
+    def task_type(self) -> str:
+        """任务类型标识符"""
+        ...
+
+    def run(
+        self,
+        task_id: int,
+        dry_run: bool = False,
+        cancellation_event: threading.Event | None = None,
+    ) -> FileTaskStatistics:
+        """执行任务，返回统计快照
+
+        Args:
+            task_id: 任务 ID
+            dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
+            cancellation_event: 取消事件，用于检查任务是否被取消
+
+        Returns:
+            任务统计信息
+
+        Raises:
+            Exception: 任务执行过程中的任何异常
+        """
+        ...

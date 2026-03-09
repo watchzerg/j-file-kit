@@ -6,19 +6,19 @@
 
 from pathlib import Path
 
+from j_file_kit.infrastructure.file_task.file_task_manager import FileTaskManager
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
-from j_file_kit.infrastructure.persistence.sqlite.task.file_result_repository import (
+from j_file_kit.infrastructure.persistence.sqlite.file_task.file_result_repository import (
     FileResultRepositoryImpl,
 )
-from j_file_kit.infrastructure.persistence.sqlite.task.task_repository import (
-    TaskRepositoryImpl,
+from j_file_kit.infrastructure.persistence.sqlite.file_task.file_task_repository import (
+    FileTaskRepositoryImpl,
 )
 from j_file_kit.infrastructure.persistence.yaml.task_config_repository import (
     TaskConfigRepositoryImpl,
 )
-from j_file_kit.infrastructure.task.task_manager import TaskManager
 
 
 class AppState:
@@ -29,8 +29,8 @@ class AppState:
     作为 Composition Root，负责组装所有依赖：
     - 创建数据库连接（用于任务执行记录）
     - 创建配置仓储（YAML 文件）
-    - 创建任务仓储（SQLite）
-    - 创建 TaskManager
+    - 创建文件任务仓储（SQLite）
+    - 创建 FileTaskManager
     """
 
     def __init__(
@@ -56,11 +56,11 @@ class AppState:
         # 任务配置仓储（YAML）
         self.task_config_repository = TaskConfigRepositoryImpl(config_path)
 
-        # 任务仓储（SQLite）
-        self.task_repository = TaskRepositoryImpl(self.sqlite_conn)
+        # 文件任务仓储（SQLite）
+        self.task_repository = FileTaskRepositoryImpl(self.sqlite_conn)
 
-        # 文件任务 repositories（单例，方法接收 task_id 参数）
+        # 文件处理结果仓储（单例，方法接收 task_id 参数）
         self.file_result_repository = FileResultRepositoryImpl(self.sqlite_conn)
 
-        # 任务管理器
-        self.task_manager: TaskManager = TaskManager(self.task_repository)
+        # 文件任务管理器
+        self.task_manager: FileTaskManager = FileTaskManager(self.task_repository)

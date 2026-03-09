@@ -1,6 +1,7 @@
-"""任务仓储
+"""文件任务记录仓储
 
-提供 tasks 表的 CRUD 操作。
+提供 file_tasks 表的 CRUD 操作。
+实现 FileTaskRepository Protocol。
 """
 
 import json
@@ -8,47 +9,46 @@ import sqlite3
 from datetime import datetime
 from typing import Any
 
-from j_file_kit.app.task.domain.models import (
-    TaskRecord,
-    TaskStatus,
-    TriggerType,
+from j_file_kit.app.file_task.domain.models import (
+    FileTaskRecord,
+    FileTaskStatus,
+    FileTaskTriggerType,
 )
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
 
 
-class TaskRepositoryImpl:
-    """任务仓储实现
+class FileTaskRepositoryImpl:
+    """文件任务记录仓储实现
 
-    提供任务数据的持久化操作。
-
-    实现 TaskRepository Protocol。
+    提供 file_tasks 表的持久化操作。
+    实现 FileTaskRepository Protocol。
     """
 
     def __init__(self, connection_manager: SQLiteConnectionManager) -> None:
-        """初始化任务仓储
+        """初始化文件任务仓储
 
         Args:
             connection_manager: SQLite 连接管理器
         """
         self._conn_manager = connection_manager
 
-    def _row_to_record(self, row: sqlite3.Row) -> TaskRecord:
-        """将数据库行转换为 TaskRecord 对象
+    def _row_to_record(self, row: sqlite3.Row) -> FileTaskRecord:
+        """将数据库行转换为 FileTaskRecord 对象
 
         Args:
             row: 数据库行
 
         Returns:
-            TaskRecord 对象
+            FileTaskRecord 对象
         """
-        return TaskRecord(
+        return FileTaskRecord(
             task_id=row["task_id"],
             task_name=row["task_name"],
             task_type=row["task_type"],
-            trigger_type=TriggerType(row["trigger_type"]),
-            status=TaskStatus(row["status"]),
+            trigger_type=FileTaskTriggerType(row["trigger_type"]),
+            status=FileTaskStatus(row["status"]),
             start_time=datetime.fromisoformat(row["start_time"]),
             end_time=datetime.fromisoformat(row["end_time"])
             if row["end_time"]
@@ -60,11 +60,11 @@ class TaskRepositoryImpl:
         self,
         task_name: str,
         task_type: str,
-        trigger_type: TriggerType,
-        status: TaskStatus,
+        trigger_type: FileTaskTriggerType,
+        status: FileTaskStatus,
         start_time: datetime,
     ) -> int:
-        """创建任务记录
+        """创建任务记录，返回生成的 task_id
 
         Args:
             task_name: 任务名称
@@ -79,7 +79,7 @@ class TaskRepositoryImpl:
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO tasks (task_name, task_type, trigger_type, status, start_time, end_time, error_message)
+                INSERT INTO file_tasks (task_name, task_type, trigger_type, status, start_time, end_time, error_message)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
@@ -100,20 +100,19 @@ class TaskRepositoryImpl:
     def update_task(
         self,
         task_id: int,
-        status: TaskStatus | None = None,
+        status: FileTaskStatus | None = None,
         end_time: datetime | None = None,
         error_message: str | None = None,
         statistics: dict[str, Any] | None = None,
     ) -> None:
-        """更新任务记录
+        """更新任务记录（仅更新非 None 字段）
 
         Args:
             task_id: 任务ID
             status: 任务状态（可选）
             end_time: 结束时间（可选）
             error_message: 错误消息（可选）
-            statistics: 统计信息字典（可选），将被序列化为 JSON 格式存储
-                使用 JSON 格式便于扩展支持不同类型的任务统计需求
+            statistics: 统计信息字典（可选），序列化为 JSON 存储
         """
         status_value = status.value if status is not None else None
         end_time_value = end_time.isoformat() if end_time is not None else None
@@ -135,7 +134,7 @@ class TaskRepositoryImpl:
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 """
-                UPDATE tasks
+                UPDATE file_tasks
                 SET
                     status = COALESCE(?, status),
                     end_time = COALESCE(?, end_time),
@@ -152,8 +151,8 @@ class TaskRepositoryImpl:
                 ),
             )
 
-    def get_task(self, task_id: int) -> TaskRecord | None:
-        """获取任务记录
+    def get_task(self, task_id: int) -> FileTaskRecord | None:
+        """获取任务记录，不存在时返回 None
 
         Args:
             task_id: 任务ID
@@ -162,7 +161,7 @@ class TaskRepositoryImpl:
             任务对象，如果不存在则返回 None
         """
         with self._conn_manager.get_cursor() as cursor:
-            cursor.execute("SELECT * FROM tasks WHERE task_id = ?", (task_id,))
+            cursor.execute("SELECT * FROM file_tasks WHERE task_id = ?", (task_id,))
             row = cursor.fetchone()
 
             if not row:
@@ -170,28 +169,28 @@ class TaskRepositoryImpl:
 
             return self._row_to_record(row)
 
-    def list_tasks(self) -> list[TaskRecord]:
-        """列出所有任务
+    def list_tasks(self) -> list[FileTaskRecord]:
+        """列出所有任务记录（按开始时间降序）
 
         Returns:
             任务列表
         """
         with self._conn_manager.get_cursor() as cursor:
-            cursor.execute("SELECT * FROM tasks ORDER BY start_time DESC")
+            cursor.execute("SELECT * FROM file_tasks ORDER BY start_time DESC")
             rows = cursor.fetchall()
 
             return [self._row_to_record(row) for row in rows]
 
-    def get_running_task(self) -> TaskRecord | None:
-        """获取运行中的任务
+    def get_running_task(self) -> FileTaskRecord | None:
+        """获取当前运行中的任务，无则返回 None
 
         Returns:
             运行中的任务，如果没有则返回 None
         """
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
-                "SELECT * FROM tasks WHERE status = ? LIMIT 1",
-                (TaskStatus.RUNNING.value,),
+                "SELECT * FROM file_tasks WHERE status = ? LIMIT 1",
+                (FileTaskStatus.RUNNING.value,),
             )
             row = cursor.fetchone()
 
@@ -200,16 +199,16 @@ class TaskRepositoryImpl:
 
             return self._row_to_record(row)
 
-    def get_pending_or_running_tasks(self) -> list[TaskRecord]:
-        """获取所有待处理或运行中的任务
+    def get_pending_or_running_tasks(self) -> list[FileTaskRecord]:
+        """获取所有待处理或运行中的任务（用于启动时崩溃恢复）
 
         Returns:
             待处理或运行中的任务列表
         """
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
-                "SELECT * FROM tasks WHERE status IN (?, ?)",
-                (TaskStatus.PENDING.value, TaskStatus.RUNNING.value),
+                "SELECT * FROM file_tasks WHERE status IN (?, ?)",
+                (FileTaskStatus.PENDING.value, FileTaskStatus.RUNNING.value),
             )
             rows = cursor.fetchall()
 

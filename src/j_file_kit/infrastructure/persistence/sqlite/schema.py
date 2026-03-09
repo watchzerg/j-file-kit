@@ -29,7 +29,7 @@ class SQLiteSchemaInitializer:
     def _create_tables(self, cursor: sqlite3.Cursor) -> None:
         cursor.execute(
             """
-            CREATE TABLE IF NOT EXISTS tasks (
+            CREATE TABLE IF NOT EXISTS file_tasks (
                 task_id INTEGER PRIMARY KEY,
                 task_name TEXT NOT NULL,
                 task_type TEXT NOT NULL,
@@ -58,7 +58,7 @@ class SQLiteSchemaInitializer:
                 error_message TEXT,
                 duration_ms REAL NOT NULL,
                 created_at TEXT NOT NULL,
-                FOREIGN KEY (task_id) REFERENCES tasks(task_id)
+                FOREIGN KEY (task_id) REFERENCES file_tasks(task_id)
             )
             """,
         )
