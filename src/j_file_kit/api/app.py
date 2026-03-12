@@ -51,7 +51,7 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
     resolved_base_dir = (
         base_dir
         if base_dir is not None
-        else Path(os.getenv("J_FILE_KIT_BASE_DIR", ".app-data"))
+        else Path(os.getenv("J_FILE_KIT_BASE_DIR", "/data"))
     )
 
     @asynccontextmanager
