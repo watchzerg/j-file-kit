@@ -1,0 +1,19 @@
+services:
+  j-file-kit:
+    build: .
+    container_name: j-file-kit
+    ports:
+      - "8000:8000"
+    volumes:
+      # 应用数据持久化（config / sqlite / logs）
+      - ./app-data:/data
+      # 媒体目录：根据实际路径按需取消注释并修改宿主机路径
+      # - /path/to/your/inbox:/media/inbox
+      # - /path/to/your/sorted:/media/sorted
+      # - /path/to/your/unsorted:/media/unsorted
+      # - /path/to/your/archive:/media/archive
+      # - /path/to/your/misc:/media/misc
+    environment:
+      - J_FILE_KIT_ENV=production
+      # J_FILE_KIT_BASE_DIR 已在 Dockerfile 中设为 /data，通常无需覆盖
+    restart: unless-stopped

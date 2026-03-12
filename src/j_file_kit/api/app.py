@@ -130,6 +130,11 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
             content={"code": "TASK_ERROR", "message": str(exc)},
         )
 
+    @fastapi_app.get("/health", tags=["infra"])
+    async def health_check() -> dict[str, str]:
+        """健康检查端点，供 Docker HEALTHCHECK 和容器编排系统使用。"""
+        return {"status": "ok"}
+
     fastapi_app.include_router(file_task_router)
     fastapi_app.include_router(file_task_config_router)
 
