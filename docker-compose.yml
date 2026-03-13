@@ -15,5 +15,4 @@ services:
       # - /path/to/your/misc:/media/misc
     environment:
       - J_FILE_KIT_ENV=production
-      # J_FILE_KIT_BASE_DIR 已在 Dockerfile 中设为 /data，通常无需覆盖
     restart: unless-stopped
