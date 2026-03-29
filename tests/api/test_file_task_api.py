@@ -81,12 +81,21 @@ class TestGetRunStatus:
 class TestCancelRun:
     """POST /api/tasks/{run_id}/cancel"""
 
-    def test_cancel_run_success(self, client, tmp_path) -> None:
+    def test_cancel_run_success(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        client,
+        tmp_path,
+    ) -> None:
         """取消执行实例
 
         需配置有效 inbox_dir 使任务运行足够久以便取消。
         创建多文件以延长扫描时间。
         """
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
+            tmp_path,
+        )
         inbox = tmp_path / "inbox"
         inbox.mkdir()
         for i in range(100):
@@ -94,7 +103,15 @@ class TestCancelRun:
 
         config_resp = client.patch(
             "/api/file-task/config/jav-video-organizer",
-            json={"config": {"inbox_dir": str(inbox)}},
+            json={
+                "config": {
+                    "inbox_dir": str(inbox),
+                    "sorted_dir": None,
+                    "unsorted_dir": None,
+                    "archive_dir": None,
+                    "misc_dir": None,
+                },
+            },
         )
         assert config_resp.status_code == 200
 

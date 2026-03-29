@@ -97,24 +97,16 @@ class TestGetJavVideoOrganizerConfig:
 class TestMergeJavVideoOrganizerConfig:
     """merge_jav_video_organizer_config"""
 
-    def test_empty_update_returns_current(
-        self,
-        jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
-    ) -> None:
-        current = jav_video_organize_config_factory(inbox_dir=Path("/media/inbox"))
-        result = FileTaskConfigService.merge_jav_video_organizer_config(current, {})
-        assert result is current
-
-    def test_partial_update_merges(
-        self,
-        jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
-    ) -> None:
-        current = jav_video_organize_config_factory(
-            inbox_dir=Path("/media/inbox"),
-            sorted_dir=None,
-        )
+    def test_empty_update_returns_current(self, valid_task_config: TaskConfig) -> None:
         result = FileTaskConfigService.merge_jav_video_organizer_config(
-            current,
+            valid_task_config.config,
+            {},
+        )
+        assert result.inbox_dir == Path("/media/inbox")
+
+    def test_partial_update_merges(self, valid_task_config: TaskConfig) -> None:
+        result = FileTaskConfigService.merge_jav_video_organizer_config(
+            valid_task_config.config,
             {"sorted_dir": "/media/sorted"},
         )
         assert result.sorted_dir == Path("/media/sorted")

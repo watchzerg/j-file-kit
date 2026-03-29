@@ -48,19 +48,20 @@ async def update_jav_video_organizer_config(
     """更新 JAV 视频整理任务配置（部分更新）"""
     app_state: AppState = request.app.state.app_state
 
-    try:
-        current_typed_config = FileTaskConfigService.get_jav_video_organizer_config(
-            app_state.file_task_config_repository,
+    task_config = app_state.file_task_config_repository.get_by_type(
+        TASK_TYPE_JAV_VIDEO_ORGANIZER,
+    )
+    if task_config is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "CONFIG_NOT_FOUND", "message": "任务配置不存在"},
         )
 
-        if body.config is not None:
-            merged_config = FileTaskConfigService.merge_jav_video_organizer_config(
-                current_typed_config,
-                body.config,
-            )
-        else:
-            merged_config = current_typed_config
-
+    try:
+        merged_config = FileTaskConfigService.merge_jav_video_organizer_config(
+            task_config.config,
+            body.config or {},
+        )
         FileTaskConfigService.validate_and_save_jav_video_organizer_config(
             merged_config,
             app_state.file_task_config_repository,

@@ -57,14 +57,22 @@ class TestUpdateConfig:
     ) -> None:
         """更新配置成功"""
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config_validator.MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
             tmp_path,
         )
-        inbox = tmp_path / "inbox"
-        inbox.mkdir()
+        for name in ("inbox", "sorted", "unsorted", "archive", "misc"):
+            (tmp_path / name).mkdir()
         response = client.patch(
             "/api/file-task/config/jav-video-organizer",
-            json={"config": {"inbox_dir": str(inbox)}},
+            json={
+                "config": {
+                    "inbox_dir": str(tmp_path / "inbox"),
+                    "sorted_dir": str(tmp_path / "sorted"),
+                    "unsorted_dir": str(tmp_path / "unsorted"),
+                    "archive_dir": str(tmp_path / "archive"),
+                    "misc_dir": str(tmp_path / "misc"),
+                },
+            },
         )
         assert response.status_code == 200
         assert response.json()["code"] == "SUCCESS"
@@ -77,7 +85,7 @@ class TestUpdateConfig:
     ) -> None:
         """校验失败（如目录重复）时返回 400"""
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config_validator.MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
             tmp_path,
         )
         path = tmp_path / "shared"
@@ -89,6 +97,8 @@ class TestUpdateConfig:
                     "inbox_dir": str(path),
                     "sorted_dir": str(path),
                     "unsorted_dir": str(path),
+                    "archive_dir": None,
+                    "misc_dir": None,
                 },
             },
         )

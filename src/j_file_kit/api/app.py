@@ -22,6 +22,7 @@ from j_file_kit.app.file_task.application.file_task_config_service import (
     FileTaskConfigService,
 )
 from j_file_kit.app.file_task.config_api import router as file_task_config_router
+from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.file_task.domain.models import (
     FileTaskAlreadyRunningError,
     FileTaskCancelledError,
@@ -94,12 +95,12 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
             config_path=config_path,
         )
 
-        try:
-            FileTaskConfigService.get_jav_video_organizer_config(
-                app.state.app_state.file_task_config_repository,
-            )
-        except ValueError as e:
-            raise RuntimeError(f"启动时配置校验失败，请检查配置文件：{e}") from e
+        repo = app.state.app_state.file_task_config_repository
+        if repo.get_by_type(TASK_TYPE_JAV_VIDEO_ORGANIZER) is not None:
+            try:
+                FileTaskConfigService.get_jav_video_organizer_config(repo)
+            except ValueError as e:
+                raise RuntimeError(f"启动时配置校验失败，请检查配置文件：{e}") from e
 
         yield
 

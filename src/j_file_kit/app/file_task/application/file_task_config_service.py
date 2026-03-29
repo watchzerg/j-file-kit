@@ -45,23 +45,21 @@ class FileTaskConfigService:
 
     @staticmethod
     def merge_jav_video_organizer_config(
-        current: JavVideoOrganizeConfig,
+        current_raw: dict[str, Any],
         update: dict[str, Any],
     ) -> JavVideoOrganizeConfig:
         """合并 JAV 视频整理任务配置更新。
 
+        从存储的原始 dict 出发做合并，避免对旧数据重复触发 model_validator（如 MEDIA_ROOT 约束）。
+
         Args:
-            current: 当前配置
+            current_raw: 存储层的原始配置字典
             update: 更新字典（部分更新）
 
         Returns:
             合并后的配置对象
         """
-        if not update:
-            return current
-
-        merged_dict = current.model_dump()
-        merged_dict.update(update)
+        merged_dict = {**current_raw, **update}
         return JavVideoOrganizeConfig.model_validate(merged_dict)
 
     @staticmethod
