@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from j_file_kit.api.app_state import AppState
 from j_file_kit.app.file_task.api import router as file_task_router
 from j_file_kit.app.file_task.application.config import (
+    MEDIA_ROOT,
     create_default_jav_video_organizer_task_config,
 )
 from j_file_kit.app.file_task.config_api import router as file_task_config_router
@@ -58,6 +59,15 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         """应用生命周期管理"""
         setup_logging()
+
+        if os.getenv("J_FILE_KIT_ENV") == "production" and not os.path.ismount(
+            str(MEDIA_ROOT),
+        ):
+            raise RuntimeError(
+                f"{MEDIA_ROOT} 未挂载宿主机路径。"
+                "请在 Docker 配置中将媒体目录映射到容器内 /media 下，"
+                "例如：-v /host/media/inbox:/media/inbox",
+            )
 
         sqlite_dir = resolved_base_dir / "sqlite"
         log_dir = resolved_base_dir / "logs"

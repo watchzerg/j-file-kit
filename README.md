@@ -16,6 +16,8 @@ uv run python -m j_file_kit.main --reload
 
 ## Docker 本地测试
 
+> **前置要求**：启动前必须在 `docker-compose.yml` 的 `volumes` 中取消注释并配置至少一个 `/media` 子目录挂载（如 `/path/to/your/inbox:/media/inbox`）。生产模式下若未挂载任何 `/media` 路径，容器将启动失败并报错。
+
 **首次构建并启动：**
 
 ```bash
@@ -66,6 +68,6 @@ docker push your-username/j-file-kit:latest
 | Repository | `your-username/j-file-kit:latest` |
 | Port | `宿主机端口:8000`（如 `8000:8000`） |
 | Volume `/data` | `/mnt/user/appdata/j-file-kit` |
-| 媒体目录（按需） | 宿主机实际路径 `:` 容器内路径（如 `/mnt/user/media/inbox:/media/inbox`） |
+| 媒体目录（**必填**，至少一个） | 宿主机实际路径 `:` 容器内路径（如 `/mnt/user/media/inbox:/media/inbox`） |
 
 3. 通过 API（`/api/file-task/config`）配置任务，将各目录路径设置为容器内挂载路径（如 `/media/inbox`）。

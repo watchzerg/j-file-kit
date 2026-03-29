@@ -7,7 +7,8 @@ services:
     volumes:
       # 应用数据持久化（config / sqlite / logs）
       - ./app-data:/data
-      # 媒体目录：根据实际路径按需取消注释并修改宿主机路径
+      # 媒体目录（必须配置，否则容器启动失败）
+      # 请取消注释以下行并将宿主机路径替换为实际路径
       # - /path/to/your/inbox:/media/inbox
       # - /path/to/your/sorted:/media/sorted
       # - /path/to/your/unsorted:/media/unsorted
