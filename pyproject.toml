@@ -31,6 +31,11 @@ dev = [
     "pip-audit>=2.9.0",
 ]
 
+[tool.uv]
+constraint-dependencies = [
+    "pygments>=2.20.0",  # CVE-2026-4539 fix
+]
+
 [build-system]
 requires = ["uv_build>=0.9.6,<0.10.0"]
 build-backend = "uv_build"
