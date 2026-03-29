@@ -2,15 +2,15 @@
 
 提供配置验证相关的纯函数，无副作用。
 validate_jav_video_organizer_config 在 API 更新路径中被调用，执行完整的业务校验，
-包括必需字段、路径冲突、/media 根目录约束和目录存在性检查。
+包括必需字段、路径冲突和目录存在性检查。
+
+注：/media 根目录约束（MEDIA_ROOT）已作为模型不变量在 JavVideoOrganizeConfig
+的 model_validator 中强制执行，构造时自动触发，无需在此重复校验。
 """
 
 from pathlib import Path
 
-from j_file_kit.app.file_task.application.config import (
-    MEDIA_ROOT,
-    JavVideoOrganizeConfig,
-)
+from j_file_kit.app.file_task.application.config import JavVideoOrganizeConfig
 
 
 def _get_all_dir_fields(
@@ -100,30 +100,6 @@ def check_dir_conflicts(config: JavVideoOrganizeConfig) -> list[str]:
     return errors
 
 
-def check_media_root(config: JavVideoOrganizeConfig) -> list[str]:
-    """检查所有非 None 目录路径必须是 MEDIA_ROOT 的子目录。
-
-    使用 resolve(strict=False) 规范化路径后检查祖先关系，不检查路径是否存在。
-    仅在 API 更新配置时调用，不在配置加载时调用，确保系统启动时不因路径约束失败。
-
-    Args:
-        config: 任务配置对象
-
-    Returns:
-        错误列表，如果所有目录均符合约束则返回空列表
-    """
-    media_root = MEDIA_ROOT.resolve(strict=False)
-    errors: list[str] = []
-    for field_name, dir_path in _get_all_dir_fields(config):
-        if dir_path is not None:
-            resolved = dir_path.resolve(strict=False)
-            if media_root not in resolved.parents:
-                errors.append(
-                    f"{field_name}（{dir_path}）必须是 {media_root} 的子目录",
-                )
-    return errors
-
-
 def check_dirs_exist(config: JavVideoOrganizeConfig) -> list[str]:
     """检查所有非 None 目录是否存在于文件系统
 
@@ -148,10 +124,9 @@ def validate_jav_video_organizer_config(config: JavVideoOrganizeConfig) -> list[
     执行完整的业务校验，包括：
     - inbox_dir 是否设置（必需字段）
     - 目录路径是否有冲突
-    - 所有非 None 目录是否在 MEDIA_ROOT 下
     - 所有非 None 目录是否存在于文件系统
 
-    此函数不在配置加载时调用，避免旧配置或非法配置导致系统启动失败。
+    注：/media 根目录约束已由 JavVideoOrganizeConfig.model_validator 在构造时自动校验。
 
     Args:
         config: 任务配置对象
@@ -162,6 +137,5 @@ def validate_jav_video_organizer_config(config: JavVideoOrganizeConfig) -> list[
     errors: list[str] = []
     errors.extend(validate_inbox_dir(config))
     errors.extend(check_dir_conflicts(config))
-    errors.extend(check_media_root(config))
     errors.extend(check_dirs_exist(config))
     return errors

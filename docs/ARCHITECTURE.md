@@ -72,7 +72,7 @@ app/<module>/
 └── logs/{run_name}_{run_id}.jsonl  # 任务日志（JSON Lines）
 ```
 
-**初始化流程**：`lifespan` → 创建目录 → SQLite 连接 → schema 初始化 → YAML 默认配置初始化
+**初始化流程**：`lifespan` → `/media` 挂载检查（production）→ 创建目录 → SQLite 连接 → schema 初始化 → YAML 默认配置初始化 → 读取配置触发模型校验（路径约束）
 
 ## 概念层次
 
@@ -140,6 +140,7 @@ API 请求 → FileTaskRunManager.start_run() → 后台线程执行
 - **FileTaskConfigService**：配置读取、合并、验证、保存的业务逻辑，定义在 `application/file_task_config_service.py`
 - 配置存储在 YAML 文件中（`{base_dir}/config/task_config.yaml`），支持通过 HTTP API 读取和修改
 - 配置无内存缓存，每次读取直接读 YAML 文件（任务启动非高频，无需缓存）
+- **目录路径约束**：`JavVideoOrganizeConfig` 通过 `model_validator` 强制所有非 None 目录路径必须是 `MEDIA_ROOT`（`/media`）的子目录。此约束在配置构造时自动触发，覆盖启动加载和 API 更新两个场景。目录是否存在则仅在 API 更新时额外校验（`check_dirs_exist`）。
 
 ### 依赖注入策略
 

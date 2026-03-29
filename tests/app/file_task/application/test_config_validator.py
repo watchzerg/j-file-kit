@@ -1,24 +1,25 @@
 """配置验证器单元测试
 
-覆盖 validate_inbox_dir、check_dir_conflicts、check_media_root、
-check_dirs_exist、validate_jav_video_organizer_config。
+覆盖 validate_inbox_dir、check_dir_conflicts、check_dirs_exist、
+validate_jav_video_organizer_config，以及 JavVideoOrganizeConfig 的
+/media 路径约束（model_validator）。
 
 路径策略：
 - 纯逻辑测试（不涉及文件系统）使用 /media/xxx 字面量路径，无需目录存在。
 - check_dirs_exist / validate_jav_video_organizer_config 需要真实目录时使用 tmp_path
-  并将 tmp_path 下的子目录视为合法路径（monkeypatch MEDIA_ROOT 指向 tmp_path）。
+  并通过 monkeypatch config.MEDIA_ROOT 指向 tmp_path，使 tmp_path 子目录视为合法路径。
 """
 
 from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from j_file_kit.app.file_task.application.config import JavVideoOrganizeConfig
 from j_file_kit.app.file_task.application.config_validator import (
     check_dir_conflicts,
     check_dirs_exist,
-    check_media_root,
     validate_inbox_dir,
     validate_jav_video_organizer_config,
 )
@@ -116,49 +117,64 @@ class TestCheckDirConflicts:
         assert errors == []
 
 
-class TestCheckMediaRoot:
-    """check_media_root /media 根目录约束检查"""
+class TestJavVideoOrganizeConfigDirConstraint:
+    """JavVideoOrganizeConfig.validate_dir_paths_under_media_root model_validator
 
-    def test_media_path_passes(
-        self,
-        jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
-    ) -> None:
-        config = jav_video_organize_config_factory(inbox_dir=Path("/media/inbox"))
-        errors = check_media_root(config)
-        assert errors == []
+    /media 根目录约束已作为模型不变量内嵌于 JavVideoOrganizeConfig，
+    在任何 model_validate 调用时自动触发。
+    """
 
-    def test_non_media_path_returns_error(
+    def test_media_subpath_accepted(
         self,
-        jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
+        base_extensions: dict[str, list[str]],
     ) -> None:
-        config = jav_video_organize_config_factory(
-            inbox_dir=Path("/nonexistent/inbox"),
+        config = JavVideoOrganizeConfig.model_validate(
+            {
+                "inbox_dir": "/media/inbox",
+                **base_extensions,
+                "misc_file_delete_rules": {},
+            },
         )
-        errors = check_media_root(config)
-        assert len(errors) == 1
-        assert "inbox_dir" in errors[0]
-        assert "必须是" in errors[0]
+        assert config.inbox_dir == Path("/media/inbox")
+
+    def test_non_media_path_raises(
+        self,
+        base_extensions: dict[str, list[str]],
+    ) -> None:
+        with pytest.raises(ValidationError):
+            JavVideoOrganizeConfig.model_validate(
+                {
+                    "inbox_dir": "/nonexistent/inbox",
+                    **base_extensions,
+                    "misc_file_delete_rules": {},
+                },
+            )
 
     def test_multiple_non_media_paths_all_reported(
         self,
-        jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
+        base_extensions: dict[str, list[str]],
     ) -> None:
-        config = jav_video_organize_config_factory(
-            inbox_dir=Path("/nonexistent/inbox"),
-            sorted_dir=Path("/var/sorted"),
-        )
-        errors = check_media_root(config)
-        assert len(errors) == 2
-        assert any("inbox_dir" in e for e in errors)
-        assert any("sorted_dir" in e for e in errors)
+        with pytest.raises(ValidationError) as exc_info:
+            JavVideoOrganizeConfig.model_validate(
+                {
+                    "inbox_dir": "/nonexistent/inbox",
+                    "sorted_dir": "/var/sorted",
+                    **base_extensions,
+                    "misc_file_delete_rules": {},
+                },
+            )
+        error_str = str(exc_info.value)
+        assert "inbox_dir" in error_str
+        assert "sorted_dir" in error_str
 
-    def test_none_dirs_skipped(
+    def test_none_dirs_accepted(
         self,
-        jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
+        base_extensions: dict[str, list[str]],
     ) -> None:
-        config = jav_video_organize_config_factory(inbox_dir=None)
-        errors = check_media_root(config)
-        assert errors == []
+        config = JavVideoOrganizeConfig.model_validate(
+            {"inbox_dir": None, **base_extensions, "misc_file_delete_rules": {}},
+        )
+        assert config.inbox_dir is None
 
 
 class TestCheckDirsExist:
@@ -166,9 +182,14 @@ class TestCheckDirsExist:
 
     def test_existing_dirs_return_empty(
         self,
+        monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
+            tmp_path,
+        )
         inbox = tmp_path / "inbox"
         inbox.mkdir()
         config = jav_video_organize_config_factory(inbox_dir=inbox)
@@ -177,9 +198,14 @@ class TestCheckDirsExist:
 
     def test_nonexistent_dir_returns_error(
         self,
+        monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
+            tmp_path,
+        )
         inbox = tmp_path / "inbox"  # 不创建目录
         config = jav_video_organize_config_factory(inbox_dir=inbox)
         errors = check_dirs_exist(config)
@@ -196,9 +222,14 @@ class TestCheckDirsExist:
 
     def test_multiple_nonexistent_dirs_all_reported(
         self,
+        monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
+            tmp_path,
+        )
         config = jav_video_organize_config_factory(
             inbox_dir=tmp_path / "inbox",
             sorted_dir=tmp_path / "sorted",
@@ -220,7 +251,7 @@ class TestValidateJavVideoOrganizerConfig:
     ) -> None:
         """inbox 在 MEDIA_ROOT 下且存在时，返回空错误列表"""
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config_validator.MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
             tmp_path,
         )
         inbox = tmp_path / "inbox"

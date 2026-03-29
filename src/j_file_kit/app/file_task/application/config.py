@@ -50,6 +50,35 @@ class JavVideoOrganizeConfig(BaseModel):
         }
         return self
 
+    @model_validator(mode="after")
+    def validate_dir_paths_under_media_root(self) -> JavVideoOrganizeConfig:
+        """所有非 None 目录路径必须是 MEDIA_ROOT 的子目录。
+
+        作为模型不变量在构造时强制校验，覆盖配置加载和 API 更新两个场景。
+        测试可通过 monkeypatch 覆盖模块级 MEDIA_ROOT 变量。
+        """
+        media_root = MEDIA_ROOT.resolve(strict=False)
+        errors = []
+        for field_name in (
+            "inbox_dir",
+            "sorted_dir",
+            "unsorted_dir",
+            "archive_dir",
+            "misc_dir",
+        ):
+            dir_path: Path | None = getattr(self, field_name)
+            if (
+                dir_path is not None
+                and media_root not in dir_path.resolve(strict=False).parents
+            ):
+                errors.append(f"{field_name}（{dir_path}）必须是 {media_root} 的子目录")
+        if errors:
+            raise ValueError(
+                "目录路径不符合 MEDIA_ROOT 约束：\n"
+                + "\n".join(f"  - {e}" for e in errors),
+            )
+        return self
+
 
 class AnalyzeConfig(BaseModel):
     """分析配置

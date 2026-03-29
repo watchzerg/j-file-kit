@@ -18,6 +18,9 @@ from j_file_kit.app.file_task.application.config import (
     MEDIA_ROOT,
     create_default_jav_video_organizer_task_config,
 )
+from j_file_kit.app.file_task.application.file_task_config_service import (
+    FileTaskConfigService,
+)
 from j_file_kit.app.file_task.config_api import router as file_task_config_router
 from j_file_kit.app.file_task.domain.models import (
     FileTaskAlreadyRunningError,
@@ -90,6 +93,13 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
             sqlite_conn=conn_manager,
             config_path=config_path,
         )
+
+        try:
+            FileTaskConfigService.get_jav_video_organizer_config(
+                app.state.app_state.file_task_config_repository,
+            )
+        except ValueError as e:
+            raise RuntimeError(f"启动时配置校验失败，请检查配置文件：{e}") from e
 
         yield
 

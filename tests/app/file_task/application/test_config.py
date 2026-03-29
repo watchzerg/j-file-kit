@@ -4,6 +4,7 @@
 """
 
 import pytest
+from pydantic import ValidationError
 
 from j_file_kit.app.file_task.application.config import (
     JavVideoOrganizeConfig,
@@ -45,12 +46,12 @@ class TestJavVideoOrganizeConfigExtensionValidator:
         )
         assert config.video_extensions == {".mp4", ".avi"}
 
-    def test_non_media_path_loads_without_error(self) -> None:
-        """非 /media 路径在 model_validate 时不报错（容错加载，不在模型层校验 /media 前缀）"""
-        config = JavVideoOrganizeConfig.model_validate(
-            {**_BASE_EXTENSIONS, "inbox_dir": "/nonexistent/inbox"},
-        )
-        assert str(config.inbox_dir) == "/nonexistent/inbox"
+    def test_non_media_path_raises(self) -> None:
+        """非 /media 路径在 model_validate 时报错（/media 约束为模型不变量）"""
+        with pytest.raises(ValidationError):
+            JavVideoOrganizeConfig.model_validate(
+                {**_BASE_EXTENSIONS, "inbox_dir": "/nonexistent/inbox"},
+            )
 
 
 class TestCreateDefaultJavVideoOrganizerTaskConfig:

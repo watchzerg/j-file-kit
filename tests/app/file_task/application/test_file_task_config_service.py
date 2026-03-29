@@ -2,9 +2,10 @@
 
 覆盖 get_jav_video_organizer_config、merge、validate_and_save。
 
-validate_and_save 系列需要目录真实存在（触发存在性校验）和路径在 MEDIA_ROOT 下
-（触发 media root 校验）。通过 monkeypatch MEDIA_ROOT 到 tmp_path 使 tmp_path
-路径通过 media root 校验，并在 tmp_path 下创建真实子目录满足存在性校验。
+validate_and_save 系列需要目录真实存在（触发存在性校验），同时路径必须在 MEDIA_ROOT 下
+（已由 JavVideoOrganizeConfig model_validator 自动校验）。测试通过 monkeypatch
+config.MEDIA_ROOT 到 tmp_path，使 tmp_path 路径通过模型约束，
+并在 tmp_path 下创建真实子目录满足存在性校验。
 """
 
 from collections.abc import Callable
@@ -29,14 +30,37 @@ def mock_repository() -> MagicMock:
 
 
 @pytest.fixture
-def valid_task_config(tmp_path: Path) -> TaskConfig:
-    """使用 tmp_path 构造 TaskConfig 原始字典，不触发 JavVideoOrganizeConfig 校验。"""
-    inbox = tmp_path / "inbox"
+def valid_task_config() -> TaskConfig:
+    """使用 /media 路径构造 TaskConfig，用于不需要目录真实存在的测试。"""
     return TaskConfig(
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         enabled=True,
         config={
-            "inbox_dir": str(inbox),
+            "inbox_dir": "/media/inbox",
+            "sorted_dir": None,
+            "unsorted_dir": None,
+            "archive_dir": None,
+            "misc_dir": None,
+            "video_extensions": [".mp4"],
+            "image_extensions": [".jpg"],
+            "archive_extensions": [".zip"],
+            "misc_file_delete_rules": {},
+        },
+    )
+
+
+@pytest.fixture
+def valid_task_config_with_real_dirs(tmp_path: Path) -> TaskConfig:
+    """使用 tmp_path 路径构造 TaskConfig，配合 monkeypatch config.MEDIA_ROOT 使用。
+
+    用于需要目录真实存在（存在性校验）的测试，需同时 monkeypatch
+    j_file_kit.app.file_task.application.config.MEDIA_ROOT 为 tmp_path。
+    """
+    return TaskConfig(
+        type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
+        enabled=True,
+        config={
+            "inbox_dir": str(tmp_path / "inbox"),
             "sorted_dir": None,
             "unsorted_dir": None,
             "archive_dir": None,
@@ -75,28 +99,26 @@ class TestMergeJavVideoOrganizerConfig:
 
     def test_empty_update_returns_current(
         self,
-        tmp_path: Path,
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
-        current = jav_video_organize_config_factory(inbox_dir=tmp_path / "inbox")
+        current = jav_video_organize_config_factory(inbox_dir=Path("/media/inbox"))
         result = FileTaskConfigService.merge_jav_video_organizer_config(current, {})
         assert result is current
 
     def test_partial_update_merges(
         self,
-        tmp_path: Path,
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
         current = jav_video_organize_config_factory(
-            inbox_dir=tmp_path / "inbox",
+            inbox_dir=Path("/media/inbox"),
             sorted_dir=None,
         )
         result = FileTaskConfigService.merge_jav_video_organizer_config(
             current,
-            {"sorted_dir": str(tmp_path / "sorted")},
+            {"sorted_dir": "/media/sorted"},
         )
-        assert result.sorted_dir == tmp_path / "sorted"
-        assert result.inbox_dir == tmp_path / "inbox"
+        assert result.sorted_dir == Path("/media/sorted")
+        assert result.inbox_dir == Path("/media/inbox")
 
 
 class TestValidateAndSaveJavVideoOrganizerConfig:
@@ -120,15 +142,17 @@ class TestValidateAndSaveJavVideoOrganizerConfig:
         monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
         mock_repository: MagicMock,
-        valid_task_config: TaskConfig,
+        valid_task_config_with_real_dirs: TaskConfig,
     ) -> None:
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config_validator.MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
             tmp_path,
         )
         (tmp_path / "inbox").mkdir()
-        mock_repository.get_by_type.return_value = valid_task_config
-        merged = JavVideoOrganizeConfig.model_validate(valid_task_config.config)
+        mock_repository.get_by_type.return_value = valid_task_config_with_real_dirs
+        merged = JavVideoOrganizeConfig.model_validate(
+            valid_task_config_with_real_dirs.config,
+        )
         FileTaskConfigService.validate_and_save_jav_video_organizer_config(
             merged,
             mock_repository,
@@ -142,15 +166,17 @@ class TestValidateAndSaveJavVideoOrganizerConfig:
         monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
         mock_repository: MagicMock,
-        valid_task_config: TaskConfig,
+        valid_task_config_with_real_dirs: TaskConfig,
     ) -> None:
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config_validator.MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
             tmp_path,
         )
         (tmp_path / "inbox").mkdir()
-        mock_repository.get_by_type.return_value = valid_task_config
-        merged = JavVideoOrganizeConfig.model_validate(valid_task_config.config)
+        mock_repository.get_by_type.return_value = valid_task_config_with_real_dirs
+        merged = JavVideoOrganizeConfig.model_validate(
+            valid_task_config_with_real_dirs.config,
+        )
         FileTaskConfigService.validate_and_save_jav_video_organizer_config(
             merged,
             mock_repository,

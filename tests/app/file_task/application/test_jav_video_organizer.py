@@ -16,17 +16,16 @@ pytestmark = pytest.mark.unit
 
 
 @pytest.fixture
-def task_config_with_inbox(tmp_path: Path) -> TaskConfig:
-    inbox = tmp_path / "inbox"
+def task_config_with_inbox() -> TaskConfig:
     return TaskConfig(
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         enabled=True,
         config={
-            "inbox_dir": str(inbox),
-            "sorted_dir": str(tmp_path / "sorted"),
-            "unsorted_dir": str(tmp_path / "unsorted"),
-            "archive_dir": str(tmp_path / "archive"),
-            "misc_dir": str(tmp_path / "misc"),
+            "inbox_dir": "/media/inbox",
+            "sorted_dir": "/media/sorted",
+            "unsorted_dir": "/media/unsorted",
+            "archive_dir": "/media/archive",
+            "misc_dir": "/media/misc",
             "video_extensions": [".mp4", ".mkv"],
             "image_extensions": [".jpg"],
             "archive_extensions": [".zip"],
@@ -36,7 +35,10 @@ def task_config_with_inbox(tmp_path: Path) -> TaskConfig:
 
 
 @pytest.fixture
-def organizer(task_config_with_inbox: TaskConfig, tmp_path: Path) -> JavVideoOrganizer:
+def organizer(
+    task_config_with_inbox: TaskConfig,
+    tmp_path: Path,
+) -> JavVideoOrganizer:  # tmp_path used only for log_dir
     return JavVideoOrganizer(
         task_config=task_config_with_inbox,
         log_dir=tmp_path,
