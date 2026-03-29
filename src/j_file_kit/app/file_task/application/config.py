@@ -11,11 +11,15 @@ from pydantic import BaseModel, Field, model_validator
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.file_task.domain.models import TaskConfig
 
+# 所有目录路径必须在此根目录下，供测试通过 monkeypatch 覆盖
+MEDIA_ROOT = Path("/media")
+
 
 class JavVideoOrganizeConfig(BaseModel):
     """JAV视频文件整理任务配置
 
     包含目录路径和文件处理规则的完整配置，各任务类型独立管理自身配置。
+    所有目录字段（非 None）必须是 MEDIA_ROOT 的子目录。
     """
 
     inbox_dir: Path | None = Field(default=None, description="待处理目录")
@@ -87,11 +91,11 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         enabled=True,
         config={
-            "inbox_dir": None,
-            "sorted_dir": None,
-            "unsorted_dir": None,
-            "archive_dir": None,
-            "misc_dir": None,
+            "inbox_dir": "/media/inbox",
+            "sorted_dir": "/media/sorted",
+            "unsorted_dir": "/media/unsorted",
+            "archive_dir": "/media/archive",
+            "misc_dir": "/media/misc",
             "video_extensions": [
                 ".mp4",
                 ".avi",

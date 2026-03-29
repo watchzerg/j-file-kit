@@ -49,8 +49,17 @@ class TestGetConfig:
 class TestUpdateConfig:
     """PATCH /api/file-task/config/jav-video-organizer"""
 
-    def test_update_config_success(self, client, tmp_path: Path) -> None:
+    def test_update_config_success(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        client,
+        tmp_path: Path,
+    ) -> None:
         """更新配置成功"""
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.config_validator.MEDIA_ROOT",
+            tmp_path,
+        )
         inbox = tmp_path / "inbox"
         inbox.mkdir()
         response = client.patch(
@@ -60,8 +69,17 @@ class TestUpdateConfig:
         assert response.status_code == 200
         assert response.json()["code"] == "SUCCESS"
 
-    def test_update_config_validation_failure(self, client, tmp_path: Path) -> None:
+    def test_update_config_validation_failure(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        client,
+        tmp_path: Path,
+    ) -> None:
         """校验失败（如目录重复）时返回 400"""
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.config_validator.MEDIA_ROOT",
+            tmp_path,
+        )
         path = tmp_path / "shared"
         path.mkdir()
         response = client.patch(
