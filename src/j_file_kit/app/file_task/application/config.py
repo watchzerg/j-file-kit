@@ -10,9 +10,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.file_task.domain.models import TaskConfig
-
-# 所有目录路径必须在此根目录下，供测试通过 monkeypatch 覆盖
-MEDIA_ROOT = Path("/media")
+from j_file_kit.shared.constants import MEDIA_ROOT
 
 
 class JavVideoOrganizeConfig(BaseModel):

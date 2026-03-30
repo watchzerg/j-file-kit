@@ -8,9 +8,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, status
 
 from j_file_kit.app.media_browser.schemas import DirectoryItem, ListDirectoriesResponse
-
-# 所有路径必须在此根目录下，测试可通过 monkeypatch 覆盖
-MEDIA_ROOT = Path("/media")
+from j_file_kit.shared.constants import MEDIA_ROOT
 
 router = APIRouter(prefix="/api/media", tags=["media"])
 

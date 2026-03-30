@@ -15,7 +15,6 @@ from fastapi.responses import JSONResponse
 from j_file_kit.api.app_state import AppState
 from j_file_kit.app.file_task.api import router as file_task_router
 from j_file_kit.app.file_task.application.config import (
-    MEDIA_ROOT,
     create_default_jav_video_organizer_task_config,
 )
 from j_file_kit.app.file_task.application.file_task_config_service import (
@@ -39,6 +38,7 @@ from j_file_kit.infrastructure.persistence.sqlite.schema import (
 from j_file_kit.infrastructure.persistence.yaml.default_file_task_config_initializer import (
     DefaultFileTaskConfigInitializer,
 )
+from j_file_kit.shared.constants import MEDIA_ROOT
 from j_file_kit.shared.utils.file_utils import ensure_directory
 from j_file_kit.shared.utils.logging import setup_logging
 
