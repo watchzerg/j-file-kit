@@ -57,13 +57,16 @@ just docker-up
 
 ## 部署到 Unraid
 
-使用 [unraid/j-file-kit.xml](unraid/j-file-kit.xml) 作为 CA template，无需手动填写参数。
+**首次部署：** 进入 `Docker` 页面，点击 `Add Container`，手动填写以下参数：
 
-**步骤：**
+| 字段 | 值 |
+|---|---|
+| Name | `j-file-kit` |
+| Repository | `ghcr.io/watchzerg/j-file-kit:latest` |
+| Port（容器→宿主） | `8000` → `8000`，`1307` → `1307` |
+| 路径 1（容器→宿主） | `/data` → `/mnt/user/appdata/j-file-kit` |
+| 路径 2（容器→宿主） | `/media` → `/mnt/user/Porn-Japan/media` |
 
-1. 在 Unraid 进入 `Settings → Community Applications → Template Repositories`，添加：
-   ```
-   https://raw.githubusercontent.com/watchzerg/j-file-kit/main/unraid/
-   ```
-2. 在 Apps 页面搜索 `j-file-kit`，点击安装，按需修改媒体目录路径后确认。
-3. 容器启动后访问 `http://<unraid-ip>:1307/docs` 查看 API 文档，或通过 WebUI 按钮直接打开。
+确认后容器启动，访问 `http://<unraid-ip>:1307/docs`。
+
+**后续部署：** 首次创建即相当于保存了模板，之后进入 `Add Container`，在顶部 Template 下拉菜单中选择 `j-file-kit` 即可直接使用。
