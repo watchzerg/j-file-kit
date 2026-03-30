@@ -20,8 +20,8 @@ tests/
 docs/
 
 # 项目说明文件（README.md 需保留：pyproject.toml 声明 readme = "README.md"，构建时必须存在）
-MIGRATION_REVIEW.md
-REVIEW_REPORT.md
+*_REPORT.md
+*_REVIEW.md
 LICENSE
 
 # 开发工具配置
