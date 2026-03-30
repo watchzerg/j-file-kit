@@ -117,13 +117,13 @@ class TestJavVideoOrganizerE2E:
         clean_media: Path,
     ) -> None:
         """无番号视频应被移动到 unsorted/ 目录下。"""
-        _write_file(clean_media / "inbox" / "home_video_2024.mp4")
+        _write_file(clean_media / "inbox" / "family_trip.mp4")
 
         status = _run_task(docker_service)
 
         assert status == "completed"
-        assert (clean_media / "unsorted" / "home_video_2024.mp4").exists()
-        assert not (clean_media / "inbox" / "home_video_2024.mp4").exists()
+        assert (clean_media / "unsorted" / "family_trip.mp4").exists()
+        assert not (clean_media / "inbox" / "family_trip.mp4").exists()
 
     def test_archive_goes_to_archive(
         self,

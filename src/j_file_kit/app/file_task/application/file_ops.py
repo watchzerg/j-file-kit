@@ -95,15 +95,19 @@ def move_file_with_conflict_resolution(source: Path, target: Path) -> Path:
     max_attempts = 10
 
     for attempt in range(max_attempts):
-        try:
-            source.rename(current_target)
-            return current_target
-        except FileExistsError:
+        # 先检查目标是否存在：POSIX 的 os.rename() 会原子性覆盖已有文件，
+        # 不会抛出 FileExistsError，因此必须显式检查。
+        if current_target.exists():
             if attempt == max_attempts - 1:
                 raise RuntimeError(
                     f"无法为 {original_target} 生成唯一路径，已尝试 {max_attempts} 次",
                 ) from None
             current_target = generate_alternative_filename(original_target)
+            continue
+
+        try:
+            source.rename(current_target)
+            return current_target
         except OSError:
             raise
 
