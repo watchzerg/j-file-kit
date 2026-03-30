@@ -16,7 +16,7 @@ services:
       J_FILE_KIT_ENV: production
       # 应用数据目录（容器内路径，与上方 volume 挂载目标保持一致）
       J_FILE_KIT_BASE_DIR: /data
-    # 运行用户 UID:GID，默认与 Unraid 的 nobody:users（99:100）一致
-    # 可在 .env 中设置 PUID / PGID 覆盖
-    user: "${PUID:-99}:${PGID:-100}"
+      # entrypoint 根据 PUID/PGID 修复 /data 权限后降权运行，默认与 Unraid nobody:users（99:100）一致
+      PUID: ${PUID:-99}
+      PGID: ${PGID:-100}
     restart: unless-stopped

@@ -36,14 +36,13 @@ ENV J_FILE_KIT_BASE_DIR="/data"
 # 使用 JSON 格式日志，便于容器日志收集系统解析
 ENV J_FILE_KIT_ENV="production"
 
-# 创建与 Unraid nobody:users（UID=99, GID=100）一致的用户，避免文件权限问题
-RUN groupadd -g 100 users 2>/dev/null || true \
-    && useradd -u 99 -g 100 -M -s /sbin/nologin nobody 2>/dev/null || true
+# 安装 gosu 用于 entrypoint 中安全降权；创建 /data 挂载点
+RUN apt-get update && apt-get install -y --no-install-recommends gosu \
+    && rm -rf /var/lib/apt/lists/* \
+    && mkdir -p /data
 
-# 创建 /data 目录并赋予正确权限；运行时由 volume 覆盖，但需保证初始存在
-RUN mkdir -p /data && chown 99:100 /data
-
-USER nobody
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 EXPOSE 8000
 
@@ -51,4 +50,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
 
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["j-file-kit", "--host", "0.0.0.0", "--port", "8000"]
