@@ -19,8 +19,9 @@ __pycache__
 tests/
 docs/
 
-# 项目说明文件
-*.md
+# 项目说明文件（README.md 需保留：pyproject.toml 声明 readme = "README.md"，构建时必须存在）
+MIGRATION_REVIEW.md
+REVIEW_REPORT.md
 LICENSE
 
 # 开发工具配置

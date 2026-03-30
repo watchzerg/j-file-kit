@@ -12,8 +12,9 @@ COPY pyproject.toml uv.lock ./
 # 仅安装生产依赖（不包含 dev 组），锁定版本，不安装项目本身
 RUN uv sync --no-dev --no-install-project --frozen
 
-# 复制源码后安装项目（包名注册到 .venv）
+# 复制源码和 README 后安装项目（包名注册到 .venv；README 由 pyproject.toml 声明，构建时必须存在）
 COPY src/ ./src/
+COPY README.md ./
 RUN uv sync --no-dev --frozen
 
 # ── Runtime ───────────────────────────────────────────────────────────────────
