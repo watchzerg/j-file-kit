@@ -44,6 +44,8 @@ reports/
 *.jsonl
 media/
 app-data/
+*_REPORT.md
+*_REVIEW.md
 
 # OS
 .DS_Store
