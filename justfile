@@ -90,6 +90,21 @@ task-run DRY_RUN="false":
         -H "Content-Type: application/json" \
         -d '{"dry_run": {{DRY_RUN}}}' | python3 -m json.tool
 
+# 列出最近 10 个任务（run_id、状态、创建时间等）
+task-list:
+    #!/usr/bin/env python3
+    import json, urllib.request
+    with urllib.request.urlopen("http://localhost:8000/api/tasks") as resp:
+        data = json.load(resp)
+    runs = list(reversed(data.get("runs", [])[-10:]))
+    print("{:<8} {:<12} {:<40} {:<25} {}".format("run_id", "status", "run_name", "start_time", "end_time"))
+    print("-" * 110)
+    for r in runs:
+        print("{:<8} {:<12} {:<40} {:<25} {}".format(
+            r["run_id"], r["status"], r["run_name"],
+            str(r.get("start_time") or ""), str(r.get("end_time") or ""),
+        ))
+
 # 查询指定 run_id 的任务状态
 # 用法：just task-status 1
 task-status RUN_ID:
