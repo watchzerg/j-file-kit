@@ -36,6 +36,9 @@ ENV J_FILE_KIT_BASE_DIR="/data"
 # 使用 JSON 格式日志，便于容器日志收集系统解析
 ENV J_FILE_KIT_ENV="production"
 
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
+
 # 安装 gosu 用于 entrypoint 中安全降权；创建 /data 挂载点
 RUN apt-get update && apt-get install -y --no-install-recommends gosu \
     && rm -rf /var/lib/apt/lists/* \

@@ -44,6 +44,7 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: APP_VERSION=${{ github.ref_name }}
           # 利用 GitHub Actions 缓存加速二次构建
           cache-from: type=gha
           cache-to: type=gha,mode=max

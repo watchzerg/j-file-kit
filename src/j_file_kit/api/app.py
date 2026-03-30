@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from loguru import logger
 
 from j_file_kit.api.app_state import AppState
 from j_file_kit.app.file_task.api import router as file_task_router
@@ -42,6 +43,8 @@ from j_file_kit.shared.constants import MEDIA_ROOT
 from j_file_kit.shared.utils.file_utils import ensure_directory
 from j_file_kit.shared.utils.logging import setup_logging
 
+_APP_VERSION = os.getenv("APP_VERSION", "dev")
+
 
 def create_app(base_dir: Path | None = None) -> FastAPI:
     """创建 FastAPI 应用实例
@@ -64,6 +67,7 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         """应用生命周期管理"""
         setup_logging()
+        logger.info("j-file-kit starting, version={}", _APP_VERSION)
 
         if os.getenv("J_FILE_KIT_ENV") == "production" and not os.path.ismount(
             str(MEDIA_ROOT),
@@ -108,7 +112,7 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
     fastapi_app = FastAPI(
         title="j-file-kit API",
         description="文件管理工具HTTP API",
-        version="0.1.0",
+        version=_APP_VERSION,
         lifespan=lifespan,
     )
 
@@ -155,7 +159,7 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
     @fastapi_app.get("/health", tags=["infra"])
     async def health_check() -> dict[str, str]:
         """健康检查端点，供 Docker HEALTHCHECK 和容器编排系统使用。"""
-        return {"status": "ok"}
+        return {"status": "ok", "version": _APP_VERSION}
 
     fastapi_app.include_router(file_task_router)
     fastapi_app.include_router(file_task_config_router)
