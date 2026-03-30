@@ -29,6 +29,7 @@ from j_file_kit.app.file_task.domain.models import (
     FileTaskError,
     FileTaskNotFoundError,
 )
+from j_file_kit.app.media_browser.api import router as media_browser_router
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
@@ -158,6 +159,7 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
 
     fastapi_app.include_router(file_task_router)
     fastapi_app.include_router(file_task_config_router)
+    fastapi_app.include_router(media_browser_router)
 
     return fastapi_app
 
