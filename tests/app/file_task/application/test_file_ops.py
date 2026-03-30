@@ -63,11 +63,17 @@ class TestMoveFileWithConflictResolution:
         target = tmp_path / "b.txt"
         target.write_text("existing")
         result = move_file_with_conflict_resolution(source, target)
+        # source 移走后不再存在
+        assert not source.exists()
+        # 返回的是新生成的路径，而非原 target（没有发生覆盖）
+        assert result != target
         assert result.exists()
         assert result.read_text() == "content"
-        assert not source.exists()
         assert result.parent == tmp_path
         assert result.suffix == ".txt"
+        # 原 target 内容完整保留
+        assert target.exists()
+        assert target.read_text() == "existing"
 
     def test_source_not_found_raises(self, tmp_path: Path) -> None:
         source = tmp_path / "missing.txt"

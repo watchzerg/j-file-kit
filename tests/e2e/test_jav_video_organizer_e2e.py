@@ -37,18 +37,19 @@ def _write_file(path: Path, size: int = _1MB * 2) -> None:
     path.write_bytes(b"\x00" * size)
 
 
-def _trigger_task(base_url: str) -> int:
+def _trigger_task(base_url: str, dry_run: bool = False) -> int:
     """触发 jav_video_organizer 文件整理任务。
 
     Args:
         base_url: 服务根 URL
+        dry_run: 是否为预览模式
 
     Returns:
         任务执行实例 run_id
     """
     resp = requests.post(
         f"{base_url}/api/tasks/{TASK_TYPE_JAV_VIDEO_ORGANIZER}/start",
-        json={"dry_run": False},
+        json={"dry_run": dry_run},
         timeout=10,
     )
     assert resp.status_code == 200, f"启动任务失败：{resp.status_code} {resp.text}"
@@ -207,6 +208,28 @@ class TestJavVideoOrganizerE2E:
         assert len(conflict) == 1
         assert normal[0].suffix == ".mp4"
         assert conflict[0].suffix == ".mp4"
+
+    def test_dry_run_leaves_files_untouched(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """dry_run=True 时任务完成但文件保持原位，inbox 内容不变。
+
+        验证 HTTP 层正确将 dry_run 标志透传到 Pipeline，
+        而非仅靠单元/集成层保证。
+        """
+        source = clean_media / "inbox" / "ABC-003.mp4"
+        _write_file(source)
+
+        run_id = _trigger_task(docker_service, dry_run=True)
+        status = _wait_for_completion(docker_service, run_id)
+
+        assert status == "completed"
+        assert source.exists()
+        assert not (
+            clean_media / "sorted" / "A" / "AB" / "ABC" / "ABC-003.mp4"
+        ).exists()
 
     def test_empty_subdirectory_cleaned_after_processing(
         self,
