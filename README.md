@@ -16,23 +16,56 @@ uv run python -m j_file_kit.main --reload
 
 ## Docker 本地测试
 
-> **前置要求**：启动前必须在 `docker-compose.yml` 的 `volumes` 中取消注释并配置至少一个 `/media` 子目录挂载（如 `/path/to/your/inbox:/media/inbox`）。生产模式下若未挂载任何 `/media` 路径，容器将启动失败并报错。
+### 1. 配置本地媒体目录
 
-**首次构建并启动：**
+媒体目录路径通过 `.env` 文件配置，不需要修改 `docker-compose.yml`：
 
 ```bash
+cp .env.example .env
+```
+
+编辑 `.env`，填写宿主机上的实际媒体根目录：
+
+```bash
+MEDIA_ROOT=/path/to/your/media
+```
+
+Docker Compose 会自动读取 `.env`，将以下目录挂载进容器：
+
+| 宿主机路径 | 容器内路径 |
+|---|---|
+| `$MEDIA_ROOT/inbox` | `/media/inbox`（待处理目录） |
+| `$MEDIA_ROOT/sorted` | `/media/sorted`（整理后目录） |
+| `$MEDIA_ROOT/unsorted` | `/media/unsorted`（无番号目录） |
+| `$MEDIA_ROOT/archive` | `/media/archive`（压缩包目录） |
+| `$MEDIA_ROOT/misc` | `/media/misc`（杂项目录） |
+
+> **注意**：启动前上述目录必须存在，生产模式下若未挂载任何 `/media` 路径，容器将启动失败。
+
+### 2. 生成测试文件（可选）
+
+`scripts/gen_test_files.py` 可在 `inbox` 目录下快速生成覆盖各类场景的测试文件：
+
+```bash
+# 自动读取 MEDIA_ROOT 环境变量，生成到 $MEDIA_ROOT/inbox
+MEDIA_ROOT=/path/to/your/media python scripts/gen_test_files.py
+
+# 或直接指定目标目录
+python scripts/gen_test_files.py /path/to/your/media/inbox
+```
+
+生成的测试场景包括：有番号视频/图片（→ `sorted/`）、无番号媒体（→ `unsorted/`）、压缩包（→ `archive/`）、各类 Misc 文件（删除或移至 `misc/`）、文件名冲突消解（`-jfk-xxxx` 后缀）、空目录自动清理等。
+
+### 3. 启动容器
+
+```bash
+# 首次构建并启动
 docker compose up --build
-```
 
-**后续启动（无需重新构建）：**
-
-```bash
+# 后续启动（无需重新构建）
 docker compose up
-```
 
-**后台运行：**
-
-```bash
+# 后台运行
 docker compose up -d
 ```
 

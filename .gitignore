@@ -42,6 +42,7 @@ logs/
 reports/
 *.log
 *.jsonl
+media/
 
 # OS
 .DS_Store

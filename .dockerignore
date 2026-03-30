@@ -2,6 +2,9 @@
 .git
 .gitignore
 
+# 本地环境配置（含宿主机路径，不应进入镜像）
+.env
+
 # Python 虚拟环境和缓存（不应进入镜像）
 .venv
 __pycache__

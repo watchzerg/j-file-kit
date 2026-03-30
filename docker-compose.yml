@@ -7,13 +7,13 @@ services:
     volumes:
       # 应用数据持久化（config / sqlite / logs）
       - ./app-data:/data
-      # 媒体目录（必须配置，否则容器启动失败）
-      # 请取消注释以下行并将宿主机路径替换为实际路径
-      # - /path/to/your/inbox:/media/inbox
-      # - /path/to/your/sorted:/media/sorted
-      # - /path/to/your/unsorted:/media/unsorted
-      # - /path/to/your/archive:/media/archive
-      # - /path/to/your/misc:/media/misc
+      # 媒体目录：宿主机路径由 .env 中的 MEDIA_ROOT 变量控制
+      # 请复制 .env.example 为 .env 并填写实际路径
+      - ${MEDIA_ROOT}/inbox:/media/inbox
+      - ${MEDIA_ROOT}/sorted:/media/sorted
+      - ${MEDIA_ROOT}/unsorted:/media/unsorted
+      - ${MEDIA_ROOT}/archive:/media/archive
+      - ${MEDIA_ROOT}/misc:/media/misc
     environment:
       - J_FILE_KIT_ENV=production
     restart: unless-stopped
