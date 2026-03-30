@@ -79,6 +79,16 @@ release VERSION:
     git tag v{{VERSION}}
     git push origin v{{VERSION}}
 
+# 本地构建镜像（不启动容器），完成后输出镜像体积
+docker-build:
+    docker build -t j-file-kit:local .
+    @echo ""
+    docker images j-file-kit:local --format "镜像: {{{{.Repository}}}}:{{{{.Tag}}}}  大小: {{{{.Size}}}}  创建: {{{{.CreatedSince}}}}"
+
+# 进入本地构建的镜像，查看文件结构（需先执行 docker-build）
+docker-sh:
+    docker run --rm -it --entrypoint sh j-file-kit:local
+
 # 构建镜像并在后台启动容器（读取 .env 中的 MEDIA_ROOT）
 docker-up:
     docker compose up -d --build
