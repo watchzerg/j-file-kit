@@ -30,17 +30,18 @@ cp .env.example .env
 MEDIA_ROOT=/path/to/your/media
 ```
 
-Docker Compose 会自动读取 `.env`，将以下目录挂载进容器：
+Docker Compose 会自动读取 `.env`，将 `$MEDIA_ROOT` 整体挂载为容器内的 `/media`：
 
 | 宿主机路径 | 容器内路径 |
 |---|---|
+| `$MEDIA_ROOT` | `/media` |
 | `$MEDIA_ROOT/inbox` | `/media/inbox`（待处理目录） |
 | `$MEDIA_ROOT/sorted` | `/media/sorted`（整理后目录） |
 | `$MEDIA_ROOT/unsorted` | `/media/unsorted`（无番号目录） |
 | `$MEDIA_ROOT/archive` | `/media/archive`（压缩包目录） |
 | `$MEDIA_ROOT/misc` | `/media/misc`（杂项目录） |
 
-> **注意**：启动前上述目录必须存在，生产模式下若未挂载任何 `/media` 路径，容器将启动失败。
+> **注意**：启动前上述子目录必须存在于 `$MEDIA_ROOT` 下，容器在生产模式下会校验 `/media` 挂载是否有效。
 
 ### 2. 生成测试文件（可选）
 

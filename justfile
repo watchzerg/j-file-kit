@@ -57,6 +57,10 @@ test-unit:
 test-int:
     uv run pytest -m integration
 
+# 运行 E2E 测试（需要 Docker 运行中）
+test-e2e:
+    uv run pytest -m e2e -v
+
 # 运行测试并输出覆盖率报告
 test-cov:
     uv run pytest --cov=src/j_file_kit --cov-report=term-missing

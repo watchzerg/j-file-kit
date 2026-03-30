@@ -6,14 +6,9 @@ services:
       - "8000:8000"
     volumes:
       # 应用数据持久化（config / sqlite / logs）
-      - ./app-data:/data
+      # APP_DATA_DIR 未设置时默认使用 ./app-data
+      - ${APP_DATA_DIR:-./app-data}:/data
       # 媒体目录：宿主机路径由 .env 中的 MEDIA_ROOT 变量控制
       # 请复制 .env.example 为 .env 并填写实际路径
-      - ${MEDIA_ROOT}/inbox:/media/inbox
-      - ${MEDIA_ROOT}/sorted:/media/sorted
-      - ${MEDIA_ROOT}/unsorted:/media/unsorted
-      - ${MEDIA_ROOT}/archive:/media/archive
-      - ${MEDIA_ROOT}/misc:/media/misc
-    environment:
-      - J_FILE_KIT_ENV=production
+      - ${MEDIA_ROOT}:/media
     restart: unless-stopped
