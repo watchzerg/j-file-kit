@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>j-file-kit</Name>
+  <Repository>ghcr.io/watchzerg/j-file-kit:latest</Repository>
+  <Registry>https://github.com/watchzerg/j-file-kit/pkgs/container/j-file-kit</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/watchzerg/j-file-kit/issues</Support>
+  <Project>https://github.com/watchzerg/j-file-kit</Project>
+  <Overview>j-file-kit — 媒体文件管理工具，提供 Web 界面浏览和管理媒体文件。</Overview>
+  <Category>MediaApp:Video MediaApp:Photos Tools:</Category>
+  <WebUI>http://[IP]:[PORT:8000]/</WebUI>
+  <TemplateURL>https://raw.githubusercontent.com/watchzerg/j-file-kit/main/unraid/j-file-kit.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/watchzerg/j-file-kit/main/unraid/icon.png</Icon>
+  <ExtraParams>--restart=unless-stopped</ExtraParams>
+  <PostArgs></PostArgs>
+  <CPUset></CPUset>
+  <DateInstalled></DateInstalled>
+  <DonateText></DonateText>
+  <DonateLink></DonateLink>
+  <Requires></Requires>
+
+  <!-- 端口 -->
+  <Config Name="Web UI 端口" Target="8000" Default="8000" Mode="tcp" Description="Web 界面访问端口" Type="Port" Display="always" Required="true" Mask="false">1307</Config>
+
+  <!-- 数据卷 -->
+  <Config Name="应用数据目录" Target="/data" Default="/mnt/user/appdata/j-file-kit" Mode="rw" Description="存放配置文件、SQLite 数据库和日志，需持久化保存" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/j-file-kit</Config>
+  <Config Name="媒体根目录" Target="/media" Default="" Mode="rw" Description="宿主机媒体文件目录，容器内只读挂载" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/Porn-Japan/media</Config>
+
+  <!-- 环境变量 -->
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="运行用户 UID。Unraid 默认 nobody 为 99，通常无需修改" Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="运行用户 GID。Unraid 默认 users 组为 100，通常无需修改" Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+  <Config Name="J_FILE_KIT_ENV" Target="J_FILE_KIT_ENV" Default="production" Mode="" Description="运行环境。production 模式启动时会校验 /media 是否已挂载" Type="Variable" Display="advanced" Required="false" Mask="false">production</Config>
+  <Config Name="J_FILE_KIT_BASE_DIR" Target="J_FILE_KIT_BASE_DIR" Default="/data" Mode="" Description="容器内应用数据目录，须与 /data 挂载目标保持一致，通常无需修改" Type="Variable" Display="advanced" Required="false" Mask="false">/data</Config>
+</Container>
