@@ -43,6 +43,7 @@ reports/
 *.log
 *.jsonl
 media/
+app-data/
 
 # OS
 .DS_Store

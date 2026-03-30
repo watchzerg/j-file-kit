@@ -49,7 +49,7 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
     设计意图：工厂函数支持测试注入 base_dir，生产环境通过环境变量读取。
 
     Args:
-        base_dir: 应用基础目录。为 None 时使用 J_FILE_KIT_BASE_DIR 环境变量，默认 .app-data
+        base_dir: 应用基础目录。为 None 时使用 J_FILE_KIT_BASE_DIR 环境变量，默认 app-data
 
     Returns:
         配置完成的 FastAPI 实例

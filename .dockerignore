@@ -30,7 +30,7 @@ justfile
 .python-version
 
 # 本地运行时数据（不应进入镜像）
-.app-data/
+app-data/
 
 # 构建产物
 dist/

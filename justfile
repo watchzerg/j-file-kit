@@ -64,3 +64,33 @@ test-e2e:
 # 运行测试并输出覆盖率报告
 test-cov:
     uv run pytest --cov=src/j_file_kit --cov-report=term-missing
+
+# ── 手工调试辅助 ────────────────────────────────────────────────────────────────
+
+# 生成测试文件到 $MEDIA_ROOT/inbox（需 .env 中配置 MEDIA_ROOT）
+gen-test-files:
+    uv run python scripts/gen_test_files.py
+
+# 构建镜像并在后台启动容器（读取 .env 中的 MEDIA_ROOT）
+docker-up:
+    docker compose up -d --build
+
+# 停止并移除容器
+docker-down:
+    docker compose down
+
+# 实时跟踪容器日志（Ctrl+C 退出）
+docker-logs:
+    docker compose logs -f
+
+# 触发 jav_video_organizer 整理任务；DRY_RUN=true 可预览不实际移动文件
+# 用法：just task-run 或 just task-run DRY_RUN=true
+task-run DRY_RUN="false":
+    curl -sf -X POST http://localhost:8000/api/tasks/jav_video_organizer/start \
+        -H "Content-Type: application/json" \
+        -d '{"dry_run": {{DRY_RUN}}}' | python3 -m json.tool
+
+# 查询指定 run_id 的任务状态
+# 用法：just task-status 1
+task-status RUN_ID:
+    curl -sf http://localhost:8000/api/tasks/{{RUN_ID}} | python3 -m json.tool

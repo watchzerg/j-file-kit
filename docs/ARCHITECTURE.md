@@ -66,7 +66,7 @@ app/<module>/
 ### 运行时目录
 
 ```
-{base_dir}/                       # 默认 .app-data（相对于进程 cwd），可通过 J_FILE_KIT_BASE_DIR 覆盖
+{base_dir}/                       # 默认 app-data（相对于进程 cwd），可通过 J_FILE_KIT_BASE_DIR 覆盖
 ├── config/task_config.yaml       # 任务配置（YAML）
 ├── sqlite/j_file_kit.db          # SQLite 数据库（任务执行记录）
 └── logs/{run_name}_{run_id}.jsonl  # 任务日志（JSON Lines）
