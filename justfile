@@ -71,6 +71,14 @@ test-cov:
 gen-test-files:
     uv run python scripts/gen_test_files.py
 
+# 打版本 tag 并推送，触发 GitHub Actions 构建镜像
+# 会先运行 E2E 测试，全部通过后才打 tag（需要 Docker 运行中）
+# 用法：just release 1.2.3
+release VERSION:
+    uv run pytest -m e2e -v
+    git tag v{{VERSION}}
+    git push origin v{{VERSION}}
+
 # 构建镜像并在后台启动容器（读取 .env 中的 MEDIA_ROOT）
 docker-up:
     docker compose up -d --build

@@ -32,6 +32,10 @@ justfile
 # 本地运行时数据（不应进入镜像）
 app-data/
 
+# 本地测试媒体文件和开发脚本（不应进入镜像）
+media/
+scripts/
+
 # 构建产物
 dist/
 build/
