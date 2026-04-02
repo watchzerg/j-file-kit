@@ -6,7 +6,7 @@
 1. 文件名分解为4部分：番号之前的内容、番号、番号之后的内容、扩展名
 2. 对第1、3部分分别执行trim操作：去除前后的空格、连字符(-)、下划线(_)、@符号、#符号
 3. 根据第1部分trim后是否为空判断番号是否在开头
-4. 按不同规则拼接新文件名
+4. 按不同规则拼接新文件名；若生成文件名超过 MAX_FILENAME_BYTES 字节，截断非关键部分
 
 拼接规则：
 - 番号在开头（第1部分trim后为空）：
@@ -17,14 +17,17 @@
   - 标准番号 + 空格 + 第1部分 + 占位符 + 扩展名
   - 占位符：第3部分trim后为空 → "-serialId"，否则 → "-serialId-" + 第3部分
 
+截断规则（仅在生成文件名超过 MAX_FILENAME_BYTES 字节时生效）：
+- 关键部分（永不截断）：标准番号、"-serialId[-]" 占位符、扩展名
+- 非关键部分（可截断）：第1部分、第3部分
+- 截断顺序：优先截断第3部分；若仍超限则丢弃第3部分并截断第1部分
+
 番号规则（基于正则表达式：`(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\\d{2,5})(?![0-9])`）：
 - 字母部分：2-5个英文字母（大小写都可以）
 - 分隔符：可选，支持 `-`、`_` 或无分隔符
 - 数字部分：2-5个数字
 - 边界条件：番号前面不能紧挨着字母，番号后面不能紧挨着数字
 - 输出格式：统一标准化为 `字母-数字` 格式（大写字母）
-
-标准化番号格式：大写字母 + 连字符 + 数字（如 ABC-123）
 """
 
 import re
@@ -32,20 +35,40 @@ from pathlib import Path
 
 from j_file_kit.app.file_task.domain.models import SerialId
 
-# 默认番号提取正则表达式模式
 DEFAULT_SERIAL_PATTERN = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
 
-# 文件名分隔符常量：用于 trim 操作时去除的字符
 FILENAME_SEPARATORS = " -_@#"
+
+# 文件系统文件名字节上限（ext4 / APFS 等主流文件系统均为 255 字节）
+MAX_FILENAME_BYTES = 255
+
+
+def _truncate_to_bytes(text: str, max_bytes: int) -> str:
+    """将文本截断到 UTF-8 编码不超过 max_bytes 字节。
+
+    在字节边界处截断时会自动跳过不完整的多字节字符，保证结果是合法 UTF-8。
+
+    Args:
+        text: 原始字符串
+        max_bytes: 最大字节数（含）
+
+    Returns:
+        截断后的字符串，其 UTF-8 编码长度 <= max_bytes
+    """
+    if max_bytes <= 0:
+        return ""
+    encoded = text.encode()
+    if len(encoded) <= max_bytes:
+        return text
+    # errors="ignore" 会自动丢弃截断点处不完整的多字节尾部
+    return encoded[:max_bytes].decode(errors="ignore")
 
 
 def _match_serial_id(
     filename: str,
     pattern: str = DEFAULT_SERIAL_PATTERN,
 ) -> tuple[SerialId | None, re.Match[str] | None]:
-    """内部函数：匹配番号并返回 SerialId 和 Match 对象
-
-    同时返回匹配结果和位置信息，避免重复正则匹配。
+    """匹配番号，同时返回 SerialId 和 Match 对象以避免重复正则匹配。
 
     Args:
         filename: 文件名
@@ -58,11 +81,8 @@ def _match_serial_id(
     if not match:
         return None, None
 
-    # 获取匹配的字母和数字部分
     letters = match.group(1).upper()
     digits = match.group(2)
-
-    # 构造 SerialId 对象
     serial_id = SerialId(prefix=letters, number=digits)
     return serial_id, match
 
@@ -71,6 +91,8 @@ def generate_jav_filename(filename: str) -> tuple[str, SerialId | None]:
     """根据番号生成新文件名
 
     使用内置的 DEFAULT_SERIAL_PATTERN 进行番号提取和文件名重构。
+    若生成的文件名超过 MAX_FILENAME_BYTES 字节，会截断非关键内容（第1、3部分），
+    确保番号、占位符和扩展名始终完整保留。
     纯文件名转换函数，不涉及路径处理。
 
     Args:
@@ -105,7 +127,6 @@ def generate_jav_filename(filename: str) -> tuple[str, SerialId | None]:
     # 匹配番号并获取位置信息（一次正则匹配同时获取 SerialId 和位置）
     serial_id, match = _match_serial_id(filename)
     if not serial_id or not match:
-        # 未匹配到番号，保持原文件名
         return filename, None
 
     # 分解文件名为4部分
@@ -116,33 +137,54 @@ def generate_jav_filename(filename: str) -> tuple[str, SerialId | None]:
     part3 = part3_with_suffix.removesuffix(suffix) if suffix else part3_with_suffix
     part4 = suffix  # 扩展名
 
-    # 对第1、3部分执行trim操作：去除前后的空格、连字符、下划线、@、#
     trimmed_part1 = part1.strip(FILENAME_SEPARATORS)
     trimmed_part3 = part3.strip(FILENAME_SEPARATORS)
-
-    # 将 serial_id 转换为字符串用于文件名拼接
     serial_id_str = str(serial_id)
 
     # 判断番号是否在开头（第1部分trim后为空）
     if not trimmed_part1:
-        # 番号在开头，按照规则重构文件名
         if not trimmed_part3:
-            # 第3部分trim后为空，只输出：标准番号 + 扩展名
             new_filename = f"{serial_id_str}{part4}"
         else:
-            # 第3部分trim后不为空，输出：标准番号 + 空格 + 第3部分 + 扩展名
-            new_filename = f"{serial_id_str} {trimmed_part3}{part4}"
+            # 关键固定部分："{serial_id} " + ext；第3部分为可截断内容
+            fixed_bytes = len(f"{serial_id_str} {part4}".encode())
+            safe_part3 = _truncate_to_bytes(
+                trimmed_part3,
+                MAX_FILENAME_BYTES - fixed_bytes,
+            )
+            new_filename = f"{serial_id_str} {safe_part3}{part4}"
     else:
         # 番号不在开头
         if not trimmed_part3:
-            # 第3部分trim后为空，占位符为 "-serialId"
-            placeholder = "-serialId"
+            # 关键固定部分："{serial_id} -serialId" + ext；第1部分为可截断内容
+            fixed_bytes = len(f"{serial_id_str} -serialId{part4}".encode())
+            safe_part1 = _truncate_to_bytes(
+                trimmed_part1,
+                MAX_FILENAME_BYTES - fixed_bytes,
+            )
+            new_filename = f"{serial_id_str} {safe_part1}-serialId{part4}"
         else:
-            # 第3部分trim后不为空，占位符为 "-serialId-" + 第3部分
-            placeholder = f"-serialId-{trimmed_part3}"
-
-        # 拼接：标准番号 + 空格 + 第1部分 + 占位符 + 扩展名
-        new_filename = f"{serial_id_str} {trimmed_part1}{placeholder}{part4}"
+            # 关键固定部分："{serial_id} -serialId-" + ext；优先截断 part3，part1 超限时丢弃 part3 并截断 part1
+            fixed_bytes = len(f"{serial_id_str} -serialId-{part4}".encode())
+            avail = MAX_FILENAME_BYTES - fixed_bytes
+            part1_bytes = len(trimmed_part1.encode())
+            if part1_bytes < avail:
+                safe_part1 = trimmed_part1
+                safe_part3 = _truncate_to_bytes(trimmed_part3, avail - part1_bytes)
+            else:
+                # 第1部分已超出预算，丢弃第3部分，仅截断第1部分
+                fixed_bytes2 = len(f"{serial_id_str} -serialId{part4}".encode())
+                safe_part1 = _truncate_to_bytes(
+                    trimmed_part1,
+                    MAX_FILENAME_BYTES - fixed_bytes2,
+                )
+                safe_part3 = ""
+            if safe_part3:
+                new_filename = (
+                    f"{serial_id_str} {safe_part1}-serialId-{safe_part3}{part4}"
+                )
+            else:
+                new_filename = f"{serial_id_str} {safe_part1}-serialId{part4}"
 
     return new_filename, serial_id
 
