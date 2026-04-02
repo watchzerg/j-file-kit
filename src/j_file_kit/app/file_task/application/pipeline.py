@@ -340,4 +340,4 @@ class FilePipeline:
             logger.bind(
                 run_id=str(self.run_id),
                 run_name=self.run_name,
-            ).info(f"清理空目录: {path}")
+            ).info(f"清理空目录: {sanitize_surrogate_str(str(path))}")
