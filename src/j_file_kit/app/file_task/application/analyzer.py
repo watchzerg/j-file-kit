@@ -24,6 +24,7 @@ from j_file_kit.app.file_task.domain.decisions import (
     SkipDecision,
 )
 from j_file_kit.app.file_task.domain.models import FileType
+from j_file_kit.shared.utils.file_utils import sanitize_surrogate_str
 
 
 def analyze_file(path: Path, config: AnalyzeConfig) -> FileDecision:
@@ -110,7 +111,7 @@ def _decide_misc_action(
 
     return MoveDecision(
         source_path=path,
-        target_path=config.misc_dir / path.name,
+        target_path=config.misc_dir / sanitize_surrogate_str(path.name),
         file_type=file_type,
         serial_id=None,
     )
@@ -190,7 +191,7 @@ def _decide_archive_action(
 
     return MoveDecision(
         source_path=path,
-        target_path=config.archive_dir / path.name,
+        target_path=config.archive_dir / sanitize_surrogate_str(path.name),
         file_type=file_type,
         serial_id=None,
     )
@@ -213,8 +214,9 @@ def _decide_media_action(
     Returns:
         文件处理决策
     """
-    # 1. 从文件名生成新文件名和番号
-    new_filename, serial_id = generate_jav_filename(path.name)
+    # 1. 从文件名生成新文件名和番号；先 sanitize 确保输出文件名为合法 UTF-8
+    safe_name = sanitize_surrogate_str(path.name)
+    new_filename, serial_id = generate_jav_filename(safe_name)
 
     if serial_id:
         # 有番号：移动到整理目录
@@ -248,7 +250,7 @@ def _decide_media_action(
 
         return MoveDecision(
             source_path=path,
-            target_path=config.unsorted_dir / path.name,
+            target_path=config.unsorted_dir / safe_name,
             file_type=file_type,
             serial_id=None,
         )

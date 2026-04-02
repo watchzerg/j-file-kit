@@ -13,6 +13,7 @@ from j_file_kit.app.file_task.domain.decisions import FileItemData
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
+from j_file_kit.shared.utils.file_utils import sanitize_surrogate_str
 
 
 class FileResultRepositoryImpl:
@@ -49,8 +50,9 @@ class FileResultRepositoryImpl:
         """
         created_at = datetime.now()
 
-        source_path = str(result.path)
-        file_stem = result.stem
+        # 源路径文件名可能含 surrogate escape（Linux 非 UTF-8 文件名），需转义后才能写入 SQLite
+        source_path = sanitize_surrogate_str(str(result.path))
+        file_stem = sanitize_surrogate_str(result.stem)
         file_type = result.file_type.value if result.file_type else None
         serial_id = str(result.serial_id) if result.serial_id else None
         decision_type = result.decision_type

@@ -192,6 +192,86 @@ class TestAnalyzeFileMisc:
         assert isinstance(decision, MoveDecision)
 
 
+class TestAnalyzeFileSurrogateName:
+    """含 surrogate escape 文件名的处理测试
+
+    验证目标路径中的文件名已被安全化（不含代理字符），
+    同时源路径保持原样（供实际 OS rename 调用使用）。
+    """
+
+    def test_surrogate_name_image_unsorted_target_is_safe(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        config = analyze_config_factory(unsorted_dir=tmp_path / "unsorted")
+        # 模拟 Linux surrogateescape 产生的含代理字符路径
+        surrogate_name = "+\udcfe\udca6+\udccb.jpg"
+        path = tmp_path / surrogate_name
+        decision = analyze_file(path, config)
+        assert isinstance(decision, MoveDecision)
+        # 目标文件名不含代理字符，可安全编码为 UTF-8
+        target_name = decision.target_path.name
+        target_name.encode("utf-8")  # 不抛出则通过
+        assert "\udcfe" not in target_name
+
+    def test_surrogate_name_archive_target_is_safe(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        config = analyze_config_factory(archive_dir=tmp_path / "archive")
+        surrogate_name = "data\udcfe.zip"
+        path = tmp_path / surrogate_name
+        decision = analyze_file(path, config)
+        assert isinstance(decision, MoveDecision)
+        target_name = decision.target_path.name
+        target_name.encode("utf-8")
+        assert "\udcfe" not in target_name
+
+    def test_surrogate_name_misc_target_is_safe(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        config = analyze_config_factory(misc_dir=tmp_path / "misc")
+        surrogate_name = "file\udcfe.xyz"
+        path = tmp_path / surrogate_name
+        decision = analyze_file(path, config)
+        assert isinstance(decision, MoveDecision)
+        target_name = decision.target_path.name
+        target_name.encode("utf-8")
+        assert "\udcfe" not in target_name
+
+    def test_surrogate_name_sorted_video_target_is_safe(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        config = analyze_config_factory(sorted_dir=tmp_path / "sorted")
+        # 有番号但文件名含代理字符，验证 sorted 分支目标路径同样安全
+        path = tmp_path / "ABC-123\udcfe.mp4"
+        decision = analyze_file(path, config)
+        assert isinstance(decision, MoveDecision)
+        assert decision.serial_id is not None
+        target_name = decision.target_path.name
+        target_name.encode("utf-8")  # 不抛出则通过
+        assert "\udcfe" not in target_name
+
+    def test_source_path_preserved_with_surrogates(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        config = analyze_config_factory(unsorted_dir=tmp_path / "unsorted")
+        surrogate_name = "file\udcfe.jpg"
+        path = tmp_path / surrogate_name
+        decision = analyze_file(path, config)
+        assert isinstance(decision, MoveDecision)
+        # 源路径保持原样（OS rename 需要原始字节）
+        assert decision.source_path == path
+
+
 class TestAnalyzeFileMiscDeleteRulesMaxSizeValidation:
     """_check_misc_delete_rules max_size 类型验证（通过 analyze_file 间接）"""
 

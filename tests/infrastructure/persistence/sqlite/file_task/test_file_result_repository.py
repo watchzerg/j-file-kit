@@ -60,6 +60,28 @@ class TestFileResultRepositorySaveAndGetStatistics:
         assert stats["success_items"] == 0
         assert stats["total_duration_ms"] == 0.0
 
+    def test_save_result_with_surrogate_path_does_not_raise(
+        self,
+        file_result_repository: FileResultRepositoryImpl,
+        tmp_path: Path,
+    ) -> None:
+        surrogate_path = tmp_path / "+\udcfe\udca6.jpg"
+        result = FileItemData(
+            path=surrogate_path,
+            stem=surrogate_path.stem,
+            file_type=FileType.IMAGE,
+            serial_id=None,
+            decision_type="move",
+            target_path=None,
+            success=False,
+            error_message="test error",
+            duration_ms=1.0,
+        )
+        row_id = file_result_repository.save_result(run_id=1, result=result)
+        assert row_id > 0
+        stats = file_result_repository.get_statistics(1)
+        assert stats["total_items"] == 1
+
     def test_multiple_results_aggregated(
         self,
         file_result_repository: FileResultRepositoryImpl,

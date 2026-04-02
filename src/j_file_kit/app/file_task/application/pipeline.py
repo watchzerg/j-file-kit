@@ -31,7 +31,10 @@ from j_file_kit.app.file_task.domain.decisions import (
 )
 from j_file_kit.app.file_task.domain.models import FileTaskRunStatistics, PathEntryType
 from j_file_kit.app.file_task.domain.ports import FileResultRepository
-from j_file_kit.shared.utils.file_utils import delete_directory_if_empty
+from j_file_kit.shared.utils.file_utils import (
+    delete_directory_if_empty,
+    sanitize_surrogate_str,
+)
 from j_file_kit.shared.utils.logging import (
     configure_task_logger,
     remove_task_logger,
@@ -200,11 +203,12 @@ class FilePipeline:
 
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
+            safe_path = sanitize_surrogate_str(str(path))
             logger.bind(
                 run_id=str(self.run_id),
                 run_name=self.run_name,
                 error=str(e),
-            ).error(f"处理文件失败: {path}")
+            ).error(f"处理文件失败: {safe_path}")
 
             error_data = FileItemData(
                 path=path,
@@ -295,7 +299,7 @@ class FilePipeline:
     ) -> None:
         """记录文件处理结果日志"""
         item_data: dict[str, str | float | None] = {
-            "file_path": str(path),
+            "file_path": sanitize_surrogate_str(str(path)),
             "decision_type": decision.decision_type,
             "status": result.status.value,
             "duration_ms": duration_ms,
@@ -317,7 +321,7 @@ class FilePipeline:
             run_name=self.run_name,
             level="ITEM_RESULT",
             **item_data,
-        ).info(f"处理文件: {path.name}")
+        ).info(f"处理文件: {sanitize_surrogate_str(path.name)}")
 
     def _cleanup_empty_directory(self, path: Path, dry_run: bool) -> None:
         """清理空目录
