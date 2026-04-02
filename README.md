@@ -66,6 +66,10 @@ just docker-up
 | Port（容器→宿主） | `8000` → `8000`，`1307` → `1307` |
 | 路径 1（容器→宿主） | `/data` → `/mnt/user/appdata/j-file-kit` |
 | 路径 2（容器→宿主） | `/media` → `/mnt/user/Porn-Japan/media` |
+| 环境变量 `PUID` | 你的 uid（执行 `id <username>` 查询） |
+| 环境变量 `PGID` | 你的 gid |
+
+> 在 unraid 里执行 `id [username]`来获取 PUID 与 PGID。
 
 确认后容器启动，访问 `http://<unraid-ip>:1307/docs`。
 
