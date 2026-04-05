@@ -76,13 +76,13 @@ class SerialId(BaseModel):
     设计意图：
     - 封装番号的验证逻辑，确保番号格式的一致性
     - 提供统一的番号表示方式，便于文件名生成和目录组织
-    - number 在构造时自动规范化：不足 3 位补前导零，>=3 位保持不变
+    - number 在构造时自动规范化：先补零至最少 3 位；若长度仍大于 3，则去掉前导 0 直至长度为 3
     """
 
     prefix: str = Field(..., description="字母前缀（2-6个大写字母）")
     number: str = Field(
         ...,
-        description="数字部分（2-5个数字，构造时自动补零至最少3位）",
+        description="数字部分（2-5个数字，构造时先 zfill(3)，再对长度>3 去前导 0 直至 3 位）",
     )
 
     @field_validator("prefix")
@@ -101,14 +101,17 @@ class SerialId(BaseModel):
     def validate_number(cls, v: str) -> str:
         """验证并规范化数字部分。
 
-        校验通过后自动补零：不足 3 位的前补 '0' 直到 3 位，>= 3 位保持不变。
-        例如：'12' → '012'，'123' → '123'，'1234' → '1234'。
+        先 zfill 至最少 3 位；若长度仍大于 3，则反复去掉最左侧的 0，直到长度为 3（保留 3 位时的前导 0，如 012）。
+        例如：'12'→'012'，'123'→'123'，'0123'→'123'，'1234'→'1234'。
         """
         if not v.isdigit():
             raise ValueError("数字部分必须只包含数字")
         if not (2 <= len(v) <= 5):
             raise ValueError("数字部分长度必须在2-5个字符之间")
-        return v.zfill(3)
+        s = v.zfill(3)
+        while len(s) > 3 and s.startswith("0"):
+            s = s[1:]
+        return s
 
     @classmethod
     def from_string(cls, value: str) -> SerialId:

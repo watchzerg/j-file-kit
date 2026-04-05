@@ -97,10 +97,21 @@ class TestSerialIdFieldValidator:
         sid = SerialId(prefix="ABC", number="123")
         assert sid.number == "123"
 
-    def test_number_four_digits_unchanged(self) -> None:
-        """4位数字保持不变"""
+    def test_number_four_digits_no_leading_zero_unchanged(self) -> None:
+        """4位且无多余前导零时保持不变"""
         sid = SerialId(prefix="ABC", number="1234")
         assert sid.number == "1234"
+
+    def test_number_four_digits_leading_zeros_stripped_to_three(self) -> None:
+        """4位且带前导零时去零至总长3位"""
+        sid = SerialId(prefix="ABC", number="0123")
+        assert sid.number == "123"
+        assert str(sid) == "ABC-123"
+
+    def test_number_five_digits_leading_zeros_stripped_to_three(self) -> None:
+        sid = SerialId(prefix="ABCDE", number="00001")
+        assert sid.number == "001"
+        assert str(sid) == "ABCDE-001"
 
 
 class TestSerialIdModelValidator:
