@@ -297,6 +297,7 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
                     ".mdx",
                     ".mht",
                     ".dat",
+                    ".xltd",
                 ],
                 "max_size": 1048576,
             },
