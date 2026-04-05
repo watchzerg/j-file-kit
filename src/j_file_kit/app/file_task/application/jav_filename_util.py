@@ -22,7 +22,7 @@
 - 非关键部分（可截断）：第1部分、第3部分
 - 截断顺序：优先截断第3部分；若仍超限则丢弃第3部分并截断第1部分
 
-番号规则（可通过 build_serial_pattern 配置精确的字母数+数字数组合）：
+番号规则（可通过 build_serial_pattern 配置前缀字母数 + 数字位数区间）：
 - 字母部分：英文字母（大小写都可以）
 - 分隔符：可选，支持 `-`、`_` 或无分隔符
 - 数字部分：纯数字
@@ -33,13 +33,14 @@
 - 匹配 2-5 个字母 + 2-5 个数字的所有组合，与旧版行为完全兼容
 
 可配置模式（build_serial_pattern）：
-- 接受精确的 (字母数, 数字数) 组合列表，例如 [(3,3),(4,3),(5,3)]
-- 仅匹配列表中指定的组合，排除其他长度
+- 接受 SerialIdRule 列表：每条为「前缀字母数 + 数字位数闭区间 [min,max]」
+- 多规则为 OR；区间内用正则 \\d{min,max} 实现
 """
 
 import re
 from pathlib import Path
 
+from j_file_kit.app.file_task.application.config import SerialIdRule
 from j_file_kit.app.file_task.domain.models import SerialId
 
 # 保持与旧版行为兼容的默认模式：2-5 个字母 + 2-5 个数字
@@ -54,26 +55,31 @@ FILENAME_SEPARATORS = " -_@#"
 MAX_FILENAME_BYTES = 255
 
 
-def build_serial_pattern(combinations: list[tuple[int, int]]) -> re.Pattern[str]:
-    """根据精确的字母数+数字数组合列表构建并编译番号正则。
+def build_serial_pattern(rules: list[SerialIdRule]) -> re.Pattern[str]:
+    """根据 SerialIdRule 列表构建并编译番号正则。
 
-    每个组合 (l, d) 生成一个独立的匹配分支：恰好 l 个字母 + 可选分隔符 + 恰好 d 个数字。
+    每条规则生成一个分支：恰好 prefix_letters 个字母 + 可选分隔符 +
+    数字部分 \\d{digits_min,digits_max}。
     多个分支通过 | 合并，整体加前后边界断言（番号前不能紧接字母，后不能紧接数字）。
 
     生成的正则每个分支含2个捕获组（字母、数字），命中时恰好一对相邻组非 None，
     _match_serial_id 通过扫描 match.groups() 偶数索引定位有效对。
 
     Args:
-        combinations: 合法的 (字母数, 数字数) 组合列表，不能为空，每个值须为正整数。
+        rules: 非空；元素须已通过 SerialIdRule 校验（与 SerialId 边界一致）。
 
     Returns:
         预编译的正则对象（re.IGNORECASE）
 
     Raises:
-        ValueError: combinations 为空，或包含非正整数值
+        ValueError: rules 为空
 
     Examples:
-        >>> p = build_serial_pattern([(3, 3), (4, 3)])
+        >>> from j_file_kit.app.file_task.application.config import SerialIdRule
+        >>> p = build_serial_pattern(
+        ...     [SerialIdRule(prefix_letters=3, digits_min=3, digits_max=3),
+        ...      SerialIdRule(prefix_letters=4, digits_min=3, digits_max=3)]
+        ... )
         >>> bool(p.search("ABC-123"))   # 3+3 命中
         True
         >>> bool(p.search("ABCD-123"))  # 4+3 命中
@@ -81,17 +87,12 @@ def build_serial_pattern(combinations: list[tuple[int, int]]) -> re.Pattern[str]
         >>> bool(p.search("AB-123"))    # 2+3 不命中
         False
     """
-    if not combinations:
-        raise ValueError("combinations 不能为空")
-    for n_letters, n_digits in combinations:
-        if n_letters <= 0 or n_digits <= 0:
-            raise ValueError(
-                f"组合中的字母数和数字数必须为正整数，得到 ({n_letters}, {n_digits})",
-            )
+    if not rules:
+        raise ValueError("rules 不能为空")
 
     branches = [
-        rf"([a-zA-Z]{{{n_letters}}})[-_]?(\d{{{n_digits}}})"
-        for n_letters, n_digits in combinations
+        rf"([a-zA-Z]{{{rule.prefix_letters}}})[-_]?(\d{{{rule.digits_min},{rule.digits_max}}})"
+        for rule in rules
     ]
     inner = "|".join(branches)
     return re.compile(
@@ -170,7 +171,7 @@ def generate_jav_filename(
     Args:
         filename: 原始文件名（包含扩展名）
         pattern: 预编译的番号正则，默认使用 DEFAULT_SERIAL_PATTERN（2-5字母+2-5数字）。
-                 生产环境通过 build_serial_pattern(combinations) 生成精确匹配的正则传入。
+                 生产环境通过 build_serial_pattern(serial_id_rules) 生成精确匹配的正则传入。
 
     Returns:
         元组：(新文件名, 提取到的番号)。如果没有找到番号，返回 (原文件名, None)

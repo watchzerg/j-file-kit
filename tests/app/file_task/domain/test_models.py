@@ -70,7 +70,7 @@ class TestSerialIdFieldValidator:
             SerialId(prefix="AB1", number="123")
 
     def test_prefix_six_letters_valid(self) -> None:
-        """6个字母的前缀合法（支持 serial_id_combinations 中的 (6,x) 组合）"""
+        """6个字母的前缀合法（支持 serial_id_rules 中 prefix_letters=6）"""
         sid = SerialId(prefix="ABCDEF", number="123")
         assert sid.prefix == "ABCDEF"
 
@@ -272,7 +272,9 @@ class TestTaskConfigGetConfig:
                 "image_extensions": [".jpg"],
                 "subtitle_extensions": [".srt"],
                 "archive_extensions": [".zip"],
-                "serial_id_combinations": [[3, 3]],
+                "serial_id_rules": [
+                    {"prefix_letters": 3, "digits_min": 3, "digits_max": 3},
+                ],
                 "misc_file_delete_rules": {},
             },
         )

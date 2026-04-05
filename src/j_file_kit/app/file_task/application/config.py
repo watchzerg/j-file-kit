@@ -5,9 +5,9 @@
 
 import re
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Any
 
-from pydantic import BaseModel, BeforeValidator, Field, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.file_task.domain.models import TaskConfig
@@ -41,6 +41,44 @@ class InboxDeleteRules(BaseModel):
         return self
 
 
+class SerialIdRule(BaseModel):
+    """单条番号长度规则（用于编译 serial_pattern）。
+
+    与 `SerialId` 领域约束对齐：前缀字母数 2–6，数字部分位数 2–5；
+    避免正则命中后无法构造 `SerialId`。
+
+    语义：`digits_min`/`digits_max` 为闭区间；相等时表示固定位数（等价于旧版精确 (l,d)）。
+    """
+
+    prefix_letters: int = Field(
+        ...,
+        ge=2,
+        le=6,
+        description="番号字母前缀长度（与 SerialId.prefix 长度范围一致）",
+    )
+    digits_min: int = Field(
+        ...,
+        ge=2,
+        le=5,
+        description="数字部分最少位数（含）",
+    )
+    digits_max: int = Field(
+        ...,
+        ge=2,
+        le=5,
+        description="数字部分最多位数（含）",
+    )
+
+    @model_validator(mode="after")
+    def digits_range_ordered(self) -> SerialIdRule:
+        if self.digits_min > self.digits_max:
+            raise ValueError(
+                "digits_min 不能大于 digits_max，"
+                f"得到 digits_min={self.digits_min}, digits_max={self.digits_max}",
+            )
+        return self
+
+
 class JavVideoOrganizeConfig(BaseModel):
     """JAV视频文件整理任务配置
 
@@ -70,27 +108,15 @@ class JavVideoOrganizeConfig(BaseModel):
         default_factory=InboxDeleteRules,
         description="收件箱预删除（扩展名分类前）：完全匹配 stem、关键字、体积上限，OR 语义",
     )
-    serial_id_combinations: Annotated[
-        list[tuple[int, int]],
-        BeforeValidator(
-            lambda v: [tuple(item) for item in v] if isinstance(v, list) else v,
-        ),
-    ] = Field(
+    serial_id_rules: list[SerialIdRule] = Field(
         ...,
-        description="番号字母数+数字数的合法组合列表，每个元素为 (字母数, 数字数)；必填",
+        description="番号长度规则列表（OR）；每条为前缀字母数 + 数字位数闭区间，见 SerialIdRule",
     )
 
     @model_validator(mode="after")
-    def validate_serial_id_combinations(self) -> JavVideoOrganizeConfig:
-        """验证 serial_id_combinations 非空且每个元素均为正整数对"""
-        if not self.serial_id_combinations:
-            raise ValueError("serial_id_combinations 不能为空")
-        for n_letters, n_digits in self.serial_id_combinations:
-            if n_letters <= 0 or n_digits <= 0:
-                raise ValueError(
-                    "serial_id_combinations 中每个组合的字母数和数字数必须为正整数，"
-                    f"得到 ({n_letters}, {n_digits})",
-                )
+    def validate_serial_id_rules_non_empty(self) -> JavVideoOrganizeConfig:
+        if not self.serial_id_rules:
+            raise ValueError("serial_id_rules 不能为空")
         return self
 
     @model_validator(mode="after")
@@ -146,7 +172,7 @@ class AnalyzeConfig(BaseModel):
 
     包含分析文件所需的所有配置信息。
     serial_pattern 由 JavVideoOrganizer._create_analyze_config 在任务初始化时
-    调用 build_serial_pattern(serial_id_combinations) 编译一次后传入，整个 Pipeline 复用。
+    调用 build_serial_pattern(serial_id_rules) 编译一次后传入，整个 Pipeline 复用。
     """
 
     # 文件类型扩展名
@@ -245,7 +271,12 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
                 ".bz2",
                 ".xz",
             ],
-            "serial_id_combinations": [[2, 3], [3, 2], [3, 3], [4, 2], [4, 3], [5, 3]],
+            "serial_id_rules": [
+                {"prefix_letters": 2, "digits_min": 3, "digits_max": 3},
+                {"prefix_letters": 3, "digits_min": 2, "digits_max": 3},
+                {"prefix_letters": 4, "digits_min": 2, "digits_max": 3},
+                {"prefix_letters": 5, "digits_min": 3, "digits_max": 3},
+            ],
             "inbox_delete_rules": {
                 "exact_stems": [],
                 "keywords": ["扫码下载1024安卓APP", "1024手机网址"],

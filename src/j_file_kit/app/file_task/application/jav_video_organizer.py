@@ -81,7 +81,7 @@ class JavVideoOrganizer:
             video_small_delete_bytes=self.file_config.video_small_delete_bytes,
             inbox_delete_rules=self.file_config.inbox_delete_rules,
             serial_pattern=build_serial_pattern(
-                self.file_config.serial_id_combinations,
+                self.file_config.serial_id_rules,
             ),
         )
 

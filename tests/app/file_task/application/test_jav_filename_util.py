@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from j_file_kit.app.file_task.application.config import SerialIdRule
 from j_file_kit.app.file_task.application.jav_filename_util import (
     MAX_FILENAME_BYTES,
     _truncate_to_bytes,
@@ -227,83 +228,100 @@ class TestGenerateJavFilenameByteLimit:
         assert len(new_name.encode()) <= MAX_FILENAME_BYTES
 
 
+def _rule(
+    prefix: int,
+    dmin: int,
+    dmax: int | None = None,
+) -> SerialIdRule:
+    """测试用 SerialIdRule 构造（dmax 默认等于 dmin）"""
+    if dmax is None:
+        dmax = dmin
+    return SerialIdRule(prefix_letters=prefix, digits_min=dmin, digits_max=dmax)
+
+
 class TestBuildSerialPattern:
     """build_serial_pattern 可配置番号正则构建"""
 
-    def test_single_combination_matches_exact(self) -> None:
-        """给定单一组合 (3,3)，恰好 3字母+3数字命中"""
-        p = build_serial_pattern([(3, 3)])
+    def test_single_rule_matches_exact(self) -> None:
+        """给定单一规则 3 字母 + 恰好 3 数字，命中"""
+        p = build_serial_pattern([_rule(3, 3)])
         assert p.search("ABC-123") is not None
 
-    def test_single_combination_rejects_shorter_letters(self) -> None:
-        """2字母+3数字在只含 (3,3) 的组合中不命中"""
-        p = build_serial_pattern([(3, 3)])
+    def test_single_rule_rejects_shorter_letters(self) -> None:
+        """2字母+3数字在只含 3 字母规则时不命中"""
+        p = build_serial_pattern([_rule(3, 3)])
         assert p.search("AB-123") is None
 
-    def test_single_combination_rejects_longer_letters(self) -> None:
-        """4字母+3数字在只含 (3,3) 的组合中不命中"""
-        p = build_serial_pattern([(3, 3)])
+    def test_single_rule_rejects_longer_letters(self) -> None:
+        """4字母+3数字在只含 3 字母规则时不命中"""
+        p = build_serial_pattern([_rule(3, 3)])
         assert p.search("ABCD-123") is None
 
-    def test_single_combination_rejects_wrong_digit_count(self) -> None:
-        """3字母+4数字在只含 (3,3) 的组合中不命中"""
-        p = build_serial_pattern([(3, 3)])
+    def test_single_rule_rejects_wrong_digit_count(self) -> None:
+        """3字母+4数字在只含 3 数字规则时不命中"""
+        p = build_serial_pattern([_rule(3, 3)])
         assert p.search("ABC-1234") is None
 
-    def test_multiple_combinations_match_all(self) -> None:
-        """[(3,3),(4,3)] 中两种组合均命中"""
-        p = build_serial_pattern([(3, 3), (4, 3)])
+    def test_digit_range_matches_endpoints(self) -> None:
+        """3 字母 + 数字位数 2–4：2、3、4 位数字均命中"""
+        p = build_serial_pattern([_rule(3, 2, 4)])
+        assert p.search("ABC-12") is not None
+        assert p.search("ABC-123") is not None
+        assert p.search("ABC-1234") is not None
+
+    def test_digit_range_rejects_outside(self) -> None:
+        """3 字母 + 数字 2–4：1 位或 5 位数字不命中"""
+        p = build_serial_pattern([_rule(3, 2, 4)])
+        assert p.search("ABC-1") is None
+        assert p.search("ABC-12345") is None
+
+    def test_multiple_rules_match_all(self) -> None:
+        """两条规则时两种组合均命中"""
+        p = build_serial_pattern([_rule(3, 3), _rule(4, 3)])
         assert p.search("ABC-123") is not None
         assert p.search("ABCD-123") is not None
 
-    def test_multiple_combinations_rejects_unlisted(self) -> None:
-        """[(3,3),(4,3)] 中未列出的 5字母+3数字不命中"""
-        p = build_serial_pattern([(3, 3), (4, 3)])
+    def test_multiple_rules_rejects_unlisted(self) -> None:
+        """未列出的 5字母+3数字不命中"""
+        p = build_serial_pattern([_rule(3, 3), _rule(4, 3)])
         assert p.search("ABCDE-123") is None
 
     def test_case_insensitive(self) -> None:
         """大小写不敏感：小写字母也能命中"""
-        p = build_serial_pattern([(3, 3)])
+        p = build_serial_pattern([_rule(3, 3)])
         assert p.search("abc-123") is not None
         assert p.search("Abc-123") is not None
 
     def test_no_separator(self) -> None:
         """无分隔符也能命中"""
-        p = build_serial_pattern([(3, 3)])
+        p = build_serial_pattern([_rule(3, 3)])
         assert p.search("ABC123") is not None
 
     def test_underscore_separator(self) -> None:
         """下划线分隔符能命中"""
-        p = build_serial_pattern([(3, 3)])
+        p = build_serial_pattern([_rule(3, 3)])
         assert p.search("ABC_123") is not None
 
     def test_boundary_letter_before_not_match(self) -> None:
         """字母紧前时不命中（前置负向后视边界）"""
-        p = build_serial_pattern([(3, 3)])
+        p = build_serial_pattern([_rule(3, 3)])
         # "XABC-123" 中 "ABC" 前面紧接字母 "X"，不应命中
         assert p.search("XABC-123") is None
 
     def test_boundary_digit_after_not_match(self) -> None:
         """数字紧后时不命中（后置负向前视边界）"""
-        p = build_serial_pattern([(3, 3)])
+        p = build_serial_pattern([_rule(3, 3)])
         # "ABC-1234" 的 "123" 后面紧接数字 "4"，不应命中
         assert p.search("ABC-1234") is None
 
-    def test_empty_combinations_raises(self) -> None:
-        """空组合列表抛 ValueError"""
+    def test_empty_rules_raises(self) -> None:
+        """空规则列表抛 ValueError"""
         with pytest.raises(ValueError, match="不能为空"):
             build_serial_pattern([])
 
-    def test_non_positive_value_raises(self) -> None:
-        """含零或负数的组合抛 ValueError"""
-        with pytest.raises(ValueError, match="正整数"):
-            build_serial_pattern([(0, 3)])
-        with pytest.raises(ValueError, match="正整数"):
-            build_serial_pattern([(3, -1)])
-
     def test_generate_jav_filename_with_custom_pattern(self) -> None:
         """generate_jav_filename 使用自定义 pattern 只识别指定组合"""
-        p = build_serial_pattern([(4, 3)])
+        p = build_serial_pattern([_rule(4, 3)])
         # 4字母+3数字的文件名能识别
         new_name, sid = generate_jav_filename("ABCD-001_video.mp4", pattern=p)
         assert sid is not None
