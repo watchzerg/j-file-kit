@@ -276,7 +276,7 @@ def _decide_media_action(
     safe_name = sanitize_surrogate_str(path.name)
     new_filename, serial_id = generate_jav_filename(
         safe_name,
-        pattern=config.serial_pattern,
+        spec=config.serial_pattern,
     )
 
     if serial_id:

@@ -4,6 +4,7 @@
 """
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -47,7 +48,8 @@ class SerialIdRule(BaseModel):
     与 `SerialId` 领域约束对齐：前缀字母数 2–6，数字部分位数 2–5；
     避免正则命中后无法构造 `SerialId`。
 
-    语义：`digits_min`/`digits_max` 为闭区间；相等时表示固定位数（等价于旧版精确 (l,d)）。
+    语义：`digits_min`/`digits_max` 为闭区间，表示**十进制数值的有效位数**（与补零展示无关；
+    全 ``0`` 数字串按占位长度计）。与 `build_serial_pattern` 截取连续数字后的校验一致。
     """
 
     prefix_letters: int = Field(
@@ -60,13 +62,13 @@ class SerialIdRule(BaseModel):
         ...,
         ge=2,
         le=5,
-        description="数字部分最少位数（含）",
+        description="有效数字部分最少位数（含）；十进制数值位数，全 0 串为占位长度",
     )
     digits_max: int = Field(
         ...,
         ge=2,
         le=5,
-        description="数字部分最多位数（含）",
+        description="有效数字部分最多位数（含）；十进制数值位数，全 0 串为占位长度",
     )
 
     @model_validator(mode="after")
@@ -77,6 +79,20 @@ class SerialIdRule(BaseModel):
                 f"得到 digits_min={self.digits_min}, digits_max={self.digits_max}",
             )
         return self
+
+
+@dataclass(frozen=True, slots=True)
+class SerialPatternSpec:
+    """编译后的番号规则包：前缀正则 + 配置规则列表。
+
+    `pattern` 只匹配到「字母前缀 + 可选分隔符」且下一字符为数字的位置，不包含数字段；
+    连续数字串在 `jav_filename_util` 中截取，总长不超过与 `SerialId` 对齐的上限，
+    再按十进制有效位数（见 `SerialIdRule`）与 `rules` 做语义校验。`rules` 顺序与
+    `serial_id_rules` 一致；同一 `prefix_letters` 可有多条规则，命中前缀后**任一**接受即通过。
+    """
+
+    pattern: re.Pattern[str]
+    rules: tuple[SerialIdRule, ...]
 
 
 class JavVideoOrganizeConfig(BaseModel):
@@ -207,8 +223,11 @@ class AnalyzeConfig(BaseModel):
         description="收件箱预删除（扩展名分类前）：完全匹配 stem、关键字、体积上限，OR 语义",
     )
 
-    # 预编译的番号正则，在任务初始化时编译一次，整个 Pipeline 复用
-    serial_pattern: re.Pattern[str] = Field(..., description="预编译的番号正则")
+    # 番号规则包（前缀正则 + 规则列表），在任务初始化时编译一次，整个 Pipeline 复用
+    serial_pattern: SerialPatternSpec = Field(
+        ...,
+        description="build_serial_pattern(serial_id_rules) 的编译结果",
+    )
 
 
 def create_default_jav_video_organizer_task_config() -> TaskConfig:

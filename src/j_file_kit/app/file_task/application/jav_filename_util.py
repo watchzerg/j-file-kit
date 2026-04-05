@@ -22,32 +22,23 @@
 - 非关键部分（可截断）：第1部分、第3部分
 - 截断顺序：优先截断第3部分；若仍超限则丢弃第3部分并截断第1部分
 
-番号规则（可通过 build_serial_pattern 配置前缀字母数 + 数字位数区间）：
-- 字母部分：英文字母（大小写都可以）
-- 分隔符：可选，支持 `-`、`_` 或无分隔符
-- 数字部分：纯数字
-- 边界条件：番号前面不能紧挨着字母，番号后面不能紧挨着数字
-- 输出格式：统一标准化为 `字母-数字` 格式（大写字母）
-
-默认模式（DEFAULT_SERIAL_PATTERN）：
-- 匹配 2-5 个字母 + 2-5 个数字的所有组合，与旧版行为完全兼容
-
-可配置模式（build_serial_pattern）：
-- 接受 SerialIdRule 列表：每条为「前缀字母数 + 数字位数闭区间 [min,max]」
-- 多规则为 OR；区间内用正则 \\d{min,max} 实现
+番号规则（由 `build_serial_pattern` + `SerialPatternSpec` 配置）：
+- 字母部分：英文字母（大小写均可），长度按规则固定为 `prefix_letters`
+- 分隔符：可选 `-`、`_` 或无分隔符
+- 数字部分：连续数字串总长不超过 SERIAL_DIGIT_CHARS_MAX；有效位数与 `SerialIdRule` 一致
+  （十进制数值位数；全 ``0`` 串按占位长度计），须在 `[digits_min, digits_max]` 内
+- 边界：番号前不能紧挨字母；连续数字段一次取满（避免 `ABC-1234` 在仅允许 3 位有效数字时误吞）
+- 输出：统一标准化为 `字母-数字`（大写字母），数字串交由 `SerialId` 规范化
 """
 
 import re
 from pathlib import Path
 
-from j_file_kit.app.file_task.application.config import SerialIdRule
+from j_file_kit.app.file_task.application.config import SerialIdRule, SerialPatternSpec
 from j_file_kit.app.file_task.domain.models import SerialId
 
-# 保持与旧版行为兼容的默认模式：2-5 个字母 + 2-5 个数字
-DEFAULT_SERIAL_PATTERN: re.Pattern[str] = re.compile(
-    r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])",
-    re.IGNORECASE,
-)
+# 与 SerialId.number 上限一致：文件名中番号数字段最多字符数（可含前导 0）
+SERIAL_DIGIT_CHARS_MAX = 5
 
 FILENAME_SEPARATORS = " -_@#"
 
@@ -55,50 +46,129 @@ FILENAME_SEPARATORS = " -_@#"
 MAX_FILENAME_BYTES = 255
 
 
-def build_serial_pattern(rules: list[SerialIdRule]) -> re.Pattern[str]:
-    """根据 SerialIdRule 列表构建并编译番号正则。
+def build_serial_pattern(rules: list[SerialIdRule]) -> SerialPatternSpec:
+    """根据 SerialIdRule 列表构建番号规则包。
 
-    每条规则生成一个分支：恰好 prefix_letters 个字母 + 可选分隔符 +
-    数字部分 \\d{digits_min,digits_max}。
-    多个分支通过 | 合并，整体加前后边界断言（番号前不能紧接字母，后不能紧接数字）。
+    正则仅匹配「负向后视 + 固定长度字母前缀 + 可选分隔符 + 正向前视数字」；
+    数字段不在正则中定量长，而在匹配后由 `_match_serial_id` 截取连续数字并按
+    有效位数校验，以支持前导 0（总长仍不超过 SERIAL_DIGIT_CHARS_MAX）。
 
-    生成的正则每个分支含2个捕获组（字母、数字），命中时恰好一对相邻组非 None，
-    _match_serial_id 通过扫描 match.groups() 偶数索引定位有效对。
+    同一 `prefix_letters` 在配置中可出现多次；正则分支按**首次出现**去重，避免
+    OR 中重复分支永远只命中左侧；语义校验仍对 `rules` 全量按前缀过滤后取任一接受。
 
     Args:
-        rules: 非空；元素须已通过 SerialIdRule 校验（与 SerialId 边界一致）。
+        rules: 非空；元素须已通过 SerialIdRule 校验。
 
     Returns:
-        预编译的正则对象（re.IGNORECASE）
+        SerialPatternSpec（pattern + rules 元组）
 
     Raises:
         ValueError: rules 为空
-
-    Examples:
-        >>> from j_file_kit.app.file_task.application.config import SerialIdRule
-        >>> p = build_serial_pattern(
-        ...     [SerialIdRule(prefix_letters=3, digits_min=3, digits_max=3),
-        ...      SerialIdRule(prefix_letters=4, digits_min=3, digits_max=3)]
-        ... )
-        >>> bool(p.search("ABC-123"))   # 3+3 命中
-        True
-        >>> bool(p.search("ABCD-123"))  # 4+3 命中
-        True
-        >>> bool(p.search("AB-123"))    # 2+3 不命中
-        False
     """
     if not rules:
         raise ValueError("rules 不能为空")
 
-    branches = [
-        rf"([a-zA-Z]{{{rule.prefix_letters}}})[-_]?(\d{{{rule.digits_min},{rule.digits_max}}})"
-        for rule in rules
-    ]
+    seen_prefix: set[int] = set()
+    branches: list[str] = []
+    for rule in rules:
+        if rule.prefix_letters in seen_prefix:
+            continue
+        seen_prefix.add(rule.prefix_letters)
+        branches.append(
+            rf"(?<![a-zA-Z])([a-zA-Z]{{{rule.prefix_letters}}})[-_]?(?=\d)",
+        )
     inner = "|".join(branches)
-    return re.compile(
-        rf"(?<![a-zA-Z])(?:{inner})(?![0-9])",
-        re.IGNORECASE,
-    )
+    pattern = re.compile(rf"(?:{inner})", re.IGNORECASE)
+    return SerialPatternSpec(pattern=pattern, rules=tuple(rules))
+
+
+def _effective_digit_len(raw_digits: str) -> int | None:
+    """用于规则判断的「有效位数」（十进制数值的位数，与补零展示无关）。
+
+    - 非全 ``0``：``len(str(int(raw)))``（如 ``00399`` -> 399 -> 3）。
+    - 全 ``0``：按占位长度计（如 ``000`` -> 3），避免 ``int`` 退化为单 0。
+    """
+    if not raw_digits or not raw_digits.isdigit():
+        return None
+    if set(raw_digits) == {"0"}:
+        return len(raw_digits)
+    return len(str(int(raw_digits, 10)))
+
+
+def _rules_accept_raw_digits(
+    rules: tuple[SerialIdRule, ...],
+    prefix_len: int,
+    raw_digits: str,
+) -> bool:
+    """是否存在任一规则接受该前缀长度与原始数字串（含前导 0）。"""
+    eff = _effective_digit_len(raw_digits)
+    if eff is None:
+        return False
+    applicable = [r for r in rules if r.prefix_letters == prefix_len]
+    return any(r.digits_min <= eff <= r.digits_max for r in applicable)
+
+
+def _letters_from_match_groups(match: re.Match[str]) -> str | None:
+    """OR 分支中恰好一个字母捕获组非空。"""
+    for g in match.groups():
+        if g is not None:
+            return g.upper()
+    return None
+
+
+def _match_serial_id(
+    filename: str,
+    spec: SerialPatternSpec,
+) -> tuple[SerialId | None, int | None, int | None]:
+    """匹配番号：返回 SerialId 与 [start, end) 切片（半开区间）。
+
+    在 `spec.pattern` 上滑动搜索；对每次前缀命中截取连续数字串，校验有效位与尾部边界；
+    失败则自 `match.start() + 1` 继续，避免 `ABC-1234` 在仅允许 3 位有效数字时误吞 `1234`。
+
+    Args:
+        filename: 文件名
+        spec: 编译后的规则包
+
+    Returns:
+        (SerialId, start, end)；未命中为 (None, None, None)
+    """
+    pos = 0
+    while pos <= len(filename):
+        m = spec.pattern.search(filename, pos)
+        if m is None:
+            return None, None, None
+
+        letters = _letters_from_match_groups(m)
+        if letters is None:
+            pos = m.start() + 1
+            continue
+
+        digit_start = m.end()
+        rest = filename[digit_start:]
+        dm = re.match(r"\d+", rest)
+        if dm is None:
+            pos = m.start() + 1
+            continue
+
+        run = dm.group(0)
+        if len(run) > SERIAL_DIGIT_CHARS_MAX:
+            pos = m.start() + 1
+            continue
+
+        raw = run
+        if not _rules_accept_raw_digits(spec.rules, len(letters), raw):
+            pos = m.start() + 1
+            continue
+
+        end_exclusive = digit_start + len(raw)
+        if end_exclusive < len(filename) and filename[end_exclusive].isdigit():
+            pos = m.start() + 1
+            continue
+
+        serial_id = SerialId(prefix=letters, number=raw)
+        return serial_id, m.start(), end_exclusive
+
+    return None, None, None
 
 
 def _truncate_to_bytes(text: str, max_bytes: int) -> str:
@@ -107,7 +177,7 @@ def _truncate_to_bytes(text: str, max_bytes: int) -> str:
     在字节边界处截断时会自动跳过不完整的多字节字符，保证结果是合法 UTF-8。
 
     Args:
-        text: 原始字符串
+        text: 原始文本
         max_bytes: 最大字节数（含）
 
     Returns:
@@ -118,50 +188,14 @@ def _truncate_to_bytes(text: str, max_bytes: int) -> str:
     encoded = text.encode()
     if len(encoded) <= max_bytes:
         return text
-    # errors="ignore" 会自动丢弃截断点处不完整的多字节尾部
     return encoded[:max_bytes].decode(errors="ignore")
-
-
-def _match_serial_id(
-    filename: str,
-    pattern: re.Pattern[str] = DEFAULT_SERIAL_PATTERN,
-) -> tuple[SerialId | None, re.Match[str] | None]:
-    """匹配番号，同时返回 SerialId 和 Match 对象以避免重复正则匹配。
-
-    支持两种正则结构：
-    - DEFAULT_SERIAL_PATTERN：2个捕获组（字母、数字）
-    - build_serial_pattern 生成的多分支正则：每个分支2个捕获组，命中时恰好一对非 None
-
-    通过扫描 match.groups() 偶数索引（0-based）定位第一个非 None 的字母组，
-    其相邻奇数索引即为对应的数字组，兼容上述两种结构。
-
-    Args:
-        filename: 文件名
-        pattern: 预编译的番号正则
-
-    Returns:
-        元组：(SerialId 对象, Match 对象)。如果没有匹配到，返回 (None, None)
-    """
-    match = pattern.search(filename)
-    if not match:
-        return None, None
-
-    groups = match.groups()
-    for i in range(0, len(groups), 2):
-        if groups[i] is not None:
-            letters = groups[i].upper()
-            digits = groups[i + 1]
-            serial_id = SerialId(prefix=letters, number=digits)
-            return serial_id, match
-
-    return None, None
 
 
 def generate_jav_filename(
     filename: str,
-    pattern: re.Pattern[str] = DEFAULT_SERIAL_PATTERN,
+    spec: SerialPatternSpec,
 ) -> tuple[str, SerialId | None]:
-    """根据番号生成新文件名
+    """根据番号生成新文件名。
 
     从文件名中提取番号并按业务规则重构文件名。
     若生成的文件名超过 MAX_FILENAME_BYTES 字节，会截断非关键内容（第1、3部分），
@@ -170,58 +204,31 @@ def generate_jav_filename(
 
     Args:
         filename: 原始文件名（包含扩展名）
-        pattern: 预编译的番号正则，默认使用 DEFAULT_SERIAL_PATTERN（2-5字母+2-5数字）。
-                 生产环境通过 build_serial_pattern(serial_id_rules) 生成精确匹配的正则传入。
+        spec: `build_serial_pattern(serial_id_rules)` 的编译结果（必选）
 
     Returns:
         元组：(新文件名, 提取到的番号)。如果没有找到番号，返回 (原文件名, None)
-
-    Examples:
-        >>> new_filename, serial_id = generate_jav_filename("video_ABC-001_hd.mp4")
-        >>> new_filename
-        "ABC-001 video-serialId-hd.mp4"
-        >>> serial_id
-        SerialId(prefix='ABC', number='001')
-
-        >>> new_filename, serial_id = generate_jav_filename("ABC-001_video.mp4")
-        >>> new_filename
-        "ABC-001 video.mp4"
-        >>> serial_id
-        SerialId(prefix='ABC', number='001')
-
-        >>> new_filename, serial_id = generate_jav_filename("no_serial.mp4")
-        >>> new_filename
-        "no_serial.mp4"
-        >>> serial_id
-        None
     """
-    # 使用 Path 仅用于提取扩展名
     path = Path(filename)
     suffix = path.suffix
 
-    # 匹配番号并获取位置信息（一次正则匹配同时获取 SerialId 和位置）
-    serial_id, match = _match_serial_id(filename, pattern)
-    if not serial_id or not match:
+    serial_id, start, end = _match_serial_id(filename, spec)
+    if serial_id is None or start is None or end is None:
         return filename, None
 
-    # 分解文件名为4部分
-    start, end = match.span()
-    part1 = filename[:start]  # 番号之前的内容
-    # 番号之后的内容（不含扩展名）：使用 removesuffix 安全移除扩展名
+    part1 = filename[:start]
     part3_with_suffix = filename[end:]
     part3 = part3_with_suffix.removesuffix(suffix) if suffix else part3_with_suffix
-    part4 = suffix  # 扩展名
+    part4 = suffix
 
     trimmed_part1 = part1.strip(FILENAME_SEPARATORS)
     trimmed_part3 = part3.strip(FILENAME_SEPARATORS)
     serial_id_str = str(serial_id)
 
-    # 判断番号是否在开头（第1部分trim后为空）
     if not trimmed_part1:
         if not trimmed_part3:
             new_filename = f"{serial_id_str}{part4}"
         else:
-            # 关键固定部分："{serial_id} " + ext；第3部分为可截断内容
             fixed_bytes = len(f"{serial_id_str} {part4}".encode())
             safe_part3 = _truncate_to_bytes(
                 trimmed_part3,
@@ -229,9 +236,7 @@ def generate_jav_filename(
             )
             new_filename = f"{serial_id_str} {safe_part3}{part4}"
     else:
-        # 番号不在开头
         if not trimmed_part3:
-            # 关键固定部分："{serial_id} -serialId" + ext；第1部分为可截断内容
             fixed_bytes = len(f"{serial_id_str} -serialId{part4}".encode())
             safe_part1 = _truncate_to_bytes(
                 trimmed_part1,
@@ -239,7 +244,6 @@ def generate_jav_filename(
             )
             new_filename = f"{serial_id_str} {safe_part1}-serialId{part4}"
         else:
-            # 关键固定部分："{serial_id} -serialId-" + ext；优先截断 part3，part1 超限时丢弃 part3 并截断 part1
             fixed_bytes = len(f"{serial_id_str} -serialId-{part4}".encode())
             avail = MAX_FILENAME_BYTES - fixed_bytes
             part1_bytes = len(trimmed_part1.encode())
@@ -247,7 +251,6 @@ def generate_jav_filename(
                 safe_part1 = trimmed_part1
                 safe_part3 = _truncate_to_bytes(trimmed_part3, avail - part1_bytes)
             else:
-                # 第1部分已超出预算，丢弃第3部分，仅截断第1部分
                 fixed_bytes2 = len(f"{serial_id_str} -serialId{part4}".encode())
                 safe_part1 = _truncate_to_bytes(
                     trimmed_part1,

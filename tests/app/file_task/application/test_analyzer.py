@@ -79,7 +79,7 @@ class TestAnalyzeFileInboxDelete:
         tmp_path: Path,
     ) -> None:
         config = analyze_config_factory(sorted_dir=tmp_path / "sorted")
-        path = tmp_path / "ABC-001.mp4"
+        path = tmp_path / "ABC-100.mp4"
         path.touch()
         decision = analyze_file(path, config)
         assert isinstance(decision, MoveDecision)
@@ -145,7 +145,7 @@ class TestAnalyzeFileVideoSmallDelete:
             sorted_dir=tmp_path / "sorted",
             video_small_delete_bytes=threshold,
         )
-        path = tmp_path / "ABC-001.mp4"
+        path = tmp_path / "ABC-100.mp4"
         path.write_bytes(b"x" * threshold)
         decision = analyze_file(path, config)
         assert isinstance(decision, MoveDecision)
@@ -284,7 +284,7 @@ class TestAnalyzeFileVideoImage:
             sorted_dir=tmp_path / "sorted",
             unsorted_dir=tmp_path / "unsorted",
         )
-        path = tmp_path / "ABC-001.jpg"
+        path = tmp_path / "ABC-100.jpg"
         path.touch()
         decision = analyze_file(path, config)
         assert isinstance(decision, MoveDecision)

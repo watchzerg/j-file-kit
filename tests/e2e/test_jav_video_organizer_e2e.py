@@ -104,13 +104,13 @@ class TestJavVideoOrganizerE2E:
         clean_media: Path,
     ) -> None:
         """有番号视频应被移动到 sorted/<首字母>/<前2字母>/<前缀>/ 目录下。"""
-        _write_file(clean_media / "inbox" / "ABC-001.mp4")
+        _write_file(clean_media / "inbox" / "ABC-100.mp4")
 
         status = _run_task(docker_service)
 
         assert status == "completed"
-        assert (clean_media / "sorted" / "A" / "AB" / "ABC" / "ABC-001.mp4").exists()
-        assert not (clean_media / "inbox" / "ABC-001.mp4").exists()
+        assert (clean_media / "sorted" / "A" / "AB" / "ABC" / "ABC-100.mp4").exists()
+        assert not (clean_media / "inbox" / "ABC-100.mp4").exists()
 
     def test_video_without_serial_id_goes_to_unsorted(
         self,
@@ -197,8 +197,8 @@ class TestJavVideoOrganizerE2E:
         scan_directory_items 自底向上遍历，子目录文件先处理（正常移动），
         根目录同名文件后处理（触发冲突消解，文件名含 -jfk-）。
         """
-        _write_file(clean_media / "inbox" / "ABC-002.mp4")
-        _write_file(clean_media / "inbox" / "conflict_subdir" / "ABC-002.mp4")
+        _write_file(clean_media / "inbox" / "ABC-234.mp4")
+        _write_file(clean_media / "inbox" / "conflict_subdir" / "ABC-234.mp4")
 
         status = _run_task(docker_service)
 
@@ -223,7 +223,7 @@ class TestJavVideoOrganizerE2E:
         验证 HTTP 层正确将 dry_run 标志透传到 Pipeline，
         而非仅靠单元/集成层保证。
         """
-        source = clean_media / "inbox" / "ABC-003.mp4"
+        source = clean_media / "inbox" / "ABC-350.mp4"
         _write_file(source)
 
         run_id = _trigger_task(docker_service, dry_run=True)
@@ -232,7 +232,7 @@ class TestJavVideoOrganizerE2E:
         assert status == "completed"
         assert source.exists()
         assert not (
-            clean_media / "sorted" / "A" / "AB" / "ABC" / "ABC-003.mp4"
+            clean_media / "sorted" / "A" / "AB" / "ABC" / "ABC-350.mp4"
         ).exists()
 
     def test_empty_subdirectory_cleaned_after_processing(
@@ -242,10 +242,10 @@ class TestJavVideoOrganizerE2E:
     ) -> None:
         """文件被处理后变空的子目录应被自动删除。"""
         subdir = clean_media / "inbox" / "to_be_cleaned"
-        _write_file(subdir / "STAR-001.mp4")
+        _write_file(subdir / "STAR-100.mp4")
 
         status = _run_task(docker_service)
 
         assert status == "completed"
-        assert (clean_media / "sorted" / "S" / "ST" / "STAR" / "STAR-001.mp4").exists()
+        assert (clean_media / "sorted" / "S" / "ST" / "STAR" / "STAR-100.mp4").exists()
         assert not subdir.exists()
