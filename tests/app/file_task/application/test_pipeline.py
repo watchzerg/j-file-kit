@@ -8,14 +8,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from j_file_kit.app.file_task.application.config import (
-    AnalyzeConfig,
-    SerialIdRule,
-)
+from j_file_kit.app.file_task.application.config import AnalyzeConfig
 from j_file_kit.app.file_task.application.executor import (
     ExecutionResult,
 )
-from j_file_kit.app.file_task.application.jav_filename_util import build_serial_pattern
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,
@@ -35,9 +31,6 @@ def pipeline(tmp_path: Path) -> FilePipeline:
         image_extensions={".jpg"},
         subtitle_extensions={".srt"},
         archive_extensions={".zip"},
-        serial_pattern=build_serial_pattern(
-            [SerialIdRule(prefix_letters=3, digits_min=2, digits_max=5)],
-        ),
     )
     return FilePipeline(
         run_id=1,

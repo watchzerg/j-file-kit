@@ -12,6 +12,8 @@ from j_file_kit.app.file_task.domain.models import (
     FileTaskRunReport,
     SerialId,
     TaskConfig,
+    effective_serial_digit_len,
+    serial_number_raw_is_valid,
 )
 
 pytestmark = pytest.mark.unit
@@ -40,14 +42,19 @@ class TestSerialIdFromString:
         assert result.prefix == "ABC"
 
     def test_min_length_prefix(self) -> None:
-        result = SerialId.from_string("AB-12")
+        result = SerialId.from_string("AB-123")
         assert result.prefix == "AB"
-        assert result.number == "012"
+        assert result.number == "123"
 
     def test_max_length_prefix(self) -> None:
-        result = SerialId.from_string("ABCDE-12345")
+        result = SerialId.from_string("ABCDE-1234")
         assert result.prefix == "ABCDE"
-        assert result.number == "12345"
+        assert result.number == "1234"
+
+    def test_five_digit_value_rejected(self) -> None:
+        """有效位数为 5 时拒绝（如 12345）。"""
+        with pytest.raises(ValueError, match="数字部分须为3-5位"):
+            SerialId.from_string("AB-12345")
 
     def test_invalid_format_raises(self) -> None:
         with pytest.raises(ValueError, match="无效的番号格式"):
@@ -59,7 +66,28 @@ class TestSerialIdFromString:
 
     def test_number_too_short_raises(self) -> None:
         with pytest.raises(ValueError, match="无效的番号格式"):
-            SerialId.from_string("AB-1")
+            SerialId.from_string("AB-12")
+
+    def test_01234_accepted_normalizes(self) -> None:
+        result = SerialId.from_string("AB-01234")
+        assert result.prefix == "AB"
+        assert result.number == "1234"
+
+
+class TestSerialNumberRawValidation:
+    """effective_serial_digit_len / serial_number_raw_is_valid"""
+
+    def test_effective_len_nonzero(self) -> None:
+        assert effective_serial_digit_len("01234") == 4
+        assert effective_serial_digit_len("12345") == 5
+
+    def test_effective_len_all_zeros(self) -> None:
+        assert effective_serial_digit_len("000") == 3
+
+    def test_raw_valid(self) -> None:
+        assert serial_number_raw_is_valid("01234") is True
+        assert serial_number_raw_is_valid("12345") is False
+        assert serial_number_raw_is_valid("12") is False
 
 
 class TestSerialIdFieldValidator:
@@ -70,7 +98,7 @@ class TestSerialIdFieldValidator:
             SerialId(prefix="AB1", number="123")
 
     def test_prefix_six_letters_valid(self) -> None:
-        """6个字母的前缀合法（支持 serial_id_rules 中 prefix_letters=6）"""
+        """6个字母的前缀合法。"""
         sid = SerialId(prefix="ABCDEF", number="123")
         assert sid.prefix == "ABCDEF"
 
@@ -83,14 +111,13 @@ class TestSerialIdFieldValidator:
             SerialId(prefix="ABC", number="12a")
 
     def test_number_too_long_raises(self) -> None:
-        with pytest.raises(ValueError, match="数字部分长度必须在2-5个字符之间"):
+        with pytest.raises(ValueError, match="数字部分须为3-5位"):
             SerialId(prefix="ABC", number="123456")
 
-    def test_number_two_digits_padded_to_three(self) -> None:
-        """2位数字构造时自动补零至3位"""
-        sid = SerialId(prefix="ABC", number="12")
-        assert sid.number == "012"
-        assert str(sid) == "ABC-012"
+    def test_number_two_digits_rejected(self) -> None:
+        """原始数字须至少 3 位"""
+        with pytest.raises(ValueError, match="数字部分须为3-5位"):
+            SerialId(prefix="ABC", number="12")
 
     def test_number_three_digits_unchanged(self) -> None:
         """3位数字保持不变"""
@@ -123,7 +150,7 @@ class TestSerialIdModelValidator:
         assert result.number == "789"
 
     def test_dict_input_passed_through(self) -> None:
-        result = SerialId.model_validate({"prefix": "AB", "number": "12"})
+        result = SerialId.model_validate({"prefix": "AB", "number": "012"})
         assert result.prefix == "AB"
         assert result.number == "012"
 
@@ -272,9 +299,6 @@ class TestTaskConfigGetConfig:
                 "image_extensions": [".jpg"],
                 "subtitle_extensions": [".srt"],
                 "archive_extensions": [".zip"],
-                "serial_id_rules": [
-                    {"prefix_letters": 3, "digits_min": 3, "digits_max": 3},
-                ],
                 "misc_file_delete_rules": {},
             },
         )

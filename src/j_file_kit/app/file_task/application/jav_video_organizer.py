@@ -11,7 +11,6 @@ from j_file_kit.app.file_task.application.config import (
     AnalyzeConfig,
     JavVideoOrganizeConfig,
 )
-from j_file_kit.app.file_task.application.jav_filename_util import build_serial_pattern
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.file_task.domain.models import FileTaskRunStatistics, TaskConfig
@@ -81,9 +80,6 @@ class JavVideoOrganizer:
             video_small_delete_bytes=self.file_config.video_small_delete_bytes,
             inbox_delete_rules=self.file_config.inbox_delete_rules,
             jav_filename_strip_substrings=self.file_config.jav_filename_strip_substrings,
-            serial_pattern=build_serial_pattern(
-                self.file_config.serial_id_rules,
-            ),
         )
 
     def run(

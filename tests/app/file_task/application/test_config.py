@@ -9,7 +9,6 @@ from pydantic import ValidationError
 from j_file_kit.app.file_task.application.config import (
     InboxDeleteRules,
     JavVideoOrganizeConfig,
-    SerialIdRule,
     create_default_jav_video_organizer_task_config,
 )
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
@@ -21,9 +20,6 @@ _BASE_EXTENSIONS = {
     "image_extensions": [".jpg"],
     "subtitle_extensions": [".srt"],
     "archive_extensions": [".zip"],
-    "serial_id_rules": [
-        {"prefix_letters": 3, "digits_min": 3, "digits_max": 3},
-    ],
 }
 
 
@@ -62,82 +58,6 @@ class TestJavVideoOrganizeConfigExtensionValidator:
             JavVideoOrganizeConfig.model_validate(
                 {**_BASE_EXTENSIONS, "inbox_dir": "/nonexistent/inbox"},
             )
-
-
-class TestJavVideoOrganizeConfigSerialIdRulesValidator:
-    """JavVideoOrganizeConfig serial_id_rules 字段校验"""
-
-    def test_valid_rules_accepted(self) -> None:
-        config = JavVideoOrganizeConfig.model_validate(
-            {
-                **_BASE_EXTENSIONS,
-                "serial_id_rules": [
-                    {"prefix_letters": 3, "digits_min": 3, "digits_max": 3},
-                    {"prefix_letters": 4, "digits_min": 3, "digits_max": 3},
-                ],
-            },
-        )
-        assert config.serial_id_rules == [
-            SerialIdRule(prefix_letters=3, digits_min=3, digits_max=3),
-            SerialIdRule(prefix_letters=4, digits_min=3, digits_max=3),
-        ]
-
-    def test_digit_range_accepted(self) -> None:
-        config = JavVideoOrganizeConfig.model_validate(
-            {
-                **_BASE_EXTENSIONS,
-                "serial_id_rules": [
-                    {"prefix_letters": 3, "digits_min": 2, "digits_max": 4},
-                ],
-            },
-        )
-        assert config.serial_id_rules[0].digits_min == 2
-        assert config.serial_id_rules[0].digits_max == 4
-
-    def test_empty_rules_raises(self) -> None:
-        with pytest.raises(ValidationError):
-            JavVideoOrganizeConfig.model_validate(
-                {**_BASE_EXTENSIONS, "serial_id_rules": []},
-            )
-
-    def test_prefix_out_of_range_raises(self) -> None:
-        with pytest.raises(ValidationError):
-            JavVideoOrganizeConfig.model_validate(
-                {
-                    **_BASE_EXTENSIONS,
-                    "serial_id_rules": [
-                        {"prefix_letters": 1, "digits_min": 3, "digits_max": 3},
-                    ],
-                },
-            )
-
-    def test_digits_min_greater_than_max_raises(self) -> None:
-        with pytest.raises(ValidationError):
-            JavVideoOrganizeConfig.model_validate(
-                {
-                    **_BASE_EXTENSIONS,
-                    "serial_id_rules": [
-                        {"prefix_letters": 3, "digits_min": 4, "digits_max": 2},
-                    ],
-                },
-            )
-
-    def test_digits_out_of_serial_id_domain_raises(self) -> None:
-        with pytest.raises(ValidationError):
-            JavVideoOrganizeConfig.model_validate(
-                {
-                    **_BASE_EXTENSIONS,
-                    "serial_id_rules": [
-                        {"prefix_letters": 3, "digits_min": 1, "digits_max": 3},
-                    ],
-                },
-            )
-
-    def test_missing_serial_id_rules_raises(self) -> None:
-        """未提供 serial_id_rules 时校验失败"""
-        base = {k: v for k, v in _BASE_EXTENSIONS.items() if k != "serial_id_rules"}
-        with pytest.raises(ValidationError):
-            JavVideoOrganizeConfig.model_validate(base)
 
 
 class TestJavFilenameStripSubstrings:
@@ -186,7 +106,7 @@ class TestCreateDefaultJavVideoOrganizerTaskConfig:
         assert isinstance(inbox_raw, dict)
         assert set(inbox_raw.keys()) == {"exact_stems", "keywords", "max_size_bytes"}
         InboxDeleteRules.model_validate(inbox_raw)
-        assert "serial_id_rules" in config
+        assert "serial_id_rules" not in config
         assert config["video_small_delete_bytes"] == 200 * 1024 * 1024
         assert config["jav_filename_strip_substrings"] == [
             "BBS-2048",
@@ -198,10 +118,11 @@ class TestCreateDefaultJavVideoOrganizerTaskConfig:
             "PP-168",
             "RH-2048",
             "XHD-1080",
+            "CCTV-12306",
         ]
 
     def test_default_strip_round_trips_through_jav_config_model(self) -> None:
-        """默认 dict 经 JavVideoOrganizeConfig 解析后 strip 为 9 项元组。"""
+        """默认 dict 经 JavVideoOrganizeConfig 解析后 strip 为 10 项元组。"""
         raw = create_default_jav_video_organizer_task_config().config
         parsed = JavVideoOrganizeConfig.model_validate(raw)
         assert parsed.jav_filename_strip_substrings == tuple(
@@ -211,11 +132,6 @@ class TestCreateDefaultJavVideoOrganizerTaskConfig:
     def test_video_extensions_non_empty(self) -> None:
         result = create_default_jav_video_organizer_task_config()
         assert len(result.config["video_extensions"]) > 0
-
-    def test_default_serial_id_rules_non_empty(self) -> None:
-        """默认 serial_id_rules 非空"""
-        result = create_default_jav_video_organizer_task_config()
-        assert len(result.config["serial_id_rules"]) > 0
 
     def test_default_dirs_under_media(self) -> None:
         """默认目录均在 /media 下"""

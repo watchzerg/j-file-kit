@@ -66,6 +66,38 @@ class FileType(StrEnum):
     UNCLASSIFIED = "unclassified"
 
 
+# JAV 番号数字段：与 `jav_filename_util` 固定规则一致（文件名解析与领域对象同一语义）
+SERIAL_DIGIT_CHARS_MIN = 3
+SERIAL_DIGIT_CHARS_MAX = 5
+SERIAL_EFFECTIVE_DIGITS_MIN = 1
+SERIAL_EFFECTIVE_DIGITS_MAX = 4
+
+
+def effective_serial_digit_len(raw: str) -> int | None:
+    """文件名/番号中连续数字串的「有效位数」（与补零展示无关）。
+
+    - 非全 ``0``：十进制数值的位数（如 ``00399`` -> 3）。
+    - 全 ``0``：按占位长度计（如 ``000`` -> 3），避免 ``int`` 退化为单 0。
+    """
+    if not raw or not raw.isdigit():
+        return None
+    if set(raw) == {"0"}:
+        return len(raw)
+    return len(str(int(raw, 10)))
+
+
+def serial_number_raw_is_valid(raw: str) -> bool:
+    """原始数字串是否满足固定规则：仅数字、长度 3–5、有效位数 1–4。"""
+    if not raw.isdigit():
+        return False
+    if not (SERIAL_DIGIT_CHARS_MIN <= len(raw) <= SERIAL_DIGIT_CHARS_MAX):
+        return False
+    eff = effective_serial_digit_len(raw)
+    if eff is None:
+        return False
+    return SERIAL_EFFECTIVE_DIGITS_MIN <= eff <= SERIAL_EFFECTIVE_DIGITS_MAX
+
+
 class SerialId(BaseModel):
     """番号值对象
 
@@ -76,13 +108,17 @@ class SerialId(BaseModel):
     设计意图：
     - 封装番号的验证逻辑，确保番号格式的一致性
     - 提供统一的番号表示方式，便于文件名生成和目录组织
-    - number 在构造时自动规范化：先补零至最少 3 位；若长度仍大于 3，则去掉前导 0 直至长度为 3
+    - 原始 number 须为 3–5 位数字且有效位数 1–4（见 ``serial_number_raw_is_valid``），与文件名解析一致
+    - 校验通过后自动规范化：先 zfill 至最少 3 位；若长度仍大于 3，则去掉前导 0 直至长度为 3
     """
 
     prefix: str = Field(..., description="字母前缀（2-6个大写字母）")
     number: str = Field(
         ...,
-        description="数字部分（2-5个数字，构造时先 zfill(3)，再对长度>3 去前导 0 直至 3 位）",
+        description=(
+            "数字部分（原始 3–5 位数字，有效位 1–4；"
+            "规范化：先 zfill(3)，再对长度>3 去前导 0 直至 3 位）"
+        ),
     )
 
     @field_validator("prefix")
@@ -101,13 +137,16 @@ class SerialId(BaseModel):
     def validate_number(cls, v: str) -> str:
         """验证并规范化数字部分。
 
-        先 zfill 至最少 3 位；若长度仍大于 3，则反复去掉最左侧的 0，直到长度为 3（保留 3 位时的前导 0，如 012）。
-        例如：'12'→'012'，'123'→'123'，'0123'→'123'，'1234'→'1234'。
+        先按固定规则校验原始串，再 zfill 至最少 3 位；若长度仍大于 3，则反复去掉最左侧的 0，
+        直到长度为 3（保留 3 位时的前导 0，如 012）。
+        例如：'123'→'123'，'0123'→'123'，'01234'→'1234'。
         """
         if not v.isdigit():
             raise ValueError("数字部分必须只包含数字")
-        if not (2 <= len(v) <= 5):
-            raise ValueError("数字部分长度必须在2-5个字符之间")
+        if not serial_number_raw_is_valid(v):
+            raise ValueError(
+                "数字部分须为3-5位且有效位数在1-4之间（与番号匹配规则一致）",
+            )
         s = v.zfill(3)
         while len(s) > 3 and s.startswith("0"):
             s = s[1:]
@@ -139,7 +178,7 @@ class SerialId(BaseModel):
             >>> SerialId.from_string("ABC123")
             SerialId(prefix='ABC', number='123')
         """
-        pattern = r"^([A-Za-z]{2,6})[-_]?(\d{2,5})$"
+        pattern = r"^([A-Za-z]{2,6})[-_]?(\d{3,5})$"
         match = re.match(pattern, value)
         if not match:
             raise ValueError(f"无效的番号格式: {value}")

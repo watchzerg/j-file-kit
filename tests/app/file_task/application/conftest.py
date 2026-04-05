@@ -14,10 +14,7 @@ from j_file_kit.app.file_task.application.config import (
     AnalyzeConfig,
     InboxDeleteRules,
     JavVideoOrganizeConfig,
-    SerialIdRule,
-    SerialPatternSpec,
 )
-from j_file_kit.app.file_task.application.jav_filename_util import build_serial_pattern
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
@@ -26,16 +23,6 @@ from j_file_kit.infrastructure.persistence.sqlite.file_task.file_result_reposito
     FileResultRepositoryImpl,
 )
 from j_file_kit.infrastructure.persistence.sqlite.schema import SQLiteSchemaInitializer
-
-
-def _default_analyze_serial_spec() -> SerialPatternSpec:
-    """Pipeline / analyze 单测默认番号规则（与 test_jav_filename_util 常见用例一致）。"""
-    return build_serial_pattern(
-        [
-            SerialIdRule(prefix_letters=3, digits_min=2, digits_max=5),
-            SerialIdRule(prefix_letters=4, digits_min=2, digits_max=5),
-        ],
-    )
 
 
 @pytest.fixture
@@ -67,9 +54,6 @@ def jav_video_organize_config_factory(
             "archive_dir": archive_dir,
             "misc_dir": misc_dir,
             **base_extensions,
-            "serial_id_rules": [
-                {"prefix_letters": 3, "digits_min": 3, "digits_max": 3},
-            ],
             "misc_file_delete_rules": {},
             **overrides,
         }
@@ -90,14 +74,8 @@ def analyze_config_factory(
         misc_file_delete_rules: dict[str, Any] | None = None,
         inbox_delete_rules: InboxDeleteRules | None = None,
         video_small_delete_bytes: int | None = None,
-        serial_pattern: SerialPatternSpec | None = None,
     ) -> AnalyzeConfig:
         ext_sets = {k: set(v) for k, v in base_extensions.items()}
-        sp = (
-            serial_pattern
-            if serial_pattern is not None
-            else _default_analyze_serial_spec()
-        )
         return AnalyzeConfig(
             video_extensions=ext_sets["video_extensions"],
             image_extensions=ext_sets["image_extensions"],
@@ -110,7 +88,6 @@ def analyze_config_factory(
             misc_file_delete_rules=misc_file_delete_rules or {},
             video_small_delete_bytes=video_small_delete_bytes,
             inbox_delete_rules=inbox_delete_rules or InboxDeleteRules(),
-            serial_pattern=sp,
         )
 
     return _create

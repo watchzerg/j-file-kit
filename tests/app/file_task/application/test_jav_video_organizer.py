@@ -31,9 +31,6 @@ def task_config_with_inbox() -> TaskConfig:
             "image_extensions": [".jpg"],
             "subtitle_extensions": [".srt"],
             "archive_extensions": [".zip"],
-            "serial_id_rules": [
-                {"prefix_letters": 3, "digits_min": 3, "digits_max": 3},
-            ],
             "misc_file_delete_rules": {"keywords": ["x"], "max_size": 100},
             "inbox_delete_rules": {
                 "exact_stems": ["Thumbs"],
@@ -80,9 +77,6 @@ class TestJavVideoOrganizerRun:
                 "image_extensions": [".jpg"],
                 "subtitle_extensions": [".srt"],
                 "archive_extensions": [".zip"],
-                "serial_id_rules": [
-                    {"prefix_letters": 3, "digits_min": 3, "digits_max": 3},
-                ],
                 "misc_file_delete_rules": {},
             },
         )

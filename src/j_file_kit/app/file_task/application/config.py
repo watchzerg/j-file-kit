@@ -3,8 +3,6 @@
 定义文件任务相关的配置模型，包括任务配置和分析配置。
 """
 
-import re
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -42,59 +40,6 @@ class InboxDeleteRules(BaseModel):
         return self
 
 
-class SerialIdRule(BaseModel):
-    """单条番号长度规则（用于编译 serial_pattern）。
-
-    与 `SerialId` 领域约束对齐：前缀字母数 2–6，数字部分位数 2–5；
-    避免正则命中后无法构造 `SerialId`。
-
-    语义：`digits_min`/`digits_max` 为闭区间，表示**十进制数值的有效位数**（与补零展示无关；
-    全 ``0`` 数字串按占位长度计）。与 `build_serial_pattern` 截取连续数字后的校验一致。
-    """
-
-    prefix_letters: int = Field(
-        ...,
-        ge=2,
-        le=6,
-        description="番号字母前缀长度（与 SerialId.prefix 长度范围一致）",
-    )
-    digits_min: int = Field(
-        ...,
-        ge=2,
-        le=5,
-        description="有效数字部分最少位数（含）；十进制数值位数，全 0 串为占位长度",
-    )
-    digits_max: int = Field(
-        ...,
-        ge=2,
-        le=5,
-        description="有效数字部分最多位数（含）；十进制数值位数，全 0 串为占位长度",
-    )
-
-    @model_validator(mode="after")
-    def digits_range_ordered(self) -> SerialIdRule:
-        if self.digits_min > self.digits_max:
-            raise ValueError(
-                "digits_min 不能大于 digits_max，"
-                f"得到 digits_min={self.digits_min}, digits_max={self.digits_max}",
-            )
-        return self
-
-
-@dataclass(frozen=True, slots=True)
-class SerialPatternSpec:
-    """编译后的番号规则包：前缀正则 + 配置规则列表。
-
-    `pattern` 只匹配到「字母前缀 + 可选分隔符」且下一字符为数字的位置，不包含数字段；
-    连续数字串在 `jav_filename_util` 中截取，总长不超过与 `SerialId` 对齐的上限，
-    再按十进制有效位数（见 `SerialIdRule`）与 `rules` 做语义校验。`rules` 顺序与
-    `serial_id_rules` 一致；同一 `prefix_letters` 可有多条规则，命中前缀后**任一**接受即通过。
-    """
-
-    pattern: re.Pattern[str]
-    rules: tuple[SerialIdRule, ...]
-
-
 class JavVideoOrganizeConfig(BaseModel):
     """JAV视频文件整理任务配置
 
@@ -126,10 +71,6 @@ class JavVideoOrganizeConfig(BaseModel):
         default_factory=InboxDeleteRules,
         description="收件箱预删除（扩展名分类前）：完全匹配 stem、关键字、体积上限，OR 语义",
     )
-    serial_id_rules: list[SerialIdRule] = Field(
-        ...,
-        description="番号长度规则列表（OR）；每条为前缀字母数 + 数字位数闭区间，见 SerialIdRule",
-    )
     jav_filename_strip_substrings: tuple[str, ...] = Field(
         default_factory=tuple,
         description=(
@@ -143,12 +84,6 @@ class JavVideoOrganizeConfig(BaseModel):
         self.jav_filename_strip_substrings = tuple(
             s for s in self.jav_filename_strip_substrings if s != ""
         )
-        return self
-
-    @model_validator(mode="after")
-    def validate_serial_id_rules_non_empty(self) -> JavVideoOrganizeConfig:
-        if not self.serial_id_rules:
-            raise ValueError("serial_id_rules 不能为空")
         return self
 
     @model_validator(mode="after")
@@ -203,8 +138,7 @@ class AnalyzeConfig(BaseModel):
     """分析配置
 
     包含分析文件所需的所有配置信息。
-    serial_pattern 由 JavVideoOrganizer._create_analyze_config 在任务初始化时
-    调用 build_serial_pattern(serial_id_rules) 编译一次后传入，整个 Pipeline 复用。
+    番号前缀正则由 `jav_filename_util.JAV_SERIAL_PREFIX_PATTERN` 固定提供，不在此配置。
     jav_filename_strip_substrings 与任务配置同源注入，未配置则为空元组（不去噪）。
     """
 
@@ -240,11 +174,6 @@ class AnalyzeConfig(BaseModel):
         description="收件箱预删除（扩展名分类前）：完全匹配 stem、关键字、体积上限，OR 语义",
     )
 
-    # 番号规则包（前缀正则 + 规则列表），在任务初始化时编译一次，整个 Pipeline 复用
-    serial_pattern: SerialPatternSpec = Field(
-        ...,
-        description="build_serial_pattern(serial_id_rules) 的编译结果",
-    )
     jav_filename_strip_substrings: tuple[str, ...] = Field(
         default_factory=tuple,
         description=(
@@ -325,12 +254,6 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
                 ".bz2",
                 ".xz",
             ],
-            "serial_id_rules": [
-                {"prefix_letters": 2, "digits_min": 3, "digits_max": 3},
-                {"prefix_letters": 3, "digits_min": 2, "digits_max": 3},
-                {"prefix_letters": 4, "digits_min": 2, "digits_max": 3},
-                {"prefix_letters": 5, "digits_min": 3, "digits_max": 3},
-            ],
             "jav_filename_strip_substrings": [
                 "BBS-2048",
                 "BIG-2048",
@@ -341,6 +264,7 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
                 "PP-168",
                 "RH-2048",
                 "XHD-1080",
+                "CCTV-12306",
             ],
             "inbox_delete_rules": {
                 "exact_stems": [],
