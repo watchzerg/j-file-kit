@@ -12,6 +12,9 @@ from j_file_kit.app.file_task.application.config import AnalyzeConfig
 from j_file_kit.app.file_task.application.executor import (
     ExecutionResult,
 )
+from j_file_kit.app.file_task.application.jav_filename_util import (
+    DEFAULT_SERIAL_PATTERN,
+)
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,
@@ -30,6 +33,7 @@ def pipeline(tmp_path: Path) -> FilePipeline:
         video_extensions={".mp4"},
         image_extensions={".jpg"},
         archive_extensions={".zip"},
+        serial_pattern=DEFAULT_SERIAL_PATTERN,
     )
     return FilePipeline(
         run_id=1,

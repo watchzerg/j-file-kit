@@ -216,7 +216,10 @@ def _decide_media_action(
     """
     # 1. 从文件名生成新文件名和番号；先 sanitize 确保输出文件名为合法 UTF-8
     safe_name = sanitize_surrogate_str(path.name)
-    new_filename, serial_id = generate_jav_filename(safe_name)
+    new_filename, serial_id = generate_jav_filename(
+        safe_name,
+        pattern=config.serial_pattern,
+    )
 
     if serial_id:
         # 有番号：移动到整理目录

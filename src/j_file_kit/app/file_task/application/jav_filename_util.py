@@ -22,12 +22,19 @@
 - 非关键部分（可截断）：第1部分、第3部分
 - 截断顺序：优先截断第3部分；若仍超限则丢弃第3部分并截断第1部分
 
-番号规则（基于正则表达式：`(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\\d{2,5})(?![0-9])`）：
-- 字母部分：2-5个英文字母（大小写都可以）
+番号规则（可通过 build_serial_pattern 配置精确的字母数+数字数组合）：
+- 字母部分：英文字母（大小写都可以）
 - 分隔符：可选，支持 `-`、`_` 或无分隔符
-- 数字部分：2-5个数字
+- 数字部分：纯数字
 - 边界条件：番号前面不能紧挨着字母，番号后面不能紧挨着数字
 - 输出格式：统一标准化为 `字母-数字` 格式（大写字母）
+
+默认模式（DEFAULT_SERIAL_PATTERN）：
+- 匹配 2-5 个字母 + 2-5 个数字的所有组合，与旧版行为完全兼容
+
+可配置模式（build_serial_pattern）：
+- 接受精确的 (字母数, 数字数) 组合列表，例如 [(3,3),(4,3),(5,3)]
+- 仅匹配列表中指定的组合，排除其他长度
 """
 
 import re
@@ -35,12 +42,62 @@ from pathlib import Path
 
 from j_file_kit.app.file_task.domain.models import SerialId
 
-DEFAULT_SERIAL_PATTERN = r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])"
+# 保持与旧版行为兼容的默认模式：2-5 个字母 + 2-5 个数字
+DEFAULT_SERIAL_PATTERN: re.Pattern[str] = re.compile(
+    r"(?<![a-zA-Z])([a-zA-Z]{2,5})[-_]?(\d{2,5})(?![0-9])",
+    re.IGNORECASE,
+)
 
 FILENAME_SEPARATORS = " -_@#"
 
 # 文件系统文件名字节上限（ext4 / APFS 等主流文件系统均为 255 字节）
 MAX_FILENAME_BYTES = 255
+
+
+def build_serial_pattern(combinations: list[tuple[int, int]]) -> re.Pattern[str]:
+    """根据精确的字母数+数字数组合列表构建并编译番号正则。
+
+    每个组合 (l, d) 生成一个独立的匹配分支：恰好 l 个字母 + 可选分隔符 + 恰好 d 个数字。
+    多个分支通过 | 合并，整体加前后边界断言（番号前不能紧接字母，后不能紧接数字）。
+
+    生成的正则每个分支含2个捕获组（字母、数字），命中时恰好一对相邻组非 None，
+    _match_serial_id 通过扫描 match.groups() 偶数索引定位有效对。
+
+    Args:
+        combinations: 合法的 (字母数, 数字数) 组合列表，不能为空，每个值须为正整数。
+
+    Returns:
+        预编译的正则对象（re.IGNORECASE）
+
+    Raises:
+        ValueError: combinations 为空，或包含非正整数值
+
+    Examples:
+        >>> p = build_serial_pattern([(3, 3), (4, 3)])
+        >>> bool(p.search("ABC-123"))   # 3+3 命中
+        True
+        >>> bool(p.search("ABCD-123"))  # 4+3 命中
+        True
+        >>> bool(p.search("AB-123"))    # 2+3 不命中
+        False
+    """
+    if not combinations:
+        raise ValueError("combinations 不能为空")
+    for n_letters, n_digits in combinations:
+        if n_letters <= 0 or n_digits <= 0:
+            raise ValueError(
+                f"组合中的字母数和数字数必须为正整数，得到 ({n_letters}, {n_digits})",
+            )
+
+    branches = [
+        rf"([a-zA-Z]{{{n_letters}}})[-_]?(\d{{{n_digits}}})"
+        for n_letters, n_digits in combinations
+    ]
+    inner = "|".join(branches)
+    return re.compile(
+        rf"(?<![a-zA-Z])(?:{inner})(?![0-9])",
+        re.IGNORECASE,
+    )
 
 
 def _truncate_to_bytes(text: str, max_bytes: int) -> str:
@@ -66,37 +123,54 @@ def _truncate_to_bytes(text: str, max_bytes: int) -> str:
 
 def _match_serial_id(
     filename: str,
-    pattern: str = DEFAULT_SERIAL_PATTERN,
+    pattern: re.Pattern[str] = DEFAULT_SERIAL_PATTERN,
 ) -> tuple[SerialId | None, re.Match[str] | None]:
     """匹配番号，同时返回 SerialId 和 Match 对象以避免重复正则匹配。
 
+    支持两种正则结构：
+    - DEFAULT_SERIAL_PATTERN：2个捕获组（字母、数字）
+    - build_serial_pattern 生成的多分支正则：每个分支2个捕获组，命中时恰好一对非 None
+
+    通过扫描 match.groups() 偶数索引（0-based）定位第一个非 None 的字母组，
+    其相邻奇数索引即为对应的数字组，兼容上述两种结构。
+
     Args:
         filename: 文件名
-        pattern: 番号正则表达式
+        pattern: 预编译的番号正则
 
     Returns:
         元组：(SerialId 对象, Match 对象)。如果没有匹配到，返回 (None, None)
     """
-    match = re.search(pattern, filename, re.IGNORECASE)
+    match = pattern.search(filename)
     if not match:
         return None, None
 
-    letters = match.group(1).upper()
-    digits = match.group(2)
-    serial_id = SerialId(prefix=letters, number=digits)
-    return serial_id, match
+    groups = match.groups()
+    for i in range(0, len(groups), 2):
+        if groups[i] is not None:
+            letters = groups[i].upper()
+            digits = groups[i + 1]
+            serial_id = SerialId(prefix=letters, number=digits)
+            return serial_id, match
+
+    return None, None
 
 
-def generate_jav_filename(filename: str) -> tuple[str, SerialId | None]:
+def generate_jav_filename(
+    filename: str,
+    pattern: re.Pattern[str] = DEFAULT_SERIAL_PATTERN,
+) -> tuple[str, SerialId | None]:
     """根据番号生成新文件名
 
-    使用内置的 DEFAULT_SERIAL_PATTERN 进行番号提取和文件名重构。
+    从文件名中提取番号并按业务规则重构文件名。
     若生成的文件名超过 MAX_FILENAME_BYTES 字节，会截断非关键内容（第1、3部分），
     确保番号、占位符和扩展名始终完整保留。
     纯文件名转换函数，不涉及路径处理。
 
     Args:
         filename: 原始文件名（包含扩展名）
+        pattern: 预编译的番号正则，默认使用 DEFAULT_SERIAL_PATTERN（2-5字母+2-5数字）。
+                 生产环境通过 build_serial_pattern(combinations) 生成精确匹配的正则传入。
 
     Returns:
         元组：(新文件名, 提取到的番号)。如果没有找到番号，返回 (原文件名, None)
@@ -125,7 +199,7 @@ def generate_jav_filename(filename: str) -> tuple[str, SerialId | None]:
     suffix = path.suffix
 
     # 匹配番号并获取位置信息（一次正则匹配同时获取 SerialId 和位置）
-    serial_id, match = _match_serial_id(filename)
+    serial_id, match = _match_serial_id(filename, pattern)
     if not serial_id or not match:
         return filename, None
 
@@ -193,7 +267,7 @@ def generate_sorted_dir(serial_id: SerialId) -> Path:
     """生成整理子目录路径：A/AB/ABCD
 
     根据番号生成子目录路径，格式为：首字母/前两字母/完整前缀
-    SerialId 已验证 prefix 长度在 2-5 之间，因此可以安全访问。
+    SerialId 已验证 prefix 长度在 2-6 之间，因此可以安全访问 prefix[0] 和 prefix[:2]。
     调用者负责拼接基础目录。
 
     Args:

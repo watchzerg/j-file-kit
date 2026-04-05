@@ -42,7 +42,7 @@ class TestSerialIdFromString:
     def test_min_length_prefix(self) -> None:
         result = SerialId.from_string("AB-12")
         assert result.prefix == "AB"
-        assert result.number == "12"
+        assert result.number == "012"
 
     def test_max_length_prefix(self) -> None:
         result = SerialId.from_string("ABCDE-12345")
@@ -69,9 +69,14 @@ class TestSerialIdFieldValidator:
         with pytest.raises(ValueError, match="前缀必须只包含字母"):
             SerialId(prefix="AB1", number="123")
 
+    def test_prefix_six_letters_valid(self) -> None:
+        """6个字母的前缀合法（支持 serial_id_combinations 中的 (6,x) 组合）"""
+        sid = SerialId(prefix="ABCDEF", number="123")
+        assert sid.prefix == "ABCDEF"
+
     def test_prefix_too_long_raises(self) -> None:
-        with pytest.raises(ValueError, match="前缀长度必须在2-5个字符之间"):
-            SerialId(prefix="ABCDEF", number="123")
+        with pytest.raises(ValueError, match="前缀长度必须在2-6个字符之间"):
+            SerialId(prefix="ABCDEFG", number="123")
 
     def test_number_non_digit_raises(self) -> None:
         with pytest.raises(ValueError, match="数字部分必须只包含数字"):
@@ -80,6 +85,22 @@ class TestSerialIdFieldValidator:
     def test_number_too_long_raises(self) -> None:
         with pytest.raises(ValueError, match="数字部分长度必须在2-5个字符之间"):
             SerialId(prefix="ABC", number="123456")
+
+    def test_number_two_digits_padded_to_three(self) -> None:
+        """2位数字构造时自动补零至3位"""
+        sid = SerialId(prefix="ABC", number="12")
+        assert sid.number == "012"
+        assert str(sid) == "ABC-012"
+
+    def test_number_three_digits_unchanged(self) -> None:
+        """3位数字保持不变"""
+        sid = SerialId(prefix="ABC", number="123")
+        assert sid.number == "123"
+
+    def test_number_four_digits_unchanged(self) -> None:
+        """4位数字保持不变"""
+        sid = SerialId(prefix="ABC", number="1234")
+        assert sid.number == "1234"
 
 
 class TestSerialIdModelValidator:
@@ -93,7 +114,7 @@ class TestSerialIdModelValidator:
     def test_dict_input_passed_through(self) -> None:
         result = SerialId.model_validate({"prefix": "AB", "number": "12"})
         assert result.prefix == "AB"
-        assert result.number == "12"
+        assert result.number == "012"
 
 
 class TestSerialIdStr:

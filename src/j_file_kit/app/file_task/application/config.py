@@ -3,10 +3,11 @@
 定义文件任务相关的配置模型，包括任务配置和分析配置。
 """
 
+import re
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, BeforeValidator, Field, model_validator
 
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.file_task.domain.models import TaskConfig
@@ -33,6 +34,28 @@ class JavVideoOrganizeConfig(BaseModel):
         default_factory=dict,
         description="Misc文件删除规则配置（keywords, extensions, max_size）",
     )
+    serial_id_combinations: Annotated[
+        list[tuple[int, int]],
+        BeforeValidator(
+            lambda v: [tuple(item) for item in v] if isinstance(v, list) else v,
+        ),
+    ] = Field(
+        default=[(3, 3), (4, 3), (5, 3), (6, 3), (3, 4)],
+        description="番号字母数+数字数的合法组合列表，每个元素为 (字母数, 数字数)",
+    )
+
+    @model_validator(mode="after")
+    def validate_serial_id_combinations(self) -> JavVideoOrganizeConfig:
+        """验证 serial_id_combinations 非空且每个元素均为正整数对"""
+        if not self.serial_id_combinations:
+            raise ValueError("serial_id_combinations 不能为空")
+        for n_letters, n_digits in self.serial_id_combinations:
+            if n_letters <= 0 or n_digits <= 0:
+                raise ValueError(
+                    "serial_id_combinations 中每个组合的字母数和数字数必须为正整数，"
+                    f"得到 ({n_letters}, {n_digits})",
+                )
+        return self
 
     @model_validator(mode="after")
     def validate_extensions(self) -> JavVideoOrganizeConfig:
@@ -82,6 +105,8 @@ class AnalyzeConfig(BaseModel):
     """分析配置
 
     包含分析文件所需的所有配置信息。
+    serial_pattern 由 JavVideoOrganizer._create_analyze_config 在任务初始化时
+    调用 build_serial_pattern(serial_id_combinations) 编译一次后传入，整个 Pipeline 复用。
     """
 
     # 文件类型扩展名
@@ -106,6 +131,9 @@ class AnalyzeConfig(BaseModel):
         default_factory=dict,
         description="Misc文件删除规则配置（keywords, extensions, max_size）",
     )
+
+    # 预编译的番号正则，在任务初始化时编译一次，整个 Pipeline 复用
+    serial_pattern: re.Pattern[str] = Field(..., description="预编译的番号正则")
 
 
 def create_default_jav_video_organizer_task_config() -> TaskConfig:
@@ -159,6 +187,7 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
                 ".bz2",
                 ".xz",
             ],
+            "serial_id_combinations": [[3, 2], [3, 3], [4, 2], [4, 3]],
             "misc_file_delete_rules": {
                 "keywords": ["sample", "preview", "temp"],
                 "extensions": [
@@ -203,6 +232,8 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
                     ".crdownload",
                     ".aria2",
                     ".ydl",
+                    ".apk",
+                    ".!qb",
                 ],
                 "max_size": 1048576,
             },

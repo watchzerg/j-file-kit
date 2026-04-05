@@ -54,6 +54,39 @@ class TestJavVideoOrganizeConfigExtensionValidator:
             )
 
 
+class TestJavVideoOrganizeConfigCombinationsValidator:
+    """JavVideoOrganizeConfig serial_id_combinations 字段校验"""
+
+    def test_valid_combinations_accepted(self) -> None:
+        config = JavVideoOrganizeConfig.model_validate(
+            {**_BASE_EXTENSIONS, "serial_id_combinations": [[3, 3], [4, 3]]},
+        )
+        assert config.serial_id_combinations == [(3, 3), (4, 3)]
+
+    def test_empty_combinations_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            JavVideoOrganizeConfig.model_validate(
+                {**_BASE_EXTENSIONS, "serial_id_combinations": []},
+            )
+
+    def test_zero_letter_count_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            JavVideoOrganizeConfig.model_validate(
+                {**_BASE_EXTENSIONS, "serial_id_combinations": [[0, 3]]},
+            )
+
+    def test_negative_digit_count_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            JavVideoOrganizeConfig.model_validate(
+                {**_BASE_EXTENSIONS, "serial_id_combinations": [[3, -1]]},
+            )
+
+    def test_default_combinations_non_empty(self) -> None:
+        """未指定时使用默认组合，且非空"""
+        config = JavVideoOrganizeConfig.model_validate(_BASE_EXTENSIONS)
+        assert len(config.serial_id_combinations) > 0
+
+
 class TestCreateDefaultJavVideoOrganizerTaskConfig:
     """create_default_jav_video_organizer_task_config 默认配置"""
 
@@ -70,10 +103,16 @@ class TestCreateDefaultJavVideoOrganizerTaskConfig:
         assert "archive_extensions" in config
         assert "inbox_dir" in config
         assert "misc_file_delete_rules" in config
+        assert "serial_id_combinations" in config
 
     def test_video_extensions_non_empty(self) -> None:
         result = create_default_jav_video_organizer_task_config()
         assert len(result.config["video_extensions"]) > 0
+
+    def test_default_serial_id_combinations_non_empty(self) -> None:
+        """默认 serial_id_combinations 非空"""
+        result = create_default_jav_video_organizer_task_config()
+        assert len(result.config["serial_id_combinations"]) > 0
 
     def test_default_dirs_under_media(self) -> None:
         """默认目录均在 /media 下"""
