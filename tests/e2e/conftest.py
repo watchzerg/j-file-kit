@@ -16,6 +16,12 @@ from pathlib import Path
 
 import pytest
 import requests
+import yaml
+
+from j_file_kit.app.file_task.application.config import (
+    create_default_jav_video_organizer_task_config,
+)
+from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 
 # 项目根目录（conftest.py 位于 tests/e2e/，向上两级）
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -68,6 +74,8 @@ def docker_service(
         "APP_DATA_DIR": str(app_data_dir),
     }
 
+    _seed_e2e_task_config_yaml(app_data_dir)
+
     subprocess.run(
         ["docker", "compose", "up", "-d", "--build"],
         cwd=_PROJECT_ROOT,
@@ -104,6 +112,31 @@ def clean_media(media_root: Path) -> Path:
 
 
 # ── 内部辅助函数 ───────────────────────────────────────────────────────────────
+
+
+def _seed_e2e_task_config_yaml(app_data_dir: Path) -> None:
+    """在首次启动前写入 task_config.yaml，关闭小视频删除（E2E 使用数 MB 的占位文件）。"""
+    tc = create_default_jav_video_organizer_task_config()
+    cfg = dict(tc.config)
+    cfg["video_small_delete_bytes"] = None
+    config_dir = app_data_dir / "config"
+    config_dir.mkdir(parents=True, exist_ok=True)
+    path = config_dir / "task_config.yaml"
+    data = {
+        TASK_TYPE_JAV_VIDEO_ORGANIZER: {
+            "enabled": tc.enabled,
+            "config": cfg,
+        },
+    }
+    path.write_text(
+        yaml.dump(
+            data,
+            default_flow_style=False,
+            allow_unicode=True,
+            sort_keys=False,
+        ),
+        encoding="utf-8",
+    )
 
 
 def _wait_for_health(base_url: str, timeout: int = 90) -> None:

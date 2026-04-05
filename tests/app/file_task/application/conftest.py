@@ -77,6 +77,7 @@ def analyze_config_factory(
         misc_dir: Path | None = None,
         misc_file_delete_rules: dict[str, Any] | None = None,
         inbox_delete_rules: InboxDeleteRules | None = None,
+        video_small_delete_bytes: int | None = None,
         serial_pattern: re.Pattern[str] = DEFAULT_SERIAL_PATTERN,
     ) -> AnalyzeConfig:
         ext_sets = {k: set(v) for k, v in base_extensions.items()}
@@ -87,6 +88,7 @@ def analyze_config_factory(
             archive_dir=archive_dir,
             misc_dir=misc_dir,
             misc_file_delete_rules=misc_file_delete_rules or {},
+            video_small_delete_bytes=video_small_delete_bytes,
             inbox_delete_rules=inbox_delete_rules or InboxDeleteRules(),
             serial_pattern=serial_pattern,
         )

@@ -108,3 +108,4 @@ class TestJavVideoOrganizerCreateAnalyzeConfig:
             keywords=["spam"],
             max_size_bytes=0,
         )
+        assert config.video_small_delete_bytes is None

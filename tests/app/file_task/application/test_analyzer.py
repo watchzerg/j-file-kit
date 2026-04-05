@@ -115,6 +115,89 @@ class TestAnalyzeFileInboxDelete:
         assert decision.file_type == FileType.VIDEO
 
 
+class TestAnalyzeFileVideoSmallDelete:
+    """视频小体积直接删除（不看文件名）"""
+
+    def test_small_video_deleted_when_enabled(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        threshold = 100
+        config = analyze_config_factory(
+            sorted_dir=tmp_path / "sorted",
+            video_small_delete_bytes=threshold,
+        )
+        path = tmp_path / "anything.mp4"
+        path.write_bytes(b"x" * (threshold - 1))
+        decision = analyze_file(path, config)
+        assert isinstance(decision, DeleteDecision)
+        assert decision.file_type == FileType.VIDEO
+        assert "小体积直接删除" in decision.reason
+
+    def test_video_size_equal_threshold_not_deleted(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        threshold = 100
+        config = analyze_config_factory(
+            sorted_dir=tmp_path / "sorted",
+            video_small_delete_bytes=threshold,
+        )
+        path = tmp_path / "ABC-001.mp4"
+        path.write_bytes(b"x" * threshold)
+        decision = analyze_file(path, config)
+        assert isinstance(decision, MoveDecision)
+
+    def test_rule_disabled_when_none(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        config = analyze_config_factory(
+            sorted_dir=tmp_path / "sorted",
+            unsorted_dir=tmp_path / "unsorted",
+            video_small_delete_bytes=None,
+        )
+        path = tmp_path / "tiny.mp4"
+        path.write_bytes(b"x")
+        decision = analyze_file(path, config)
+        assert isinstance(decision, MoveDecision)
+
+    def test_video_small_delete_skips_when_stat_fails(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        """stat 失败时不按小体积删除，继续走番号/无番号逻辑。"""
+        config = analyze_config_factory(
+            sorted_dir=tmp_path / "sorted",
+            unsorted_dir=tmp_path / "unsorted",
+            video_small_delete_bytes=1000,
+        )
+        path = tmp_path / "no_serial.mp4"
+        path.write_bytes(b"x" * 10)
+
+        real_stat = os.stat
+
+        def fake_stat(
+            p: str | bytes | os.PathLike[str] | int,
+            *args: Any,
+            **kwargs: Any,
+        ) -> os.stat_result:
+            if isinstance(p, int):
+                return real_stat(p, *args, **kwargs)
+            if os.fsdecode(p) == str(path):
+                raise OSError("stat failed")
+            return real_stat(p, *args, **kwargs)
+
+        with patch("os.stat", fake_stat):
+            decision = analyze_file(path, config)
+        assert isinstance(decision, MoveDecision)
+        assert decision.target_path == tmp_path / "unsorted" / "no_serial.mp4"
+
+
 class TestAnalyzeFileVideoImage:
     """视频/图片文件分析"""
 

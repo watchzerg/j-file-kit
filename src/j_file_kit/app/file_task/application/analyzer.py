@@ -246,6 +246,7 @@ def _decide_media_action(
     """决定视频/图片/字幕文件的处理方式
 
     有番号的移动到 sorted 目录。无番号时：图片直接删除；视频与字幕移动到 unsorted 目录。
+    视频在配置启用时：体积严格小于阈值则直接删除（不看文件名、不解析番号）。
 
     Args:
         path: 文件路径
@@ -255,6 +256,22 @@ def _decide_media_action(
     Returns:
         文件处理决策
     """
+    if file_type == FileType.VIDEO and config.video_small_delete_bytes is not None:
+        try:
+            file_size = path.stat().st_size
+        except OSError:
+            pass
+        else:
+            if file_size < config.video_small_delete_bytes:
+                return DeleteDecision(
+                    source_path=path,
+                    file_type=file_type,
+                    reason=(
+                        f"视频大小 {file_size} < {config.video_small_delete_bytes} "
+                        "（小体积直接删除）"
+                    ),
+                )
+
     # 1. 从文件名生成新文件名和番号；先 sanitize 确保输出文件名为合法 UTF-8
     safe_name = sanitize_surrogate_str(path.name)
     new_filename, serial_id = generate_jav_filename(

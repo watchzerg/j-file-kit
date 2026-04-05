@@ -124,6 +124,7 @@ class TestCreateDefaultJavVideoOrganizerTaskConfig:
         assert set(inbox_raw.keys()) == {"exact_stems", "keywords", "max_size_bytes"}
         InboxDeleteRules.model_validate(inbox_raw)
         assert "serial_id_combinations" in config
+        assert config["video_small_delete_bytes"] == 200 * 1024 * 1024
 
     def test_video_extensions_non_empty(self) -> None:
         result = create_default_jav_video_organizer_task_config()

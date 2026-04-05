@@ -62,6 +62,10 @@ class JavVideoOrganizeConfig(BaseModel):
         default_factory=dict,
         description="Misc文件删除规则配置（keywords, extensions, max_size）",
     )
+    video_small_delete_bytes: int | None = Field(
+        default=None,
+        description="视频体积严格小于该字节数则直接删除（不看文件名）；None 关闭（由 YAML 配置）",
+    )
     inbox_delete_rules: InboxDeleteRules = Field(
         default_factory=InboxDeleteRules,
         description="收件箱预删除（扩展名分类前）：完全匹配 stem、关键字、体积上限，OR 语义",
@@ -168,6 +172,10 @@ class AnalyzeConfig(BaseModel):
         default_factory=dict,
         description="Misc文件删除规则配置（keywords, extensions, max_size）",
     )
+    video_small_delete_bytes: int | None = Field(
+        default=None,
+        description="视频体积严格小于该字节数则直接删除；None 不按体积删（由任务从 JavVideoOrganizeConfig 注入）",
+    )
     inbox_delete_rules: InboxDeleteRules = Field(
         default_factory=InboxDeleteRules,
         description="收件箱预删除（扩展名分类前）：完全匹配 stem、关键字、体积上限，OR 语义",
@@ -243,6 +251,7 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
                 "keywords": ["扫码下载1024安卓APP", "1024手机网址"],
                 "max_size_bytes": 0,
             },
+            "video_small_delete_bytes": 200 * 1024 * 1024,
             "misc_file_delete_rules": {
                 "keywords": ["sample", "preview", "temp"],
                 "extensions": [
