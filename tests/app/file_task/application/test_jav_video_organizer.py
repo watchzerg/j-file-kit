@@ -8,6 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from j_file_kit.app.file_task.application.config import InboxDeleteRules
 from j_file_kit.app.file_task.application.jav_video_organizer import JavVideoOrganizer
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.file_task.domain.models import TaskConfig
@@ -31,6 +32,11 @@ def task_config_with_inbox() -> TaskConfig:
             "subtitle_extensions": [".srt"],
             "archive_extensions": [".zip"],
             "misc_file_delete_rules": {"keywords": ["x"], "max_size": 100},
+            "inbox_delete_rules": {
+                "exact_stems": ["Thumbs"],
+                "keywords": ["spam"],
+                "max_size_bytes": 0,
+            },
         },
     )
 
@@ -97,3 +103,8 @@ class TestJavVideoOrganizerCreateAnalyzeConfig:
         assert config.archive_dir == organizer.file_config.archive_dir
         assert config.misc_dir == organizer.file_config.misc_dir
         assert config.misc_file_delete_rules == {"keywords": ["x"], "max_size": 100}
+        assert config.inbox_delete_rules == InboxDeleteRules(
+            exact_stems={"Thumbs"},
+            keywords=["spam"],
+            max_size_bytes=0,
+        )

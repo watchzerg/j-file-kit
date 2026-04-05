@@ -64,6 +64,32 @@ class TestVideoWithoutSerialMovedToUnsorted:
         assert not source.exists()
 
 
+class TestInboxPreDelete:
+    """收件箱预删除（扩展名分类前）"""
+
+    def test_exact_stem_matched_file_deleted(
+        self,
+        pipeline_with_inbox_delete_repo,
+        tmp_path: Path,
+    ) -> None:
+        """stem 为 junk 的文件在分类前被删除，不会进入 sorted/unsorted"""
+        inbox = tmp_path / "inbox"
+        inbox.mkdir(parents=True)
+        (tmp_path / "logs").mkdir(parents=True)
+        (tmp_path / "sorted").mkdir(parents=True)
+        (tmp_path / "unsorted").mkdir(parents=True)
+        (tmp_path / "archive").mkdir(parents=True)
+        (tmp_path / "misc").mkdir(parents=True)
+
+        source = inbox / "junk.mp4"
+        source.touch()
+
+        pipeline_with_inbox_delete_repo.run(dry_run=False)
+
+        assert not source.exists()
+        assert not (tmp_path / "unsorted" / "junk.mp4").exists()
+
+
 class TestMiscFileDeleted:
     """Misc 文件删除规则"""
 

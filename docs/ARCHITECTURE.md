@@ -90,7 +90,7 @@ infrastructure/   依赖 app/ 的 ports 接口，实现 I/O
 | **FileTaskRunner** (Protocol) | 定义"做什么"，业务用例入口；定义在 `domain/models.py` |
 | **FileTaskRunManager** | 执行实例调度、并发控制（同一 task_type 单实例） |
 | **FilePipeline** | 流程协调：扫描 → 分析 → 执行 → 持久化 |
-| **Analyzer** | 分析文件，返回 Decision（纯函数） |
+| **Analyzer** | 分析文件，返回 Decision（纯函数）；先执行收件箱预删除（`inbox_delete_rules`），再按扩展名分类 |
 | **Executor** | 根据 Decision 执行文件操作，目标目录自动 `mkdir -p` |
 
 ```

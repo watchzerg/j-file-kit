@@ -78,6 +78,7 @@ class JavVideoOrganizer:
             archive_dir=self.file_config.archive_dir,
             misc_dir=self.file_config.misc_dir,
             misc_file_delete_rules=self.file_config.misc_file_delete_rules,
+            inbox_delete_rules=self.file_config.inbox_delete_rules,
             serial_pattern=build_serial_pattern(
                 self.file_config.serial_id_combinations,
             ),

@@ -36,7 +36,7 @@ class MoveDecision(BaseModel):
 class DeleteDecision(BaseModel):
     """删除文件决策
 
-    用于删除符合删除规则的文件（如小体积 misc 文件）。
+    用于删除符合删除规则的文件：misc 体积/扩展名规则、或收件箱预删除（扩展名分类之前）。
     """
 
     decision_type: Literal["delete"] = Field(

@@ -7,12 +7,14 @@
 - 纯函数设计，便于测试和推理
 - 子函数以下划线开头，表示内部使用
 - 主函数 analyze_file 是模块的唯一公开 API
+- 收件箱预删除（inbox_delete_rules）在扩展名分类之前执行，OR 语义；评估顺序为完全匹配
+  stem → 关键字子串 → stat 体积，以减少 I/O。
 """
 
 from pathlib import Path
 from typing import Any
 
-from j_file_kit.app.file_task.application.config import AnalyzeConfig
+from j_file_kit.app.file_task.application.config import AnalyzeConfig, InboxDeleteRules
 from j_file_kit.app.file_task.application.jav_filename_util import (
     generate_jav_filename,
     generate_sorted_dir,
@@ -32,6 +34,8 @@ def analyze_file(path: Path, config: AnalyzeConfig) -> FileDecision:
 
     设计意图：纯函数，不产生副作用，只分析并返回决策。
 
+    流程：① 收件箱预删除（扩展名分类前）；② 按扩展名分类；③ 按类型决定移动/删除/跳过。
+
     Args:
         path: 文件路径
         config: 分析配置
@@ -39,16 +43,51 @@ def analyze_file(path: Path, config: AnalyzeConfig) -> FileDecision:
     Returns:
         文件处理决策（MoveDecision、DeleteDecision 或 SkipDecision）
     """
-    # 1. 分类文件类型
+    inbox_reason = _check_inbox_delete_rules(path, config.inbox_delete_rules)
+    if inbox_reason:
+        return DeleteDecision(
+            source_path=path,
+            file_type=FileType.UNCLASSIFIED,
+            reason=inbox_reason,
+        )
+
     file_type = _classify_file(path, config)
 
-    # 2. 根据文件类型决定处理方式
     if file_type == FileType.MISC:
         return _decide_misc_action(path, file_type, config)
     elif file_type == FileType.ARCHIVE:
         return _decide_archive_action(path, file_type, config)
     else:  # VIDEO, IMAGE or SUBTITLE
         return _decide_media_action(path, file_type, config)
+
+
+def _check_inbox_delete_rules(path: Path, rules: InboxDeleteRules) -> str | None:
+    """收件箱预删除判定（扩展名分类之前）。
+
+    OR 语义：stem 完全匹配、stem 含任一关键字、或体积不超过 max_size_bytes（若配置）。
+    评估顺序：完全匹配 → 关键字 → stat（减少磁盘访问）。
+
+    Args:
+        path: 文件路径
+        rules: 收件箱删除规则
+
+    Returns:
+        删除原因；不应删除则返回 None
+    """
+    stem = path.stem
+    if stem in rules.exact_stems:
+        return f"stem 完全匹配收件箱删除规则: {stem!r}"
+    for kw in rules.keywords:
+        if kw in stem:
+            return f"stem 包含收件箱删除关键字: {kw!r}"
+    if rules.max_size_bytes is not None:
+        try:
+            file_size = path.stat().st_size
+        except OSError:
+            return None
+        if file_size <= rules.max_size_bytes:
+            return f"文件大小 {file_size} <= {rules.max_size_bytes}（收件箱删除规则）"
+    return None
 
 
 def _classify_file(path: Path, config: AnalyzeConfig) -> FileType:

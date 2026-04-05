@@ -14,6 +14,33 @@ from j_file_kit.app.file_task.domain.models import TaskConfig
 from j_file_kit.shared.constants import MEDIA_ROOT
 
 
+class InboxDeleteRules(BaseModel):
+    """收件箱预删除规则（扩展名分类之前，OR 语义）。
+
+    设计意图：在 analyze_file 最先阶段判定是否直接删除，避免误分类后再处理。
+    空字符串会在校验时剔除，避免误匹配。
+    """
+
+    exact_stems: set[str] = Field(
+        default_factory=set,
+        description="stem 完全等于其中任一则删除（大小写敏感）",
+    )
+    keywords: list[str] = Field(
+        default_factory=list,
+        description="stem 包含其中任一则删除（子串，大小写敏感）",
+    )
+    max_size_bytes: int | None = Field(
+        default=None,
+        description="若设置则删除体积不超过该值的文件（含 0 表示仅空文件）；None 表示不启用",
+    )
+
+    @model_validator(mode="after")
+    def drop_empty_strings(self) -> InboxDeleteRules:
+        self.exact_stems = {s for s in self.exact_stems if s != ""}
+        self.keywords = [k for k in self.keywords if k != ""]
+        return self
+
+
 class JavVideoOrganizeConfig(BaseModel):
     """JAV视频文件整理任务配置
 
@@ -34,6 +61,10 @@ class JavVideoOrganizeConfig(BaseModel):
     misc_file_delete_rules: dict[str, Any] = Field(
         default_factory=dict,
         description="Misc文件删除规则配置（keywords, extensions, max_size）",
+    )
+    inbox_delete_rules: InboxDeleteRules = Field(
+        default_factory=InboxDeleteRules,
+        description="收件箱预删除（扩展名分类前）：完全匹配 stem、关键字、体积上限，OR 语义",
     )
     serial_id_combinations: Annotated[
         list[tuple[int, int]],
@@ -137,6 +168,10 @@ class AnalyzeConfig(BaseModel):
         default_factory=dict,
         description="Misc文件删除规则配置（keywords, extensions, max_size）",
     )
+    inbox_delete_rules: InboxDeleteRules = Field(
+        default_factory=InboxDeleteRules,
+        description="收件箱预删除（扩展名分类前）：完全匹配 stem、关键字、体积上限，OR 语义",
+    )
 
     # 预编译的番号正则，在任务初始化时编译一次，整个 Pipeline 复用
     serial_pattern: re.Pattern[str] = Field(..., description="预编译的番号正则")
@@ -203,6 +238,11 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
                 ".xz",
             ],
             "serial_id_combinations": [[3, 2], [3, 3], [4, 2], [4, 3]],
+            "inbox_delete_rules": {
+                "exact_stems": [],
+                "keywords": ["扫码下载1024安卓APP", "1024手机网址"],
+                "max_size_bytes": 0,
+            },
             "misc_file_delete_rules": {
                 "keywords": ["sample", "preview", "temp"],
                 "extensions": [

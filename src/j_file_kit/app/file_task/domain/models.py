@@ -53,6 +53,9 @@ class FileType(StrEnum):
 
     用于区分不同类型的文件（视频、图片、字幕、压缩包、其他）。
     这是文件 domain 的核心概念，用于文件分类和处理决策。
+
+    UNCLASSIFIED：尚未按扩展名分类时的占位（例如收件箱预删除命中后返回的 DeleteDecision），
+    与扩展名归入的 MISC 区分。
     """
 
     VIDEO = "video"
@@ -60,6 +63,7 @@ class FileType(StrEnum):
     SUBTITLE = "subtitle"
     ARCHIVE = "archive"
     MISC = "misc"
+    UNCLASSIFIED = "unclassified"
 
 
 class SerialId(BaseModel):

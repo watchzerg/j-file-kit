@@ -173,14 +173,18 @@ class TestJavVideoOrganizerE2E:
         docker_service: str,
         clean_media: Path,
     ) -> None:
-        """体积超过 1MB 的 Misc 文件（即使含关键字）应被移动到 misc/ 目录。"""
-        dat = clean_media / "inbox" / "sample_over_limit.dat"
+        """体积超过 1MB、无 misc 删除规则匹配的 Misc 文件应被移动到 misc/ 目录。
+
+        扩展名使用 .xyz（不在 misc 扩展名删除列表中）；stem 不含常见过滤关键字子串。
+        若使用 .dat，会先被 misc 扩展名规则删除，无法覆盖「大文件进 misc」路径。
+        """
+        dat = clean_media / "inbox" / "large_blob.xyz"
         _write_file(dat, size=_1MB * 2)
 
         status = _run_task(docker_service)
 
         assert status == "completed"
-        assert (clean_media / "misc" / "sample_over_limit.dat").exists()
+        assert (clean_media / "misc" / "large_blob.xyz").exists()
         assert not dat.exists()
 
     def test_filename_conflict_resolution(

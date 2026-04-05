@@ -13,6 +13,7 @@ import pytest
 
 from j_file_kit.app.file_task.application.config import (
     AnalyzeConfig,
+    InboxDeleteRules,
     JavVideoOrganizeConfig,
 )
 from j_file_kit.app.file_task.application.jav_filename_util import (
@@ -75,6 +76,7 @@ def analyze_config_factory(
         archive_dir: Path | None = None,
         misc_dir: Path | None = None,
         misc_file_delete_rules: dict[str, Any] | None = None,
+        inbox_delete_rules: InboxDeleteRules | None = None,
         serial_pattern: re.Pattern[str] = DEFAULT_SERIAL_PATTERN,
     ) -> AnalyzeConfig:
         ext_sets = {k: set(v) for k, v in base_extensions.items()}
@@ -85,6 +87,7 @@ def analyze_config_factory(
             archive_dir=archive_dir,
             misc_dir=misc_dir,
             misc_file_delete_rules=misc_file_delete_rules or {},
+            inbox_delete_rules=inbox_delete_rules or InboxDeleteRules(),
             serial_pattern=serial_pattern,
         )
 
@@ -122,6 +125,35 @@ def pipeline_with_real_repo(
             "extensions": [".tmp", ".temp"],
             "max_size": 1048576,
         },
+    )
+    return FilePipeline(
+        run_id=1,
+        run_name="test",
+        scan_root=tmp_path / "inbox",
+        analyze_config=config,
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+
+
+@pytest.fixture
+def pipeline_with_inbox_delete_repo(
+    tmp_path: Path,
+    analyze_config_factory: Callable[..., AnalyzeConfig],
+    file_result_repository: FileResultRepositoryImpl,
+) -> FilePipeline:
+    """Pipeline 集成测试：收件箱预删除规则（stem 完全匹配）"""
+    config = analyze_config_factory(
+        sorted_dir=tmp_path / "sorted",
+        unsorted_dir=tmp_path / "unsorted",
+        archive_dir=tmp_path / "archive",
+        misc_dir=tmp_path / "misc",
+        misc_file_delete_rules={
+            "keywords": ["rarbg", "sample"],
+            "extensions": [".tmp", ".temp"],
+            "max_size": 1048576,
+        },
+        inbox_delete_rules=InboxDeleteRules(exact_stems={"junk"}),
     )
     return FilePipeline(
         run_id=1,

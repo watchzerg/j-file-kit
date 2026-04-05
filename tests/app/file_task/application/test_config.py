@@ -7,6 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from j_file_kit.app.file_task.application.config import (
+    InboxDeleteRules,
     JavVideoOrganizeConfig,
     create_default_jav_video_organizer_task_config,
 )
@@ -90,6 +91,17 @@ class TestJavVideoOrganizeConfigCombinationsValidator:
         assert len(config.serial_id_combinations) > 0
 
 
+class TestInboxDeleteRules:
+    """InboxDeleteRules 校验"""
+
+    def test_drops_empty_strings(self) -> None:
+        rules = InboxDeleteRules.model_validate(
+            {"exact_stems": ["", "keep"], "keywords": ["", "kw"]},
+        )
+        assert rules.exact_stems == {"keep"}
+        assert rules.keywords == ["kw"]
+
+
 class TestCreateDefaultJavVideoOrganizerTaskConfig:
     """create_default_jav_video_organizer_task_config 默认配置"""
 
@@ -106,6 +118,11 @@ class TestCreateDefaultJavVideoOrganizerTaskConfig:
         assert "archive_extensions" in config
         assert "inbox_dir" in config
         assert "misc_file_delete_rules" in config
+        assert "inbox_delete_rules" in config
+        inbox_raw = config["inbox_delete_rules"]
+        assert isinstance(inbox_raw, dict)
+        assert set(inbox_raw.keys()) == {"exact_stems", "keywords", "max_size_bytes"}
+        InboxDeleteRules.model_validate(inbox_raw)
         assert "serial_id_combinations" in config
 
     def test_video_extensions_non_empty(self) -> None:
