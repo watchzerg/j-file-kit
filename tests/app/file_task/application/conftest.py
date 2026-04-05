@@ -33,6 +33,7 @@ def base_extensions() -> dict[str, list[str]]:
     return {
         "video_extensions": [".mp4", ".mkv"],
         "image_extensions": [".jpg", ".png"],
+        "subtitle_extensions": [".srt", ".ass"],
         "archive_extensions": [".zip"],
     }
 

@@ -28,6 +28,7 @@ def task_config_with_inbox() -> TaskConfig:
             "misc_dir": "/media/misc",
             "video_extensions": [".mp4", ".mkv"],
             "image_extensions": [".jpg"],
+            "subtitle_extensions": [".srt"],
             "archive_extensions": [".zip"],
             "misc_file_delete_rules": {"keywords": ["x"], "max_size": 100},
         },
@@ -68,6 +69,7 @@ class TestJavVideoOrganizerRun:
                 "misc_dir": None,
                 "video_extensions": [".mp4"],
                 "image_extensions": [".jpg"],
+                "subtitle_extensions": [".srt"],
                 "archive_extensions": [".zip"],
                 "misc_file_delete_rules": {},
             },
@@ -88,6 +90,7 @@ class TestJavVideoOrganizerCreateAnalyzeConfig:
         config = organizer._create_analyze_config()
         assert config.video_extensions == {".mp4", ".mkv"}
         assert config.image_extensions == {".jpg"}
+        assert config.subtitle_extensions == {".srt"}
         assert config.archive_extensions == {".zip"}
         assert config.sorted_dir == organizer.file_config.sorted_dir
         assert config.unsorted_dir == organizer.file_config.unsorted_dir

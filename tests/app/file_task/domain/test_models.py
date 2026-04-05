@@ -259,6 +259,7 @@ class TestTaskConfigGetConfig:
                 "misc_dir": None,
                 "video_extensions": [".mp4"],
                 "image_extensions": [".jpg"],
+                "subtitle_extensions": [".srt"],
                 "archive_extensions": [".zip"],
                 "misc_file_delete_rules": {},
             },

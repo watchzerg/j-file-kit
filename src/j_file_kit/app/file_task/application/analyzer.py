@@ -47,7 +47,7 @@ def analyze_file(path: Path, config: AnalyzeConfig) -> FileDecision:
         return _decide_misc_action(path, file_type, config)
     elif file_type == FileType.ARCHIVE:
         return _decide_archive_action(path, file_type, config)
-    else:  # VIDEO or IMAGE
+    else:  # VIDEO, IMAGE or SUBTITLE
         return _decide_media_action(path, file_type, config)
 
 
@@ -69,6 +69,8 @@ def _classify_file(path: Path, config: AnalyzeConfig) -> FileType:
         return FileType.VIDEO
     if suffix in config.image_extensions:
         return FileType.IMAGE
+    if suffix in config.subtitle_extensions:
+        return FileType.SUBTITLE
     if suffix in config.archive_extensions:
         return FileType.ARCHIVE
     return FileType.MISC

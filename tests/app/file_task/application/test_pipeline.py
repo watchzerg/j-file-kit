@@ -32,6 +32,7 @@ def pipeline(tmp_path: Path) -> FilePipeline:
     config = AnalyzeConfig(
         video_extensions={".mp4"},
         image_extensions={".jpg"},
+        subtitle_extensions={".srt"},
         archive_extensions={".zip"},
         serial_pattern=DEFAULT_SERIAL_PATTERN,
     )

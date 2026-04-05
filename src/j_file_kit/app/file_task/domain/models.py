@@ -51,12 +51,13 @@ class PathEntryType(StrEnum):
 class FileType(StrEnum):
     """文件类型枚举
 
-    用于区分不同类型的文件（视频、图片、压缩包、其他）。
+    用于区分不同类型的文件（视频、图片、字幕、压缩包、其他）。
     这是文件 domain 的核心概念，用于文件分类和处理决策。
     """
 
     VIDEO = "video"
     IMAGE = "image"
+    SUBTITLE = "subtitle"
     ARCHIVE = "archive"
     MISC = "misc"
 

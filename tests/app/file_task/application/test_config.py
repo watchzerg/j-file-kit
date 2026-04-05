@@ -17,6 +17,7 @@ pytestmark = pytest.mark.unit
 _BASE_EXTENSIONS = {
     "video_extensions": [".mp4"],
     "image_extensions": [".jpg"],
+    "subtitle_extensions": [".srt"],
     "archive_extensions": [".zip"],
 }
 
@@ -29,6 +30,7 @@ class TestJavVideoOrganizeConfigExtensionValidator:
             {
                 "video_extensions": ["mp4", ".mkv"],
                 "image_extensions": ["jpg"],
+                "subtitle_extensions": ["srt"],
                 "archive_extensions": ["zip"],
             },
         )
@@ -41,6 +43,7 @@ class TestJavVideoOrganizeConfigExtensionValidator:
             {
                 "video_extensions": [".mp4", ".avi"],
                 "image_extensions": [".jpg"],
+                "subtitle_extensions": [".srt"],
                 "archive_extensions": [".zip"],
             },
         )

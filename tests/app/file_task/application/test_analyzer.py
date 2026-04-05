@@ -1,6 +1,6 @@
 """文件分析器单元测试
 
-覆盖 analyze_file 各分支：VIDEO/IMAGE、ARCHIVE、MISC。
+覆盖 analyze_file 各分支：VIDEO/IMAGE/SUBTITLE、ARCHIVE、MISC。
 """
 
 from collections.abc import Callable
@@ -87,6 +87,62 @@ class TestAnalyzeFileVideoImage:
         decision = analyze_file(path, config)
         assert isinstance(decision, MoveDecision)
         assert decision.file_type == FileType.IMAGE
+
+
+class TestAnalyzeFileSubtitle:
+    """字幕文件分析：与视频/图片使用相同的媒体规则"""
+
+    def test_subtitle_with_serial_moves_to_sorted(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        config = analyze_config_factory(sorted_dir=tmp_path / "sorted")
+        path = tmp_path / "ABC-123.srt"
+        path.touch()
+        decision = analyze_file(path, config)
+        assert isinstance(decision, MoveDecision)
+        assert decision.file_type == FileType.SUBTITLE
+        assert decision.serial_id is not None
+        assert "sorted" in str(decision.target_path)
+
+    def test_subtitle_without_serial_moves_to_unsorted(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        config = analyze_config_factory(unsorted_dir=tmp_path / "unsorted")
+        path = tmp_path / "no_serial.srt"
+        path.touch()
+        decision = analyze_file(path, config)
+        assert isinstance(decision, MoveDecision)
+        assert decision.file_type == FileType.SUBTITLE
+        assert decision.serial_id is None
+        assert decision.target_path == tmp_path / "unsorted" / "no_serial.srt"
+
+    def test_subtitle_with_serial_sorted_dir_none_skips(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        config = analyze_config_factory(sorted_dir=None)
+        path = tmp_path / "ABC-123.ass"
+        path.touch()
+        decision = analyze_file(path, config)
+        assert isinstance(decision, SkipDecision)
+        assert "sorted_dir" in decision.reason
+
+    def test_subtitle_without_serial_unsorted_dir_none_skips(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        config = analyze_config_factory(unsorted_dir=None)
+        path = tmp_path / "no_serial.ass"
+        path.touch()
+        decision = analyze_file(path, config)
+        assert isinstance(decision, SkipDecision)
+        assert "unsorted_dir" in decision.reason
 
 
 class TestAnalyzeFileArchive:

@@ -29,6 +29,7 @@ class JavVideoOrganizeConfig(BaseModel):
 
     video_extensions: set[str] = Field(..., description="视频文件扩展名")
     image_extensions: set[str] = Field(..., description="图片文件扩展名")
+    subtitle_extensions: set[str] = Field(..., description="字幕文件扩展名")
     archive_extensions: set[str] = Field(..., description="压缩文件扩展名")
     misc_file_delete_rules: dict[str, Any] = Field(
         default_factory=dict,
@@ -65,6 +66,10 @@ class JavVideoOrganizeConfig(BaseModel):
         }
         self.image_extensions = {
             ext if ext.startswith(".") else f".{ext}" for ext in self.image_extensions
+        }
+        self.subtitle_extensions = {
+            ext if ext.startswith(".") else f".{ext}"
+            for ext in self.subtitle_extensions
         }
         self.archive_extensions = {
             ext if ext.startswith(".") else f".{ext}" for ext in self.archive_extensions
@@ -112,6 +117,7 @@ class AnalyzeConfig(BaseModel):
     # 文件类型扩展名
     video_extensions: set[str] = Field(..., description="视频文件扩展名")
     image_extensions: set[str] = Field(..., description="图片文件扩展名")
+    subtitle_extensions: set[str] = Field(..., description="字幕文件扩展名")
     archive_extensions: set[str] = Field(..., description="压缩文件扩展名")
 
     # 目标目录
@@ -178,6 +184,15 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
                 ".gif",
                 ".tiff",
             ],
+            "subtitle_extensions": [
+                ".srt",
+                ".ass",
+                ".ssa",
+                ".sub",
+                ".vtt",
+                ".idx",
+                ".sup",
+            ],
             "archive_extensions": [
                 ".zip",
                 ".rar",
@@ -234,6 +249,14 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
                     ".ydl",
                     ".apk",
                     ".!qb",
+                    ".nrg",
+                    ".iso",
+                    ".dmg",
+                    ".mdf",
+                    ".mds",
+                    ".mdx",
+                    ".mht",
+                    ".dat",
                 ],
                 "max_size": 1048576,
             },

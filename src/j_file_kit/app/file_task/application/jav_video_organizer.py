@@ -71,6 +71,7 @@ class JavVideoOrganizer:
         return AnalyzeConfig(
             video_extensions=self.file_config.video_extensions,
             image_extensions=self.file_config.image_extensions,
+            subtitle_extensions=self.file_config.subtitle_extensions,
             archive_extensions=self.file_config.archive_extensions,
             sorted_dir=self.file_config.sorted_dir,
             unsorted_dir=self.file_config.unsorted_dir,
