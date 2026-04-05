@@ -58,6 +58,7 @@ def jav_video_organize_config_factory(
             "archive_dir": archive_dir,
             "misc_dir": misc_dir,
             **base_extensions,
+            "serial_id_combinations": [[3, 3]],
             "misc_file_delete_rules": {},
             **overrides,
         }

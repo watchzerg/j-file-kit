@@ -76,8 +76,8 @@ class JavVideoOrganizeConfig(BaseModel):
             lambda v: [tuple(item) for item in v] if isinstance(v, list) else v,
         ),
     ] = Field(
-        default=[(3, 3), (4, 3), (5, 3), (6, 3), (3, 4)],
-        description="番号字母数+数字数的合法组合列表，每个元素为 (字母数, 数字数)",
+        ...,
+        description="番号字母数+数字数的合法组合列表，每个元素为 (字母数, 数字数)；必填",
     )
 
     @model_validator(mode="after")

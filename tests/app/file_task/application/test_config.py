@@ -20,6 +20,7 @@ _BASE_EXTENSIONS = {
     "image_extensions": [".jpg"],
     "subtitle_extensions": [".srt"],
     "archive_extensions": [".zip"],
+    "serial_id_combinations": [[3, 3]],
 }
 
 
@@ -29,6 +30,7 @@ class TestJavVideoOrganizeConfigExtensionValidator:
     def test_extensions_without_dot_get_prefixed(self) -> None:
         config = JavVideoOrganizeConfig.model_validate(
             {
+                **_BASE_EXTENSIONS,
                 "video_extensions": ["mp4", ".mkv"],
                 "image_extensions": ["jpg"],
                 "subtitle_extensions": ["srt"],
@@ -42,6 +44,7 @@ class TestJavVideoOrganizeConfigExtensionValidator:
     def test_extensions_with_dot_unchanged(self) -> None:
         config = JavVideoOrganizeConfig.model_validate(
             {
+                **_BASE_EXTENSIONS,
                 "video_extensions": [".mp4", ".avi"],
                 "image_extensions": [".jpg"],
                 "subtitle_extensions": [".srt"],
@@ -85,10 +88,13 @@ class TestJavVideoOrganizeConfigCombinationsValidator:
                 {**_BASE_EXTENSIONS, "serial_id_combinations": [[3, -1]]},
             )
 
-    def test_default_combinations_non_empty(self) -> None:
-        """未指定时使用默认组合，且非空"""
-        config = JavVideoOrganizeConfig.model_validate(_BASE_EXTENSIONS)
-        assert len(config.serial_id_combinations) > 0
+    def test_missing_serial_id_combinations_raises(self) -> None:
+        """未提供 serial_id_combinations 时校验失败"""
+        base = {
+            k: v for k, v in _BASE_EXTENSIONS.items() if k != "serial_id_combinations"
+        }
+        with pytest.raises(ValidationError):
+            JavVideoOrganizeConfig.model_validate(base)
 
 
 class TestInboxDeleteRules:

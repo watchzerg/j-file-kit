@@ -272,6 +272,7 @@ class TestTaskConfigGetConfig:
                 "image_extensions": [".jpg"],
                 "subtitle_extensions": [".srt"],
                 "archive_extensions": [".zip"],
+                "serial_id_combinations": [[3, 3]],
                 "misc_file_delete_rules": {},
             },
         )

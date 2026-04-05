@@ -132,6 +132,7 @@ class TestJavVideoOrganizeConfigDirConstraint:
             {
                 "inbox_dir": "/media/inbox",
                 **base_extensions,
+                "serial_id_combinations": [[3, 3]],
                 "misc_file_delete_rules": {},
             },
         )
@@ -146,6 +147,7 @@ class TestJavVideoOrganizeConfigDirConstraint:
                 {
                     "inbox_dir": "/nonexistent/inbox",
                     **base_extensions,
+                    "serial_id_combinations": [[3, 3]],
                     "misc_file_delete_rules": {},
                 },
             )
@@ -160,6 +162,7 @@ class TestJavVideoOrganizeConfigDirConstraint:
                     "inbox_dir": "/nonexistent/inbox",
                     "sorted_dir": "/var/sorted",
                     **base_extensions,
+                    "serial_id_combinations": [[3, 3]],
                     "misc_file_delete_rules": {},
                 },
             )
@@ -172,7 +175,12 @@ class TestJavVideoOrganizeConfigDirConstraint:
         base_extensions: dict[str, list[str]],
     ) -> None:
         config = JavVideoOrganizeConfig.model_validate(
-            {"inbox_dir": None, **base_extensions, "misc_file_delete_rules": {}},
+            {
+                "inbox_dir": None,
+                **base_extensions,
+                "serial_id_combinations": [[3, 3]],
+                "misc_file_delete_rules": {},
+            },
         )
         assert config.inbox_dir is None
 

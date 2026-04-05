@@ -30,7 +30,9 @@ def task_config_factory(tmp_path: Path):
             "misc_dir": str(tmp_path / "misc"),
             "video_extensions": [".mp4"],
             "image_extensions": [".jpg"],
+            "subtitle_extensions": [".srt"],
             "archive_extensions": [".zip"],
+            "serial_id_combinations": [[3, 3]],
             "misc_file_delete_rules": {},
             **config_overrides,
         }
