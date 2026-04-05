@@ -245,7 +245,7 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
                 ".bz2",
                 ".xz",
             ],
-            "serial_id_combinations": [[3, 2], [3, 3], [4, 2], [4, 3]],
+            "serial_id_combinations": [[2, 3], [3, 2], [3, 3], [4, 2], [4, 3], [5, 3]],
             "inbox_delete_rules": {
                 "exact_stems": [],
                 "keywords": ["扫码下载1024安卓APP", "1024手机网址"],
