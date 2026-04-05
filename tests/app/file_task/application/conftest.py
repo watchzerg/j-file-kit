@@ -99,7 +99,10 @@ def analyze_config_factory(
             else _default_analyze_serial_spec()
         )
         return AnalyzeConfig(
-            **ext_sets,
+            video_extensions=ext_sets["video_extensions"],
+            image_extensions=ext_sets["image_extensions"],
+            subtitle_extensions=ext_sets["subtitle_extensions"],
+            archive_extensions=ext_sets["archive_extensions"],
             sorted_dir=sorted_dir,
             unsorted_dir=unsorted_dir,
             archive_dir=archive_dir,

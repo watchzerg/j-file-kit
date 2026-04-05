@@ -22,6 +22,9 @@
 - 非关键部分（可截断）：第1部分、第3部分
 - 截断顺序：优先截断第3部分；若仍超限则丢弃第3部分并截断第1部分
 
+番号匹配前可按任务配置从文件名中移除子串（`jav_filename_strip_substrings`，大小写不敏感）；
+未配置或空配置则不处理。成功重构时输出文件名同样不含已移除的子串。
+
 番号规则（由 `build_serial_pattern` + `SerialPatternSpec` 配置）：
 - 字母部分：英文字母（大小写均可），长度按规则固定为 `prefix_letters`
 - 分隔符：可选 `-`、`_` 或无分隔符
@@ -171,6 +174,19 @@ def _match_serial_id(
     return None, None, None
 
 
+def strip_jav_filename_noise(filename: str, substrings: tuple[str, ...]) -> str:
+    """从文件名中移除配置的子串（大小写不敏感，各处出现均删除）。
+
+    `substrings` 为空元组时不做处理，原样返回 `filename`。
+    """
+    if not substrings:
+        return filename
+    result = filename
+    for token in substrings:
+        result = re.sub(re.escape(token), "", result, flags=re.IGNORECASE)
+    return result
+
+
 def _truncate_to_bytes(text: str, max_bytes: int) -> str:
     """将文本截断到 UTF-8 编码不超过 max_bytes 字节。
 
@@ -194,10 +210,14 @@ def _truncate_to_bytes(text: str, max_bytes: int) -> str:
 def generate_jav_filename(
     filename: str,
     spec: SerialPatternSpec,
+    *,
+    strip_substrings: tuple[str, ...] = (),
 ) -> tuple[str, SerialId | None]:
     """根据番号生成新文件名。
 
     从文件名中提取番号并按业务规则重构文件名。
+    先按 `strip_substrings` 去除站标等子串再匹配番号；若匹配成功，输出文件名基于去噪后的字符串，
+    不再包含这些子串。未匹配到番号时返回原始 `filename`（不去噪）。
     若生成的文件名超过 MAX_FILENAME_BYTES 字节，会截断非关键内容（第1、3部分），
     确保番号、占位符和扩展名始终完整保留。
     纯文件名转换函数，不涉及路径处理。
@@ -205,6 +225,7 @@ def generate_jav_filename(
     Args:
         filename: 原始文件名（包含扩展名）
         spec: `build_serial_pattern(serial_id_rules)` 的编译结果（必选）
+        strip_substrings: 匹配前从文件名中移除的子串（大小写不敏感）；空则不处理
 
     Returns:
         元组：(新文件名, 提取到的番号)。如果没有找到番号，返回 (原文件名, None)
@@ -212,12 +233,13 @@ def generate_jav_filename(
     path = Path(filename)
     suffix = path.suffix
 
-    serial_id, start, end = _match_serial_id(filename, spec)
+    working = strip_jav_filename_noise(filename, strip_substrings)
+    serial_id, start, end = _match_serial_id(working, spec)
     if serial_id is None or start is None or end is None:
         return filename, None
 
-    part1 = filename[:start]
-    part3_with_suffix = filename[end:]
+    part1 = working[:start]
+    part3_with_suffix = working[end:]
     part3 = part3_with_suffix.removesuffix(suffix) if suffix else part3_with_suffix
     part4 = suffix
 

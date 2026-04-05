@@ -15,6 +15,7 @@ from j_file_kit.app.file_task.application.jav_filename_util import (
     build_serial_pattern,
     generate_jav_filename,
     generate_sorted_dir,
+    strip_jav_filename_noise,
 )
 from j_file_kit.app.file_task.domain.models import SerialId
 
@@ -27,6 +28,9 @@ _DEFAULT_TEST_SPEC = build_serial_pattern(
         SerialIdRule(prefix_letters=4, digits_min=2, digits_max=5),
     ],
 )
+
+# 显式传入 strip 时测站标去噪（示例使用 BBS-2048，与默认 YAML 清单中该项一致）
+_TEST_STRIP_BBS_2048: tuple[str, ...] = ("BBS-2048",)
 
 
 class TestGenerateJavFilename:
@@ -100,6 +104,47 @@ class TestGenerateJavFilename:
         assert serial_id is not None
         assert serial_id.prefix == "ABC"
         assert new_name == "ABC-123.mp4"
+
+    def test_strip_site_noise_avoids_false_serial(self) -> None:
+        """站标子串误识别为番号：去噪后无有效番号则返回原名（不去噪）。"""
+        raw = "foo_bbs-2048.com_bar.mp4"
+        new_name, serial_id = generate_jav_filename(
+            raw,
+            spec=_DEFAULT_TEST_SPEC,
+            strip_substrings=_TEST_STRIP_BBS_2048,
+        )
+        assert serial_id is None
+        assert new_name == raw
+
+    def test_strip_site_noise_then_match_keeps_output_clean(self) -> None:
+        """去噪后匹配真实番号，输出不含站标子串。"""
+        new_name, serial_id = generate_jav_filename(
+            "site_bbs-2048.com_ABC-123.mp4",
+            spec=_DEFAULT_TEST_SPEC,
+            strip_substrings=_TEST_STRIP_BBS_2048,
+        )
+        assert serial_id is not None
+        assert serial_id.prefix == "ABC"
+        assert "bbs-2048" not in new_name.lower()
+        assert new_name == "ABC-123 site_.com-serialId.mp4"
+
+    def test_strip_disabled_restores_legacy_false_positive(self) -> None:
+        """strip_substrings 为空时不去噪，bbs-2048 仍可能被识别为 BBS 番号（与未配置该字段一致）。"""
+        new_name, serial_id = generate_jav_filename(
+            "foo_bbs-2048.com.mp4",
+            spec=_DEFAULT_TEST_SPEC,
+            strip_substrings=(),
+        )
+        assert serial_id is not None
+        assert serial_id.prefix == "BBS"
+        assert "BBS-2048" in new_name
+
+
+class TestStripJavFilenameNoise:
+    """strip_jav_filename_noise"""
+
+    def test_case_insensitive(self) -> None:
+        assert strip_jav_filename_noise("XXXbBs-2048YYY", ("BBS-2048",)) == "XXXYYY"
 
 
 class TestTruncateToBytes:

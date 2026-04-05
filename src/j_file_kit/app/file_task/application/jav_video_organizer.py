@@ -80,6 +80,7 @@ class JavVideoOrganizer:
             misc_file_delete_rules=self.file_config.misc_file_delete_rules,
             video_small_delete_bytes=self.file_config.video_small_delete_bytes,
             inbox_delete_rules=self.file_config.inbox_delete_rules,
+            jav_filename_strip_substrings=self.file_config.jav_filename_strip_substrings,
             serial_pattern=build_serial_pattern(
                 self.file_config.serial_id_rules,
             ),

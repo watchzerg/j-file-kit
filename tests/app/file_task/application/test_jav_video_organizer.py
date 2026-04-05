@@ -115,3 +115,8 @@ class TestJavVideoOrganizerCreateAnalyzeConfig:
             max_size_bytes=0,
         )
         assert config.video_small_delete_bytes is None
+        assert config.jav_filename_strip_substrings == ()
+        assert (
+            config.jav_filename_strip_substrings
+            == organizer.file_config.jav_filename_strip_substrings
+        )

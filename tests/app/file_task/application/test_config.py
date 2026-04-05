@@ -140,6 +140,20 @@ class TestJavVideoOrganizeConfigSerialIdRulesValidator:
             JavVideoOrganizeConfig.model_validate(base)
 
 
+class TestJavFilenameStripSubstrings:
+    """jav_filename_strip_substrings：未配置或空即不启用（与模型 default_factory=tuple 一致）"""
+
+    def test_omitted_is_empty_tuple(self) -> None:
+        config = JavVideoOrganizeConfig.model_validate(dict(_BASE_EXTENSIONS))
+        assert config.jav_filename_strip_substrings == ()
+
+    def test_empty_list_is_empty_tuple(self) -> None:
+        config = JavVideoOrganizeConfig.model_validate(
+            {**_BASE_EXTENSIONS, "jav_filename_strip_substrings": []},
+        )
+        assert config.jav_filename_strip_substrings == ()
+
+
 class TestInboxDeleteRules:
     """InboxDeleteRules 校验"""
 
@@ -174,6 +188,25 @@ class TestCreateDefaultJavVideoOrganizerTaskConfig:
         InboxDeleteRules.model_validate(inbox_raw)
         assert "serial_id_rules" in config
         assert config["video_small_delete_bytes"] == 200 * 1024 * 1024
+        assert config["jav_filename_strip_substrings"] == [
+            "BBS-2048",
+            "BIG-2048",
+            "CHD-1080",
+            "DHD-1080",
+            "FUN-2048",
+            "HJD-2048",
+            "PP-168",
+            "RH-2048",
+            "XHD-1080",
+        ]
+
+    def test_default_strip_round_trips_through_jav_config_model(self) -> None:
+        """默认 dict 经 JavVideoOrganizeConfig 解析后 strip 为 9 项元组。"""
+        raw = create_default_jav_video_organizer_task_config().config
+        parsed = JavVideoOrganizeConfig.model_validate(raw)
+        assert parsed.jav_filename_strip_substrings == tuple(
+            raw["jav_filename_strip_substrings"],
+        )
 
     def test_video_extensions_non_empty(self) -> None:
         result = create_default_jav_video_organizer_task_config()

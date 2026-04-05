@@ -100,6 +100,8 @@ class JavVideoOrganizeConfig(BaseModel):
 
     包含目录路径和文件处理规则的完整配置，各任务类型独立管理自身配置。
     所有目录字段（非 None）必须是 MEDIA_ROOT 的子目录。
+    站标去噪列表 `jav_filename_strip_substrings` 的默认内容仅由 `create_default_jav_video_organizer_task_config`
+    提供并写入首次生成的 YAML，不在模型层写死。
     """
 
     inbox_dir: Path | None = Field(default=None, description="待处理目录")
@@ -128,6 +130,20 @@ class JavVideoOrganizeConfig(BaseModel):
         ...,
         description="番号长度规则列表（OR）；每条为前缀字母数 + 数字位数闭区间，见 SerialIdRule",
     )
+    jav_filename_strip_substrings: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "匹配番号前从文件名中移除的子串（大小写不敏感，各处出现均删除；"
+            "成功重构时输出文件名也不含这些子串）。未配置或空列表则不启用；空串在校验时剔除"
+        ),
+    )
+
+    @model_validator(mode="after")
+    def drop_empty_jav_filename_strip_tokens(self) -> JavVideoOrganizeConfig:
+        self.jav_filename_strip_substrings = tuple(
+            s for s in self.jav_filename_strip_substrings if s != ""
+        )
+        return self
 
     @model_validator(mode="after")
     def validate_serial_id_rules_non_empty(self) -> JavVideoOrganizeConfig:
@@ -189,6 +205,7 @@ class AnalyzeConfig(BaseModel):
     包含分析文件所需的所有配置信息。
     serial_pattern 由 JavVideoOrganizer._create_analyze_config 在任务初始化时
     调用 build_serial_pattern(serial_id_rules) 编译一次后传入，整个 Pipeline 复用。
+    jav_filename_strip_substrings 与任务配置同源注入，未配置则为空元组（不去噪）。
     """
 
     # 文件类型扩展名
@@ -228,10 +245,28 @@ class AnalyzeConfig(BaseModel):
         ...,
         description="build_serial_pattern(serial_id_rules) 的编译结果",
     )
+    jav_filename_strip_substrings: tuple[str, ...] = Field(
+        default_factory=tuple,
+        description=(
+            "匹配番号前从文件名中移除的子串（大小写不敏感，各处出现均删除；"
+            "成功重构时输出文件名也不含这些子串）。未配置或空列表则不启用；须与 JavVideoOrganizeConfig 一致"
+        ),
+    )
+
+    @model_validator(mode="after")
+    def drop_empty_jav_filename_strip_tokens_analyze(self) -> AnalyzeConfig:
+        self.jav_filename_strip_substrings = tuple(
+            s for s in self.jav_filename_strip_substrings if s != ""
+        )
+        return self
 
 
 def create_default_jav_video_organizer_task_config() -> TaskConfig:
     """创建 jav_video_organizer 默认任务配置。
+
+    用于应用启动时写入 `task_config.yaml`（文件不存在则初始化）。其中
+    `jav_filename_strip_substrings` 为首次安装时的站标去噪清单，可在 YAML 中增删；
+    模型层不设代码默认值，未配置或空列表表示不启用去噪。
 
     Returns:
         默认任务配置对象
@@ -295,6 +330,17 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
                 {"prefix_letters": 3, "digits_min": 2, "digits_max": 3},
                 {"prefix_letters": 4, "digits_min": 2, "digits_max": 3},
                 {"prefix_letters": 5, "digits_min": 3, "digits_max": 3},
+            ],
+            "jav_filename_strip_substrings": [
+                "BBS-2048",
+                "BIG-2048",
+                "CHD-1080",
+                "DHD-1080",
+                "FUN-2048",
+                "HJD-2048",
+                "PP-168",
+                "RH-2048",
+                "XHD-1080",
             ],
             "inbox_delete_rules": {
                 "exact_stems": [],
