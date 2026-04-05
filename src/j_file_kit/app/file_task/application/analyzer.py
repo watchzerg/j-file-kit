@@ -243,9 +243,9 @@ def _decide_media_action(
     file_type: FileType,
     config: AnalyzeConfig,
 ) -> FileDecision:
-    """决定视频/图片文件的处理方式
+    """决定视频/图片/字幕文件的处理方式
 
-    有番号的移动到 sorted 目录，无番号的移动到 unsorted 目录。
+    有番号的移动到 sorted 目录。无番号时：图片直接删除；视频与字幕移动到 unsorted 目录。
 
     Args:
         path: 文件路径
@@ -284,7 +284,13 @@ def _decide_media_action(
             serial_id=serial_id,
         )
     else:
-        # 无番号：移动到待处理目录
+        # 无番号
+        if file_type == FileType.IMAGE:
+            return DeleteDecision(
+                source_path=path,
+                file_type=file_type,
+                reason="图片无番号，直接删除",
+            )
         if config.unsorted_dir is None:
             return SkipDecision(
                 source_path=path,

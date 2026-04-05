@@ -164,8 +164,8 @@ TEST_FILES: list[TestFile] = [
     ),
     TestFile(
         "photo.jpg", 512,
-        "无番号图片 → unsorted",
-        "unsorted/photo.jpg",
+        "无番号图片 → 删除",
+        "DELETE",
     ),
 
     # ── E. 压缩文件 → archive ─────────────────────────────────────────────────

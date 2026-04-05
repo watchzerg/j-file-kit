@@ -168,6 +168,30 @@ class TestAnalyzeFileVideoImage:
         assert isinstance(decision, SkipDecision)
         assert "unsorted_dir" in decision.reason
 
+    def test_image_without_serial_deleted(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        config = analyze_config_factory(unsorted_dir=tmp_path / "unsorted")
+        path = tmp_path / "no_serial.jpg"
+        path.touch()
+        decision = analyze_file(path, config)
+        assert isinstance(decision, DeleteDecision)
+        assert decision.file_type == FileType.IMAGE
+        assert "图片无番号" in decision.reason
+
+    def test_image_without_serial_deleted_without_unsorted_dir(
+        self,
+        analyze_config_factory: Callable[..., AnalyzeConfig],
+        tmp_path: Path,
+    ) -> None:
+        config = analyze_config_factory(unsorted_dir=None)
+        path = tmp_path / "no_serial.jpg"
+        path.touch()
+        decision = analyze_file(path, config)
+        assert isinstance(decision, DeleteDecision)
+
     def test_image_classified_correctly(
         self,
         analyze_config_factory: Callable[..., AnalyzeConfig],
@@ -350,21 +374,18 @@ class TestAnalyzeFileSurrogateName:
     同时源路径保持原样（供实际 OS rename 调用使用）。
     """
 
-    def test_surrogate_name_image_unsorted_target_is_safe(
+    def test_surrogate_name_image_without_serial_deleted(
         self,
         analyze_config_factory: Callable[..., AnalyzeConfig],
         tmp_path: Path,
     ) -> None:
         config = analyze_config_factory(unsorted_dir=tmp_path / "unsorted")
-        # 模拟 Linux surrogateescape 产生的含代理字符路径
+        # 模拟 Linux surrogateescape 产生的含代理字符路径；无番号图片走删除
         surrogate_name = "+\udcfe\udca6+\udccb.jpg"
         path = tmp_path / surrogate_name
         decision = analyze_file(path, config)
-        assert isinstance(decision, MoveDecision)
-        # 目标文件名不含代理字符，可安全编码为 UTF-8
-        target_name = decision.target_path.name
-        target_name.encode("utf-8")  # 不抛出则通过
-        assert "\udcfe" not in target_name
+        assert isinstance(decision, DeleteDecision)
+        assert decision.source_path == path
 
     def test_surrogate_name_archive_target_is_safe(
         self,
@@ -415,11 +436,11 @@ class TestAnalyzeFileSurrogateName:
         tmp_path: Path,
     ) -> None:
         config = analyze_config_factory(unsorted_dir=tmp_path / "unsorted")
-        surrogate_name = "file\udcfe.jpg"
+        # 无番号视频走 unsorted，源路径保持原样（OS rename 需要原始字节）
+        surrogate_name = "file\udcfe.mp4"
         path = tmp_path / surrogate_name
         decision = analyze_file(path, config)
         assert isinstance(decision, MoveDecision)
-        # 源路径保持原样（OS rename 需要原始字节）
         assert decision.source_path == path
 
 
