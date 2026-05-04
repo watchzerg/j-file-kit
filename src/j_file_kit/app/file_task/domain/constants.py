@@ -1,6 +1,6 @@
-"""File task 相关常量定义。
+"""File task 常量（任务类型 slug 等）。
 
-包括任务类型标识符等常量。
+`TASK_TYPE_*` 与 YAML `TaskConfig.type`、路由与 `FileTaskRunner.task_type` 必须一致。
 """
 
 TASK_TYPE_JAV_VIDEO_ORGANIZER = "jav_video_organizer"

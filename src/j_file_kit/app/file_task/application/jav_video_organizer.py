@@ -1,7 +1,7 @@
-"""JAV视频文件整理任务
+"""JAV 收件箱整理任务入口（FileTaskRunner 实现）。
 
-完整的JAV视频文件整理任务实现。
-使用 Decision 模式进行文件分析和处理。
+本模块只做「配置绑定 + 管道组装」：具体扫描 / 分析 / 执行 / 落库循环在
+`FilePipeline`（`pipeline.py`）中；分析与决策在 `analyzer` + Decision 模型中。
 """
 
 import threading
@@ -18,19 +18,22 @@ from j_file_kit.app.file_task.domain.ports import FileResultRepository
 
 
 class JavVideoOrganizer:
-    """JAV视频文件整理任务
+    """JAV 视频收件箱整理用例（`FileTaskRunner` 协议实现）。
 
-    FileTaskRunner 是业务用例层，定义"做什么"。
+    核心流程（读者只需把握这一条链路）：
+        1. 构造：注入 `TaskConfig`、`log_dir`、`FileResultRepository`，并将 YAML 中的
+           `config` 反序列化为强类型的 `JavVideoOrganizeConfig`（含 `inbox_dir`、各输出目录、
+           扩展名与删除规则等）。
+        2. run：
+           - 要求 `inbox_dir` 已配置，否则立即失败；
+           - 把 `JavVideoOrganizeConfig` 压平为 `AnalyzeConfig`（供 `analyze_file` 使用）；
+           - 用 `inbox_dir` 作为扫描根目录创建 `FilePipeline`，传入同一 `run_id` 与
+             `file_result_repository`；
+           - 委托 `FilePipeline.run()`：对收件箱内每个文件执行「分析 → Decision →
+             执行（或 dry_run 仅预览）→ 写入 SQLite 结果」，返回 `FileTaskRunStatistics`。
 
-    职责：
-    - 定义业务用例，配置 Pipeline
-    - 通过 `run()` 方法执行任务
-
-    设计意图：
-    - 使用 Decision 模式进行文件分析和处理
-    - 简化的 Pipeline 设计，不使用 ProcessorChain
-    - 构造时注入所需的 repositories，支持依赖注入
-    - 所有配置（目录路径 + 文件规则）统一来自 TaskConfig
+    边界：本类不包含遍历目录、`analyze_file`、`execute_decision` 的实现；仅负责
+    把本任务类型的配置接到通用管道上。Decision 模式与统计细节见 `pipeline` / `analyzer`。
     """
 
     def __init__(
@@ -39,12 +42,10 @@ class JavVideoOrganizer:
         log_dir: Path,
         file_result_repository: FileResultRepository,
     ) -> None:
-        """初始化JAV视频文件整理任务
+        """绑定任务配置与持久化端口，并解析出 `JavVideoOrganizeConfig`。
 
-        Args:
-            task_config: 任务配置（包含目录路径和文件处理规则）
-            log_dir: 日志目录
-            file_result_repository: 文件处理结果仓储
+        `task_config` 来自 YAML；`get_config(JavVideoOrganizeConfig)` 在此处完成类型化，
+        后续 `run()` 只操作 `self.file_config` 与派生的 `AnalyzeConfig`。
         """
         self._task_config = task_config
         self.log_dir = log_dir
@@ -56,16 +57,14 @@ class JavVideoOrganizer:
 
     @property
     def task_type(self) -> str:
-        """任务类型"""
+        """任务类型常量，供调度层区分 `FileTaskRunner` 实现（与 `TASK_TYPE_*` 一致）。"""
         return TASK_TYPE_JAV_VIDEO_ORGANIZER
 
     def _create_analyze_config(self) -> AnalyzeConfig:
-        """创建分析配置
+        """从 `JavVideoOrganizeConfig` 生成 `AnalyzeConfig`（分析阶段唯一使用的配置 DTO）。
 
-        将任务配置转换为分析配置。
-
-        Returns:
-            分析配置对象
+        设计意图：`JavVideoOrganizeConfig` 面向任务/存储；`AnalyzeConfig` 面向纯函数
+        `analyze_file`，字段一一对应，避免 analyzer 依赖任务外壳类型。
         """
         return AnalyzeConfig(
             video_extensions=self.file_config.video_extensions,
@@ -88,12 +87,15 @@ class JavVideoOrganizer:
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
     ) -> FileTaskRunStatistics:
-        """运行文件整理
+        """执行任务：组装 `FilePipeline` 并委托其完成全流程，返回统计快照。
 
-        Args:
-            run_id: 执行实例 ID
-            dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
-            cancellation_event: 取消事件，用于检查任务是否被取消
+        - `dry_run=True` 时管道只生成 Decision 与预览结果，不落地移动/删除。
+        - `cancellation_event` 由上层注入，管道内轮询后提前结束遍历（详见 `FilePipeline.run`）。
+
+        Raises:
+            ValueError: `inbox_dir` 未在配置中设置。
+
+        与协议 `FileTaskRunner.run` 签名一致，供 `FileTaskRunManager` 调用。
         """
         if self.file_config.inbox_dir is None:
             raise ValueError("inbox_dir 未设置")

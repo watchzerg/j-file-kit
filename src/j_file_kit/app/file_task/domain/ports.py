@@ -105,36 +105,27 @@ class FileTaskRunRepository(Protocol):
 
 
 class FileResultRepository(Protocol):
-    """文件处理结果仓储协议
+    """单次文件处理结果的持久化端口（`file_results` 表），由 `FilePipeline` 在每文件末尾调用。
 
-    定义文件处理结果持久化操作的接口，对应数据库 file_results 表。
-    专门用于文件处理结果，不处理目录操作。
-    提供保存结果、获取统计信息等功能，由 FilePipeline 使用。
+    数据流：`FilePipeline._process_file` 将 Decision 与执行结果折叠为 `FileItemData` →
+    `save_result(run_id, …)` 追加一行；任务收尾时 `get_statistics(run_id)` 聚合为
+    `FileTaskRunStatistics`（与管道内内存计数器解耦，以仓储聚合为准）。
 
-    设计说明：方法接收 run_id 参数，支持 Repository 作为单例复用。
+    方法均接收 `run_id`，便于仓储实现类作为单例注入多轮 run。
     """
 
     def save_result(self, run_id: int, result: FileItemData) -> int:
-        """保存单个文件处理结果，返回生成的结果 ID
+        """持久化单文件处理结果（成功、跳过、删除、或异常兜底的一条记录）。
 
-        Args:
-            run_id: 执行实例 ID
-            result: 文件处理结果数据
-
-        Returns:
-            生成的结果 ID
+        `run_id` 将本条结果与 `file_task_runs` 中的执行实例关联。返回值为新插入记录的数据库 ID（由实现定义）。
         """
         ...
 
     def get_statistics(self, run_id: int) -> dict[str, Any]:
-        """获取执行实例维度的文件处理统计信息
+        """按 `run_id` 从已落库结果聚合计数与总耗时，供 `_finish_task` 构建 `FileTaskRunStatistics`。
 
-        Args:
-            run_id: 执行实例 ID
-
-        Returns:
-            统计信息字典，包含 total_items, success_items, error_items,
-            skipped_items, warning_items, total_duration_ms
+        键名约定：`total_items`、`success_items`、`error_items`、`skipped_items`、
+        `warning_items`、`total_duration_ms`（与 `FileTaskRunStatistics` 字段对齐）。
         """
         ...
 

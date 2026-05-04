@@ -314,9 +314,10 @@ class FileTaskRunReport(BaseModel):
 
 
 class FileTaskRunStatistics(BaseModel):
-    """文件任务执行统计快照
+    """单次任务 run 结束时的统计快照（返回给 `FileTaskRunManager` 写回 `file_task_runs`）。
 
-    由 FileTaskRunner.run() 返回，交由 FileTaskRunManager 持久化到数据库。
+    在 JAV 整理链路中：`FilePipeline._finish_task` 调用 `FileResultRepository.get_statistics(run_id)`，
+    将聚合字典 `model_validate` 为本模型。语义上以仓储聚合为准，而非仅依赖管道内存计数。
     """
 
     total_items: int = Field(0, description="总item数")
@@ -344,25 +345,19 @@ class FileTaskRun(BaseModel):
 
 
 class FileTaskRunner(Protocol):
-    """文件任务执行器协议
+    """可执行任务用例的协议：具体任务类（如 `JavVideoOrganizer`）在构造期注入仓储与配置来源，`run` 仅收运行时参数。
 
-    FileTaskRunner 是业务用例层，定义"做什么"。
+    契约：
+        - `task_type`：与 YAML / 常量 `TASK_TYPE_*` 一致，供并发调度按类型串行或查找实现类。
+        - `run(run_id, dry_run, cancellation_event)`：执行一次完整用例并返回 `FileTaskRunStatistics`；
+          实现通常委托 `FilePipeline`，但协议不强行规定。
 
-    职责：
-    - 定义业务用例
-    - 通过 `run()` 方法执行任务
-
-    设计说明：
-    - FileTaskRunner 在构造时获得所需的 repositories
-    - run() 只接收运行时参数（run_id、dry_run、cancellation_event）
-    - 这样设计消除了对具体 Repository 类型的依赖，保持 Protocol 通用性
-
-    所有具体任务实现必须符合此协议（通过结构子类型匹配，无需显式继承）。
+    依赖注入：`run` 不再传 repository，改为实现类 `__init__` 已持有端口，便于测试替换实现。
     """
 
     @property
     def task_type(self) -> str:
-        """任务类型标识符"""
+        """与 `TaskConfig.type` 相同的任务 slug（如 `jav_video_organizer`）。"""
         ...
 
     def run(
@@ -371,18 +366,9 @@ class FileTaskRunner(Protocol):
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
     ) -> FileTaskRunStatistics:
-        """执行任务，返回统计快照
+        """执行一次任务并得到统计；`dry_run` 时执行器只做分析与预览性的 Decision 落地，不写真实文件移动/删除。
 
-        Args:
-            run_id: 执行实例 ID
-            dry_run: 是否为预览模式（不执行实际文件操作，只进行分析）
-            cancellation_event: 取消事件，用于检查任务是否被取消
-
-        Returns:
-            任务统计信息
-
-        Raises:
-            Exception: 任务执行过程中的任何异常
+        `cancellation_event` 由管理器创建，长任务应在循环中轮询以便提前退出（如 `FilePipeline.run`）。
         """
         ...
 
@@ -395,20 +381,12 @@ _T = TypeVar("_T", bound=BaseModel)
 
 
 class TaskConfig(BaseModel):
-    """任务配置
+    """磁盘上一条任务配置的通用外壳（`task_config.yaml` 内按类型分块）。
 
-    通用任务配置容器，被所有 file task 业务逻辑依赖。
+    `config` 为 JSON 可序列化的 dict，业务侧通过 `get_config(具体Pydantic模型)` 得到强类型
+    配置（例如 `JavVideoOrganizeConfig`），避免 analyzer/管道直接依赖裸 dict。
 
-    config 字段存储任务特定的配置数据（dict），通过 get_config() 转换为
-    类型化的 Pydantic 模型，提供类型安全访问。
-
-    设计意图：
-    - 提供统一的任务配置结构（type + enabled + config dict）
-    - 通过 get_config() 方法提供类型安全的配置访问
-    - 未来可替换为判别联合配置模型，消除 Any 与 type ignore
-
-    TODO: 未来将 config 替换为判别联合配置模型，消除 Any 与 type ignore
-    方向：为不同任务类型定义显式 Pydantic 配置模型并统一解析入口
+    TODO: 将 `config` 演进为按 `type` 区分的判别联合，去掉 `Any` 与 `get_config` 上的类型忽略。
     """
 
     type: str = Field(..., description="任务类型（如 jav_video_organizer）")
@@ -416,12 +394,8 @@ class TaskConfig(BaseModel):
     config: dict[str, Any] = Field(..., description="任务特定配置")
 
     def get_config(self, config_type: type[_T]) -> _T:  # type: ignore[valid-type]
-        """将字典配置转换为具体的 Pydantic 模型，提供类型安全访问。
+        """将本记录的 `config` dict 校验并转换为指定 Pydantic 模型（如 `JavVideoOrganizeConfig`）。
 
-        Args:
-            config_type: 目标配置模型类型
-
-        Returns:
-            类型化的配置对象
+        典型调用点：`JavVideoOrganizer.__init__` 中完成一次反序列化，整次 run 共用 `self.file_config`。
         """
         return config_type.model_validate(self.config)  # type: ignore[no-any-return, attr-defined]

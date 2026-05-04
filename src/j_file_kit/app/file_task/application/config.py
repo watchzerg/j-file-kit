@@ -1,6 +1,8 @@
-"""文件任务配置模型
+"""文件任务配置模型（YAML `TaskConfig.config` 与各任务强类型配置的桥梁）。
 
-定义文件任务相关的配置模型，包括任务配置和分析配置。
+- `JavVideoOrganizeConfig`：JAV 整理任务在存储/API 层的完整配置（含 `inbox_dir` 与路径校验）。
+- `AnalyzeConfig`：从上述配置派生、仅供给 `analyze_file` 的输入 DTO（不包含 `inbox_dir`）。
+- `create_default_jav_video_organizer_task_config`：首次初始化 `task_config.yaml` 时使用。
 """
 
 from pathlib import Path
@@ -14,10 +16,9 @@ from j_file_kit.shared.constants import MEDIA_ROOT
 
 
 class InboxDeleteRules(BaseModel):
-    """收件箱预删除规则（扩展名分类之前，OR 语义）。
+    """收件箱预删除规则：在 `analyze_file` 里先于扩展名分类求值，命中则直接 `DeleteDecision`（条件 OR）。
 
-    设计意图：在 analyze_file 最先阶段判定是否直接删除，避免误分类后再处理。
-    空字符串会在校验时剔除，避免误匹配。
+    用于删掉广告壳、过小占位文件等；空 token 在 `drop_empty_strings` 中剔除。
     """
 
     exact_stems: set[str] = Field(
@@ -41,12 +42,13 @@ class InboxDeleteRules(BaseModel):
 
 
 class JavVideoOrganizeConfig(BaseModel):
-    """JAV视频文件整理任务配置
+    """JAV 收件箱整理任务的强类型配置（对应 YAML 里某 `task_type` 的 `config` 字典）。
 
-    包含目录路径和文件处理规则的完整配置，各任务类型独立管理自身配置。
-    所有目录字段（非 None）必须是 MEDIA_ROOT 的子目录。
-    站标去噪列表 `jav_filename_strip_substrings` 的默认内容仅由 `create_default_jav_video_organizer_task_config`
-    提供并写入首次生成的 YAML，不在模型层写死。
+    在代码中的位置：`TaskConfig.get_config(JavVideoOrganizeConfig)` → 供 `JavVideoOrganizer` 读取；
+    `inbox_dir` 作为 `FilePipeline` 的扫描根；其余字段经 `_create_analyze_config` 映射为 `AnalyzeConfig`。
+
+    不变量：凡非 None 的目录字段必须为 `MEDIA_ROOT` 子目录（见 `validate_dir_paths_under_media_root`）。
+    首次安装的站标去噪默认值只出现在 `create_default_jav_video_organizer_task_config`，不在本模型写死。
     """
 
     inbox_dir: Path | None = Field(default=None, description="待处理目录")
@@ -88,7 +90,7 @@ class JavVideoOrganizeConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_extensions(self) -> JavVideoOrganizeConfig:
-        """规范化扩展名格式（确保以点号开头）"""
+        """将四类扩展名统一规范为前导 `.`，与扫描/分类逻辑一致。"""
         self.video_extensions = {
             ext if ext.startswith(".") else f".{ext}" for ext in self.video_extensions
         }
@@ -135,11 +137,11 @@ class JavVideoOrganizeConfig(BaseModel):
 
 
 class AnalyzeConfig(BaseModel):
-    """分析配置
+    """`analyze_file(path, config)` 的唯一配置载体（纯分析阶段，不含收件箱路径）。
 
-    包含分析文件所需的所有配置信息。
-    番号前缀正则由 `jav_filename_util.JAV_SERIAL_PREFIX_PATTERN` 固定提供，不在此配置。
-    jav_filename_strip_substrings 与任务配置同源注入，未配置则为空元组（不去噪）。
+    由 `JavVideoOrganizeConfig` 字段子集构造：输出目录、扩展名分类、各类删除/去噪规则。
+    番号前缀等解析规则固定在 `jav_filename_util`，不经 YAML 覆盖。
+    `jav_filename_strip_substrings` 须与任务配置保持一致；空元组表示不做站标去噪。
     """
 
     # 文件类型扩展名
@@ -184,6 +186,7 @@ class AnalyzeConfig(BaseModel):
 
     @model_validator(mode="after")
     def drop_empty_jav_filename_strip_tokens_analyze(self) -> AnalyzeConfig:
+        """剔除空串 token，避免误匹配；与 `JavVideoOrganizeConfig` 侧校验语义一致。"""
         self.jav_filename_strip_substrings = tuple(
             s for s in self.jav_filename_strip_substrings if s != ""
         )
@@ -191,14 +194,11 @@ class AnalyzeConfig(BaseModel):
 
 
 def create_default_jav_video_organizer_task_config() -> TaskConfig:
-    """创建 jav_video_organizer 默认任务配置。
+    """生成「一份可写入 YAML」的 jav_video_organizer 默认 `TaskConfig`。
 
-    用于应用启动时写入 `task_config.yaml`（文件不存在则初始化）。其中
-    `jav_filename_strip_substrings` 为首次安装时的站标去噪清单，可在 YAML 中增删；
-    模型层不设代码默认值，未配置或空列表表示不启用去噪。
-
-    Returns:
-        默认任务配置对象
+    调用方：应用 lifespan 中若配置文件缺失，则以此初始化磁盘上的 `task_config.yaml`。
+    返回的 `config` 字典含容器友好路径（如 `/media/inbox`）及首字母装机的站标去噪列表；
+    用户可在 YAML 中覆盖；Pydantic 模型层不把这些默认值写死在 `JavVideoOrganizeConfig` 字段里。
     """
     return TaskConfig(
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,

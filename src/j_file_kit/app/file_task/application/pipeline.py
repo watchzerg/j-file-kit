@@ -1,11 +1,7 @@
-"""文件处理管道
+"""文件处理管道：在给定 `scan_root` 下的通用「扫描 → 分析 → 执行 → 落库」实现。
 
-协调 scan → analyze → execute 流程，管理任务统计与日志。
-
-设计意图：
-- 简化的 Pipeline 设计，不使用 ProcessorChain
-- 直接调用 analyze_file 和 execute_decision 函数
-- 管理任务统计信息和日志
+`JavVideoOrganizer` 将收件箱目录与 `AnalyzeConfig` 注入本类；本模块调用 `analyze_file`、
+`execute_decision`，并把每条 `FileItemData` 写入 `FileResultRepository`。不承载任务类型的业务含义。
 """
 
 import threading
@@ -42,14 +38,19 @@ from j_file_kit.shared.utils.logging import (
 
 
 class FilePipeline:
-    """文件处理管道
+    """针对某一 `scan_root` 的流式处理管道（与具体任务名解耦，由调用方传入 `run_name`）。
 
-    设计意图：协调 scan → analyze → execute 流程，管理任务统计与日志。
+    核心流程：
+        1. `_start_task`：挂接本 run 专用日志文件，打 TASK_START；若 `dry_run` 打预览标记。
+        2. 深度优先遍历 `scan_root`（`scan_directory_items`）：遇文件走 `_process_file`，遇目录走
+           `_cleanup_empty_directory`；循环中检查 `cancellation_event` 可提前跳出。
+        3. `_process_file`：`analyze_file` → `execute_decision`（尊重 `dry_run`）→ `save_result`；
+           异常时仍写入一条 `decision_type=error` 的结果。内存侧 `_update_statistics` 与日志
+           `_log_file_result` 同步更新。
+        4. `_finish_task`：调用 `get_statistics` 拉取库内聚合，校验为 `FileTaskRunStatistics` 并打 TASK_END。
+        5. `finally`：移除本 run 的 log handler。
 
-    职责：
-    - 协调处理流程（扫描 → 分析 → 执行）
-    - 统计信息跟踪
-    - 日志记录
+    与 `JavVideoOrganizer` 的关系：后者只负责组装参数，不重写上述循环。
     """
 
     def __init__(
@@ -61,15 +62,10 @@ class FilePipeline:
         log_dir: Path,
         file_result_repository: FileResultRepository,
     ) -> None:
-        """初始化文件处理管道
+        """绑定一次 run 的标识、扫描根、分析配置、日志目录与结果仓储。
 
-        Args:
-            run_id: 执行实例ID
-            run_name: 执行实例名称
-            scan_root: 扫描根目录
-            analyze_config: 分析配置
-            log_dir: 日志目录
-            file_result_repository: 文件处理结果仓储
+        `scan_root` 在 JAV 任务中为 `inbox_dir`；`analyze_config` 已不含 inbox 路径。
+        `file_result_repository` 由上游注入，pipeline 不关闭连接。
         """
         self.run_id = run_id
         self.run_name = run_name
@@ -93,13 +89,10 @@ class FilePipeline:
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
     ) -> FileTaskRunStatistics:
-        """运行管道
+        """遍历 `scan_root` 执行全流程；正常结束时返回库内聚合统计，取消或异常时仍尽量清理日志 handler。
 
-        协调文件处理流程：扫描 → 分析 → 执行。
-
-        Args:
-            dry_run: 是否为预览模式
-            cancellation_event: 取消事件
+        `dry_run`：执行路径仍调用 `execute_decision`，由 executor 产生预览态结果而不做破坏性 I/O。
+        `cancellation_event`：在每文件之间检查，置位后立即停止遍历并返回当前已处理结果统计（通过 `_finish_task`）。
         """
         try:
             self._start_task(dry_run)
@@ -130,7 +123,7 @@ class FilePipeline:
                 remove_task_logger(self._log_handler_id)
 
     def _start_task(self, dry_run: bool) -> None:
-        """任务开始处理"""
+        """注册按 run 隔离的 loguru sink，并写 TASK_START / dry_run 提示。"""
         self._log_handler_id = configure_task_logger(
             self.log_dir,
             self.run_name,
@@ -153,7 +146,10 @@ class FilePipeline:
             return
 
     def _finish_task(self, dry_run: bool) -> FileTaskRunStatistics:
-        """任务结束处理"""
+        """从仓储读取聚合计数，写 TASK_END 日志，并把 dict 校验为 `FileTaskRunStatistics` 返回给调用链。
+
+        终态统计以 `FileResultRepository.get_statistics` 为准。
+        """
         stats = self.file_result_repository.get_statistics(self.run_id)
 
         logger.bind(
@@ -174,13 +170,10 @@ class FilePipeline:
         return FileTaskRunStatistics.model_validate(stats)
 
     def _process_file(self, path: Path, dry_run: bool) -> None:
-        """处理单个文件
+        """单文件 happy path：`analyze_file` → `execute_decision` → 持久化 → 内存统计 → 结构化日志。
 
-        执行：分析 → 执行 → 保存结果
-
-        Args:
-            path: 文件路径
-            dry_run: 是否为预览模式
+        任一环节抛错：记录 error 级日志，写入 `decision_type=error` 的 `FileItemData`，并计入 `error_items`，
+        不中断整轮扫描（与成功路径一致的「每文件一封」模型）。
         """
         start_time = time.time()
 
@@ -232,7 +225,10 @@ class FilePipeline:
         result: ExecutionResult,
         duration_ms: float,
     ) -> FileItemData:
-        """创建文件处理结果数据"""
+        """把领域 `FileDecision` 与执行层 `ExecutionResult` 压平为可入库的 `FileItemData`（三态分支匹配）。
+
+        成功判定：`SUCCESS` 或 `PREVIEW` 视为该步达成预期；`ERROR` 携带 `result.message`。
+        """
         match decision:
             case MoveDecision():
                 return FileItemData(
@@ -278,7 +274,7 @@ class FilePipeline:
                 )
 
     def _update_statistics(self, result: ExecutionResult, duration_ms: float) -> None:
-        """更新统计信息"""
+        """按本条文件执行结果更新管道内累计计数与耗时（与仓储统计独立，用于日志/观测）。"""
         self.total_items += 1
         self.total_duration_ms += duration_ms
 
@@ -297,7 +293,7 @@ class FilePipeline:
         result: ExecutionResult,
         duration_ms: float,
     ) -> None:
-        """记录文件处理结果日志"""
+        """写 ITEM_RESULT 级结构化日志；对 `MoveDecision` 附带来源类型、番号与目标路径。"""
         item_data: dict[str, str | float | None] = {
             "file_path": sanitize_surrogate_str(str(path)),
             "decision_type": decision.decision_type,
@@ -324,11 +320,9 @@ class FilePipeline:
         ).info(f"处理文件: {sanitize_surrogate_str(path.name)}")
 
     def _cleanup_empty_directory(self, path: Path, dry_run: bool) -> None:
-        """清理空目录
+        """后序遍历到的目录：在非 dry_run 且无子内容时尝试删除，但不删除 `scan_root` 本身。
 
-        Args:
-            path: 目录路径
-            dry_run: 是否为预览模式
+        用于文件搬走或删除后收缩空文件夹；失败静默（由 `delete_directory_if_empty` 决定）。
         """
         if dry_run:
             return
