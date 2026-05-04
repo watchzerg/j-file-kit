@@ -57,7 +57,7 @@ class TestUpdateConfig:
     ) -> None:
         """更新配置成功"""
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
             tmp_path,
         )
         for name in ("inbox", "sorted", "unsorted", "archive", "misc"):
@@ -85,7 +85,7 @@ class TestUpdateConfig:
     ) -> None:
         """校验失败（如目录重复）时返回 400"""
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
             tmp_path,
         )
         path = tmp_path / "shared"

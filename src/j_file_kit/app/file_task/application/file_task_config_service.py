@@ -50,7 +50,7 @@ class FileTaskConfigService:
     ) -> JavVideoOrganizeConfig:
         """合并 JAV 视频整理任务配置更新。
 
-        从存储的原始 dict 出发做合并，避免对旧数据重复触发 model_validator（如 MEDIA_ROOT 约束）。
+        从存储的原始 dict 出发做合并，避免对旧数据重复触发 model_validator（如 JAV_MEDIA_ROOT 约束）。
 
         Args:
             current_raw: 存储层的原始配置字典

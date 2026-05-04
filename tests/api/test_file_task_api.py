@@ -93,7 +93,7 @@ class TestCancelRun:
         创建多文件以延长扫描时间。
         """
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
             tmp_path,
         )
         inbox = tmp_path / "inbox"

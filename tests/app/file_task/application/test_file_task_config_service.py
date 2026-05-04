@@ -2,9 +2,9 @@
 
 覆盖 get_jav_video_organizer_config、merge、validate_and_save。
 
-validate_and_save 系列需要目录真实存在（触发存在性校验），同时路径必须在 MEDIA_ROOT 下
+validate_and_save 系列需要目录真实存在（触发存在性校验），同时路径必须在 JAV_MEDIA_ROOT 下
 （已由 JavVideoOrganizeConfig model_validator 自动校验）。测试通过 monkeypatch
-config.MEDIA_ROOT 到 tmp_path，使 tmp_path 路径通过模型约束，
+config.JAV_MEDIA_ROOT 到 tmp_path，使 tmp_path 路径通过模型约束，
 并在 tmp_path 下创建真实子目录满足存在性校验。
 """
 
@@ -31,12 +31,12 @@ def mock_repository() -> MagicMock:
 
 @pytest.fixture
 def valid_task_config() -> TaskConfig:
-    """使用 /media 路径构造 TaskConfig，用于不需要目录真实存在的测试。"""
+    """使用 /media/jav 路径构造 TaskConfig，用于不需要目录真实存在的测试。"""
     return TaskConfig(
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         enabled=True,
         config={
-            "inbox_dir": "/media/inbox",
+            "inbox_dir": "/media/jav/inbox",
             "sorted_dir": None,
             "unsorted_dir": None,
             "archive_dir": None,
@@ -52,10 +52,10 @@ def valid_task_config() -> TaskConfig:
 
 @pytest.fixture
 def valid_task_config_with_real_dirs(tmp_path: Path) -> TaskConfig:
-    """使用 tmp_path 路径构造 TaskConfig，配合 monkeypatch config.MEDIA_ROOT 使用。
+    """使用 tmp_path 路径构造 TaskConfig，配合 monkeypatch config.JAV_MEDIA_ROOT 使用。
 
     用于需要目录真实存在（存在性校验）的测试，需同时 monkeypatch
-    j_file_kit.app.file_task.application.config.MEDIA_ROOT 为 tmp_path。
+    j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT 为 tmp_path。
     """
     return TaskConfig(
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
@@ -104,15 +104,15 @@ class TestMergeJavVideoOrganizerConfig:
             valid_task_config.config,
             {},
         )
-        assert result.inbox_dir == Path("/media/inbox")
+        assert result.inbox_dir == Path("/media/jav/inbox")
 
     def test_partial_update_merges(self, valid_task_config: TaskConfig) -> None:
         result = FileTaskConfigService.merge_jav_video_organizer_config(
             valid_task_config.config,
-            {"sorted_dir": "/media/sorted"},
+            {"sorted_dir": "/media/jav/sorted"},
         )
-        assert result.sorted_dir == Path("/media/sorted")
-        assert result.inbox_dir == Path("/media/inbox")
+        assert result.sorted_dir == Path("/media/jav/sorted")
+        assert result.inbox_dir == Path("/media/jav/inbox")
 
 
 class TestValidateAndSaveJavVideoOrganizerConfig:
@@ -139,7 +139,7 @@ class TestValidateAndSaveJavVideoOrganizerConfig:
         valid_task_config_with_real_dirs: TaskConfig,
     ) -> None:
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
             tmp_path,
         )
         (tmp_path / "inbox").mkdir()
@@ -163,7 +163,7 @@ class TestValidateAndSaveJavVideoOrganizerConfig:
         valid_task_config_with_real_dirs: TaskConfig,
     ) -> None:
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
             tmp_path,
         )
         (tmp_path / "inbox").mkdir()

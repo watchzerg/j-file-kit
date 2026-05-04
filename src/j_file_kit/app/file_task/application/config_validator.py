@@ -4,7 +4,7 @@
 validate_jav_video_organizer_config 在 API 更新路径中被调用，执行完整的业务校验，
 包括必需字段、路径冲突和目录存在性检查。
 
-注：/media 根目录约束（MEDIA_ROOT）已作为模型不变量在 JavVideoOrganizeConfig
+注：/media/jav 约束（JAV_MEDIA_ROOT）已作为模型不变量在 JavVideoOrganizeConfig
 的 model_validator 中强制执行，构造时自动触发，无需在此重复校验。
 """
 
@@ -126,7 +126,7 @@ def validate_jav_video_organizer_config(config: JavVideoOrganizeConfig) -> list[
     - 目录路径是否有冲突
     - 所有非 None 目录是否存在于文件系统
 
-    注：/media 根目录约束已由 JavVideoOrganizeConfig.model_validator 在构造时自动校验。
+    注：/media/jav 约束已由 JavVideoOrganizeConfig.model_validator 在构造时自动校验。
 
     Args:
         config: 任务配置对象

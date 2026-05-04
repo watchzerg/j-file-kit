@@ -53,10 +53,17 @@ class TestJavVideoOrganizeConfigExtensionValidator:
         assert config.video_extensions == {".mp4", ".avi"}
 
     def test_non_media_path_raises(self) -> None:
-        """非 /media 路径在 model_validate 时报错（/media 约束为模型不变量）"""
+        """非 /media/jav 路径在 model_validate 时报错（JAV_MEDIA_ROOT 约束为模型不变量）"""
         with pytest.raises(ValidationError):
             JavVideoOrganizeConfig.model_validate(
                 {**_BASE_EXTENSIONS, "inbox_dir": "/nonexistent/inbox"},
+            )
+
+    def test_media_root_path_raises(self) -> None:
+        """在 /media 下但不在 /media/jav 下的路径也应报错（下沉后旧路径不再合法）"""
+        with pytest.raises(ValidationError):
+            JavVideoOrganizeConfig.model_validate(
+                {**_BASE_EXTENSIONS, "inbox_dir": "/media/inbox"},
             )
 
 
@@ -133,8 +140,8 @@ class TestCreateDefaultJavVideoOrganizerTaskConfig:
         result = create_default_jav_video_organizer_task_config()
         assert len(result.config["video_extensions"]) > 0
 
-    def test_default_dirs_under_media(self) -> None:
-        """默认目录均在 /media 下"""
+    def test_default_dirs_under_jav(self) -> None:
+        """默认目录均在 /media/jav 下"""
         result = create_default_jav_video_organizer_task_config()
         config = result.config
         for key in (
@@ -145,4 +152,6 @@ class TestCreateDefaultJavVideoOrganizerTaskConfig:
             "misc_dir",
         ):
             assert config[key] is not None
-            assert str(config[key]).startswith("/media/"), f"{key} 应在 /media 下"
+            assert str(config[key]).startswith("/media/jav/"), (
+                f"{key} 应在 /media/jav 下"
+            )

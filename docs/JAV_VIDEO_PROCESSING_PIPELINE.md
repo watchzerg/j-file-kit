@@ -44,7 +44,7 @@ flowchart TB
 | 任务强类型 | `JavVideoOrganizeConfig` | `get_config(JavVideoOrganizeConfig)`；含 **`inbox_dir`**、各输出目录、`video_extensions`、收件箱预删、`jav_filename_strip_substrings` 等 |
 | 分析专用 | `AnalyzeConfig` | `JavVideoOrganizer` 内由 `_create_analyze_config()` 从 `JavVideoOrganizeConfig` **压平**得到；**不含** `inbox_dir`，专供 `analyze_file` |
 
-路径不变量：配置中凡出现的媒体目录须在 **`MEDIA_ROOT`（`/media`）** 下，由 Pydantic 校验（见 `JavVideoOrganizeConfig.validate_dir_paths_under_media_root`）。
+路径不变量：配置中凡出现的媒体目录须在 **`JAV_MEDIA_ROOT`（`/media/jav`）** 下，由 Pydantic 校验（见 `JavVideoOrganizeConfig.validate_dir_paths_under_media_root`）。
 
 **`JavVideoOrganizer.run`**（`jav_video_organizer.py`）要点：
 

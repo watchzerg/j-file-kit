@@ -74,8 +74,8 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
         ):
             raise RuntimeError(
                 f"{MEDIA_ROOT} 未挂载宿主机路径。"
-                "请在 Docker 配置中将媒体目录映射到容器内 /media 下，"
-                "例如：-v /host/media/inbox:/media/inbox",
+                "请在 Docker 配置中将宿主媒体目录映射到容器内 /media ，"
+                "例如：-v /host/media:/media（JAV 任务使用 /media/jav/ 等业务子路径）",
             )
 
         sqlite_dir = resolved_base_dir / "sqlite"

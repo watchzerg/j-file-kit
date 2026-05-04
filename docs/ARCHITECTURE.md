@@ -7,7 +7,7 @@
 ## 1. 项目是什么
 
 - **形态**：单进程 HTTP 服务（FastAPI + uvicorn），默认 Docker 部署；宿主机挂载 **`/data`**（应用状态）与 **`/media`**（媒体树）。
-- **当前主业务**：`jav_video_organizer` 任务从 **`inbox`** 扫描文件 → 番号/扩展名等规则分析 → 移动/删除/跳过 → 结果写入 SQLite；配置在 YAML，可选 **dry_run** 预览。**逐步说明（分析顺序、番号规则、执行与落库）见 [JAV_VIDEO_PROCESSING_PIPELINE.md](./JAV_VIDEO_PROCESSING_PIPELINE.md)。**
+- **当前主业务**：`jav_video_organizer` 任务从配置的 **`inbox_dir`**（默认 **`/media/jav/inbox`**）扫描文件 → 番号/扩展名等规则分析 → 移动/删除/跳过 → 结果写入 SQLite；配置在 YAML，可选 **dry_run** 预览。**逐步说明（分析顺序、番号规则、执行与落库）见 [JAV_VIDEO_PROCESSING_PIPELINE.md](./JAV_VIDEO_PROCESSING_PIPELINE.md)。**
 - **附属能力**：`/api/media` 下对 **`MEDIA_ROOT`（`/media`）** 的目录懒加载列举（与整理任务解耦）。
 
 依赖与版本以仓库根目录 **`pyproject.toml`** 为准。
@@ -91,7 +91,7 @@ src/j_file_kit/
 └── logs/{run_name}_{run_id}.jsonl
 ```
 
-**媒体树**（与 YAML 中目录字段对应）：挂载到 **`/media`**，如 `inbox`、`sorted`、`unsorted` 等；**所有配置中的媒体路径必须为 `MEDIA_ROOT` 子路径**（Pydantic 校验）。
+**媒体树**（与 YAML 中目录字段对应）：挂载到 **`/media`**，JAV 整理任务的业务目录在 **`/media/jav`** 下，如 `jav/inbox`、`jav/sorted`、`jav/unsorted` 等；**JAV 任务配置中的媒体路径必须为 `JAV_MEDIA_ROOT`（`/media/jav`）子路径**（Pydantic 校验）。
 
 ### 4.2 关键环境变量（AI 排错常用）
 
@@ -170,7 +170,7 @@ flowchart LR
 | `FilePipeline` | `application/pipeline.py` | 扫描 → Decision → 执行 → 每文件入库 |
 | `analyze_file` | `application/analyzer.py` | 纯函数；收件箱预删规则 → 扩展名分类 → 番号等 |
 | `execute_decision` | `application/executor.py` | 落地移动/删除；配合 dry_run |
-| `TaskConfig` / `JavVideoOrganizeConfig` | `domain/models` + `application/config.py` | YAML dict → 强类型；含 **MEDIA_ROOT** 路径约束 |
+| `TaskConfig` / `JavVideoOrganizeConfig` | `domain/models` + `application/config.py` | YAML dict → 强类型；含 **`JAV_MEDIA_ROOT`（`/media/jav`）** 目录约束 |
 | `FileResultRepository` | `domain/ports.py` + sqlite 实现 | 按 **run_id** 存文件级结果；收尾聚合成统计 |
 
 **Decision 模式**：`MoveDecision` / `DeleteDecision` / `SkipDecision`，分析阶段与执行阶段分离，便于 dry_run。
@@ -187,7 +187,7 @@ flowchart LR
 | 配置字段与校验 | `application/config.py`、`config_validator.py`、`FileTaskConfigService` |
 | 任务并发、取消、run 状态机 | `file_task_run_manager.py`、`file_task_run_repository.py` |
 | 文件结果与统计 SQL | `file_result_repository.py` |
-| 媒体路径、日志、目录工具 | `shared/constants.py`、`shared/utils/` |
+| 媒体路径、日志、目录工具 | `shared/constants.py`（`MEDIA_ROOT`）、`application/config.py`（如 `JAV_MEDIA_ROOT`）、`shared/utils/` |
 
 ---
 
@@ -223,7 +223,7 @@ flowchart LR
 
 ## 11. 常见陷阱（给 AI）
 
-- **路径**：业务配置里出现的目录必须落在 **`/media` 下**；否则构造 **`JavVideoOrganizeConfig` 即失败**。  
+- **路径**：JAV 任务配置里出现的目录必须落在 **`/media/jav` 下**（`JAV_MEDIA_ROOT`）；否则构造 **`JavVideoOrganizeConfig` 即失败**。未来新增 organizer 各自在 config 模块定义同级根目录（如 `XXX_MEDIA_ROOT = MEDIA_ROOT / "xxx"`）。  
 - **统计**：任务结束展示/持久化的汇总统计以仓储 **`get_statistics`** 与 **`FileTaskRunStatistics`** 为准，勿与 pipeline 内仅用于日志的内存计数混淆。  
 - **生产启动**：未挂载 **`/media`** 会直接 **`RuntimeError`**，属预期防护。  
 

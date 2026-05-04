@@ -37,12 +37,15 @@ _BASE_URL = "http://localhost:8000"
 def media_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """创建临时媒体根目录，包含所有必要子目录。
 
+    目录层级与容器内一致：root/jav/inbox 等，对应 /media/jav/inbox。
     module 级别：同一测试文件内所有用例共享同一目录，
     通过 clean_media fixture 在用例间清理。
     """
     root = tmp_path_factory.mktemp("media")
+    jav_root = root / "jav"
+    jav_root.mkdir()
     for subdir in _MEDIA_SUBDIRS:
-        (root / subdir).mkdir()
+        (jav_root / subdir).mkdir()
     return root
 
 
@@ -104,8 +107,9 @@ def clean_media(media_root: Path) -> Path:
     Returns:
         媒体根目录路径，各子目录已清空就绪。
     """
+    jav_root = media_root / "jav"
     for subdir in _MEDIA_SUBDIRS:
-        d = media_root / subdir
+        d = jav_root / subdir
         shutil.rmtree(d, ignore_errors=True)
         d.mkdir()
     return media_root
