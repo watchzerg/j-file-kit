@@ -28,10 +28,6 @@ def task_config_factory(tmp_path: Path):
             "unsorted_dir": str(tmp_path / "unsorted"),
             "archive_dir": str(tmp_path / "archive"),
             "misc_dir": str(tmp_path / "misc"),
-            "video_extensions": [".mp4"],
-            "image_extensions": [".jpg"],
-            "subtitle_extensions": [".srt"],
-            "archive_extensions": [".zip"],
             "misc_file_delete_rules": {},
             **config_overrides,
         }

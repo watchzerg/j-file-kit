@@ -50,8 +50,10 @@ class JavVideoOrganizeConfig(BaseModel):
     在代码中的位置：`TaskConfig.get_config(JavVideoOrganizeConfig)` → 供 `JavVideoOrganizer` 读取；
     `inbox_dir` 作为 `FilePipeline` 的扫描根；其余字段经 `_create_analyze_config` 映射为 `AnalyzeConfig`。
 
+    四类媒体扩展名、Misc 删除扩展名及站标去噪子串**不在本模型字段中**，由 `jav_organizer_defaults`
+    在 `JavVideoOrganizer._create_analyze_config` 中注入 `AnalyzeConfig`；`misc_file_delete_rules` 在存储层仅含 keywords / max_size（见剔除校验器）。
+
     不变量：凡非 None 的目录字段必须为 `JAV_MEDIA_ROOT`（`/media/jav`）子目录（见 `validate_dir_paths_under_media_root`）。
-    首次安装的站标去噪默认值只出现在 `create_default_jav_video_organizer_task_config`，不在本模型写死。
     """
 
     inbox_dir: Path | None = Field(default=None, description="待处理目录")
@@ -60,13 +62,9 @@ class JavVideoOrganizeConfig(BaseModel):
     archive_dir: Path | None = Field(default=None, description="归档目录")
     misc_dir: Path | None = Field(default=None, description="杂项目录")
 
-    video_extensions: set[str] = Field(..., description="视频文件扩展名")
-    image_extensions: set[str] = Field(..., description="图片文件扩展名")
-    subtitle_extensions: set[str] = Field(..., description="字幕文件扩展名")
-    archive_extensions: set[str] = Field(..., description="压缩文件扩展名")
     misc_file_delete_rules: dict[str, Any] = Field(
         default_factory=dict,
-        description="Misc文件删除规则配置（keywords, extensions, max_size）",
+        description="Misc 删除可调部分：keywords、max_size（扩展名列表由代码常量注入 AnalyzeConfig）",
     )
     video_small_delete_bytes: int | None = Field(
         default=None,
@@ -76,37 +74,15 @@ class JavVideoOrganizeConfig(BaseModel):
         default_factory=InboxDeleteRules,
         description="收件箱预删除（扩展名分类前）：完全匹配 stem、关键字、体积上限，OR 语义",
     )
-    jav_filename_strip_substrings: tuple[str, ...] = Field(
-        default_factory=tuple,
-        description=(
-            "匹配番号前从文件名中移除的子串（大小写不敏感，各处出现均删除；"
-            "成功重构时输出文件名也不含这些子串）。未配置或空列表则不启用；空串在校验时剔除"
-        ),
-    )
 
     @model_validator(mode="after")
-    def drop_empty_jav_filename_strip_tokens(self) -> JavVideoOrganizeConfig:
-        self.jav_filename_strip_substrings = tuple(
-            s for s in self.jav_filename_strip_substrings if s != ""
-        )
-        return self
-
-    @model_validator(mode="after")
-    def validate_extensions(self) -> JavVideoOrganizeConfig:
-        """将四类扩展名统一规范为前导 `.`，与扫描/分类逻辑一致。"""
-        self.video_extensions = {
-            ext if ext.startswith(".") else f".{ext}" for ext in self.video_extensions
-        }
-        self.image_extensions = {
-            ext if ext.startswith(".") else f".{ext}" for ext in self.image_extensions
-        }
-        self.subtitle_extensions = {
-            ext if ext.startswith(".") else f".{ext}"
-            for ext in self.subtitle_extensions
-        }
-        self.archive_extensions = {
-            ext if ext.startswith(".") else f".{ext}" for ext in self.archive_extensions
-        }
+    def strip_misc_extensions_from_yaml(self) -> JavVideoOrganizeConfig:
+        """Misc 删除扩展名以 `jav_organizer_defaults` 为准；剔除 YAML 中的 extensions，避免写回配置。"""
+        if not self.misc_file_delete_rules:
+            return self
+        rules = dict(self.misc_file_delete_rules)
+        rules.pop("extensions", None)
+        self.misc_file_delete_rules = rules
         return self
 
     @model_validator(mode="after")
@@ -144,9 +120,9 @@ class JavVideoOrganizeConfig(BaseModel):
 class AnalyzeConfig(BaseModel):
     """`analyze_file(path, config)` 的唯一配置载体（纯分析阶段，不含收件箱路径）。
 
-    由 `JavVideoOrganizeConfig` 字段子集构造：输出目录、扩展名分类、各类删除/去噪规则。
-    番号前缀等解析规则固定在 `jav_filename_util`，不经 YAML 覆盖。
-    `jav_filename_strip_substrings` 须与任务配置保持一致；空元组表示不做站标去噪。
+    由 `JavVideoOrganizer._create_analyze_config` 组装：输出目录与收件箱预删等来自任务配置；
+    四类扩展名、`jav_filename_strip_substrings`、`misc_file_delete_rules.extensions` 来自 `jav_organizer_defaults`
+    与 YAML misc 片段合并。番号前缀等解析规则固定在 `jav_filename_util`，不经 YAML 覆盖。
     """
 
     # 文件类型扩展名
@@ -185,13 +161,13 @@ class AnalyzeConfig(BaseModel):
         default_factory=tuple,
         description=(
             "匹配番号前从文件名中移除的子串（大小写不敏感，各处出现均删除；"
-            "成功重构时输出文件名也不含这些子串）。未配置或空列表则不启用；须与 JavVideoOrganizeConfig 一致"
+            "成功重构时输出文件名也不含这些子串）。管线注入时使用 `jav_organizer_defaults`"
         ),
     )
 
     @model_validator(mode="after")
     def drop_empty_jav_filename_strip_tokens_analyze(self) -> AnalyzeConfig:
-        """剔除空串 token，避免误匹配；与 `JavVideoOrganizeConfig` 侧校验语义一致。"""
+        """剔除空串 token，避免误匹配。"""
         self.jav_filename_strip_substrings = tuple(
             s for s in self.jav_filename_strip_substrings if s != ""
         )
@@ -202,8 +178,7 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
     """生成「一份可写入 YAML」的 jav_video_organizer 默认 `TaskConfig`。
 
     调用方：应用 lifespan 中若配置文件缺失，则以此初始化磁盘上的 `task_config.yaml`。
-    返回的 `config` 字典含容器友好路径（如 `/media/jav/inbox`）及首字母装机的站标去噪列表；
-    用户可在 YAML 中覆盖；Pydantic 模型层不把这些默认值写死在 `JavVideoOrganizeConfig` 字段里。
+    扩展名分类、站标去噪、Misc 删除扩展名不在此字典中，运行时由 `jav_organizer_defaults` 注入 `AnalyzeConfig`。
     """
     return TaskConfig(
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
@@ -214,63 +189,6 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
             "unsorted_dir": "/media/jav/unsorted",
             "archive_dir": "/media/jav/archive",
             "misc_dir": "/media/jav/misc",
-            "video_extensions": [
-                ".mp4",
-                ".avi",
-                ".mkv",
-                ".mov",
-                ".wmv",
-                ".flv",
-                ".webm",
-                ".rmvb",
-                ".rm",
-                ".mpg",
-                ".mpeg",
-                ".m4v",
-                ".ts",
-                ".m2ts",
-                ".vob",
-                ".divx",
-            ],
-            "image_extensions": [
-                ".jpg",
-                ".jpeg",
-                ".png",
-                ".webp",
-                ".bmp",
-                ".gif",
-                ".tiff",
-            ],
-            "subtitle_extensions": [
-                ".srt",
-                ".ass",
-                ".ssa",
-                ".sub",
-                ".vtt",
-                ".idx",
-                ".sup",
-            ],
-            "archive_extensions": [
-                ".zip",
-                ".rar",
-                ".7z",
-                ".tar",
-                ".gz",
-                ".bz2",
-                ".xz",
-            ],
-            "jav_filename_strip_substrings": [
-                "BBS-2048",
-                "BIG-2048",
-                "CHD-1080",
-                "DHD-1080",
-                "FUN-2048",
-                "HJD-2048",
-                "PP-168",
-                "RH-2048",
-                "XHD-1080",
-                "CCTV-12306",
-            ],
             "inbox_delete_rules": {
                 "exact_stems": [],
                 "keywords": ["扫码下载1024安卓APP", "1024手机网址"],
@@ -279,60 +197,6 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
             "video_small_delete_bytes": 200 * 1024 * 1024,
             "misc_file_delete_rules": {
                 "keywords": ["sample", "preview", "temp"],
-                "extensions": [
-                    ".tmp",
-                    ".temp",
-                    ".bak",
-                    ".old",
-                    ".url",
-                    ".lnk",
-                    ".mhtml",
-                    ".html",
-                    ".htm",
-                    ".nfo",
-                    ".chm",
-                    ".txt",
-                    ".xml",
-                    ".exe",
-                    ".scr",
-                    ".md",
-                    ".sfv",
-                    ".pdf",
-                    ".doc",
-                    ".docs",
-                    ".bat",
-                    ".cmd",
-                    ".pif",
-                    ".js",
-                    ".vbs",
-                    ".log",
-                    ".website",
-                    ".desktop",
-                    ".webloc",
-                    ".ds_store",
-                    ".torrent",
-                    ".rtf",
-                    ".ini",
-                    ".cfg",
-                    ".db",
-                    ".nzb",
-                    ".!ut",
-                    ".part",
-                    ".crdownload",
-                    ".aria2",
-                    ".ydl",
-                    ".apk",
-                    ".!qb",
-                    ".nrg",
-                    ".iso",
-                    ".dmg",
-                    ".mdf",
-                    ".mds",
-                    ".mdx",
-                    ".mht",
-                    ".dat",
-                    ".xltd",
-                ],
                 "max_size": 1048576,
             },
         },

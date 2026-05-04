@@ -36,9 +36,7 @@ def base_extensions() -> dict[str, list[str]]:
 
 
 @pytest.fixture
-def jav_video_organize_config_factory(
-    base_extensions: dict[str, list[str]],
-) -> Callable[..., JavVideoOrganizeConfig]:
+def jav_video_organize_config_factory() -> Callable[..., JavVideoOrganizeConfig]:
     def _create(
         inbox_dir: Path | None = None,
         sorted_dir: Path | None = None,
@@ -53,7 +51,6 @@ def jav_video_organize_config_factory(
             "unsorted_dir": unsorted_dir,
             "archive_dir": archive_dir,
             "misc_dir": misc_dir,
-            **base_extensions,
             "misc_file_delete_rules": {},
             **overrides,
         }
@@ -66,6 +63,11 @@ def jav_video_organize_config_factory(
 def analyze_config_factory(
     base_extensions: dict[str, list[str]],
 ) -> Callable[..., AnalyzeConfig]:
+    """构造 `AnalyzeConfig`，用于 analyzer/pipeline 单测（不经 `JavVideoOrganizer`）。
+
+    生产路径下扩展名与 misc.extensions、站标去噪由 `jav_organizer_defaults` 注入；此处手写字段仅为隔离测试。
+    """
+
     def _create(
         sorted_dir: Path | None = None,
         unsorted_dir: Path | None = None,
@@ -88,6 +90,7 @@ def analyze_config_factory(
             misc_file_delete_rules=misc_file_delete_rules or {},
             video_small_delete_bytes=video_small_delete_bytes,
             inbox_delete_rules=inbox_delete_rules or InboxDeleteRules(),
+            jav_filename_strip_substrings=(),
         )
 
     return _create

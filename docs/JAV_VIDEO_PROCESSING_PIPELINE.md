@@ -41,8 +41,8 @@ flowchart TB
 | 层次 | 类型 | 说明 |
 |------|------|------|
 | 存储 | `TaskConfig` | YAML 中一条记录：`type` + `enabled` + `config`（dict） |
-| 任务强类型 | `JavVideoOrganizeConfig` | `get_config(JavVideoOrganizeConfig)`；含 **`inbox_dir`**、各输出目录、`video_extensions`、收件箱预删、`jav_filename_strip_substrings` 等 |
-| 分析专用 | `AnalyzeConfig` | `JavVideoOrganizer` 内由 `_create_analyze_config()` 从 `JavVideoOrganizeConfig` **压平**得到；**不含** `inbox_dir`，专供 `analyze_file` |
+| 任务强类型 | `JavVideoOrganizeConfig` | `get_config(JavVideoOrganizeConfig)`；含 **`inbox_dir`**、各输出目录、收件箱预删、`misc_file_delete_rules` 可调片段（keywords / max_size）等 |
+| 分析专用 | `AnalyzeConfig` | `JavVideoOrganizer` 内由 `_create_analyze_config()` 组装：**四类扩展名**、**站标去噪子串**、**misc 删除扩展名**来自 **`domain/jav_organizer_defaults.py`**，并与 YAML 中的目录、`misc_file_delete_rules`（无 extensions）、收件箱预删等合并；**不含** `inbox_dir`，专供 `analyze_file` |
 
 路径不变量：配置中凡出现的媒体目录须在 **`JAV_MEDIA_ROOT`（`/media/jav`）** 下，由 Pydantic 校验（见 `JavVideoOrganizeConfig.validate_dir_paths_under_media_root`）。
 
@@ -91,11 +91,11 @@ flowchart TB
 
 ### 4.3 扩展名分类（`_classify_file`）
 
-按 `AnalyzeConfig` 中四类集合：**video / image / subtitle / archive** 扩展名（已规范为带点、小写比较）；均不匹配 → **`MISC`**。
+按 `AnalyzeConfig` 中四类集合：**video / image / subtitle / archive** 扩展名来自 **`jav_organizer_defaults`**（已规范为带点；匹配时用小写比较）；均不匹配 → **`MISC`**。
 
 ### 4.4 Misc（`_decide_misc_action`）
 
-1. `_check_misc_delete_rules`：`misc_file_delete_rules` 字典——**扩展名列表命中优先**；否则 **关键字 + max_size** 组合（见源码）。  
+1. `_check_misc_delete_rules`：`misc_file_delete_rules` 字典——**扩展名列表**由代码常量注入（**优先级最高**）；**关键字 + max_size** 来自 YAML。旧 YAML 若含 `extensions` 键会在加载 `JavVideoOrganizeConfig` 时被剔除且不写回。  
 2. 命中删除 → `DeleteDecision`。  
 3. 否则若 **`misc_dir` 未设置** → `SkipDecision`。  
 4. 否则 → **`MoveDecision`** 到 `misc_dir / 原文件名`（经 `sanitize_surrogate_str`）。
@@ -113,7 +113,7 @@ flowchart TB
 
 1. `sanitize_surrogate_str(path.name)` 得到安全文件名。  
 2. **`generate_jav_filename(safe_name, strip_substrings=...)`**（`jav_filename_util.py`）：  
-   - 先按配置 **`jav_filename_strip_substrings`** 做站标去噪（大小写不敏感）；  
+   - 先按 **`AnalyzeConfig.jav_filename_strip_substrings`**（管线从 **`jav_organizer_defaults`** 注入）做站标去噪（大小写不敏感）；  
    - 再滑动匹配番号（见第 5 节）；  
    - 返回 **`(new_filename, serial_id)`**；无番号时 **`(原 filename, None)`**（未匹配番号时**不做**去噪输出，与有番号路径不同）。
 
@@ -207,15 +207,16 @@ flowchart TB
 | 5 | `application/executor.py` | `execute_decision`、dry_run |
 | 6 | `application/file_ops.py` | `scan_directory_items`、移动冲突消解 |
 | 7 | `domain/decisions.py` | Decision / `FileItemData` |
-| 8 | `application/config.py` | `JavVideoOrganizeConfig`、`AnalyzeConfig`、`InboxDeleteRules` |
-| 9 | `infrastructure/persistence/sqlite/file_task/file_result_repository.py` | 落库与聚合（实现 `FileResultRepository`） |
+| 8 | `domain/jav_organizer_defaults.py` | JAV 默认扩展名、站标去噪、misc 删除扩展名 |
+| 9 | `application/config.py` | `JavVideoOrganizeConfig`、`AnalyzeConfig`、`InboxDeleteRules` |
+| 10 | `infrastructure/persistence/sqlite/file_task/file_result_repository.py` | 落库与聚合（实现 `FileResultRepository`） |
 
 ---
 
 ## 10. 调试与排错提示
 
 - **整批跳过移动**：检查 **`sorted_dir` / `unsorted_dir` / `misc_dir` / `archive_dir`** 是否在 YAML 中配置且通过校验。  
-- **番号总匹配失败**：对照 **`jav_filename_strip_substrings`** 与 **`JAV_SERIAL_PREFIX_PATTERN` / `SerialId`** 规则；文件名是否含合法前缀+数字段。  
+- **番号总匹配失败**：对照 **`jav_organizer_defaults`** 中的站标去噪子串与 **`JAV_SERIAL_PREFIX_PATTERN` / `SerialId`** 规则；文件名是否含合法前缀+数字段。  
 - **预览正常、正式不对**：对比 **`dry_run`** 分支是否仅跳过真实 I/O；正式路径下看 executor 返回的 **`message`** 与 DB 中 **`error_message`**。  
 - **空目录没删**：非 dry_run 下由 `_cleanup_empty_directory` 处理；根 **`scan_root`** 本身不会被删。
 

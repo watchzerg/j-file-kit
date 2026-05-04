@@ -295,13 +295,9 @@ class TestTaskConfigGetConfig:
                 "unsorted_dir": None,
                 "archive_dir": None,
                 "misc_dir": None,
-                "video_extensions": [".mp4"],
-                "image_extensions": [".jpg"],
-                "subtitle_extensions": [".srt"],
-                "archive_extensions": [".zip"],
                 "misc_file_delete_rules": {},
             },
         )
         result: JavVideoOrganizeConfig = config.get_config(JavVideoOrganizeConfig)
         assert isinstance(result, JavVideoOrganizeConfig)
-        assert result.video_extensions == {".mp4"}
+        assert result.inbox_dir is None

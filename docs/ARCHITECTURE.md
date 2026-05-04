@@ -52,7 +52,8 @@ src/j_file_kit/
 │   │   │   ├── models.py           # TaskConfig、FileTaskRunner Protocol、FileTaskRunStatistics…
 │   │   │   ├── decisions.py        # Move/Delete/Skip + FileItemData
 │   │   │   ├── ports.py            # FileTaskRunRepository、FileResultRepository、TaskConfigRepository
-│   │   │   └── constants.py        # TASK_TYPE_JAV_VIDEO_ORGANIZER 等
+│   │   │   ├── constants.py        # TASK_TYPE_JAV_VIDEO_ORGANIZER 等
+│   │   │   └── jav_organizer_defaults.py  # JAV 管线默认扩展名、站标去噪、misc 删除扩展名
 │   │   └── application/
 │   │       ├── jav_video_organizer.py   # JavVideoOrganizer：组装 FilePipeline（FileTaskRunner 实现）
 │   │       ├── pipeline.py         # FilePipeline：扫描 → analyze → execute → 落库
@@ -170,6 +171,7 @@ flowchart LR
 | `FilePipeline` | `application/pipeline.py` | 扫描 → Decision → 执行 → 每文件入库 |
 | `analyze_file` | `application/analyzer.py` | 纯函数；收件箱预删规则 → 扩展名分类 → 番号等 |
 | `execute_decision` | `application/executor.py` | 落地移动/删除；配合 dry_run |
+| `jav_organizer_defaults` | `domain/jav_organizer_defaults.py` | JAV 内置扩展名分类、misc 删除扩展名、站标去噪（不经 YAML；由 `JavVideoOrganizer` 写入 `AnalyzeConfig`） |
 | `TaskConfig` / `JavVideoOrganizeConfig` | `domain/models` + `application/config.py` | YAML dict → 强类型；含 **`JAV_MEDIA_ROOT`（`/media/jav`）** 目录约束 |
 | `FileResultRepository` | `domain/ports.py` + sqlite 实现 | 按 **run_id** 存文件级结果；收尾聚合成统计 |
 
@@ -184,6 +186,7 @@ flowchart LR
 | 新 HTTP 行为或路由前缀 | `api/app.py`、各 `app/*/api.py` |
 | 新任务类型或装配注入 | `domain/constants.py`、`application/*` 新 Runner、`api.py` 的 `_new_task_instance`、`app_state.py` 若需新 Bean |
 | 扫描/分析/移动规则 | `analyzer.py`、`executor.py`、`jav_filename_util.py` |
+| 默认扩展名 / 站标去噪 | `domain/jav_organizer_defaults.py`、`jav_video_organizer._create_analyze_config` |
 | 配置字段与校验 | `application/config.py`、`config_validator.py`、`FileTaskConfigService` |
 | 任务并发、取消、run 状态机 | `file_task_run_manager.py`、`file_task_run_repository.py` |
 | 文件结果与统计 SQL | `file_result_repository.py` |

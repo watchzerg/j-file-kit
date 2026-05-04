@@ -13,6 +13,14 @@ from j_file_kit.app.file_task.application.config import (
 )
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.file_task.domain.jav_organizer_defaults import (
+    DEFAULT_ARCHIVE_EXTENSIONS,
+    DEFAULT_IMAGE_EXTENSIONS,
+    DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS,
+    DEFAULT_MISC_FILE_DELETE_EXTENSIONS,
+    DEFAULT_SUBTITLE_EXTENSIONS,
+    DEFAULT_VIDEO_EXTENSIONS,
+)
 from j_file_kit.app.file_task.domain.models import FileTaskRunStatistics, TaskConfig
 from j_file_kit.app.file_task.domain.ports import FileResultRepository
 
@@ -22,8 +30,8 @@ class JavVideoOrganizer:
 
     核心流程（读者只需把握这一条链路）：
         1. 构造：注入 `TaskConfig`、`log_dir`、`FileResultRepository`，并将 YAML 中的
-           `config` 反序列化为强类型的 `JavVideoOrganizeConfig`（含 `inbox_dir`、各输出目录、
-           扩展名与删除规则等）。
+           `config` 反序列化为强类型的 `JavVideoOrganizeConfig`（目录与可调删除策略等）；
+           扩展名与站标去噪由 `jav_organizer_defaults` 在 `_create_analyze_config` 注入。
         2. run：
            - 要求 `inbox_dir` 已配置，否则立即失败；
            - 把 `JavVideoOrganizeConfig` 压平为 `AnalyzeConfig`（供 `analyze_file` 使用）；
@@ -64,21 +72,24 @@ class JavVideoOrganizer:
         """从 `JavVideoOrganizeConfig` 生成 `AnalyzeConfig`（分析阶段唯一使用的配置 DTO）。
 
         设计意图：`JavVideoOrganizeConfig` 面向任务/存储；`AnalyzeConfig` 面向纯函数
-        `analyze_file`，字段一一对应，避免 analyzer 依赖任务外壳类型。
+        `analyze_file`。四类扩展名、`jav_filename_strip_substrings`、`misc_file_delete_rules.extensions`
+        来自 `jav_organizer_defaults`；YAML 中的 misc extensions 键已在模型层剔除。
         """
+        misc_rules = dict(self.file_config.misc_file_delete_rules)
+        misc_rules["extensions"] = sorted(DEFAULT_MISC_FILE_DELETE_EXTENSIONS)
         return AnalyzeConfig(
-            video_extensions=self.file_config.video_extensions,
-            image_extensions=self.file_config.image_extensions,
-            subtitle_extensions=self.file_config.subtitle_extensions,
-            archive_extensions=self.file_config.archive_extensions,
+            video_extensions=set(DEFAULT_VIDEO_EXTENSIONS),
+            image_extensions=set(DEFAULT_IMAGE_EXTENSIONS),
+            subtitle_extensions=set(DEFAULT_SUBTITLE_EXTENSIONS),
+            archive_extensions=set(DEFAULT_ARCHIVE_EXTENSIONS),
             sorted_dir=self.file_config.sorted_dir,
             unsorted_dir=self.file_config.unsorted_dir,
             archive_dir=self.file_config.archive_dir,
             misc_dir=self.file_config.misc_dir,
-            misc_file_delete_rules=self.file_config.misc_file_delete_rules,
+            misc_file_delete_rules=misc_rules,
             video_small_delete_bytes=self.file_config.video_small_delete_bytes,
             inbox_delete_rules=self.file_config.inbox_delete_rules,
-            jav_filename_strip_substrings=self.file_config.jav_filename_strip_substrings,
+            jav_filename_strip_substrings=DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS,
         )
 
     def run(

@@ -9,6 +9,8 @@
 - 主函数 analyze_file 是模块的唯一公开 API
 - 收件箱预删除（inbox_delete_rules）在扩展名分类之前执行，OR 语义；评估顺序为完全匹配
   stem → 关键字子串 → stat 体积，以减少 I/O。
+- `AnalyzeConfig` 的四类扩展名、`misc_file_delete_rules.extensions`、站标去噪列表在生产路径由
+  `JavVideoOrganizer` 从 `jav_organizer_defaults` 注入；单测可直接构造 `AnalyzeConfig`。
 """
 
 from pathlib import Path

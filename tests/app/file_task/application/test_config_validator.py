@@ -124,56 +124,40 @@ class TestJavVideoOrganizeConfigDirConstraint:
     在任何 model_validate 调用时自动触发。
     """
 
-    def test_jav_media_subpath_accepted(
-        self,
-        base_extensions: dict[str, list[str]],
-    ) -> None:
+    def test_jav_media_subpath_accepted(self) -> None:
         config = JavVideoOrganizeConfig.model_validate(
             {
                 "inbox_dir": "/media/jav/inbox",
-                **base_extensions,
                 "misc_file_delete_rules": {},
             },
         )
         assert config.inbox_dir == Path("/media/jav/inbox")
 
-    def test_non_media_path_raises(
-        self,
-        base_extensions: dict[str, list[str]],
-    ) -> None:
+    def test_non_media_path_raises(self) -> None:
         with pytest.raises(ValidationError):
             JavVideoOrganizeConfig.model_validate(
                 {
                     "inbox_dir": "/nonexistent/inbox",
-                    **base_extensions,
                     "misc_file_delete_rules": {},
                 },
             )
 
-    def test_media_root_path_raises(
-        self,
-        base_extensions: dict[str, list[str]],
-    ) -> None:
+    def test_media_root_path_raises(self) -> None:
         """在 /media 下但不在 /media/jav 下的路径也应报错"""
         with pytest.raises(ValidationError):
             JavVideoOrganizeConfig.model_validate(
                 {
                     "inbox_dir": "/media/inbox",
-                    **base_extensions,
                     "misc_file_delete_rules": {},
                 },
             )
 
-    def test_multiple_non_media_paths_all_reported(
-        self,
-        base_extensions: dict[str, list[str]],
-    ) -> None:
+    def test_multiple_non_media_paths_all_reported(self) -> None:
         with pytest.raises(ValidationError) as exc_info:
             JavVideoOrganizeConfig.model_validate(
                 {
                     "inbox_dir": "/nonexistent/inbox",
                     "sorted_dir": "/var/sorted",
-                    **base_extensions,
                     "misc_file_delete_rules": {},
                 },
             )
@@ -181,14 +165,10 @@ class TestJavVideoOrganizeConfigDirConstraint:
         assert "inbox_dir" in error_str
         assert "sorted_dir" in error_str
 
-    def test_none_dirs_accepted(
-        self,
-        base_extensions: dict[str, list[str]],
-    ) -> None:
+    def test_none_dirs_accepted(self) -> None:
         config = JavVideoOrganizeConfig.model_validate(
             {
                 "inbox_dir": None,
-                **base_extensions,
                 "misc_file_delete_rules": {},
             },
         )

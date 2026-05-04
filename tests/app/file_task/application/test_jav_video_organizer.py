@@ -11,6 +11,14 @@ import pytest
 from j_file_kit.app.file_task.application.config import InboxDeleteRules
 from j_file_kit.app.file_task.application.jav_video_organizer import JavVideoOrganizer
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.file_task.domain.jav_organizer_defaults import (
+    DEFAULT_ARCHIVE_EXTENSIONS,
+    DEFAULT_IMAGE_EXTENSIONS,
+    DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS,
+    DEFAULT_MISC_FILE_DELETE_EXTENSIONS,
+    DEFAULT_SUBTITLE_EXTENSIONS,
+    DEFAULT_VIDEO_EXTENSIONS,
+)
 from j_file_kit.app.file_task.domain.models import TaskConfig
 
 pytestmark = pytest.mark.unit
@@ -27,10 +35,6 @@ def task_config_with_inbox() -> TaskConfig:
             "unsorted_dir": "/media/jav/unsorted",
             "archive_dir": "/media/jav/archive",
             "misc_dir": "/media/jav/misc",
-            "video_extensions": [".mp4", ".mkv"],
-            "image_extensions": [".jpg"],
-            "subtitle_extensions": [".srt"],
-            "archive_extensions": [".zip"],
             "misc_file_delete_rules": {"keywords": ["x"], "max_size": 100},
             "inbox_delete_rules": {
                 "exact_stems": ["Thumbs"],
@@ -73,10 +77,6 @@ class TestJavVideoOrganizerRun:
                 "unsorted_dir": None,
                 "archive_dir": None,
                 "misc_dir": None,
-                "video_extensions": [".mp4"],
-                "image_extensions": [".jpg"],
-                "subtitle_extensions": [".srt"],
-                "archive_extensions": [".zip"],
                 "misc_file_delete_rules": {},
             },
         )
@@ -94,23 +94,26 @@ class TestJavVideoOrganizerCreateAnalyzeConfig:
 
     def test_maps_all_fields(self, organizer: JavVideoOrganizer) -> None:
         config = organizer._create_analyze_config()
-        assert config.video_extensions == {".mp4", ".mkv"}
-        assert config.image_extensions == {".jpg"}
-        assert config.subtitle_extensions == {".srt"}
-        assert config.archive_extensions == {".zip"}
+        assert config.video_extensions == set(DEFAULT_VIDEO_EXTENSIONS)
+        assert config.image_extensions == set(DEFAULT_IMAGE_EXTENSIONS)
+        assert config.subtitle_extensions == set(DEFAULT_SUBTITLE_EXTENSIONS)
+        assert config.archive_extensions == set(DEFAULT_ARCHIVE_EXTENSIONS)
         assert config.sorted_dir == organizer.file_config.sorted_dir
         assert config.unsorted_dir == organizer.file_config.unsorted_dir
         assert config.archive_dir == organizer.file_config.archive_dir
         assert config.misc_dir == organizer.file_config.misc_dir
-        assert config.misc_file_delete_rules == {"keywords": ["x"], "max_size": 100}
+        assert config.misc_file_delete_rules["keywords"] == ["x"]
+        assert config.misc_file_delete_rules["max_size"] == 100
+        assert config.misc_file_delete_rules["extensions"] == sorted(
+            DEFAULT_MISC_FILE_DELETE_EXTENSIONS,
+        )
         assert config.inbox_delete_rules == InboxDeleteRules(
             exact_stems={"Thumbs"},
             keywords=["spam"],
             max_size_bytes=0,
         )
         assert config.video_small_delete_bytes is None
-        assert config.jav_filename_strip_substrings == ()
         assert (
             config.jav_filename_strip_substrings
-            == organizer.file_config.jav_filename_strip_substrings
+            == DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS
         )

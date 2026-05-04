@@ -41,10 +41,6 @@ def valid_task_config() -> TaskConfig:
             "unsorted_dir": None,
             "archive_dir": None,
             "misc_dir": None,
-            "video_extensions": [".mp4"],
-            "image_extensions": [".jpg"],
-            "subtitle_extensions": [".srt"],
-            "archive_extensions": [".zip"],
             "misc_file_delete_rules": {},
         },
     )
@@ -66,10 +62,6 @@ def valid_task_config_with_real_dirs(tmp_path: Path) -> TaskConfig:
             "unsorted_dir": None,
             "archive_dir": None,
             "misc_dir": None,
-            "video_extensions": [".mp4"],
-            "image_extensions": [".jpg"],
-            "subtitle_extensions": [".srt"],
-            "archive_extensions": [".zip"],
             "misc_file_delete_rules": {},
         },
     )

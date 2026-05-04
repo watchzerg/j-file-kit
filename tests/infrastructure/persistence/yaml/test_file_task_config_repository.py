@@ -48,7 +48,7 @@ class TestFileTaskConfigRepositoryGetByType:
                 {
                     "jav_video_organizer": {
                         "enabled": True,
-                        "config": {"inbox_dir": None, "video_extensions": [".mp4"]},
+                        "config": {"inbox_dir": None, "misc_file_delete_rules": {}},
                     },
                 },
                 allow_unicode=True,
@@ -59,7 +59,7 @@ class TestFileTaskConfigRepositoryGetByType:
         assert result is not None
         assert result.type == "jav_video_organizer"
         assert result.enabled is True
-        assert ".mp4" in result.config.get("video_extensions", [])
+        assert result.config.get("inbox_dir") is None
 
 
 class TestFileTaskConfigRepositoryUpdate:
@@ -99,7 +99,7 @@ class TestFileTaskConfigRepositoryUpdate:
         config = TaskConfig(
             type="jav_video_organizer",
             enabled=False,
-            config={"inbox_dir": inbox_dir, "video_extensions": [".mp4"]},
+            config={"inbox_dir": inbox_dir},
         )
         repository.update(config)
         result = repository.get_by_type("jav_video_organizer")
