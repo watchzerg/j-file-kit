@@ -51,10 +51,7 @@ class RawFileOrganizer:
         c = self.file_config
         return RawAnalyzeConfig(
             folders_to_delete=c.folders_to_delete,
-            folders_video_huge=c.folders_video_huge,
-            folders_video_complex=c.folders_video_complex,
-            folders_video_movie=c.folders_video_movie,
-            folders_video_vr=c.folders_video_vr,
+            folders_video=c.folders_video,
             folders_compressed=c.folders_compressed,
             folders_pic=c.folders_pic,
             folders_audio=c.folders_audio,

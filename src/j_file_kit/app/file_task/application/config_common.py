@@ -39,10 +39,7 @@ class InboxDeleteRules(BaseModel):
 RAW_FILE_ORGANIZE_PATH_FIELD_NAMES: tuple[str, ...] = (
     "inbox_dir",
     "folders_to_delete",
-    "folders_video_huge",
-    "folders_video_complex",
-    "folders_video_movie",
-    "folders_video_vr",
+    "folders_video",
     "folders_compressed",
     "folders_pic",
     "folders_audio",

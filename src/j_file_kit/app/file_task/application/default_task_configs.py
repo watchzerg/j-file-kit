@@ -46,10 +46,7 @@ def create_default_raw_file_organizer_task_config() -> TaskConfig:
         config={
             "inbox_dir": f"{base}/inbox",
             "folders_to_delete": f"{base}/folders_to_delete",
-            "folders_video_huge": f"{base}/folders_video_huge",
-            "folders_video_complex": f"{base}/folders_video_complex",
-            "folders_video_movie": f"{base}/folders_video_movie",
-            "folders_video_vr": f"{base}/folders_video_vr",
+            "folders_video": f"{base}/folders_video",
             "folders_compressed": f"{base}/folders_compressed",
             "folders_pic": f"{base}/folders_pic",
             "folders_audio": f"{base}/folders_audio",

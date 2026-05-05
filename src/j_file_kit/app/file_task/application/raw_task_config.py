@@ -23,16 +23,7 @@ class RawFileOrganizeConfig(BaseModel):
         default=None,
         description="待人工确认的疑似删除目录（Raw 阶段 2.1 命中关键字时整目录迁入）",
     )
-    folders_video_huge: Path | None = Field(
-        default=None,
-        description="超大体积目录（人工处理）",
-    )
-    folders_video_complex: Path | None = Field(
-        default=None,
-        description="复杂视频目录（除平铺视频外另有文件或子目录）",
-    )
-    folders_video_movie: Path | None = Field(default=None, description="电影目录")
-    folders_video_vr: Path | None = Field(default=None, description="VR 视频目录")
+    folders_video: Path | None = Field(default=None, description="视频目录")
     folders_compressed: Path | None = Field(default=None, description="压缩文件目录")
     folders_pic: Path | None = Field(default=None, description="图片目录")
     folders_audio: Path | None = Field(default=None, description="音频目录")

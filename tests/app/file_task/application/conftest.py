@@ -69,10 +69,7 @@ def raw_file_organize_config_factory() -> Callable[..., RawFileOrganizeConfig]:
         config: dict[str, object] = {
             "inbox_dir": inbox_dir,
             "folders_to_delete": None,
-            "folders_video_huge": None,
-            "folders_video_complex": None,
-            "folders_video_movie": None,
-            "folders_video_vr": None,
+            "folders_video": None,
             "folders_compressed": None,
             "folders_pic": None,
             "folders_audio": None,

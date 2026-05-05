@@ -39,10 +39,7 @@ def _raw_cfg(
     _ = tmp_path
     return RawAnalyzeConfig(
         folders_to_delete=folders_to_delete,
-        folders_video_huge=None,
-        folders_video_complex=None,
-        folders_video_movie=None,
-        folders_video_vr=None,
+        folders_video=None,
         folders_compressed=None,
         folders_pic=None,
         folders_audio=None,
