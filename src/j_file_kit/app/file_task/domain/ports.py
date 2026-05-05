@@ -107,7 +107,8 @@ class FileTaskRunRepository(Protocol):
 class FileResultRepository(Protocol):
     """单次文件处理结果的持久化端口（`file_results` 表），由 `FilePipeline` 在每文件末尾调用。
 
-    数据流：`FilePipeline._process_file` 将 Decision 与执行结果折叠为 `FileItemData` →
+    数据流：`process_single_file_for_run`（见 `pipeline_item_processor`）将 Decision 与执行结果经
+    `build_file_item_data` 折叠为 `FileItemData` →
     `save_result(run_id, …)` 追加一行；任务收尾时 `get_statistics(run_id)` 聚合为
     `FileTaskRunStatistics`（与管道内内存计数器解耦，以仓储聚合为准）。
 
@@ -122,7 +123,7 @@ class FileResultRepository(Protocol):
         ...
 
     def get_statistics(self, run_id: int) -> dict[str, Any]:
-        """按 `run_id` 从已落库结果聚合计数与总耗时，供 `_finish_task` 构建 `FileTaskRunStatistics`。
+        """按 `run_id` 从已落库结果聚合计数与总耗时，供任务收尾构建 `FileTaskRunStatistics`。
 
         键名约定：`total_items`、`success_items`、`error_items`、`skipped_items`、
         `warning_items`、`total_duration_ms`（与 `FileTaskRunStatistics` 字段对齐）。

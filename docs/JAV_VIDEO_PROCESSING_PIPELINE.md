@@ -57,14 +57,14 @@ flowchart TB
 
 ## 3. 目录扫描：`FilePipeline` + `scan_directory_items`
 
-**文件**：`application/pipeline.py`、`application/file_ops.py`。
+**文件**：`application/pipeline.py`（编排）、`application/file_ops.py`、`application/pipeline_item_processor.py`、`application/pipeline_directory_cleanup.py`。
 
 - **遍历根**：`scan_root` 即收件箱 **`inbox_dir`**。  
 - **顺序**：`os.walk(..., topdown=False)` **自底向上**：先子目录内文件，再子目录，再父目录。意图是：文件先被移走/删掉后，空目录可在后续步骤被删掉。  
-- **对每个 FILE**：`_process_file`。  
-- **对每个 DIRECTORY**（含根以下的目录节点）：`_cleanup_empty_directory`——**非** `dry_run`、且不是 `scan_root` 本身时，尝试删除空目录（见 `delete_directory_if_empty`）。
+- **对每个 FILE**：`process_single_file_for_run`（`pipeline_item_processor`）。  
+- **对每个 DIRECTORY**（含根以下的目录节点）：`cleanup_empty_directory_under_scan`——**非** `dry_run`、且不是 `scan_root` 本身时，尝试删除空目录（见 `delete_directory_if_empty`）。
 
-**取消**：在「每个路径项」之间检查 `cancellation_event`；置位后记录日志并跳出循环，再进入 `_finish_task`。
+**取消**：在「每个路径项」之间检查 `cancellation_event`；置位后记录日志并跳出循环，再进入 `finish_task_with_repository_statistics`。
 
 ---
 
@@ -169,19 +169,19 @@ flowchart TB
 
 ---
 
-## 7. .pipeline 内：结果落库与收尾统计
+## 7. pipeline 内：结果落库与收尾统计
 
-**文件**：`application/pipeline.py`。
+**文件**：`application/pipeline.py`（编排）、`application/pipeline_item_processor.py`、`application/pipeline_result_mapper.py`、`application/pipeline_observer.py`。
 
 对每个文件：
 
 1. `analyze_jav_file` → `execute_decision`。  
-2. 组装 **`FileItemData`**（决策类型、目标路径、成功与否、`duration_ms` 等）。  
+2. **`build_file_item_data`** 组装 **`FileItemData`**（决策类型、目标路径、成功与否、`duration_ms` 等）。  
 3. **`file_result_repository.save_result(run_id, item_data)`**。  
-4. 内存侧 `_update_statistics`、结构化 **`ITEM_RESULT` 日志**。  
-5. 若 `analyze_jav_file`～`execute_decision` **整段抛异常**：写一条 **`decision_type=error`** 的 `FileItemData`，仍 `save_result`。
+4. **`PipelineRunCounters.apply_execution_result`**、结构化 **`ITEM_RESULT` 日志**（`pipeline_observer`）。  
+5. 若 `analyze_jav_file`～`execute_decision` **整段抛异常**：写一条 **`decision_type=error`** 的 `FileItemData`，仍 `save_result`；内存侧 **`record_file_processing_exception`**。
 
-**`_finish_task`**：调用 **`get_statistics(run_id)`**（SQLite 聚合），校验为 **`FileTaskRunStatistics`** 返回上层；任务级开始/结束另有 **`TASK_START` / `TASK_END`** 日志。
+**收尾**：**`finish_task_with_repository_statistics`** 调用 **`get_statistics(run_id)`**（SQLite 聚合），校验为 **`FileTaskRunStatistics`** 返回上层；任务级开始/结束另有 **`TASK_START` / `TASK_END`** 日志。
 
 **重要**：对外展示的汇总统计以 **仓储聚合** 为准；管道对象上另有内存计数，用途与日志一致，不要与 DB 混用含义。
 

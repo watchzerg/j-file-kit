@@ -82,7 +82,7 @@ class FileTaskRunReport(BaseModel):
 class FileTaskRunStatistics(BaseModel):
     """单次任务 run 结束时的统计快照（返回给 `FileTaskRunManager` 写回 `file_task_runs`）。
 
-    在 JAV 整理链路中：`FilePipeline._finish_task` 调用 `FileResultRepository.get_statistics(run_id)`，
+    在 JAV 整理链路中：`finish_task_with_repository_statistics` 调用 `FileResultRepository.get_statistics(run_id)`，
     将聚合字典 `model_validate` 为本模型。语义上以仓储聚合为准，而非仅依赖管道内存计数。
 
     Raw 整理链路：`RawFilePipeline` 在上述聚合之上合并「阶段化」计数（仍不写目录明细表），
