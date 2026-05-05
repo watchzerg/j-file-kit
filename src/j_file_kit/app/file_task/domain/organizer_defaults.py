@@ -1,10 +1,11 @@
-"""JAV 收件箱整理管线的产品级默认值（非 YAML / 非用户配置）。
+"""整理管线共享的产品级默认值（非 YAML / 非用户配置）。
 
-扩展名集合与站标去噪子串变更频率低，由代码单点维护；`JavVideoOrganizer` 组装 `AnalyzeConfig`
-时注入这些常量。`misc_file_delete_rules` 中的扩展名命中优先级最高（见 `analyzer._check_misc_delete_rules`），
+扩展名集合与（JAV 用）站标去噪子串变更频率低，由代码单点维护；`JavVideoOrganizer` 组装 `JavAnalyzeConfig`
+时注入这些常量；`RawFileOrganizer` 组装 `RawAnalyzeConfig` 时复用扩展名相关常量。
+`misc_file_delete_rules` 中的扩展名命中优先级最高（见 `analyzer._check_misc_delete_rules`），
 其列表同样由此模块提供；YAML 仅保留 misc 删除的 keywords / max_size。
 
-`DEFAULT_MUSIC_EXTENSIONS`：音乐类扩展名，**尚未接入** `AnalyzeConfig` / 分类管线，仅占位供后续使用。
+`DEFAULT_MUSIC_EXTENSIONS`：音乐类扩展名，在 Raw 分析配置中作 `audio_extensions` 注入；JAV **`JavAnalyzeConfig`** 尚未接入。
 """
 
 DEFAULT_VIDEO_EXTENSIONS: frozenset[str] = frozenset(

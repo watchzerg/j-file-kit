@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Request, status
 
 from j_file_kit.api.app_state import AppState
 from j_file_kit.app.file_task.application.jav_video_organizer import JavVideoOrganizer
+from j_file_kit.app.file_task.application.raw_file_organizer import RawFileOrganizer
 from j_file_kit.app.file_task.application.schemas import (
     CancelFileTaskRunResponse,
     FileTaskRunListItem,
@@ -19,7 +20,10 @@ from j_file_kit.app.file_task.application.schemas import (
     StartTaskRequest,
     StartTaskResponse,
 )
-from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.file_task.domain.constants import (
+    TASK_TYPE_JAV_VIDEO_ORGANIZER,
+    TASK_TYPE_RAW_FILE_ORGANIZER,
+)
 from j_file_kit.app.file_task.domain.models import (
     FileTaskRunner,
     FileTaskRunStatus,
@@ -88,6 +92,12 @@ def _new_task_instance(task_type: str, app_state: AppState) -> FileTaskRunner:
     """
     if task_type == TASK_TYPE_JAV_VIDEO_ORGANIZER:
         return JavVideoOrganizer(
+            task_config=_get_task_config(task_type, app_state),
+            log_dir=app_state.log_dir,
+            file_result_repository=app_state.file_result_repository,
+        )
+    if task_type == TASK_TYPE_RAW_FILE_ORGANIZER:
+        return RawFileOrganizer(
             task_config=_get_task_config(task_type, app_state),
             log_dir=app_state.log_dir,
             file_result_repository=app_state.file_result_repository,

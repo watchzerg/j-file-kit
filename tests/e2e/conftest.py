@@ -20,8 +20,12 @@ import yaml
 
 from j_file_kit.app.file_task.application.config import (
     create_default_jav_video_organizer_task_config,
+    create_default_raw_file_organizer_task_config,
 )
-from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.file_task.domain.constants import (
+    TASK_TYPE_JAV_VIDEO_ORGANIZER,
+    TASK_TYPE_RAW_FILE_ORGANIZER,
+)
 
 # 项目根目录（conftest.py 位于 tests/e2e/，向上两级）
 _PROJECT_ROOT = Path(__file__).parent.parent.parent
@@ -119,10 +123,14 @@ def clean_media(media_root: Path) -> Path:
 
 
 def _seed_e2e_task_config_yaml(app_data_dir: Path) -> None:
-    """在首次启动前写入 task_config.yaml，关闭小视频删除（E2E 使用数 MB 的占位文件）。"""
+    """在首次启动前写入 task_config.yaml，关闭小视频删除（E2E 使用数 MB 的占位文件）。
+
+    与生产默认一致：同时写入 jav 与 raw 两条任务，便于 E2E 环境与 lifespan 默认初始化对齐。
+    """
     tc = create_default_jav_video_organizer_task_config()
     cfg = dict(tc.config)
     cfg["video_small_delete_bytes"] = None
+    raw_tc = create_default_raw_file_organizer_task_config()
     config_dir = app_data_dir / "config"
     config_dir.mkdir(parents=True, exist_ok=True)
     path = config_dir / "task_config.yaml"
@@ -130,6 +138,10 @@ def _seed_e2e_task_config_yaml(app_data_dir: Path) -> None:
         TASK_TYPE_JAV_VIDEO_ORGANIZER: {
             "enabled": tc.enabled,
             "config": cfg,
+        },
+        TASK_TYPE_RAW_FILE_ORGANIZER: {
+            "enabled": raw_tc.enabled,
+            "config": dict(raw_tc.config),
         },
     }
     path.write_text(

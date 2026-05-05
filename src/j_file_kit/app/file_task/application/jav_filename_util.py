@@ -22,7 +22,7 @@
 - 非关键部分（可截断）：第1部分、第3部分
 - 截断顺序：优先截断第3部分；若仍超限则丢弃第3部分并截断第1部分
 
-番号匹配前可按 `AnalyzeConfig` 传入的子串列表（字段 **`jav_filename_strip_substrings`**，管线默认取自 **`jav_organizer_defaults`**，大小写不敏感）；
+番号匹配前可按 `JavAnalyzeConfig` 传入的子串列表（字段 **`jav_filename_strip_substrings`**，管线默认取自 **`organizer_defaults`**，大小写不敏感）；
 未配置或空配置则不处理。成功重构时输出文件名同样不含已移除的子串。
 
 番号匹配（代码内固定 grammar，与 `SerialId` / `serial_number_raw_is_valid` 对齐）：

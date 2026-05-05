@@ -14,6 +14,7 @@ from j_file_kit.app.file_task.application.config import (
     InboxDeleteRules,
     JavAnalyzeConfig,
     JavVideoOrganizeConfig,
+    RawFileOrganizeConfig,
 )
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
@@ -60,12 +61,47 @@ def jav_video_organize_config_factory() -> Callable[..., JavVideoOrganizeConfig]
 
 
 @pytest.fixture
+def raw_file_organize_config_factory() -> Callable[..., RawFileOrganizeConfig]:
+    """构造 `RawFileOrganizeConfig`，用于 raw 校验单测。"""
+
+    def _create(
+        inbox_dir: Path | None = None,
+        **overrides: object,
+    ) -> RawFileOrganizeConfig:
+        config: dict[str, object] = {
+            "inbox_dir": inbox_dir,
+            "folders_game": None,
+            "folders_video_huge": None,
+            "folders_video_complex": None,
+            "folders_video_movie": None,
+            "folders_video_vr": None,
+            "folders_compressed": None,
+            "folders_pic": None,
+            "folders_audio": None,
+            "folders_misc": None,
+            "files_video_jav": None,
+            "files_video_us": None,
+            "files_video_vr": None,
+            "files_movie": None,
+            "files_video_misc": None,
+            "files_compressed": None,
+            "files_pic": None,
+            "files_audio": None,
+            "files_misc": None,
+        }
+        config.update(overrides)
+        return RawFileOrganizeConfig.model_validate(config)
+
+    return _create
+
+
+@pytest.fixture
 def analyze_config_factory(
     base_extensions: dict[str, list[str]],
 ) -> Callable[..., JavAnalyzeConfig]:
     """构造 `JavAnalyzeConfig`，用于 analyzer/pipeline 单测（不经 `JavVideoOrganizer`）。
 
-    生产路径下扩展名与 misc.extensions、站标去噪由 `jav_organizer_defaults` 注入；此处手写字段仅为隔离测试。
+    生产路径下扩展名与 misc.extensions、站标去噪由 `organizer_defaults` 注入；此处手写字段仅为隔离测试。
     """
 
     def _create(

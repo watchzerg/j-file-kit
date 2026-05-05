@@ -9,9 +9,14 @@ from pydantic import ValidationError
 from j_file_kit.app.file_task.application.config import (
     InboxDeleteRules,
     JavVideoOrganizeConfig,
+    RawFileOrganizeConfig,
     create_default_jav_video_organizer_task_config,
+    create_default_raw_file_organizer_task_config,
 )
-from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.file_task.domain.constants import (
+    TASK_TYPE_JAV_VIDEO_ORGANIZER,
+    TASK_TYPE_RAW_FILE_ORGANIZER,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -107,3 +112,32 @@ class TestCreateDefaultJavVideoOrganizerTaskConfig:
             assert str(config[key]).startswith("/media/jav_workspace/"), (
                 f"{key} 应在 /media/jav_workspace 下"
             )
+
+
+class TestRawFileOrganizeConfigDirConstraint:
+    """RawFileOrganizeConfig 路径必须在 RAW_MEDIA_ROOT 下。"""
+
+    def test_non_media_path_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            RawFileOrganizeConfig.model_validate({"inbox_dir": "/nonexistent/inbox"})
+
+    def test_jav_root_path_raises(self) -> None:
+        with pytest.raises(ValidationError):
+            RawFileOrganizeConfig.model_validate(
+                {"inbox_dir": "/media/jav_workspace/inbox"},
+            )
+
+
+class TestCreateDefaultRawFileOrganizerTaskConfig:
+    """create_default_raw_file_organizer_task_config"""
+
+    def test_returns_task_config(self) -> None:
+        result = create_default_raw_file_organizer_task_config()
+        assert result.type == TASK_TYPE_RAW_FILE_ORGANIZER
+        assert result.enabled is True
+
+    def test_all_keys_under_raw_workspace(self) -> None:
+        result = create_default_raw_file_organizer_task_config()
+        for key, val in result.config.items():
+            assert val is not None
+            assert str(val).startswith("/media/raw_workspace/"), key

@@ -1,6 +1,6 @@
 # j-file-kit
 
-基于 Python + FastAPI 的媒体文件自动整理工具，**以 Docker 容器方式运行，面向 Unraid 设计**。核心功能是将 **`jav_workspace/inbox`（容器内默认路径为 `/media/jav_workspace/inbox`）** 中的 JAV 视频文件，按番号识别后自动分类归档到 `jav_workspace/sorted`、`jav_workspace/unsorted`、`jav_workspace/archive` 等目录，通过 HTTP API 触发和查询任务状态。
+基于 Python + FastAPI 的媒体文件自动整理工具，**以 Docker 容器方式运行，面向 Unraid 设计**。核心功能之一是将 **`jav_workspace/inbox`（容器内默认路径为 `/media/jav_workspace/inbox`）** 中的视频文件按番号识别后自动分类归档到 `sorted`、`unsorted`、`archive` 等目录；另提供 **`raw_workspace`** 下的 **Raw 收件箱整理**任务骨架（路径与 API 见 [docs/RAW_FILE_PROCESSING_PIPELINE.md](docs/RAW_FILE_PROCESSING_PIPELINE.md)）。任务通过 HTTP API 触发与查询状态。
 
 架构设计见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
@@ -42,7 +42,7 @@ cp .env.example .env
 just docker-up
 ```
 
-媒体目录结构（`jav_workspace/inbox` 需提前存在，其余子目录由任务执行时自动创建）：
+媒体目录结构（**`jav_workspace/inbox` 需提前存在**；**`raw_workspace` 下各业务子目录**可按默认配置自行创建，参见 `task_config.yaml` / [RAW_FILE_PROCESSING_PIPELINE.md](docs/RAW_FILE_PROCESSING_PIPELINE.md)。JAV 其余子目录多由任务执行时自动创建）：
 
 | 宿主机 | 容器内 | 用途 |
 |---|---|---|
@@ -52,6 +52,7 @@ just docker-up
 | `$MEDIA_ROOT/jav_workspace/unsorted` | `/media/jav_workspace/unsorted` | JAV 无番号 |
 | `$MEDIA_ROOT/jav_workspace/archive` | `/media/jav_workspace/archive` | JAV 压缩包 |
 | `$MEDIA_ROOT/jav_workspace/misc` | `/media/jav_workspace/misc` | JAV 杂项 |
+| `$MEDIA_ROOT/raw_workspace/...` | `/media/raw_workspace/...` | Raw 整理（默认见配置，如 `inbox`、`folders_*`、`files_*`） |
 
 ---
 

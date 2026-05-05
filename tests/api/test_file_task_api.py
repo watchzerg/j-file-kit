@@ -5,13 +5,26 @@
 
 import pytest
 
-from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.file_task.domain.constants import (
+    TASK_TYPE_JAV_VIDEO_ORGANIZER,
+    TASK_TYPE_RAW_FILE_ORGANIZER,
+)
 
 pytestmark = pytest.mark.integration
 
 
 class TestStartTask:
     """POST /api/tasks/{task_type}/start"""
+
+    def test_start_raw_task_success(self, client) -> None:
+        """启动 raw_file_organizer 成功返回 run 信息。"""
+        response = client.post(
+            f"/api/tasks/{TASK_TYPE_RAW_FILE_ORGANIZER}/start",
+            json={"dry_run": False},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["run_id"] > 0
 
     def test_start_task_success(self, client) -> None:
         """启动任务返回 run_id、run_name、status"""

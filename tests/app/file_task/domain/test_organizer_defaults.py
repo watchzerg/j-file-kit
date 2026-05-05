@@ -1,8 +1,8 @@
-"""jav_organizer_defaults 产品常量单元测试"""
+"""organizer_defaults 产品常量单元测试"""
 
 import pytest
 
-from j_file_kit.app.file_task.domain.jav_organizer_defaults import (
+from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_ARCHIVE_EXTENSIONS,
     DEFAULT_IMAGE_EXTENSIONS,
     DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS,

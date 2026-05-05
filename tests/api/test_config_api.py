@@ -10,6 +10,9 @@ import yaml
 from fastapi.testclient import TestClient
 
 from j_file_kit.api.app import create_app
+from j_file_kit.app.file_task.application.config import (
+    RAW_FILE_ORGANIZE_PATH_FIELD_NAMES,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -104,3 +107,41 @@ class TestUpdateConfig:
         )
         assert response.status_code == 400
         assert response.json()["detail"]["code"] == "INVALID_CONFIG"
+
+
+class TestGetRawConfig:
+    """GET /api/file-task/config/raw-file-organizer"""
+
+    def test_get_raw_config_success(self, client) -> None:
+        response = client.get("/api/file-task/config/raw-file-organizer")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["type"] == "raw_file_organizer"
+        assert "enabled" in data
+        assert "config" in data
+
+
+class TestUpdateRawConfig:
+    """PATCH /api/file-task/config/raw-file-organizer"""
+
+    def test_update_raw_config_success(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        client,
+        tmp_path: Path,
+    ) -> None:
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.config.RAW_MEDIA_ROOT",
+            tmp_path,
+        )
+        for name in RAW_FILE_ORGANIZE_PATH_FIELD_NAMES:
+            (tmp_path / name).mkdir()
+        cfg = {
+            name: str(tmp_path / name) for name in RAW_FILE_ORGANIZE_PATH_FIELD_NAMES
+        }
+        response = client.patch(
+            "/api/file-task/config/raw-file-organizer",
+            json={"config": cfg},
+        )
+        assert response.status_code == 200
+        assert response.json()["code"] == "SUCCESS"

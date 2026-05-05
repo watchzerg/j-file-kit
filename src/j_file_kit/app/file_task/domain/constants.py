@@ -4,3 +4,4 @@
 """
 
 TASK_TYPE_JAV_VIDEO_ORGANIZER = "jav_video_organizer"
+TASK_TYPE_RAW_FILE_ORGANIZER = "raw_file_organizer"

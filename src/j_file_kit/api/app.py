@@ -5,7 +5,7 @@
 """
 
 import os
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -17,18 +17,23 @@ from j_file_kit.api.app_state import AppState
 from j_file_kit.app.file_task.api import router as file_task_router
 from j_file_kit.app.file_task.application.config import (
     create_default_jav_video_organizer_task_config,
+    create_default_raw_file_organizer_task_config,
 )
 from j_file_kit.app.file_task.application.file_task_config_service import (
     FileTaskConfigService,
 )
 from j_file_kit.app.file_task.config_api import router as file_task_config_router
-from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.file_task.domain.constants import (
+    TASK_TYPE_JAV_VIDEO_ORGANIZER,
+    TASK_TYPE_RAW_FILE_ORGANIZER,
+)
 from j_file_kit.app.file_task.domain.models import (
     FileTaskAlreadyRunningError,
     FileTaskCancelledError,
     FileTaskError,
     FileTaskNotFoundError,
 )
+from j_file_kit.app.file_task.domain.ports import TaskConfigRepository
 from j_file_kit.app.media_browser.api import router as media_browser_router
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
@@ -44,6 +49,29 @@ from j_file_kit.shared.utils.file_utils import ensure_directory
 from j_file_kit.shared.utils.logging import setup_logging
 
 _APP_VERSION = os.getenv("APP_VERSION", "dev")
+
+
+def _validate_persisted_task_configs(
+    task_config_repository: TaskConfigRepository,
+) -> None:
+    """若 YAML 中存在对应任务块，则必须能解析为强类型配置；否则拒绝启动。"""
+    checks: tuple[tuple[str, Callable[[TaskConfigRepository], object]], ...] = (
+        (
+            TASK_TYPE_JAV_VIDEO_ORGANIZER,
+            FileTaskConfigService.get_jav_video_organizer_config,
+        ),
+        (
+            TASK_TYPE_RAW_FILE_ORGANIZER,
+            FileTaskConfigService.get_raw_file_organizer_config,
+        ),
+    )
+    for task_type, get_config in checks:
+        if task_config_repository.get_by_type(task_type) is None:
+            continue
+        try:
+            get_config(task_config_repository)
+        except ValueError as e:
+            raise RuntimeError(f"启动时配置校验失败，请检查配置文件：{e}") from e
 
 
 def create_app(base_dir: Path | None = None) -> FastAPI:
@@ -75,7 +103,7 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
             raise RuntimeError(
                 f"{MEDIA_ROOT} 未挂载宿主机路径。"
                 "请在 Docker 配置中将宿主媒体目录映射到容器内 /media ，"
-                "例如：-v /host/media:/media（JAV 任务使用 /media/jav_workspace/ 等业务子路径）",
+                "例如：-v /host/media:/media（整理任务使用 /media/jav_workspace/、/media/raw_workspace/ 等业务子路径）",
             )
 
         sqlite_dir = resolved_base_dir / "sqlite"
@@ -91,7 +119,10 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
         config_path = config_dir / "task_config.yaml"
         DefaultFileTaskConfigInitializer(
             config_path,
-            default_task_configs=[create_default_jav_video_organizer_task_config()],
+            default_task_configs=[
+                create_default_jav_video_organizer_task_config(),
+                create_default_raw_file_organizer_task_config(),
+            ],
         ).initialize()
 
         app.state.app_state = AppState(
@@ -101,11 +132,7 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
         )
 
         repo = app.state.app_state.file_task_config_repository
-        if repo.get_by_type(TASK_TYPE_JAV_VIDEO_ORGANIZER) is not None:
-            try:
-                FileTaskConfigService.get_jav_video_organizer_config(repo)
-            except ValueError as e:
-                raise RuntimeError(f"启动时配置校验失败，请检查配置文件：{e}") from e
+        _validate_persisted_task_configs(repo)
 
         yield
 

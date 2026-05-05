@@ -14,11 +14,19 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from j_file_kit.app.file_task.application.config import JavVideoOrganizeConfig
+from j_file_kit.app.file_task.application.config import (
+    RAW_FILE_ORGANIZE_PATH_FIELD_NAMES,
+    JavVideoOrganizeConfig,
+    RawFileOrganizeConfig,
+    create_default_raw_file_organizer_task_config,
+)
 from j_file_kit.app.file_task.application.file_task_config_service import (
     FileTaskConfigService,
 )
-from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.file_task.domain.constants import (
+    TASK_TYPE_JAV_VIDEO_ORGANIZER,
+    TASK_TYPE_RAW_FILE_ORGANIZER,
+)
 from j_file_kit.app.file_task.domain.models import TaskConfig
 
 pytestmark = pytest.mark.unit
@@ -64,6 +72,17 @@ def valid_task_config_with_real_dirs(tmp_path: Path) -> TaskConfig:
             "misc_dir": None,
             "misc_file_delete_rules": {},
         },
+    )
+
+
+@pytest.fixture
+def valid_raw_task_config_with_real_dirs(tmp_path: Path) -> TaskConfig:
+    """Raw 全目录字段指向 tmp_path 子目录；需 monkeypatch RAW_MEDIA_ROOT 为 tmp_path。"""
+    cfg = {name: str(tmp_path / name) for name in RAW_FILE_ORGANIZE_PATH_FIELD_NAMES}
+    return TaskConfig(
+        type=TASK_TYPE_RAW_FILE_ORGANIZER,
+        enabled=True,
+        config=cfg,
     )
 
 
@@ -170,3 +189,45 @@ class TestValidateAndSaveJavVideoOrganizerConfig:
         )
         call_args = mock_repository.update.call_args[0][0]
         assert call_args.enabled is False
+
+
+class TestGetRawFileOrganizerConfig:
+    """get_raw_file_organizer_config"""
+
+    def test_returns_config_when_exists(self, mock_repository: MagicMock) -> None:
+        tc = create_default_raw_file_organizer_task_config()
+        mock_repository.get_by_type.return_value = tc
+        result = FileTaskConfigService.get_raw_file_organizer_config(mock_repository)
+        assert isinstance(result, RawFileOrganizeConfig)
+        mock_repository.get_by_type.assert_called_once_with(
+            TASK_TYPE_RAW_FILE_ORGANIZER,
+        )
+
+
+class TestValidateAndSaveRawFileOrganizerConfig:
+    """validate_and_save_raw_file_organizer_config"""
+
+    def test_valid_config_calls_update(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+        mock_repository: MagicMock,
+        valid_raw_task_config_with_real_dirs: TaskConfig,
+    ) -> None:
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.config.RAW_MEDIA_ROOT",
+            tmp_path,
+        )
+        for name in RAW_FILE_ORGANIZE_PATH_FIELD_NAMES:
+            (tmp_path / name).mkdir()
+        mock_repository.get_by_type.return_value = valid_raw_task_config_with_real_dirs
+        merged = RawFileOrganizeConfig.model_validate(
+            valid_raw_task_config_with_real_dirs.config,
+        )
+        FileTaskConfigService.validate_and_save_raw_file_organizer_config(
+            merged,
+            mock_repository,
+        )
+        mock_repository.update.assert_called_once()
+        call_args = mock_repository.update.call_args[0][0]
+        assert call_args.type == TASK_TYPE_RAW_FILE_ORGANIZER

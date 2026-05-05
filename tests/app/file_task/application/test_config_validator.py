@@ -16,12 +16,18 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from j_file_kit.app.file_task.application.config import JavVideoOrganizeConfig
+from j_file_kit.app.file_task.application.config import (
+    JavVideoOrganizeConfig,
+    RawFileOrganizeConfig,
+)
 from j_file_kit.app.file_task.application.config_validator import (
     check_dir_conflicts,
     check_dirs_exist,
+    check_raw_dir_conflicts,
     validate_inbox_dir,
     validate_jav_video_organizer_config,
+    validate_raw_file_organizer_config,
+    validate_raw_inbox_dir,
 )
 
 pytestmark = pytest.mark.unit
@@ -273,3 +279,51 @@ class TestValidateJavVideoOrganizerConfig:
         errors = validate_jav_video_organizer_config(config)
         assert any("inbox_dir" in e for e in errors)
         assert any("都指向同一路径" in e for e in errors)
+
+
+class TestValidateRawInboxDir:
+    """validate_raw_inbox_dir"""
+
+    def test_inbox_none_returns_error(
+        self,
+        raw_file_organize_config_factory: Callable[..., RawFileOrganizeConfig],
+    ) -> None:
+        config = raw_file_organize_config_factory(inbox_dir=None)
+        errors = validate_raw_inbox_dir(config)
+        assert errors == ["待处理目录（inbox_dir）未设置"]
+
+
+class TestCheckRawDirConflicts:
+    """check_raw_dir_conflicts"""
+
+    def test_same_path_conflict(
+        self,
+        raw_file_organize_config_factory: Callable[..., RawFileOrganizeConfig],
+    ) -> None:
+        shared = Path("/media/raw_workspace/shared")
+        config = raw_file_organize_config_factory(
+            inbox_dir=shared,
+            folders_game=shared,
+        )
+        errors = check_raw_dir_conflicts(config)
+        assert len(errors) == 1
+        assert "都指向同一路径" in errors[0]
+
+
+class TestValidateRawFileOrganizerConfig:
+    """validate_raw_file_organizer_config"""
+
+    def test_valid_returns_empty(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+        raw_file_organize_config_factory: Callable[..., RawFileOrganizeConfig],
+    ) -> None:
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.config.RAW_MEDIA_ROOT",
+            tmp_path,
+        )
+        inbox = tmp_path / "inbox"
+        inbox.mkdir()
+        config = raw_file_organize_config_factory(inbox_dir=inbox)
+        assert validate_raw_file_organizer_config(config) == []

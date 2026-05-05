@@ -13,7 +13,8 @@ from j_file_kit.app.file_task.application.config import (
 )
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
-from j_file_kit.app.file_task.domain.jav_organizer_defaults import (
+from j_file_kit.app.file_task.domain.models import FileTaskRunStatistics, TaskConfig
+from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_ARCHIVE_EXTENSIONS,
     DEFAULT_IMAGE_EXTENSIONS,
     DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS,
@@ -21,7 +22,6 @@ from j_file_kit.app.file_task.domain.jav_organizer_defaults import (
     DEFAULT_SUBTITLE_EXTENSIONS,
     DEFAULT_VIDEO_EXTENSIONS,
 )
-from j_file_kit.app.file_task.domain.models import FileTaskRunStatistics, TaskConfig
 from j_file_kit.app.file_task.domain.ports import FileResultRepository
 
 
@@ -31,7 +31,7 @@ class JavVideoOrganizer:
     核心流程（读者只需把握这一条链路）：
         1. 构造：注入 `TaskConfig`、`log_dir`、`FileResultRepository`，并将 YAML 中的
            `config` 反序列化为强类型的 `JavVideoOrganizeConfig`（目录与可调删除策略等）；
-           扩展名与站标去噪由 `jav_organizer_defaults` 在 `_create_analyze_config` 注入。
+           扩展名与站标去噪由 `organizer_defaults` 在 `_create_analyze_config` 注入。
         2. run：
            - 要求 `inbox_dir` 已配置，否则立即失败；
            - 把 `JavVideoOrganizeConfig` 压平为 `JavAnalyzeConfig`（供 `analyze_jav_file` 使用）；
@@ -73,7 +73,7 @@ class JavVideoOrganizer:
 
         设计意图：`JavVideoOrganizeConfig` 面向任务/存储；`JavAnalyzeConfig` 面向纯函数
         `analyze_jav_file`。四类扩展名、`jav_filename_strip_substrings`、`misc_file_delete_rules.extensions`
-        来自 `jav_organizer_defaults`；YAML 中的 misc extensions 键已在模型层剔除。
+        来自 `organizer_defaults`；YAML 中的 misc extensions 键已在模型层剔除。
         """
         misc_rules = dict(self.file_config.misc_file_delete_rules)
         misc_rules["extensions"] = sorted(DEFAULT_MISC_FILE_DELETE_EXTENSIONS)
