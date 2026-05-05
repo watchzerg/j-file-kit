@@ -62,7 +62,7 @@ class RawFileOrganizer:
             files_video_jav=c.files_video_jav,
             files_video_us=c.files_video_us,
             files_video_vr=c.files_video_vr,
-            files_movie=c.files_movie,
+            files_video_movie=c.files_video_movie,
             files_video_misc=c.files_video_misc,
             files_compressed=c.files_compressed,
             files_pic=c.files_pic,

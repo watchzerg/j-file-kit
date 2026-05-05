@@ -50,7 +50,7 @@ def _raw_cfg(
         files_video_jav=None,
         files_video_us=None,
         files_video_vr=None,
-        files_movie=None,
+        files_video_movie=None,
         files_video_misc=None,
         files_compressed=None,
         files_pic=None,

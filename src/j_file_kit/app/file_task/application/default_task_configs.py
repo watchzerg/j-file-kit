@@ -57,7 +57,7 @@ def create_default_raw_file_organizer_task_config() -> TaskConfig:
             "files_video_jav": f"{base}/files_video_jav",
             "files_video_us": f"{base}/files_video_us",
             "files_video_vr": f"{base}/files_video_vr",
-            "files_movie": f"{base}/files_movie",
+            "files_video_movie": f"{base}/files_video_movie",
             "files_video_misc": f"{base}/files_video_misc",
             "files_compressed": f"{base}/files_compressed",
             "files_pic": f"{base}/files_pic",

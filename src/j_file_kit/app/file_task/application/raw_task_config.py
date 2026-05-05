@@ -43,7 +43,7 @@ class RawFileOrganizeConfig(BaseModel):
     files_video_jav: Path | None = Field(default=None, description="JAV 视频文件目录")
     files_video_us: Path | None = Field(default=None, description="US 视频文件目录")
     files_video_vr: Path | None = Field(default=None, description="VR 视频文件目录")
-    files_movie: Path | None = Field(default=None, description="电影文件目录")
+    files_video_movie: Path | None = Field(default=None, description="电影文件目录")
     files_video_misc: Path | None = Field(default=None, description="杂项视频文件目录")
     files_compressed: Path | None = Field(default=None, description="压缩文件目录")
     files_pic: Path | None = Field(default=None, description="图片文件目录")
