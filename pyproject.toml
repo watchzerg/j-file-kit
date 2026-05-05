@@ -63,6 +63,7 @@ select = [
 ]
 ignore = [
     "E501", # 行宽交给 formatter (ruff format) 控制
+    "COM812", # 与 ruff format 冲突（官方建议二者择一；尾随逗号交给 formatter）
 ]
 
 [tool.ruff.lint.per-file-ignores]

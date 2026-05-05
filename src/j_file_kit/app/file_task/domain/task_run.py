@@ -128,9 +128,17 @@ class FileTaskRunStatistics(BaseModel):
         0,
         description="Raw：阶段2.2 清洗后 inbox 第一层目录被 rmdir 移除的数量（因内容删空）",
     )
+    phase2_collapsed_chain_dirs: int = Field(
+        0,
+        description="Raw：阶段2.3 单链目录折叠成功次数（含 dry_run 预览计数）",
+    )
+    phase2_skipped_collapse_dirs: int = Field(
+        0,
+        description="Raw：阶段2.3 因长度预算等跳过折叠的目录数（不中断 run）",
+    )
     phase2_deferred_classification_dirs: int = Field(
         0,
-        description="Raw：阶段2.3 占位：仍保留且待后续分类的目录数",
+        description="Raw：阶段2.4 占位：仍保留且待后续分类的目录数",
     )
     phase3_seen_files_misc: int = Field(
         0,

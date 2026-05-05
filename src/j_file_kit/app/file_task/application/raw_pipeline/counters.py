@@ -18,6 +18,8 @@ class RawPhaseCounters:
     phase2_cleaned_deleted_files: int = 0
     phase2_cleaned_deleted_empty_dirs: int = 0
     phase2_removed_dirs: int = 0
+    phase2_collapsed_chain_dirs: int = 0
+    phase2_skipped_collapse_dirs: int = 0
     phase2_deferred_classification_dirs: int = 0
     phase3_seen_files_misc: int = 0
     phase3_deferred_files_misc: int = 0
@@ -32,6 +34,8 @@ class RawPhaseCounters:
             "phase2_cleaned_deleted_files": self.phase2_cleaned_deleted_files,
             "phase2_cleaned_deleted_empty_dirs": self.phase2_cleaned_deleted_empty_dirs,
             "phase2_removed_dirs": self.phase2_removed_dirs,
+            "phase2_collapsed_chain_dirs": self.phase2_collapsed_chain_dirs,
+            "phase2_skipped_collapse_dirs": self.phase2_skipped_collapse_dirs,
             "phase2_deferred_classification_dirs": self.phase2_deferred_classification_dirs,
             "phase3_seen_files_misc": self.phase3_seen_files_misc,
             "phase3_deferred_files_misc": self.phase3_deferred_files_misc,

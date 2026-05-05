@@ -398,3 +398,160 @@ def test_phase2_dry_run_count_without_deleting_dir_contents(
 
     assert (d / "x.txt").exists()
     assert stats.phase2_cleaned_deleted_files == 1
+
+
+def test_phase2_collapses_single_chain_directory(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    root = inbox / "abc"
+    root.mkdir()
+    (root / "def").mkdir()
+    (root / "def" / "ghi").mkdir()
+    (root / "def" / "ghi" / "clip.mp4").write_text("vid")
+
+    pipe = RawFilePipeline(
+        run_id=101,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(
+            tmp_path,
+            files_misc=misc,
+            folders_to_delete=td,
+        ),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run()
+
+    merged = inbox / "abc_def_ghi"
+    assert merged.is_dir()
+    assert (merged / "clip.mp4").read_text() == "vid"
+    assert not root.exists()
+    assert stats.phase2_collapsed_chain_dirs == 1
+    assert stats.phase2_skipped_collapse_dirs == 0
+
+
+def test_phase2_collapse_renames_on_destination_conflict(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    (inbox / "abc_def_ghi").mkdir()
+
+    root = inbox / "abc"
+    root.mkdir()
+    (root / "def").mkdir()
+    (root / "def" / "ghi").mkdir()
+    (root / "def" / "ghi" / "clip.mp4").write_text("vid")
+
+    pipe = RawFilePipeline(
+        run_id=102,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(
+            tmp_path,
+            files_misc=misc,
+            folders_to_delete=td,
+        ),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run()
+
+    assert stats.phase2_collapsed_chain_dirs == 1
+    assert stats.phase2_skipped_collapse_dirs == 0
+
+    with_video = [
+        p for p in inbox.iterdir() if p.is_dir() and (p / "clip.mp4").exists()
+    ]
+    assert len(with_video) == 1
+    assert "-jfk-" in with_video[0].name
+    assert (with_video[0] / "clip.mp4").read_text() == "vid"
+
+
+def test_phase2_collapse_skips_when_merge_budget_impossible(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+
+    name_seg = "n" * 9
+    root = inbox / name_seg
+    root.mkdir()
+    cur = root
+    for _ in range(34):
+        nxt = cur / name_seg
+        nxt.mkdir()
+        cur = nxt
+    (cur / "z.mp4").write_text("p")
+
+    pipe = RawFilePipeline(
+        run_id=103,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(
+            tmp_path,
+            files_misc=misc,
+            folders_to_delete=td,
+        ),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run()
+
+    assert stats.phase2_collapsed_chain_dirs == 0
+    assert stats.phase2_skipped_collapse_dirs == 1
+    assert root.exists()
+    assert (cur / "z.mp4").exists()
+
+
+def test_phase2_collapse_dry_run_counts_only(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    root = inbox / "abc"
+    root.mkdir()
+    (root / "def").mkdir()
+    (root / "def" / "ghi").mkdir()
+    (root / "def" / "ghi" / "clip.mp4").write_text("vid")
+
+    pipe = RawFilePipeline(
+        run_id=104,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(
+            tmp_path,
+            files_misc=misc,
+            folders_to_delete=td,
+        ),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run(dry_run=True)
+
+    assert root.exists()
+    assert (root / "def" / "ghi" / "clip.mp4").exists()
+    assert stats.phase2_collapsed_chain_dirs == 1
