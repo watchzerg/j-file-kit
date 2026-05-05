@@ -10,12 +10,12 @@ from pathlib import Path
 
 from loguru import logger
 
-from j_file_kit.app.file_task.application.executor import (
+from j_file_kit.app.file_task.application.file_ops import normalize_move_basename
+from j_file_kit.app.file_task.application.jav_pipeline.executor import (
     ExecutionResult,
     ExecutionStatus,
     execute_decision,
 )
-from j_file_kit.app.file_task.application.file_ops import normalize_move_basename
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
 from j_file_kit.app.file_task.domain.decisions import FileItemData, MoveDecision

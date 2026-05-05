@@ -107,8 +107,8 @@ class FileTaskRunRepository(Protocol):
 class FileResultRepository(Protocol):
     """单次文件处理结果的持久化端口（`file_results` 表），由 `FilePipeline` 在每文件末尾调用。
 
-    数据流：`process_single_file_for_run`（见 `pipeline_item_processor`）将 Decision 与执行结果经
-    `build_file_item_data` 折叠为 `FileItemData` →
+    数据流：`process_single_file_for_run`（见 `jav_pipeline.item_processor`）将 Decision 与执行结果经
+    `build_file_item_data`（`jav_pipeline.result_mapper`）折叠为 `FileItemData` →
     `save_result(run_id, …)` 追加一行；任务收尾时 `get_statistics(run_id)` 聚合为
     `FileTaskRunStatistics`（与管道内内存计数器解耦，以仓储聚合为准）。
 

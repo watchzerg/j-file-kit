@@ -1,15 +1,15 @@
 """JAV 收件箱整理任务入口（FileTaskRunner 实现）。
 
 本模块只做「配置绑定 + 管道组装」：具体扫描 / 分析 / 执行 / 落库循环在
-`FilePipeline`（`pipeline.py`）中；分析与决策在 `analyzer` + Decision 模型中。
+`FilePipeline`（`jav_pipeline/pipeline.py`）中；分析与决策在 `jav_analysis` + Decision 模型中。
 """
 
 import threading
 from pathlib import Path
 
 from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
+from j_file_kit.app.file_task.application.jav_pipeline.pipeline import FilePipeline
 from j_file_kit.app.file_task.application.jav_task_config import JavVideoOrganizeConfig
-from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_ARCHIVE_EXTENSIONS,
@@ -39,8 +39,9 @@ class JavVideoOrganizer:
            - 委托 `FilePipeline.run()`：对收件箱内每个文件执行「分析 → Decision →
              执行（或 dry_run 仅预览）→ 写入 SQLite 结果」，返回 `FileTaskRunStatistics`。
 
-    边界：本类不包含遍历目录、`analyze_jav_file`、`execute_decision` 的实现；仅负责
-    把本任务类型的配置接到通用管道上。Decision 模式与统计细节见 `pipeline` / `jav_analysis.runner`。
+        边界：本类不包含遍历目录、`analyze_jav_file`、`execute_decision` 的实现；仅负责
+        把本任务类型的配置接到通用管道上。Decision 模式与统计细节见 `jav_pipeline` /
+        `jav_analysis.runner`。
     """
 
     def __init__(

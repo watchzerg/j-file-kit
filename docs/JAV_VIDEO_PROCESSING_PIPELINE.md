@@ -57,11 +57,11 @@ flowchart TB
 
 ## 3. 目录扫描：`FilePipeline` + `scan_directory_items`
 
-**文件**：`application/pipeline.py`（编排）、`application/file_ops.py`、`application/pipeline_item_processor.py`、`application/pipeline_directory_cleanup.py`。
+**文件**：`application/jav_pipeline/pipeline.py`（编排）、`application/file_ops.py`、`application/jav_pipeline/item_processor.py`、`application/jav_pipeline/directory_cleanup.py`。
 
 - **遍历根**：`scan_root` 即收件箱 **`inbox_dir`**。  
 - **顺序**：`os.walk(..., topdown=False)` **自底向上**：先子目录内文件，再子目录，再父目录。意图是：文件先被移走/删掉后，空目录可在后续步骤被删掉。  
-- **对每个 FILE**：`process_single_file_for_run`（`pipeline_item_processor`）。  
+- **对每个 FILE**：`process_single_file_for_run`（`jav_pipeline.item_processor`）。  
 - **对每个 DIRECTORY**（含根以下的目录节点）：`cleanup_empty_directory_under_scan`——**非** `dry_run`、且不是 `scan_root` 本身时，尝试删除空目录（见 `delete_directory_if_empty`）。
 
 **取消**：在「每个路径项」之间检查 `cancellation_event`；置位后记录日志并跳出循环，再进入 `finish_task_with_repository_statistics`。
@@ -152,7 +152,7 @@ flowchart TB
 
 ## 6. 执行：`execute_decision`
 
-**文件**：`application/executor.py`。
+**文件**：`application/jav_pipeline/executor.py`。
 
 | `dry_run` | 行为 |
 |-----------|------|
@@ -171,14 +171,14 @@ flowchart TB
 
 ## 7. pipeline 内：结果落库与收尾统计
 
-**文件**：`application/pipeline.py`（编排）、`application/pipeline_item_processor.py`、`application/pipeline_result_mapper.py`、`application/pipeline_observer.py`。
+**文件**：`application/jav_pipeline/pipeline.py`（编排）、`application/jav_pipeline/item_processor.py`、`application/jav_pipeline/result_mapper.py`、`application/jav_pipeline/observer.py`。
 
 对每个文件：
 
 1. `analyze_jav_file` → `execute_decision`。  
 2. **`build_file_item_data`** 组装 **`FileItemData`**（决策类型、目标路径、成功与否、`duration_ms` 等）。  
 3. **`file_result_repository.save_result(run_id, item_data)`**。  
-4. **`PipelineRunCounters.apply_execution_result`**、结构化 **`ITEM_RESULT` 日志**（`pipeline_observer`）。  
+4. **`PipelineRunCounters.apply_execution_result`**、结构化 **`ITEM_RESULT` 日志**（`jav_pipeline.observer`）。  
 5. 若 `analyze_jav_file`～`execute_decision` **整段抛异常**：写一条 **`decision_type=error`** 的 `FileItemData`，仍 `save_result`；内存侧 **`record_file_processing_exception`**。
 
 **收尾**：**`finish_task_with_repository_statistics`** 调用 **`get_statistics(run_id)`**（SQLite 聚合），校验为 **`FileTaskRunStatistics`** 返回上层；任务级开始/结束另有 **`TASK_START` / `TASK_END`** 日志。
@@ -202,10 +202,10 @@ flowchart TB
 | 顺序 | 模块 | 作用 |
 |------|------|------|
 | 1 | `application/jav_video_organizer.py` | 配置 → `FilePipeline` |
-| 2 | `application/pipeline.py` | 扫描循环、单文件处理、收尾统计 |
+| 2 | `application/jav_pipeline/pipeline.py` | 扫描循环、单文件处理、收尾统计 |
 | 3 | `application/jav_analysis/`（`runner.py` 编排；`inbox` / `classify` / `misc` / `archive` / `media`） | `analyze_jav_file` 与各规则域 |
 | 4 | `application/jav_filename_util.py` | 番号匹配、文件名重构、`generate_sorted_dir` |
-| 5 | `application/executor.py` | `execute_decision`、dry_run |
+| 5 | `application/jav_pipeline/executor.py` | `execute_decision`、dry_run |
 | 6 | `application/file_ops.py` | `scan_directory_items`、移动冲突消解 |
 | 7 | `domain/decisions.py` | Decision / `FileItemData` |
 | 8 | `domain/organizer_defaults.py` | 共享默认扩展名、JAV 站标去噪、misc 删除扩展名 |

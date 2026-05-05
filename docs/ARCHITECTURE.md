@@ -62,19 +62,22 @@ src/j_file_kit/
 │   │   └── application/
 │   │       ├── jav_video_organizer.py   # JavVideoOrganizer：组装 FilePipeline（FileTaskRunner 实现）
 │   │       ├── raw_file_organizer.py   # RawFileOrganizer：组装 RawFilePipeline（FileTaskRunner 实现）
-│   │       ├── pipeline.py              # FilePipeline：扫描调度 + 任务生命周期（编排）
-│   │       ├── pipeline_item_processor.py  # 单文件：analyze_jav_file → execute_decision → 落库
-│   │       ├── pipeline_result_mapper.py   # build_file_item_data（Decision + Result → FileItemData）
-│   │       ├── pipeline_observer.py        # 任务/逐文件日志；PipelineRunCounters（内存统计）
-│   │       ├── pipeline_directory_cleanup.py # 扫描后空目录收缩（非 scan_root）
+│   │       ├── jav_pipeline/         # JAV FilePipeline：扫描调度 + 单文件处理 + 执行 + 观测 + 落库映射
+│   │       │   ├── pipeline.py     # FilePipeline：编排与任务生命周期
+│   │       │   ├── item_processor.py  # process_single_file_for_run
+│   │       │   ├── result_mapper.py     # build_file_item_data
+│   │       │   ├── observer.py          # 日志与 PipelineRunCounters
+│   │       │   ├── directory_cleanup.py # 扫描后空目录收缩（非 scan_root）
+│   │       │   └── executor.py          # execute_decision（Raw 阶段 1 共用）
 │   │       ├── raw_pipeline/        # RawFilePipeline：第一层三阶段（phase1–3 + pipeline 编排）
 │   │       ├── jav_analysis/       # JAV 单文件纯分析（包 __init__ 不聚合导出业务符号）
 │   │       │   ├── runner.py       # analyze_jav_file 编排入口
 │   │       │   └── classify.py、inbox.py、misc.py、archive.py、media.py  # 规则域子模块
-│   │       ├── executor.py         # execute_decision
-│   │       ├── config.py           # Jav*/Raw* OrganizeConfig、JavAnalyzeConfig、RawAnalyzeConfig 等
+│   │       ├── jav_task_config.py、raw_task_config.py  # 任务 YAML 强类型配置
+│   │       ├── jav_analyze_config.py、raw_analyze_config.py  # 分析阶段 DTO（不含 inbox 路径）
+│   │       ├── config_common.py    # JAV_MEDIA_ROOT、RAW_MEDIA_ROOT、InboxDeleteRules 等
 │   │       ├── file_task_config_service.py
-│   │       ├── config_validator.py、config_schemas.py、schemas.py
+│   │       ├── config_validator.py、default_task_configs.py、config_schemas.py、schemas.py
 │   │       ├── file_ops.py、jav_filename_util.py
 │   └── media_browser/
 │       ├── api.py                  # /api/media 下列举子目录
@@ -183,9 +186,9 @@ flowchart LR
 | `RawFileOrganizer` | `application/raw_file_organizer.py` | 把 `RawFileOrganizeConfig` 接到 `RawFilePipeline` |
 | `RawFilePipeline` | `application/raw_pipeline/pipeline.py` | 第一层三阶段：1→`files_misc`；2→`folders_to_delete`/清洗/`phase2_*`；3→`files_misc` 计数占位 |
 | `JavVideoOrganizer` | `application/jav_video_organizer.py` | 把 `JavVideoOrganizeConfig` 接到 `FilePipeline` |
-| `FilePipeline` | `application/pipeline.py` + `pipeline_*` 协作模块 | 扫描调度、生命周期；单文件处理与映射见协作模块 |
+| `FilePipeline` | `application/jav_pipeline/pipeline.py` 与子模块 | 扫描调度、生命周期；单文件处理与映射见同包 `item_processor` / `result_mapper` |
 | `analyze_jav_file` | `application/jav_analysis/runner.py` | 纯函数编排；规则域见同包 `inbox` / `classify` / `misc` / `archive` / `media` |
-| `execute_decision` | `application/executor.py` | 落地移动/删除；配合 dry_run |
+| `execute_decision` | `application/jav_pipeline/executor.py` | 落地移动/删除；配合 dry_run（Raw 阶段 1 共用） |
 | `organizer_defaults` | `domain/organizer_defaults.py` | 共享扩展名等；JAV 另含站标去噪、misc 删除扩展名（由 `JavVideoOrganizer` 写入 `JavAnalyzeConfig`）；Raw 写入 `RawAnalyzeConfig` |
 | `TaskConfig` / `JavVideoOrganizeConfig` / `RawFileOrganizeConfig` | `domain/task_config.py` + `application/jav_task_config.py`、`application/raw_task_config.py` | YAML dict → 强类型；**`JAV_MEDIA_ROOT` / `RAW_MEDIA_ROOT`** 目录约束（见 `application/config_common.py`） |
 | `FileResultRepository` | `domain/ports.py` + sqlite 实现 | 按 **run_id** 存文件级结果；收尾聚合成统计 |
@@ -200,7 +203,7 @@ flowchart LR
 |------|----------------|
 | 新 HTTP 行为或路由前缀 | `api/app.py`、各 `app/*/api.py` |
 | 新任务类型或装配注入 | `domain/constants.py`、`application/*` 新 Runner、`api.py` 的 `_new_task_instance`、`app_state.py` 若需新 Bean |
-| 扫描/分析/移动规则 | `jav_analysis/`、`executor.py`、`jav_filename_util.py` |
+| 扫描/分析/移动规则 | `jav_analysis/`、`jav_pipeline/executor.py`、`jav_filename_util.py` |
 | 默认扩展名 / 站标去噪 | `domain/organizer_defaults.py`、`jav_video_organizer._create_analyze_config`、`raw_file_organizer._create_analyze_config` |
 | 配置字段与校验 | `application/*_task_config.py`、`application/config_common.py`、`config_validator.py`、`FileTaskConfigService` |
 | 任务并发、取消、run 状态机 | `file_task_run_manager.py`、`file_task_run_repository.py` |
@@ -245,4 +248,4 @@ flowchart LR
 - **统计**：任务结束展示/持久化的汇总统计以仓储 **`get_statistics`** 与 **`FileTaskRunStatistics`** 为准，勿与 pipeline 内仅用于日志的内存计数混淆。  
 - **生产启动**：未挂载 **`/media`** 会直接 **`RuntimeError`**，属预期防护。  
 
-更细的模块级说明见各文件 **模块 docstring** 与 **类注释**（尤其 `jav_video_organizer.py`、`pipeline.py`、`config.py`、`ports.py`）。
+更细的模块级说明见各文件 **模块 docstring** 与 **类注释**（尤其 `jav_video_organizer.py`、`jav_pipeline/pipeline.py`、`*_task_config.py`、`ports.py`）。

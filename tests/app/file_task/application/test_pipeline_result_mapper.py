@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from j_file_kit.app.file_task.application.executor import ExecutionResult
-from j_file_kit.app.file_task.application.pipeline_result_mapper import (
+from j_file_kit.app.file_task.application.jav_pipeline.executor import ExecutionResult
+from j_file_kit.app.file_task.application.jav_pipeline.result_mapper import (
     build_file_item_data,
 )
 from j_file_kit.app.file_task.domain.decisions import (

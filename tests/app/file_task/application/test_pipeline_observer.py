@@ -4,8 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from j_file_kit.app.file_task.application.executor import ExecutionResult
-from j_file_kit.app.file_task.application.pipeline_observer import PipelineRunCounters
+from j_file_kit.app.file_task.application.jav_pipeline.executor import ExecutionResult
+from j_file_kit.app.file_task.application.jav_pipeline.observer import (
+    PipelineRunCounters,
+)
 from j_file_kit.app.file_task.domain.decisions import MoveDecision
 from j_file_kit.app.file_task.domain.file_types import FileType
 

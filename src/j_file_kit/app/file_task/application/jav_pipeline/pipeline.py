@@ -1,7 +1,7 @@
 """文件处理管道：在给定 `scan_root` 下的通用「扫描 → 分析 → 执行 → 落库」编排。
 
-单文件闭环见 `pipeline_item_processor`；结果折叠见 `pipeline_result_mapper`；日志与内存计数见
-`pipeline_observer`；空目录收缩见 `pipeline_directory_cleanup`。
+单文件闭环见 `item_processor`；结果折叠见 `result_mapper`；日志与内存计数见 `observer`；
+空目录收缩见 `directory_cleanup`。
 
 `JavVideoOrganizer` 将收件箱目录与 `JavAnalyzeConfig` 注入本类；本模块不承载任务类型的业务含义。
 """
@@ -11,13 +11,13 @@ from pathlib import Path
 
 from j_file_kit.app.file_task.application.file_ops import scan_directory_items
 from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
-from j_file_kit.app.file_task.application.pipeline_directory_cleanup import (
+from j_file_kit.app.file_task.application.jav_pipeline.directory_cleanup import (
     cleanup_empty_directory_under_scan,
 )
-from j_file_kit.app.file_task.application.pipeline_item_processor import (
+from j_file_kit.app.file_task.application.jav_pipeline.item_processor import (
     process_single_file_for_run,
 )
-from j_file_kit.app.file_task.application.pipeline_observer import (
+from j_file_kit.app.file_task.application.jav_pipeline.observer import (
     PipelineRunCounters,
     finish_task_with_repository_statistics,
     log_pipeline_execution_failed,
