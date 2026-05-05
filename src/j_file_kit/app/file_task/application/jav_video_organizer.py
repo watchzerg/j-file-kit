@@ -8,7 +8,7 @@ import threading
 from pathlib import Path
 
 from j_file_kit.app.file_task.application.config import (
-    AnalyzeConfig,
+    JavAnalyzeConfig,
     JavVideoOrganizeConfig,
 )
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
@@ -34,14 +34,14 @@ class JavVideoOrganizer:
            扩展名与站标去噪由 `jav_organizer_defaults` 在 `_create_analyze_config` 注入。
         2. run：
            - 要求 `inbox_dir` 已配置，否则立即失败；
-           - 把 `JavVideoOrganizeConfig` 压平为 `AnalyzeConfig`（供 `analyze_file` 使用）；
+           - 把 `JavVideoOrganizeConfig` 压平为 `JavAnalyzeConfig`（供 `analyze_jav_file` 使用）；
            - 用 `inbox_dir` 作为扫描根目录创建 `FilePipeline`，传入同一 `run_id` 与
              `file_result_repository`；
            - 委托 `FilePipeline.run()`：对收件箱内每个文件执行「分析 → Decision →
              执行（或 dry_run 仅预览）→ 写入 SQLite 结果」，返回 `FileTaskRunStatistics`。
 
-    边界：本类不包含遍历目录、`analyze_file`、`execute_decision` 的实现；仅负责
-    把本任务类型的配置接到通用管道上。Decision 模式与统计细节见 `pipeline` / `analyzer`。
+    边界：本类不包含遍历目录、`analyze_jav_file`、`execute_decision` 的实现；仅负责
+    把本任务类型的配置接到通用管道上。Decision 模式与统计细节见 `pipeline` / `jav_analyzer`。
     """
 
     def __init__(
@@ -53,7 +53,7 @@ class JavVideoOrganizer:
         """绑定任务配置与持久化端口，并解析出 `JavVideoOrganizeConfig`。
 
         `task_config` 来自 YAML；`get_config(JavVideoOrganizeConfig)` 在此处完成类型化，
-        后续 `run()` 只操作 `self.file_config` 与派生的 `AnalyzeConfig`。
+        后续 `run()` 只操作 `self.file_config` 与派生的 `JavAnalyzeConfig`。
         """
         self._task_config = task_config
         self.log_dir = log_dir
@@ -68,16 +68,16 @@ class JavVideoOrganizer:
         """任务类型常量，供调度层区分 `FileTaskRunner` 实现（与 `TASK_TYPE_*` 一致）。"""
         return TASK_TYPE_JAV_VIDEO_ORGANIZER
 
-    def _create_analyze_config(self) -> AnalyzeConfig:
-        """从 `JavVideoOrganizeConfig` 生成 `AnalyzeConfig`（分析阶段唯一使用的配置 DTO）。
+    def _create_analyze_config(self) -> JavAnalyzeConfig:
+        """从 `JavVideoOrganizeConfig` 生成 `JavAnalyzeConfig`（分析阶段唯一使用的配置 DTO）。
 
-        设计意图：`JavVideoOrganizeConfig` 面向任务/存储；`AnalyzeConfig` 面向纯函数
-        `analyze_file`。四类扩展名、`jav_filename_strip_substrings`、`misc_file_delete_rules.extensions`
+        设计意图：`JavVideoOrganizeConfig` 面向任务/存储；`JavAnalyzeConfig` 面向纯函数
+        `analyze_jav_file`。四类扩展名、`jav_filename_strip_substrings`、`misc_file_delete_rules.extensions`
         来自 `jav_organizer_defaults`；YAML 中的 misc extensions 键已在模型层剔除。
         """
         misc_rules = dict(self.file_config.misc_file_delete_rules)
         misc_rules["extensions"] = sorted(DEFAULT_MISC_FILE_DELETE_EXTENSIONS)
-        return AnalyzeConfig(
+        return JavAnalyzeConfig(
             video_extensions=set(DEFAULT_VIDEO_EXTENSIONS),
             image_extensions=set(DEFAULT_IMAGE_EXTENSIONS),
             subtitle_extensions=set(DEFAULT_SUBTITLE_EXTENSIONS),

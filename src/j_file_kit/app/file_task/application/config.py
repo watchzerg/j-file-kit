@@ -1,7 +1,7 @@
 """文件任务配置模型（YAML `TaskConfig.config` 与各任务强类型配置的桥梁）。
 
 - `JavVideoOrganizeConfig`：JAV 整理任务在存储/API 层的完整配置（含 `inbox_dir` 与路径校验）。
-- `AnalyzeConfig`：从上述配置派生、仅供给 `analyze_file` 的输入 DTO（不包含 `inbox_dir`）。
+- `JavAnalyzeConfig`：从上述配置派生、仅供给 `analyze_jav_file` 的输入 DTO（不包含 `inbox_dir`）。
 - `create_default_jav_video_organizer_task_config`：首次初始化 `task_config.yaml` 时使用。
 """
 
@@ -48,10 +48,10 @@ class JavVideoOrganizeConfig(BaseModel):
     """JAV 收件箱整理任务的强类型配置（对应 YAML 里某 `task_type` 的 `config` 字典）。
 
     在代码中的位置：`TaskConfig.get_config(JavVideoOrganizeConfig)` → 供 `JavVideoOrganizer` 读取；
-    `inbox_dir` 作为 `FilePipeline` 的扫描根；其余字段经 `_create_analyze_config` 映射为 `AnalyzeConfig`。
+    `inbox_dir` 作为 `FilePipeline` 的扫描根；其余字段经 `_create_analyze_config` 映射为 `JavAnalyzeConfig`。
 
     四类媒体扩展名、Misc 删除扩展名及站标去噪子串**不在本模型字段中**，由 `jav_organizer_defaults`
-    在 `JavVideoOrganizer._create_analyze_config` 中注入 `AnalyzeConfig`；`misc_file_delete_rules` 在存储层仅含 keywords / max_size（见剔除校验器）。
+    在 `JavVideoOrganizer._create_analyze_config` 中注入 `JavAnalyzeConfig`；`misc_file_delete_rules` 在存储层仅含 keywords / max_size（见剔除校验器）。
 
     不变量：凡非 None 的目录字段必须为 `JAV_MEDIA_ROOT`（`/media/jav_workspace`）子目录（见 `validate_dir_paths_under_media_root`）。
     """
@@ -64,7 +64,7 @@ class JavVideoOrganizeConfig(BaseModel):
 
     misc_file_delete_rules: dict[str, Any] = Field(
         default_factory=dict,
-        description="Misc 删除可调部分：keywords、max_size（扩展名列表由代码常量注入 AnalyzeConfig）",
+        description="Misc 删除可调部分：keywords、max_size（扩展名列表由代码常量注入 JavAnalyzeConfig）",
     )
     video_small_delete_bytes: int | None = Field(
         default=None,
@@ -117,8 +117,8 @@ class JavVideoOrganizeConfig(BaseModel):
         return self
 
 
-class AnalyzeConfig(BaseModel):
-    """`analyze_file(path, config)` 的唯一配置载体（纯分析阶段，不含收件箱路径）。
+class JavAnalyzeConfig(BaseModel):
+    """`analyze_jav_file(path, config)` 的唯一配置载体（JAV 纯分析阶段，不含收件箱路径）。
 
     由 `JavVideoOrganizer._create_analyze_config` 组装：输出目录与收件箱预删等来自任务配置；
     四类扩展名、`jav_filename_strip_substrings`、`misc_file_delete_rules.extensions` 来自 `jav_organizer_defaults`
@@ -166,7 +166,7 @@ class AnalyzeConfig(BaseModel):
     )
 
     @model_validator(mode="after")
-    def drop_empty_jav_filename_strip_tokens_analyze(self) -> AnalyzeConfig:
+    def drop_empty_jav_filename_strip_tokens_analyze(self) -> JavAnalyzeConfig:
         """剔除空串 token，避免误匹配。"""
         self.jav_filename_strip_substrings = tuple(
             s for s in self.jav_filename_strip_substrings if s != ""
@@ -178,7 +178,7 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
     """生成「一份可写入 YAML」的 jav_video_organizer 默认 `TaskConfig`。
 
     调用方：应用 lifespan 中若配置文件缺失，则以此初始化磁盘上的 `task_config.yaml`。
-    扩展名分类、站标去噪、Misc 删除扩展名不在此字典中，运行时由 `jav_organizer_defaults` 注入 `AnalyzeConfig`。
+    扩展名分类、站标去噪、Misc 删除扩展名不在此字典中，运行时由 `jav_organizer_defaults` 注入 `JavAnalyzeConfig`。
     """
     return TaskConfig(
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,

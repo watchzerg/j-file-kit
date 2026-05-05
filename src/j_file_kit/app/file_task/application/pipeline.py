@@ -1,6 +1,6 @@
 """文件处理管道：在给定 `scan_root` 下的通用「扫描 → 分析 → 执行 → 落库」实现。
 
-`JavVideoOrganizer` 将收件箱目录与 `AnalyzeConfig` 注入本类；本模块调用 `analyze_file`、
+`JavVideoOrganizer` 将收件箱目录与 `JavAnalyzeConfig` 注入本类；本模块调用 `analyze_jav_file`、
 `execute_decision`，并把每条 `FileItemData` 写入 `FileResultRepository`。不承载任务类型的业务含义。
 """
 
@@ -10,14 +10,14 @@ from pathlib import Path
 
 from loguru import logger
 
-from j_file_kit.app.file_task.application.analyzer import analyze_file
-from j_file_kit.app.file_task.application.config import AnalyzeConfig
+from j_file_kit.app.file_task.application.config import JavAnalyzeConfig
 from j_file_kit.app.file_task.application.executor import (
     ExecutionResult,
     ExecutionStatus,
     execute_decision,
 )
 from j_file_kit.app.file_task.application.file_ops import scan_directory_items
+from j_file_kit.app.file_task.application.jav_analyzer import analyze_jav_file
 from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,
     FileDecision,
@@ -44,7 +44,7 @@ class FilePipeline:
         1. `_start_task`：挂接本 run 专用日志文件，打 TASK_START；若 `dry_run` 打预览标记。
         2. 深度优先遍历 `scan_root`（`scan_directory_items`）：遇文件走 `_process_file`，遇目录走
            `_cleanup_empty_directory`；循环中检查 `cancellation_event` 可提前跳出。
-        3. `_process_file`：`analyze_file` → `execute_decision`（尊重 `dry_run`）→ `save_result`；
+        3. `_process_file`：`analyze_jav_file` → `execute_decision`（尊重 `dry_run`）→ `save_result`；
            异常时仍写入一条 `decision_type=error` 的结果。内存侧 `_update_statistics` 与日志
            `_log_file_result` 同步更新。
         4. `_finish_task`：调用 `get_statistics` 拉取库内聚合，校验为 `FileTaskRunStatistics` 并打 TASK_END。
@@ -58,7 +58,7 @@ class FilePipeline:
         run_id: int,
         run_name: str,
         scan_root: Path,
-        analyze_config: AnalyzeConfig,
+        analyze_config: JavAnalyzeConfig,
         log_dir: Path,
         file_result_repository: FileResultRepository,
     ) -> None:
@@ -170,7 +170,7 @@ class FilePipeline:
         return FileTaskRunStatistics.model_validate(stats)
 
     def _process_file(self, path: Path, dry_run: bool) -> None:
-        """单文件 happy path：`analyze_file` → `execute_decision` → 持久化 → 内存统计 → 结构化日志。
+        """单文件 happy path：`analyze_jav_file` → `execute_decision` → 持久化 → 内存统计 → 结构化日志。
 
         任一环节抛错：记录 error 级日志，写入 `decision_type=error` 的 `FileItemData`，并计入 `error_items`，
         不中断整轮扫描（与成功路径一致的「每文件一封」模型）。
@@ -178,7 +178,7 @@ class FilePipeline:
         start_time = time.time()
 
         try:
-            decision = analyze_file(path, self.analyze_config)
+            decision = analyze_jav_file(path, self.analyze_config)
 
             result = execute_decision(
                 decision,

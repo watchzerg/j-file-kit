@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from j_file_kit.app.file_task.application.config import AnalyzeConfig
+from j_file_kit.app.file_task.application.config import JavAnalyzeConfig
 from j_file_kit.app.file_task.application.executor import (
     ExecutionResult,
 )
@@ -26,7 +26,7 @@ pytestmark = pytest.mark.unit
 
 @pytest.fixture
 def pipeline(tmp_path: Path) -> FilePipeline:
-    config = AnalyzeConfig(
+    config = JavAnalyzeConfig(
         video_extensions={".mp4"},
         image_extensions={".jpg"},
         subtitle_extensions={".srt"},

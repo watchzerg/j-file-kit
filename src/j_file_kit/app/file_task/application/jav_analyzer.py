@@ -1,22 +1,25 @@
-"""文件分析函数
+"""JAV 文件分析函数
 
-提供文件分析的纯函数，分析单个文件并返回处理决策。
+提供 JAV 收件箱整理专用的纯函数，分析单个文件并返回处理决策。
 不产生副作用，只分析并返回 Decision。
 
 设计意图：
 - 纯函数设计，便于测试和推理
 - 子函数以下划线开头，表示内部使用
-- 主函数 analyze_file 是模块的唯一公开 API
+- 主函数 analyze_jav_file 是模块的唯一公开 API
 - 收件箱预删除（inbox_delete_rules）在扩展名分类之前执行，OR 语义；评估顺序为完全匹配
   stem → 关键字子串 → stat 体积，以减少 I/O。
-- `AnalyzeConfig` 的四类扩展名、`misc_file_delete_rules.extensions`、站标去噪列表在生产路径由
-  `JavVideoOrganizer` 从 `jav_organizer_defaults` 注入；单测可直接构造 `AnalyzeConfig`。
+- `JavAnalyzeConfig` 的四类扩展名、`misc_file_delete_rules.extensions`、站标去噪列表在生产路径由
+  `JavVideoOrganizer` 从 `jav_organizer_defaults` 注入；单测可直接构造 `JavAnalyzeConfig`。
 """
 
 from pathlib import Path
 from typing import Any
 
-from j_file_kit.app.file_task.application.config import AnalyzeConfig, InboxDeleteRules
+from j_file_kit.app.file_task.application.config import (
+    InboxDeleteRules,
+    JavAnalyzeConfig,
+)
 from j_file_kit.app.file_task.application.jav_filename_util import (
     generate_jav_filename,
     generate_sorted_dir,
@@ -31,8 +34,8 @@ from j_file_kit.app.file_task.domain.models import FileType
 from j_file_kit.shared.utils.file_utils import sanitize_surrogate_str
 
 
-def analyze_file(path: Path, config: AnalyzeConfig) -> FileDecision:
-    """分析单个文件并返回处理决策
+def analyze_jav_file(path: Path, config: JavAnalyzeConfig) -> FileDecision:
+    """分析单个 JAV 收件箱文件并返回处理决策
 
     设计意图：纯函数，不产生副作用，只分析并返回决策。
 
@@ -40,7 +43,7 @@ def analyze_file(path: Path, config: AnalyzeConfig) -> FileDecision:
 
     Args:
         path: 文件路径
-        config: 分析配置
+        config: JAV 分析配置
 
     Returns:
         文件处理决策（MoveDecision、DeleteDecision 或 SkipDecision）
@@ -92,14 +95,14 @@ def _check_inbox_delete_rules(path: Path, rules: InboxDeleteRules) -> str | None
     return None
 
 
-def _classify_file(path: Path, config: AnalyzeConfig) -> FileType:
+def _classify_file(path: Path, config: JavAnalyzeConfig) -> FileType:
     """分类文件类型
 
     根据文件扩展名判断文件类型（视频/图片/压缩/其他）。
 
     Args:
         path: 文件路径
-        config: 分析配置
+        config: JAV 分析配置
 
     Returns:
         文件类型枚举
@@ -120,7 +123,7 @@ def _classify_file(path: Path, config: AnalyzeConfig) -> FileType:
 def _decide_misc_action(
     path: Path,
     file_type: FileType,
-    config: AnalyzeConfig,
+    config: JavAnalyzeConfig,
 ) -> FileDecision:
     """决定 Misc 文件的处理方式
 
@@ -130,7 +133,7 @@ def _decide_misc_action(
     Args:
         path: 文件路径
         file_type: 文件类型
-        config: 分析配置
+        config: JAV 分析配置
 
     Returns:
         文件处理决策
@@ -211,7 +214,7 @@ def _check_misc_delete_rules(path: Path, rules: dict[str, Any]) -> str | None:
 def _decide_archive_action(
     path: Path,
     file_type: FileType,
-    config: AnalyzeConfig,
+    config: JavAnalyzeConfig,
 ) -> FileDecision:
     """决定压缩文件的处理方式
 
@@ -220,7 +223,7 @@ def _decide_archive_action(
     Args:
         path: 文件路径
         file_type: 文件类型
-        config: 分析配置
+        config: JAV 分析配置
 
     Returns:
         文件处理决策
@@ -243,7 +246,7 @@ def _decide_archive_action(
 def _decide_media_action(
     path: Path,
     file_type: FileType,
-    config: AnalyzeConfig,
+    config: JavAnalyzeConfig,
 ) -> FileDecision:
     """决定视频/图片/字幕文件的处理方式
 
@@ -253,7 +256,7 @@ def _decide_media_action(
     Args:
         path: 文件路径
         file_type: 文件类型
-        config: 分析配置
+        config: JAV 分析配置
 
     Returns:
         文件处理决策

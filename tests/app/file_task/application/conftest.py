@@ -11,8 +11,8 @@ from typing import Any
 import pytest
 
 from j_file_kit.app.file_task.application.config import (
-    AnalyzeConfig,
     InboxDeleteRules,
+    JavAnalyzeConfig,
     JavVideoOrganizeConfig,
 )
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
@@ -62,8 +62,8 @@ def jav_video_organize_config_factory() -> Callable[..., JavVideoOrganizeConfig]
 @pytest.fixture
 def analyze_config_factory(
     base_extensions: dict[str, list[str]],
-) -> Callable[..., AnalyzeConfig]:
-    """构造 `AnalyzeConfig`，用于 analyzer/pipeline 单测（不经 `JavVideoOrganizer`）。
+) -> Callable[..., JavAnalyzeConfig]:
+    """构造 `JavAnalyzeConfig`，用于 analyzer/pipeline 单测（不经 `JavVideoOrganizer`）。
 
     生产路径下扩展名与 misc.extensions、站标去噪由 `jav_organizer_defaults` 注入；此处手写字段仅为隔离测试。
     """
@@ -76,9 +76,9 @@ def analyze_config_factory(
         misc_file_delete_rules: dict[str, Any] | None = None,
         inbox_delete_rules: InboxDeleteRules | None = None,
         video_small_delete_bytes: int | None = None,
-    ) -> AnalyzeConfig:
+    ) -> JavAnalyzeConfig:
         ext_sets = {k: set(v) for k, v in base_extensions.items()}
-        return AnalyzeConfig(
+        return JavAnalyzeConfig(
             video_extensions=ext_sets["video_extensions"],
             image_extensions=ext_sets["image_extensions"],
             subtitle_extensions=ext_sets["subtitle_extensions"],
@@ -113,7 +113,7 @@ def file_result_repository(sqlite_connection_manager: SQLiteConnectionManager):
 @pytest.fixture
 def pipeline_with_real_repo(
     tmp_path: Path,
-    analyze_config_factory: Callable[..., AnalyzeConfig],
+    analyze_config_factory: Callable[..., JavAnalyzeConfig],
     file_result_repository: FileResultRepositoryImpl,
 ) -> FilePipeline:
     """Pipeline 集成测试用：带真实仓储的 FilePipeline"""
@@ -141,7 +141,7 @@ def pipeline_with_real_repo(
 @pytest.fixture
 def pipeline_with_inbox_delete_repo(
     tmp_path: Path,
-    analyze_config_factory: Callable[..., AnalyzeConfig],
+    analyze_config_factory: Callable[..., JavAnalyzeConfig],
     file_result_repository: FileResultRepositoryImpl,
 ) -> FilePipeline:
     """Pipeline 集成测试：收件箱预删除规则（stem 完全匹配）"""
