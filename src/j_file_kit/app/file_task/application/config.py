@@ -35,10 +35,6 @@ class InboxDeleteRules(BaseModel):
         default_factory=set,
         description="stem 完全等于其中任一则删除（大小写敏感）",
     )
-    keywords: list[str] = Field(
-        default_factory=list,
-        description="stem 包含其中任一则删除（子串，大小写敏感）",
-    )
     max_size_bytes: int | None = Field(
         default=None,
         description="若设置则删除体积不超过该值的文件（含 0 表示仅空文件）；None 表示不启用",
@@ -47,7 +43,6 @@ class InboxDeleteRules(BaseModel):
     @model_validator(mode="after")
     def drop_empty_strings(self) -> InboxDeleteRules:
         self.exact_stems = {s for s in self.exact_stems if s != ""}
-        self.keywords = [k for k in self.keywords if k != ""]
         return self
 
 
@@ -58,7 +53,7 @@ class JavVideoOrganizeConfig(BaseModel):
     `inbox_dir` 作为 `FilePipeline` 的扫描根；其余字段经 `_create_analyze_config` 映射为 `JavAnalyzeConfig`。
 
     四类媒体扩展名、Misc 删除扩展名及站标去噪子串**不在本模型字段中**，由 `organizer_defaults`
-    在 `JavVideoOrganizer._create_analyze_config` 中注入 `JavAnalyzeConfig`；`misc_file_delete_rules` 在存储层仅含 keywords / max_size（见剔除校验器）。
+    在 `JavVideoOrganizer._create_analyze_config` 中注入 `JavAnalyzeConfig`；`misc_file_delete_rules` 在存储层仅含 max_size（见剔除校验器）。
 
     不变量：凡非 None 的目录字段必须为 `JAV_MEDIA_ROOT`（`/media/jav_workspace`）子目录（见 `validate_dir_paths_under_media_root`）。
     """
@@ -71,7 +66,7 @@ class JavVideoOrganizeConfig(BaseModel):
 
     misc_file_delete_rules: dict[str, Any] = Field(
         default_factory=dict,
-        description="Misc 删除可调部分：keywords、max_size（扩展名列表由代码常量注入 JavAnalyzeConfig）",
+        description="Misc 删除可调部分：max_size（扩展名列表由代码常量注入）",
     )
     video_small_delete_bytes: int | None = Field(
         default=None,
@@ -79,16 +74,17 @@ class JavVideoOrganizeConfig(BaseModel):
     )
     inbox_delete_rules: InboxDeleteRules = Field(
         default_factory=InboxDeleteRules,
-        description="收件箱预删除（扩展名分类前）：完全匹配 stem、关键字、体积上限，OR 语义",
+        description="收件箱预删除（扩展名分类前）：完全匹配 stem、体积上限，OR 语义",
     )
 
     @model_validator(mode="after")
     def strip_misc_extensions_from_yaml(self) -> JavVideoOrganizeConfig:
-        """Misc 删除扩展名以 `organizer_defaults` 为准；剔除 YAML 中的 extensions，避免写回配置。"""
+        """Misc 删除规则以 `organizer_defaults` 常量为准；剔除 YAML 中的非可调键，避免写回配置。"""
         if not self.misc_file_delete_rules:
             return self
         rules = dict(self.misc_file_delete_rules)
         rules.pop("extensions", None)
+        rules.pop("keywords", None)
         self.misc_file_delete_rules = rules
         return self
 
@@ -153,7 +149,7 @@ class JavAnalyzeConfig(BaseModel):
     # 删除规则
     misc_file_delete_rules: dict[str, Any] = Field(
         default_factory=dict,
-        description="Misc文件删除规则配置（keywords, extensions, max_size）",
+        description="Misc文件删除规则配置（extensions, max_size）",
     )
     video_small_delete_bytes: int | None = Field(
         default=None,
@@ -161,7 +157,7 @@ class JavAnalyzeConfig(BaseModel):
     )
     inbox_delete_rules: InboxDeleteRules = Field(
         default_factory=InboxDeleteRules,
-        description="收件箱预删除（扩展名分类前）：完全匹配 stem、关键字、体积上限，OR 语义",
+        description="收件箱预删除（扩展名分类前）：完全匹配 stem、体积上限，OR 语义",
     )
 
     jav_filename_strip_substrings: tuple[str, ...] = Field(
@@ -330,12 +326,10 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
             "misc_dir": "/media/jav_workspace/misc",
             "inbox_delete_rules": {
                 "exact_stems": [],
-                "keywords": ["扫码下载1024安卓APP", "1024手机网址"],
                 "max_size_bytes": 0,
             },
             "video_small_delete_bytes": 200 * 1024 * 1024,
             "misc_file_delete_rules": {
-                "keywords": ["sample", "preview", "temp"],
                 "max_size": 1048576,
             },
         },

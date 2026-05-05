@@ -35,10 +35,9 @@ def task_config_with_inbox() -> TaskConfig:
             "unsorted_dir": "/media/jav_workspace/unsorted",
             "archive_dir": "/media/jav_workspace/archive",
             "misc_dir": "/media/jav_workspace/misc",
-            "misc_file_delete_rules": {"keywords": ["x"], "max_size": 100},
+            "misc_file_delete_rules": {"max_size": 100},
             "inbox_delete_rules": {
                 "exact_stems": ["Thumbs"],
-                "keywords": ["spam"],
                 "max_size_bytes": 0,
             },
         },
@@ -102,14 +101,12 @@ class TestJavVideoOrganizerCreateAnalyzeConfig:
         assert config.unsorted_dir == organizer.file_config.unsorted_dir
         assert config.archive_dir == organizer.file_config.archive_dir
         assert config.misc_dir == organizer.file_config.misc_dir
-        assert config.misc_file_delete_rules["keywords"] == ["x"]
         assert config.misc_file_delete_rules["max_size"] == 100
         assert config.misc_file_delete_rules["extensions"] == sorted(
             DEFAULT_MISC_FILE_DELETE_EXTENSIONS,
         )
         assert config.inbox_delete_rules == InboxDeleteRules(
             exact_stems={"Thumbs"},
-            keywords=["spam"],
             max_size_bytes=0,
         )
         assert config.video_small_delete_bytes is None

@@ -23,6 +23,9 @@ from j_file_kit.app.file_task.domain.decisions import (
     SkipDecision,
 )
 from j_file_kit.app.file_task.domain.models import FileType
+from j_file_kit.app.file_task.domain.organizer_defaults import (
+    DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -46,16 +49,16 @@ class TestAnalyzeJavFileInboxDelete:
         assert decision.file_type == FileType.UNCLASSIFIED
         assert "完全匹配" in decision.reason
 
-    def test_keyword_in_stem_deletes(
+    def test_default_keyword_in_stem_deletes(
         self,
         analyze_config_factory: Callable[..., JavAnalyzeConfig],
         tmp_path: Path,
     ) -> None:
         config = analyze_config_factory(
             sorted_dir=tmp_path / "sorted",
-            inbox_delete_rules=InboxDeleteRules(keywords=["advert"]),
         )
-        path = tmp_path / "foo_advert_bar.mp4"
+        kw = DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS[0]
+        path = tmp_path / f"foo_{kw}_bar.mp4"
         path.touch()
         decision = analyze_jav_file(path, config)
         assert isinstance(decision, DeleteDecision)
@@ -390,13 +393,13 @@ class TestAnalyzeJavFileMisc:
             misc_dir=tmp_path / "misc",
             misc_file_delete_rules={"extensions": [".tmp", ".bak"]},
         )
-        path = tmp_path / "temp.tmp"
+        path = tmp_path / "noise_file.tmp"
         path.touch()
         decision = analyze_jav_file(path, config)
         assert isinstance(decision, DeleteDecision)
         assert "扩展名" in decision.reason
 
-    def test_misc_size_keyword_delete_rule(
+    def test_misc_size_delete_rule(
         self,
         analyze_config_factory: Callable[..., JavAnalyzeConfig],
         tmp_path: Path,
@@ -404,15 +407,14 @@ class TestAnalyzeJavFileMisc:
         config = analyze_config_factory(
             misc_dir=tmp_path / "misc",
             misc_file_delete_rules={
-                "keywords": ["sample"],
                 "max_size": 1024,
             },
         )
-        path = tmp_path / "sample_preview.xyz"
+        path = tmp_path / "normal_name.xyz"
         path.write_bytes(b"x" * 100)
         decision = analyze_jav_file(path, config)
         assert isinstance(decision, DeleteDecision)
-        assert "文件大小" in decision.reason
+        assert "Misc 体积删除规则" in decision.reason
 
     def test_misc_no_delete_rule_moves_to_misc(
         self,
@@ -540,7 +542,7 @@ class TestAnalyzeJavFileMiscDeleteRulesMaxSizeValidation:
     ) -> None:
         config = analyze_config_factory(
             misc_dir=tmp_path / "misc",
-            misc_file_delete_rules={"keywords": ["x"], "max_size": "invalid"},
+            misc_file_delete_rules={"max_size": "invalid"},
         )
         path = tmp_path / "x.xyz"
         path.touch()

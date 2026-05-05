@@ -159,7 +159,6 @@ def pipeline_with_real_repo(
         archive_dir=tmp_path / "archive",
         misc_dir=tmp_path / "misc",
         misc_file_delete_rules={
-            "keywords": ["rarbg", "sample"],
             "extensions": [".tmp", ".temp"],
             "max_size": 1048576,
         },
@@ -187,7 +186,6 @@ def pipeline_with_inbox_delete_repo(
         archive_dir=tmp_path / "archive",
         misc_dir=tmp_path / "misc",
         misc_file_delete_rules={
-            "keywords": ["rarbg", "sample"],
             "extensions": [".tmp", ".temp"],
             "max_size": 1048576,
         },

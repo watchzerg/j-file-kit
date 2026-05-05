@@ -31,6 +31,9 @@ from j_file_kit.app.file_task.domain.decisions import (
     SkipDecision,
 )
 from j_file_kit.app.file_task.domain.models import FileType
+from j_file_kit.app.file_task.domain.organizer_defaults import (
+    DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS,
+)
 from j_file_kit.shared.utils.file_utils import sanitize_surrogate_str
 
 
@@ -69,8 +72,8 @@ def analyze_jav_file(path: Path, config: JavAnalyzeConfig) -> FileDecision:
 def _check_inbox_delete_rules(path: Path, rules: InboxDeleteRules) -> str | None:
     """收件箱预删除判定（扩展名分类之前）。
 
-    OR 语义：stem 完全匹配、stem 含任一关键字、或体积不超过 max_size_bytes（若配置）。
-    评估顺序：完全匹配 → 关键字 → stat（减少磁盘访问）。
+    OR 语义：stem 完全匹配、stem 含默认垃圾关键词、或体积不超过 max_size_bytes（若配置）。
+    评估顺序：完全匹配 → 关键词 → stat（减少磁盘访问）。
 
     Args:
         path: 文件路径
@@ -82,7 +85,7 @@ def _check_inbox_delete_rules(path: Path, rules: InboxDeleteRules) -> str | None
     stem = path.stem
     if stem in rules.exact_stems:
         return f"stem 完全匹配收件箱删除规则: {stem!r}"
-    for kw in rules.keywords:
+    for kw in DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS:
         if kw in stem:
             return f"stem 包含收件箱删除关键字: {kw!r}"
     if rules.max_size_bytes is not None:
@@ -128,7 +131,7 @@ def _decide_misc_action(
     """决定 Misc 文件的处理方式
 
     Misc 文件可能被删除或移动到 misc 目录。
-    删除条件：扩展名匹配 或 (体积 <= max_size 且 文件名包含关键字)
+    删除条件：扩展名匹配 或 体积 <= max_size
 
     Args:
         path: 文件路径
@@ -166,7 +169,7 @@ def _decide_misc_action(
 def _check_misc_delete_rules(path: Path, rules: dict[str, Any]) -> str | None:
     """检查 Misc 文件是否符合删除规则
 
-    删除条件：扩展名匹配 或 (体积 <= max_size 且 文件名包含关键字)
+    删除条件：扩展名匹配 或 体积 <= max_size
 
     Args:
         path: 文件路径
@@ -179,8 +182,6 @@ def _check_misc_delete_rules(path: Path, rules: dict[str, Any]) -> str | None:
         return None
 
     suffix = path.suffix.lower()
-    stem = path.stem
-
     # 检查扩展名（优先级最高）
     extensions = rules.get("extensions")
     if isinstance(extensions, list):
@@ -191,14 +192,9 @@ def _check_misc_delete_rules(path: Path, rules: dict[str, Any]) -> str | None:
         if suffix in extensions_normalized:
             return f"扩展名 {suffix} 匹配删除规则"
 
-    # 检查体积和文件名关键字组合
+    # 检查体积删除规则
     max_size = rules.get("max_size")
-    keywords = rules.get("keywords")
-    if keywords is not None and max_size is not None:
-        if not isinstance(keywords, list) or not all(
-            isinstance(kw, str) for kw in keywords
-        ):
-            return None
+    if max_size is not None:
         if not isinstance(max_size, (int, float)):
             raise ValueError("max_size 必须为数字类型")
         try:
@@ -206,8 +202,7 @@ def _check_misc_delete_rules(path: Path, rules: dict[str, Any]) -> str | None:
         except OSError:
             return None
         if file_size <= max_size:
-            if any(kw in stem for kw in keywords):
-                return f"文件大小 {file_size} <= {max_size} 且文件名包含关键字"
+            return f"文件大小 {file_size} <= {max_size}（Misc 体积删除规则）"
     return None
 
 

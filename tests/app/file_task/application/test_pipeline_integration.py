@@ -114,12 +114,12 @@ class TestMiscFileDeleted:
 
         assert not source.exists()
 
-    def test_misc_file_deleted_by_keyword_and_size(
+    def test_misc_file_deleted_by_size(
         self,
         pipeline_with_real_repo,
         tmp_path: Path,
     ) -> None:
-        """小文件且文件名含关键字时删除"""
+        """小体积 Misc 文件在 max_size 阈值内时删除"""
         inbox = tmp_path / "inbox"
         inbox.mkdir(parents=True)
         (tmp_path / "logs").mkdir(parents=True)
@@ -128,7 +128,7 @@ class TestMiscFileDeleted:
         (tmp_path / "archive").mkdir(parents=True)
         (tmp_path / "misc").mkdir(parents=True)
 
-        source = inbox / "rarbg_sample.tmp"
+        source = inbox / "normal_payload.xyz"
         source.write_bytes(b"x")
 
         pipeline_with_real_repo.run(dry_run=False)

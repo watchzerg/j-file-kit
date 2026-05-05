@@ -41,7 +41,7 @@ flowchart TB
 | 层次 | 类型 | 说明 |
 |------|------|------|
 | 存储 | `TaskConfig` | YAML 中一条记录：`type` + `enabled` + `config`（dict） |
-| 任务强类型 | `JavVideoOrganizeConfig` | `get_config(JavVideoOrganizeConfig)`；含 **`inbox_dir`**、各输出目录、收件箱预删、`misc_file_delete_rules` 可调片段（keywords / max_size）等 |
+| 任务强类型 | `JavVideoOrganizeConfig` | `get_config(JavVideoOrganizeConfig)`；含 **`inbox_dir`**、各输出目录、收件箱预删、`misc_file_delete_rules` 可调片段（max_size）等 |
 | 分析专用 | `JavAnalyzeConfig` | `JavVideoOrganizer` 内由 `_create_analyze_config()` 组装：**四类扩展名**、**站标去噪子串**、**misc 删除扩展名**来自 **`domain/organizer_defaults.py`**，并与 YAML 中的目录、`misc_file_delete_rules`（无 extensions）、收件箱预删等合并；**不含** `inbox_dir`，专供 **`analyze_jav_file`** |
 
 路径不变量：配置中凡出现的媒体目录须在 **`JAV_MEDIA_ROOT`（`/media/jav_workspace`）** 下，由 Pydantic 校验（见 `JavVideoOrganizeConfig.validate_dir_paths_under_media_root`）。
@@ -87,7 +87,7 @@ flowchart TB
 ### 4.2 收件箱预删除（`InboxDeleteRules`）
 
 - **语义**：任一条件满足即删除（OR）。  
-- **评估顺序**（为少打盘）：`stem` **完全匹配** `exact_stems` → `stem` **包含**任一 `keywords` → 若配置了 `max_size_bytes`，则 **`stat`，大小 ≤ 阈值**（含 0 可表示「空/极小文件」等用法，以配置为准）。  
+- **评估顺序**（为少打盘）：`stem` **完全匹配** `exact_stems` → `stem` **包含**任一默认垃圾关键词（`DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS`）→ 若配置了 `max_size_bytes`，则 **`stat`，大小 ≤ 阈值**（含 0 可表示「空/极小文件」等用法，以配置为准）。  
 - 命中 → `DeleteDecision`，`file_type=UNCLASSIFIED`。
 
 ### 4.3 扩展名分类（`_classify_file`）
@@ -96,7 +96,7 @@ flowchart TB
 
 ### 4.4 Misc（`_decide_misc_action`）
 
-1. `_check_misc_delete_rules`：`misc_file_delete_rules` 字典——**扩展名列表**由代码常量注入（**优先级最高**）；**关键字 + max_size** 来自 YAML。旧 YAML 若含 `extensions` 键会在加载 `JavVideoOrganizeConfig` 时被剔除且不写回。  
+1. `_check_misc_delete_rules`：`misc_file_delete_rules` 字典——**扩展名列表**由代码常量注入（**优先级最高**）；若配置了 `max_size`，则再按体积阈值删除。旧 YAML 若含 `extensions` / `keywords` 键会在加载 `JavVideoOrganizeConfig` 时被剔除且不写回。  
 2. 命中删除 → `DeleteDecision`。  
 3. 否则若 **`misc_dir` 未设置** → `SkipDecision`。  
 4. 否则 → **`MoveDecision`** 到 `misc_dir / 原文件名`（经 `sanitize_surrogate_str`）。

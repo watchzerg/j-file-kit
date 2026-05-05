@@ -40,7 +40,7 @@ class TestJavVideoOrganizeConfigDirConstraint:
 
 
 class TestJavVideoOrganizeConfigMiscRules:
-    """misc_file_delete_rules：YAML 中的 extensions 键须剔除（扩展名以代码为准）"""
+    """misc_file_delete_rules：YAML 中的 extensions/keywords 键须剔除（代码常量为准）"""
 
     def test_extensions_key_stripped(self) -> None:
         config = JavVideoOrganizeConfig.model_validate(
@@ -53,8 +53,8 @@ class TestJavVideoOrganizeConfigMiscRules:
             },
         )
         assert "extensions" not in config.misc_file_delete_rules
+        assert "keywords" not in config.misc_file_delete_rules
         assert config.misc_file_delete_rules == {
-            "keywords": ["sample"],
             "max_size": 100,
         }
 
@@ -64,10 +64,9 @@ class TestInboxDeleteRules:
 
     def test_drops_empty_strings(self) -> None:
         rules = InboxDeleteRules.model_validate(
-            {"exact_stems": ["", "keep"], "keywords": ["", "kw"]},
+            {"exact_stems": ["", "keep"]},
         )
         assert rules.exact_stems == {"keep"}
-        assert rules.keywords == ["kw"]
 
 
 class TestCreateDefaultJavVideoOrganizerTaskConfig:
@@ -86,11 +85,11 @@ class TestCreateDefaultJavVideoOrganizerTaskConfig:
         misc_raw = config["misc_file_delete_rules"]
         assert isinstance(misc_raw, dict)
         assert "extensions" not in misc_raw
-        assert set(misc_raw.keys()) == {"keywords", "max_size"}
+        assert set(misc_raw.keys()) == {"max_size"}
         assert "inbox_delete_rules" in config
         inbox_raw = config["inbox_delete_rules"]
         assert isinstance(inbox_raw, dict)
-        assert set(inbox_raw.keys()) == {"exact_stems", "keywords", "max_size_bytes"}
+        assert set(inbox_raw.keys()) == {"exact_stems", "max_size_bytes"}
         InboxDeleteRules.model_validate(inbox_raw)
         assert "serial_id_rules" not in config
         assert "video_extensions" not in config

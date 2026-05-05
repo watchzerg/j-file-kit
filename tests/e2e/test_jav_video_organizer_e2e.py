@@ -10,7 +10,7 @@
   B. 无番号视频 → jav_workspace/unsorted/
   C. 压缩包 → jav_workspace/archive/
   D. Misc 扩展名匹配 → 删除
-  E. Misc 关键字 + 小体积 → 删除
+  E. Misc 小体积（max_size）→ 删除
   F. Misc 大文件 → jav_workspace/misc/
   G. 文件名冲突消解 → jav_workspace/sorted/（含 -jfk- 后缀的副本）
   H. 处理后空子目录 → 自动被清除
@@ -173,13 +173,13 @@ class TestJavVideoOrganizerE2E:
         assert status == "completed"
         assert not nfo.exists()
 
-    def test_misc_keyword_small_file_deleted(
+    def test_misc_small_file_deleted_by_size(
         self,
         docker_service: str,
         clean_media: Path,
     ) -> None:
-        """文件名含 sample 关键字且体积 ≤ 1MB 的 Misc 文件应被删除。"""
-        dat = _jav_workspace_root(clean_media) / "inbox" / "sample_clip.dat"
+        """扩展名未命中时，体积 ≤ 1MB 的 Misc 文件应按 max_size 规则删除。"""
+        dat = _jav_workspace_root(clean_media) / "inbox" / "small_payload.xyz"
         _write_file(dat, size=_512KB)
 
         status = _run_task(docker_service)
@@ -194,8 +194,8 @@ class TestJavVideoOrganizerE2E:
     ) -> None:
         """体积超过 1MB、无 misc 删除规则匹配的 Misc 文件应被移动到 misc/ 目录。
 
-        扩展名使用 .xyz（不在 misc 扩展名删除列表中）；stem 不含常见过滤关键字子串。
-        若使用 .dat，会先被 misc 扩展名规则删除，无法覆盖「大文件进 misc」路径。
+        扩展名使用 .xyz（不在 misc 扩展名删除列表中），且体积大于 max_size。
+        若使用 .dat/.tmp 等扩展名会先被扩展名规则删除，无法覆盖「大文件进 misc」路径。
         """
         dat = _jav_workspace_root(clean_media) / "inbox" / "large_blob.xyz"
         _write_file(dat, size=_1MB * 2)
