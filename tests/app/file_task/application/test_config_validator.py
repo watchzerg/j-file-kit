@@ -2,10 +2,10 @@
 
 覆盖 validate_inbox_dir、check_dir_conflicts、check_dirs_exist、
 validate_jav_video_organizer_config，以及 JavVideoOrganizeConfig 的
-/media/jav 路径约束（JAV_MEDIA_ROOT model_validator）。
+/media/jav_workspace 路径约束（JAV_MEDIA_ROOT model_validator）。
 
 路径策略：
-- 纯逻辑测试（不涉及文件系统）使用 /media/jav/xxx 字面量路径，无需目录存在。
+- 纯逻辑测试（不涉及文件系统）使用 /media/jav_workspace/xxx 字面量路径，无需目录存在。
 - check_dirs_exist / validate_jav_video_organizer_config 需要真实目录时使用 tmp_path
   并通过 monkeypatch config.JAV_MEDIA_ROOT 指向 tmp_path，使 tmp_path 子目录视为合法路径。
 """
@@ -42,7 +42,9 @@ class TestValidateInboxDir:
         self,
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
-        config = jav_video_organize_config_factory(inbox_dir=Path("/media/jav/inbox"))
+        config = jav_video_organize_config_factory(
+            inbox_dir=Path("/media/jav_workspace/inbox"),
+        )
         errors = validate_inbox_dir(config)
         assert errors == []
 
@@ -55,8 +57,8 @@ class TestCheckDirConflicts:
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
         config = jav_video_organize_config_factory(
-            inbox_dir=Path("/media/jav/inbox"),
-            sorted_dir=Path("/media/jav/sorted"),
+            inbox_dir=Path("/media/jav_workspace/inbox"),
+            sorted_dir=Path("/media/jav_workspace/sorted"),
         )
         errors = check_dir_conflicts(config)
         assert errors == []
@@ -65,7 +67,7 @@ class TestCheckDirConflicts:
         self,
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
-        shared = Path("/media/jav/shared")
+        shared = Path("/media/jav_workspace/shared")
         config = jav_video_organize_config_factory(
             inbox_dir=shared,
             sorted_dir=shared,
@@ -80,8 +82,8 @@ class TestCheckDirConflicts:
         self,
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
-        parent = Path("/media/jav/parent")
-        child = Path("/media/jav/parent/child")
+        parent = Path("/media/jav_workspace/parent")
+        child = Path("/media/jav_workspace/parent/child")
         config = jav_video_organize_config_factory(
             inbox_dir=parent,
             sorted_dir=child,
@@ -94,8 +96,8 @@ class TestCheckDirConflicts:
         self,
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
-        parent = Path("/media/jav/parent")
-        child = Path("/media/jav/parent/child")
+        parent = Path("/media/jav_workspace/parent")
+        child = Path("/media/jav_workspace/parent/child")
         config = jav_video_organize_config_factory(
             inbox_dir=child,
             sorted_dir=parent,
@@ -109,7 +111,7 @@ class TestCheckDirConflicts:
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
         config = jav_video_organize_config_factory(
-            inbox_dir=Path("/media/jav/inbox"),
+            inbox_dir=Path("/media/jav_workspace/inbox"),
             sorted_dir=None,
             unsorted_dir=None,
         )
@@ -120,18 +122,18 @@ class TestCheckDirConflicts:
 class TestJavVideoOrganizeConfigDirConstraint:
     """JavVideoOrganizeConfig.validate_dir_paths_under_media_root model_validator
 
-    JAV_MEDIA_ROOT（/media/jav）约束已作为模型不变量内嵌于 JavVideoOrganizeConfig，
+    JAV_MEDIA_ROOT（/media/jav_workspace）约束已作为模型不变量内嵌于 JavVideoOrganizeConfig，
     在任何 model_validate 调用时自动触发。
     """
 
     def test_jav_media_subpath_accepted(self) -> None:
         config = JavVideoOrganizeConfig.model_validate(
             {
-                "inbox_dir": "/media/jav/inbox",
+                "inbox_dir": "/media/jav_workspace/inbox",
                 "misc_file_delete_rules": {},
             },
         )
-        assert config.inbox_dir == Path("/media/jav/inbox")
+        assert config.inbox_dir == Path("/media/jav_workspace/inbox")
 
     def test_non_media_path_raises(self) -> None:
         with pytest.raises(ValidationError):
@@ -143,7 +145,7 @@ class TestJavVideoOrganizeConfigDirConstraint:
             )
 
     def test_media_root_path_raises(self) -> None:
-        """在 /media 下但不在 /media/jav 下的路径也应报错"""
+        """在 /media 下但不在 /media/jav_workspace 下的路径也应报错"""
         with pytest.raises(ValidationError):
             JavVideoOrganizeConfig.model_validate(
                 {
@@ -262,7 +264,7 @@ class TestValidateJavVideoOrganizerConfig:
         self,
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
-        shared = Path("/media/jav/shared")
+        shared = Path("/media/jav_workspace/shared")
         config = jav_video_organize_config_factory(
             inbox_dir=None,
             sorted_dir=shared,

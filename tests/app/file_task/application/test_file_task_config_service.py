@@ -31,12 +31,12 @@ def mock_repository() -> MagicMock:
 
 @pytest.fixture
 def valid_task_config() -> TaskConfig:
-    """使用 /media/jav 路径构造 TaskConfig，用于不需要目录真实存在的测试。"""
+    """使用 /media/jav_workspace 路径构造 TaskConfig，用于不需要目录真实存在的测试。"""
     return TaskConfig(
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         enabled=True,
         config={
-            "inbox_dir": "/media/jav/inbox",
+            "inbox_dir": "/media/jav_workspace/inbox",
             "sorted_dir": None,
             "unsorted_dir": None,
             "archive_dir": None,
@@ -96,15 +96,15 @@ class TestMergeJavVideoOrganizerConfig:
             valid_task_config.config,
             {},
         )
-        assert result.inbox_dir == Path("/media/jav/inbox")
+        assert result.inbox_dir == Path("/media/jav_workspace/inbox")
 
     def test_partial_update_merges(self, valid_task_config: TaskConfig) -> None:
         result = FileTaskConfigService.merge_jav_video_organizer_config(
             valid_task_config.config,
-            {"sorted_dir": "/media/jav/sorted"},
+            {"sorted_dir": "/media/jav_workspace/sorted"},
         )
-        assert result.sorted_dir == Path("/media/jav/sorted")
-        assert result.inbox_dir == Path("/media/jav/inbox")
+        assert result.sorted_dir == Path("/media/jav_workspace/sorted")
+        assert result.inbox_dir == Path("/media/jav_workspace/inbox")
 
 
 class TestValidateAndSaveJavVideoOrganizerConfig:

@@ -30,11 +30,11 @@ def task_config_with_inbox() -> TaskConfig:
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         enabled=True,
         config={
-            "inbox_dir": "/media/jav/inbox",
-            "sorted_dir": "/media/jav/sorted",
-            "unsorted_dir": "/media/jav/unsorted",
-            "archive_dir": "/media/jav/archive",
-            "misc_dir": "/media/jav/misc",
+            "inbox_dir": "/media/jav_workspace/inbox",
+            "sorted_dir": "/media/jav_workspace/sorted",
+            "unsorted_dir": "/media/jav_workspace/unsorted",
+            "archive_dir": "/media/jav_workspace/archive",
+            "misc_dir": "/media/jav_workspace/misc",
             "misc_file_delete_rules": {"keywords": ["x"], "max_size": 100},
             "inbox_delete_rules": {
                 "exact_stems": ["Thumbs"],

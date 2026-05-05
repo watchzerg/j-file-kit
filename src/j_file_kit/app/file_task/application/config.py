@@ -15,7 +15,7 @@ from j_file_kit.app.file_task.domain.models import TaskConfig
 from j_file_kit.shared.constants import MEDIA_ROOT
 
 # JAV 整理任务的媒体子根目录；测试可 monkeypatch 此模块变量
-JAV_MEDIA_ROOT = MEDIA_ROOT / "jav"
+JAV_MEDIA_ROOT = MEDIA_ROOT / "jav_workspace"
 
 
 class InboxDeleteRules(BaseModel):
@@ -53,7 +53,7 @@ class JavVideoOrganizeConfig(BaseModel):
     四类媒体扩展名、Misc 删除扩展名及站标去噪子串**不在本模型字段中**，由 `jav_organizer_defaults`
     在 `JavVideoOrganizer._create_analyze_config` 中注入 `AnalyzeConfig`；`misc_file_delete_rules` 在存储层仅含 keywords / max_size（见剔除校验器）。
 
-    不变量：凡非 None 的目录字段必须为 `JAV_MEDIA_ROOT`（`/media/jav`）子目录（见 `validate_dir_paths_under_media_root`）。
+    不变量：凡非 None 的目录字段必须为 `JAV_MEDIA_ROOT`（`/media/jav_workspace`）子目录（见 `validate_dir_paths_under_media_root`）。
     """
 
     inbox_dir: Path | None = Field(default=None, description="待处理目录")
@@ -87,7 +87,7 @@ class JavVideoOrganizeConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_dir_paths_under_media_root(self) -> JavVideoOrganizeConfig:
-        """所有非 None 目录路径必须是 JAV_MEDIA_ROOT（/media/jav）的子目录。
+        """所有非 None 目录路径必须是 JAV_MEDIA_ROOT（/media/jav_workspace）的子目录。
 
         作为模型不变量在构造时强制校验，覆盖配置加载和 API 更新两个场景。
         测试可通过 monkeypatch 覆盖模块级 JAV_MEDIA_ROOT 变量。
@@ -184,11 +184,11 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         enabled=True,
         config={
-            "inbox_dir": "/media/jav/inbox",
-            "sorted_dir": "/media/jav/sorted",
-            "unsorted_dir": "/media/jav/unsorted",
-            "archive_dir": "/media/jav/archive",
-            "misc_dir": "/media/jav/misc",
+            "inbox_dir": "/media/jav_workspace/inbox",
+            "sorted_dir": "/media/jav_workspace/sorted",
+            "unsorted_dir": "/media/jav_workspace/unsorted",
+            "archive_dir": "/media/jav_workspace/archive",
+            "misc_dir": "/media/jav_workspace/misc",
             "inbox_delete_rules": {
                 "exact_stems": [],
                 "keywords": ["扫码下载1024安卓APP", "1024手机网址"],

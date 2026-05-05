@@ -1,18 +1,18 @@
 """JAV 视频整理任务 E2E 测试
 
 通过真实 Docker 容器验证文件整理任务的完整处理流程：
-- 在宿主机 inbox 目录下创建测试文件
+- 在宿主机 `jav_workspace/inbox`（媒体挂载根之下）目录下创建测试文件
 - 调用 HTTP API 触发任务并等待完成
 - 直接断言宿主机文件系统的结果路径
 
 测试场景：
-  A. 有番号视频 → sorted/<首字母>/<前2字母>/<前缀>/
-  B. 无番号视频 → unsorted/
-  C. 压缩包 → archive/
+  A. 有番号视频 → jav_workspace/sorted/<首字母>/<前2字母>/<前缀>/
+  B. 无番号视频 → jav_workspace/unsorted/
+  C. 压缩包 → jav_workspace/archive/
   D. Misc 扩展名匹配 → 删除
   E. Misc 关键字 + 小体积 → 删除
-  F. Misc 大文件 → misc/
-  G. 文件名冲突消解 → sorted/（含 -jfk- 后缀的副本）
+  F. Misc 大文件 → jav_workspace/misc/
+  G. 文件名冲突消解 → jav_workspace/sorted/（含 -jfk- 后缀的副本）
   H. 处理后空子目录 → 自动被清除
 
 前置条件：Docker 已运行，镜像可构建。运行方式：
@@ -29,6 +29,11 @@ from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANI
 
 _1MB = 1024 * 1024
 _512KB = 512 * 1024
+
+
+def _jav_workspace_root(host_media_mount: Path) -> Path:
+    """宿主挂载的「媒体树根」下的 JAV workspace（与容器内 `/media/jav_workspace` 对应）。"""
+    return host_media_mount / "jav_workspace"
 
 
 def _write_file(path: Path, size: int = _1MB * 2) -> None:
@@ -104,13 +109,20 @@ class TestJavVideoOrganizerE2E:
         clean_media: Path,
     ) -> None:
         """有番号视频应被移动到 sorted/<首字母>/<前2字母>/<前缀>/ 目录下。"""
-        _write_file(clean_media / "inbox" / "ABC-100.mp4")
+        _write_file(_jav_workspace_root(clean_media) / "inbox" / "ABC-100.mp4")
 
         status = _run_task(docker_service)
 
         assert status == "completed"
-        assert (clean_media / "sorted" / "A" / "AB" / "ABC" / "ABC-100.mp4").exists()
-        assert not (clean_media / "inbox" / "ABC-100.mp4").exists()
+        assert (
+            _jav_workspace_root(clean_media)
+            / "sorted"
+            / "A"
+            / "AB"
+            / "ABC"
+            / "ABC-100.mp4"
+        ).exists()
+        assert not (_jav_workspace_root(clean_media) / "inbox" / "ABC-100.mp4").exists()
 
     def test_video_without_serial_id_goes_to_unsorted(
         self,
@@ -118,13 +130,17 @@ class TestJavVideoOrganizerE2E:
         clean_media: Path,
     ) -> None:
         """无番号视频应被移动到 unsorted/ 目录下。"""
-        _write_file(clean_media / "inbox" / "family_trip.mp4")
+        _write_file(_jav_workspace_root(clean_media) / "inbox" / "family_trip.mp4")
 
         status = _run_task(docker_service)
 
         assert status == "completed"
-        assert (clean_media / "unsorted" / "family_trip.mp4").exists()
-        assert not (clean_media / "inbox" / "family_trip.mp4").exists()
+        assert (
+            _jav_workspace_root(clean_media) / "unsorted" / "family_trip.mp4"
+        ).exists()
+        assert not (
+            _jav_workspace_root(clean_media) / "inbox" / "family_trip.mp4"
+        ).exists()
 
     def test_archive_goes_to_archive(
         self,
@@ -132,13 +148,16 @@ class TestJavVideoOrganizerE2E:
         clean_media: Path,
     ) -> None:
         """压缩包（无论是否含番号）应被移动到 archive/ 目录下。"""
-        _write_file(clean_media / "inbox" / "backup.zip", size=_1MB * 3)
+        _write_file(
+            _jav_workspace_root(clean_media) / "inbox" / "backup.zip",
+            size=_1MB * 3,
+        )
 
         status = _run_task(docker_service)
 
         assert status == "completed"
-        assert (clean_media / "archive" / "backup.zip").exists()
-        assert not (clean_media / "inbox" / "backup.zip").exists()
+        assert (_jav_workspace_root(clean_media) / "archive" / "backup.zip").exists()
+        assert not (_jav_workspace_root(clean_media) / "inbox" / "backup.zip").exists()
 
     def test_misc_matching_extension_deleted(
         self,
@@ -146,7 +165,7 @@ class TestJavVideoOrganizerE2E:
         clean_media: Path,
     ) -> None:
         """扩展名匹配删除规则（.nfo）的 Misc 文件应被删除。"""
-        nfo = clean_media / "inbox" / "info.nfo"
+        nfo = _jav_workspace_root(clean_media) / "inbox" / "info.nfo"
         _write_file(nfo, size=512)
 
         status = _run_task(docker_service)
@@ -160,7 +179,7 @@ class TestJavVideoOrganizerE2E:
         clean_media: Path,
     ) -> None:
         """文件名含 sample 关键字且体积 ≤ 1MB 的 Misc 文件应被删除。"""
-        dat = clean_media / "inbox" / "sample_clip.dat"
+        dat = _jav_workspace_root(clean_media) / "inbox" / "sample_clip.dat"
         _write_file(dat, size=_512KB)
 
         status = _run_task(docker_service)
@@ -178,13 +197,13 @@ class TestJavVideoOrganizerE2E:
         扩展名使用 .xyz（不在 misc 扩展名删除列表中）；stem 不含常见过滤关键字子串。
         若使用 .dat，会先被 misc 扩展名规则删除，无法覆盖「大文件进 misc」路径。
         """
-        dat = clean_media / "inbox" / "large_blob.xyz"
+        dat = _jav_workspace_root(clean_media) / "inbox" / "large_blob.xyz"
         _write_file(dat, size=_1MB * 2)
 
         status = _run_task(docker_service)
 
         assert status == "completed"
-        assert (clean_media / "misc" / "large_blob.xyz").exists()
+        assert (_jav_workspace_root(clean_media) / "misc" / "large_blob.xyz").exists()
         assert not dat.exists()
 
     def test_filename_conflict_resolution(
@@ -197,13 +216,18 @@ class TestJavVideoOrganizerE2E:
         scan_directory_items 自底向上遍历，子目录文件先处理（正常移动），
         根目录同名文件后处理（触发冲突消解，文件名含 -jfk-）。
         """
-        _write_file(clean_media / "inbox" / "ABC-234.mp4")
-        _write_file(clean_media / "inbox" / "conflict_subdir" / "ABC-234.mp4")
+        _write_file(_jav_workspace_root(clean_media) / "inbox" / "ABC-234.mp4")
+        _write_file(
+            _jav_workspace_root(clean_media)
+            / "inbox"
+            / "conflict_subdir"
+            / "ABC-234.mp4",
+        )
 
         status = _run_task(docker_service)
 
         assert status == "completed"
-        target_dir = clean_media / "sorted" / "A" / "AB" / "ABC"
+        target_dir = _jav_workspace_root(clean_media) / "sorted" / "A" / "AB" / "ABC"
         files_in_target = list(target_dir.iterdir())
         assert len(files_in_target) == 2  # noqa: PLR2004
         normal = [f for f in files_in_target if "-jfk-" not in f.name]
@@ -223,7 +247,7 @@ class TestJavVideoOrganizerE2E:
         验证 HTTP 层正确将 dry_run 标志透传到 Pipeline，
         而非仅靠单元/集成层保证。
         """
-        source = clean_media / "inbox" / "ABC-350.mp4"
+        source = _jav_workspace_root(clean_media) / "inbox" / "ABC-350.mp4"
         _write_file(source)
 
         run_id = _trigger_task(docker_service, dry_run=True)
@@ -232,7 +256,12 @@ class TestJavVideoOrganizerE2E:
         assert status == "completed"
         assert source.exists()
         assert not (
-            clean_media / "sorted" / "A" / "AB" / "ABC" / "ABC-350.mp4"
+            _jav_workspace_root(clean_media)
+            / "sorted"
+            / "A"
+            / "AB"
+            / "ABC"
+            / "ABC-350.mp4"
         ).exists()
 
     def test_empty_subdirectory_cleaned_after_processing(
@@ -241,11 +270,18 @@ class TestJavVideoOrganizerE2E:
         clean_media: Path,
     ) -> None:
         """文件被处理后变空的子目录应被自动删除。"""
-        subdir = clean_media / "inbox" / "to_be_cleaned"
+        subdir = _jav_workspace_root(clean_media) / "inbox" / "to_be_cleaned"
         _write_file(subdir / "STAR-100.mp4")
 
         status = _run_task(docker_service)
 
         assert status == "completed"
-        assert (clean_media / "sorted" / "S" / "ST" / "STAR" / "STAR-100.mp4").exists()
+        assert (
+            _jav_workspace_root(clean_media)
+            / "sorted"
+            / "S"
+            / "ST"
+            / "STAR"
+            / "STAR-100.mp4"
+        ).exists()
         assert not subdir.exists()

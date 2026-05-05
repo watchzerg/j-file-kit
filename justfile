@@ -67,7 +67,7 @@ test-cov:
 
 # ── 手工调试辅助 ────────────────────────────────────────────────────────────────
 
-# 生成测试文件到 $MEDIA_ROOT/jav/inbox（需 .env 中配置 MEDIA_ROOT）
+# 生成测试文件到 $MEDIA_ROOT/jav_workspace/inbox（需 .env 中配置 MEDIA_ROOT）
 gen-test-files:
     uv run python scripts/gen_test_files.py
 

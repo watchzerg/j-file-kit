@@ -1,6 +1,6 @@
 # j-file-kit
 
-基于 Python + FastAPI 的媒体文件自动整理工具，**以 Docker 容器方式运行，面向 Unraid 设计**。核心功能是将 **`jav/inbox`（容器内默认路径为 `/media/jav/inbox`）** 中的 JAV 视频文件，按番号识别后自动分类归档到 `jav/sorted`、`jav/unsorted`、`jav/archive` 等目录，通过 HTTP API 触发和查询任务状态。
+基于 Python + FastAPI 的媒体文件自动整理工具，**以 Docker 容器方式运行，面向 Unraid 设计**。核心功能是将 **`jav_workspace/inbox`（容器内默认路径为 `/media/jav_workspace/inbox`）** 中的 JAV 视频文件，按番号识别后自动分类归档到 `jav_workspace/sorted`、`jav_workspace/unsorted`、`jav_workspace/archive` 等目录，通过 HTTP API 触发和查询任务状态。
 
 架构设计见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
@@ -42,16 +42,16 @@ cp .env.example .env
 just docker-up
 ```
 
-媒体目录结构（`jav/inbox` 需提前存在，其余子目录由任务执行时自动创建）：
+媒体目录结构（`jav_workspace/inbox` 需提前存在，其余子目录由任务执行时自动创建）：
 
 | 宿主机 | 容器内 | 用途 |
 |---|---|---|
 | `$MEDIA_ROOT` | `/media` | 媒体根目录 |
-| `$MEDIA_ROOT/jav/inbox` | `/media/jav/inbox` | JAV 待处理（需提前存在） |
-| `$MEDIA_ROOT/jav/sorted` | `/media/jav/sorted` | JAV 有番号归档 |
-| `$MEDIA_ROOT/jav/unsorted` | `/media/jav/unsorted` | JAV 无番号 |
-| `$MEDIA_ROOT/jav/archive` | `/media/jav/archive` | JAV 压缩包 |
-| `$MEDIA_ROOT/jav/misc` | `/media/jav/misc` | JAV 杂项 |
+| `$MEDIA_ROOT/jav_workspace/inbox` | `/media/jav_workspace/inbox` | JAV 待处理（需提前存在） |
+| `$MEDIA_ROOT/jav_workspace/sorted` | `/media/jav_workspace/sorted` | JAV 有番号归档 |
+| `$MEDIA_ROOT/jav_workspace/unsorted` | `/media/jav_workspace/unsorted` | JAV 无番号 |
+| `$MEDIA_ROOT/jav_workspace/archive` | `/media/jav_workspace/archive` | JAV 压缩包 |
+| `$MEDIA_ROOT/jav_workspace/misc` | `/media/jav_workspace/misc` | JAV 杂项 |
 
 ---
 
