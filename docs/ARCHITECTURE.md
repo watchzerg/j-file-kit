@@ -4,6 +4,21 @@
 
 ---
 
+## 0. 代码定位速览（按职责找目录）
+
+| 逻辑主题 | 主要目录 / 文件 |
+|------|------|
+| Raw 收件箱三阶段编排 | `application/raw_pipeline/pipeline.py`、`application/raw_pipeline/phase1.py`、`application/raw_pipeline/phase2.py`、`application/raw_pipeline/phase3.py` |
+| Raw 阶段共享上下文与计数 | `application/raw_pipeline/context.py`、`application/raw_pipeline/counters.py`、`application/raw_pipeline/keywords.py` |
+| JAV 单文件分析编排 | `application/jav_analysis/runner.py` |
+| JAV 分析规则域 | `application/jav_analysis/classify.py`、`application/jav_analysis/inbox.py`、`application/jav_analysis/misc.py`、`application/jav_analysis/archive.py`、`application/jav_analysis/media.py` |
+| JAV 扫描执行管线 | `application/jav_pipeline/pipeline.py`、`application/jav_pipeline/item_processor.py`、`application/jav_pipeline/result_mapper.py` |
+| JAV 管线执行器与观测 | `application/jav_pipeline/executor.py`、`application/jav_pipeline/observer.py`、`application/jav_pipeline/directory_cleanup.py` |
+| 任务配置模型与公共约束 | `application/jav_task_config.py`、`application/raw_task_config.py`、`application/config_common.py`、`application/default_task_configs.py` |
+| 文件任务领域模型与协议 | `domain/file_types.py`、`domain/serial_id.py`、`domain/task_run.py`、`domain/task_errors.py`、`domain/task_runner.py`、`domain/task_config.py` |
+
+---
+
 ## 1. 项目是什么
 
 - **形态**：单进程 HTTP 服务（FastAPI + uvicorn），默认 Docker 部署；宿主机挂载 **`/data`**（应用状态）与 **`/media`**（媒体树）。

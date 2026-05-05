@@ -6,6 +6,17 @@
 
 ---
 
+## 0. 模块定位（按现状阅读）
+
+- JAV 单文件分析编排逻辑在 `application/jav_analysis/runner.py`。
+- 扩展名分类与删除/迁移规则在 `application/jav_analysis/classify.py`、`inbox.py`、`misc.py`、`archive.py`、`media.py`。
+- JAV 扫描与任务生命周期编排在 `application/jav_pipeline/pipeline.py`。
+- 单文件处理闭环（分析→执行→映射→落库）在 `application/jav_pipeline/item_processor.py` 与 `application/jav_pipeline/result_mapper.py`。
+- 执行器、观测日志、空目录清理分别在 `application/jav_pipeline/executor.py`、`application/jav_pipeline/observer.py`、`application/jav_pipeline/directory_cleanup.py`。
+- 配置模型与目录约束在 `application/jav_task_config.py`、`application/jav_analyze_config.py`、`application/config_common.py`；Decision 与结果类型在 `domain/decisions.py`。
+
+---
+
 ## 1. 流程总览
 
 任务类型常量：`TASK_TYPE_JAV_VIDEO_ORGANIZER`（`domain/constants.py`）。
@@ -141,7 +152,7 @@ flowchart TB
 ### 5.2 `generate_jav_filename`
 
 - 去噪后的串上找番号，按业务规则 **trim** 第 1/3 段、拼接新文件名；超长时 **截断非关键段**，番号与扩展名等关键部分保留（见模块顶部长注释）。  
-- 成功时返回 **`new_filename`**（可能已重构）和 **`SerialId`**。
+- 成功时返回 **`new_filename`**（可能已重新组织命名）和 **`SerialId`**。
 
 ### 5.3 `generate_sorted_dir(serial_id)`
 
