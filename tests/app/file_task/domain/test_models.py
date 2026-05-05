@@ -7,7 +7,7 @@ from datetime import datetime
 
 import pytest
 
-from j_file_kit.app.file_task.application.config import JavVideoOrganizeConfig
+from j_file_kit.app.file_task.application.jav_task_config import JavVideoOrganizeConfig
 from j_file_kit.app.file_task.domain.serial_id import (
     SerialId,
     effective_serial_digit_len,

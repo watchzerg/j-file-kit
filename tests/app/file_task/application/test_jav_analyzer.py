@@ -12,10 +12,8 @@ from unittest.mock import patch
 
 import pytest
 
-from j_file_kit.app.file_task.application.config import (
-    InboxDeleteRules,
-    JavAnalyzeConfig,
-)
+from j_file_kit.app.file_task.application.config_common import InboxDeleteRules
+from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
 from j_file_kit.app.file_task.application.jav_analyzer import analyze_jav_file
 from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,

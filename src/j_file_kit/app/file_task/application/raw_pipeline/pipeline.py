@@ -10,7 +10,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from j_file_kit.app.file_task.application.config import RawAnalyzeConfig
+from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
 from j_file_kit.app.file_task.application.raw_pipeline.phase1 import run_phase1

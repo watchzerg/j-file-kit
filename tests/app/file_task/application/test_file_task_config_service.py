@@ -4,7 +4,7 @@
 
 validate_and_save 系列需要目录真实存在（触发存在性校验），同时路径必须在 JAV_MEDIA_ROOT 下
 （已由 JavVideoOrganizeConfig model_validator 自动校验）。测试通过 monkeypatch
-config.JAV_MEDIA_ROOT 到 tmp_path，使 tmp_path 路径通过模型约束，
+config_common.JAV_MEDIA_ROOT 到 tmp_path，使 tmp_path 路径通过模型约束，
 并在 tmp_path 下创建真实子目录满足存在性校验。
 """
 
@@ -14,15 +14,17 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from j_file_kit.app.file_task.application.config import (
+from j_file_kit.app.file_task.application.config_common import (
     RAW_FILE_ORGANIZE_PATH_FIELD_NAMES,
-    JavVideoOrganizeConfig,
-    RawFileOrganizeConfig,
+)
+from j_file_kit.app.file_task.application.default_task_configs import (
     create_default_raw_file_organizer_task_config,
 )
 from j_file_kit.app.file_task.application.file_task_config_service import (
     FileTaskConfigService,
 )
+from j_file_kit.app.file_task.application.jav_task_config import JavVideoOrganizeConfig
+from j_file_kit.app.file_task.application.raw_task_config import RawFileOrganizeConfig
 from j_file_kit.app.file_task.domain.constants import (
     TASK_TYPE_JAV_VIDEO_ORGANIZER,
     TASK_TYPE_RAW_FILE_ORGANIZER,
@@ -56,10 +58,10 @@ def valid_task_config() -> TaskConfig:
 
 @pytest.fixture
 def valid_task_config_with_real_dirs(tmp_path: Path) -> TaskConfig:
-    """使用 tmp_path 路径构造 TaskConfig，配合 monkeypatch config.JAV_MEDIA_ROOT 使用。
+    """使用 tmp_path 路径构造 TaskConfig，配合 monkeypatch config_common.JAV_MEDIA_ROOT 使用。
 
     用于需要目录真实存在（存在性校验）的测试，需同时 monkeypatch
-    j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT 为 tmp_path。
+    j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT 为 tmp_path。
     """
     return TaskConfig(
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
@@ -150,7 +152,7 @@ class TestValidateAndSaveJavVideoOrganizerConfig:
         valid_task_config_with_real_dirs: TaskConfig,
     ) -> None:
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
             tmp_path,
         )
         (tmp_path / "inbox").mkdir()
@@ -174,7 +176,7 @@ class TestValidateAndSaveJavVideoOrganizerConfig:
         valid_task_config_with_real_dirs: TaskConfig,
     ) -> None:
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
             tmp_path,
         )
         (tmp_path / "inbox").mkdir()
@@ -215,7 +217,7 @@ class TestValidateAndSaveRawFileOrganizerConfig:
         valid_raw_task_config_with_real_dirs: TaskConfig,
     ) -> None:
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.RAW_MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
             tmp_path,
         )
         for name in RAW_FILE_ORGANIZE_PATH_FIELD_NAMES:

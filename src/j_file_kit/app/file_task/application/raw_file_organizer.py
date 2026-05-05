@@ -9,11 +9,9 @@
 import threading
 from pathlib import Path
 
-from j_file_kit.app.file_task.application.config import (
-    RawAnalyzeConfig,
-    RawFileOrganizeConfig,
-)
+from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
 from j_file_kit.app.file_task.application.raw_pipeline.pipeline import RawFilePipeline
+from j_file_kit.app.file_task.application.raw_task_config import RawFileOrganizeConfig
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_RAW_FILE_ORGANIZER
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_ARCHIVE_EXTENSIONS,

@@ -7,7 +7,7 @@
 - **`RawFileOrganizer`**：从 `TaskConfig` 解析 **`RawFileOrganizeConfig`**，组装 **`RawAnalyzeConfig`**（扩展名来自 `domain/organizer_defaults.py`），委托 **`RawFilePipeline.run()`**。
 - **`RawFilePipeline`**：只遍历 **`inbox_dir`（即 `scan_root`）第一层**条目，按三阶段编排；阶段化计数写入返回的 **`FileTaskRunStatistics`**（与 `FileResultRepository.get_statistics` 合并），本期**不写目录明细表**。
 
-配置与路径不变量见 [`application/config.py`](../src/j_file_kit/app/file_task/application/config.py) 中的 **`RAW_MEDIA_ROOT`**（`/media/raw_workspace`）及 **`RawFileOrganizeConfig`** 各字段（与业务目录名一致的 `folders_*` / `files_*`）。
+配置与路径不变量见 [`application/config_common.py`](../src/j_file_kit/app/file_task/application/config_common.py) 中的 **`RAW_MEDIA_ROOT`**（`/media/raw_workspace`）、[`application/raw_task_config.py`](../src/j_file_kit/app/file_task/application/raw_task_config.py) 的 **`RawFileOrganizeConfig`** 各字段（与业务目录名一致的 `folders_*` / `files_*`）。
 
 ## 三阶段（当前行为）
 

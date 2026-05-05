@@ -34,7 +34,7 @@ def test_run_requires_inbox(
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr(
-        "j_file_kit.app.file_task.application.config.RAW_MEDIA_ROOT",
+        "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
         tmp_path,
     )
     tc = TaskConfig(
@@ -56,7 +56,7 @@ def test_run_returns_empty_statistics(
     tmp_path: Path,
 ) -> None:
     monkeypatch.setattr(
-        "j_file_kit.app.file_task.application.config.RAW_MEDIA_ROOT",
+        "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
         tmp_path,
     )
     inbox = tmp_path / "inbox"

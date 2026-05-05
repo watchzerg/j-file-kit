@@ -5,14 +5,12 @@
 
 from typing import Any
 
-from j_file_kit.app.file_task.application.config import (
-    JavVideoOrganizeConfig,
-    RawFileOrganizeConfig,
-)
 from j_file_kit.app.file_task.application.config_validator import (
     validate_jav_video_organizer_config,
     validate_raw_file_organizer_config,
 )
+from j_file_kit.app.file_task.application.jav_task_config import JavVideoOrganizeConfig
+from j_file_kit.app.file_task.application.raw_task_config import RawFileOrganizeConfig
 from j_file_kit.app.file_task.domain.constants import (
     TASK_TYPE_JAV_VIDEO_ORGANIZER,
     TASK_TYPE_RAW_FILE_ORGANIZER,

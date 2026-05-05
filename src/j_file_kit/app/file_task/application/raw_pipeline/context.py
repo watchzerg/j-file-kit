@@ -7,7 +7,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from j_file_kit.app.file_task.application.config import RawAnalyzeConfig
+from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
 from j_file_kit.app.file_task.domain.ports import FileResultRepository
 
 

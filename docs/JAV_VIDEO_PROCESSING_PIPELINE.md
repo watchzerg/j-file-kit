@@ -209,7 +209,7 @@ flowchart TB
 | 6 | `application/file_ops.py` | `scan_directory_items`、移动冲突消解 |
 | 7 | `domain/decisions.py` | Decision / `FileItemData` |
 | 8 | `domain/organizer_defaults.py` | 共享默认扩展名、JAV 站标去噪、misc 删除扩展名 |
-| 9 | `application/config.py` | `JavVideoOrganizeConfig`、`JavAnalyzeConfig`、`RawFileOrganizeConfig`、`RawAnalyzeConfig`、`InboxDeleteRules` |
+| 9 | `application/jav_task_config.py`、`application/jav_analyze_config.py`、`application/config_common.py` | `JavVideoOrganizeConfig`、`JavAnalyzeConfig`、`InboxDeleteRules` 等 |
 | 10 | `infrastructure/persistence/sqlite/file_task/file_result_repository.py` | 落库与聚合（实现 `FileResultRepository`） |
 
 ---

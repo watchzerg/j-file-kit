@@ -18,7 +18,7 @@ import pytest
 import requests
 import yaml
 
-from j_file_kit.app.file_task.application.config import (
+from j_file_kit.app.file_task.application.default_task_configs import (
     create_default_jav_video_organizer_task_config,
     create_default_raw_file_organizer_task_config,
 )

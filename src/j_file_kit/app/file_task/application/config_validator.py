@@ -9,11 +9,11 @@
 
 from pathlib import Path
 
-from j_file_kit.app.file_task.application.config import (
+from j_file_kit.app.file_task.application.config_common import (
     RAW_FILE_ORGANIZE_PATH_FIELD_NAMES,
-    JavVideoOrganizeConfig,
-    RawFileOrganizeConfig,
 )
+from j_file_kit.app.file_task.application.jav_task_config import JavVideoOrganizeConfig
+from j_file_kit.app.file_task.application.raw_task_config import RawFileOrganizeConfig
 
 
 def _get_all_dir_fields(

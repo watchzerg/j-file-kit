@@ -10,13 +10,11 @@ from typing import Any
 
 import pytest
 
-from j_file_kit.app.file_task.application.config import (
-    InboxDeleteRules,
-    JavAnalyzeConfig,
-    JavVideoOrganizeConfig,
-    RawFileOrganizeConfig,
-)
+from j_file_kit.app.file_task.application.config_common import InboxDeleteRules
+from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
+from j_file_kit.app.file_task.application.jav_task_config import JavVideoOrganizeConfig
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
+from j_file_kit.app.file_task.application.raw_task_config import RawFileOrganizeConfig
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )

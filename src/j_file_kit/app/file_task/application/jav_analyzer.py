@@ -16,10 +16,8 @@
 from pathlib import Path
 from typing import Any
 
-from j_file_kit.app.file_task.application.config import (
-    InboxDeleteRules,
-    JavAnalyzeConfig,
-)
+from j_file_kit.app.file_task.application.config_common import InboxDeleteRules
+from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
 from j_file_kit.app.file_task.application.jav_filename_util import (
     generate_jav_filename,
     generate_sorted_dir,

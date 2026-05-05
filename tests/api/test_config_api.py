@@ -10,7 +10,7 @@ import yaml
 from fastapi.testclient import TestClient
 
 from j_file_kit.api.app import create_app
-from j_file_kit.app.file_task.application.config import (
+from j_file_kit.app.file_task.application.config_common import (
     RAW_FILE_ORGANIZE_PATH_FIELD_NAMES,
 )
 
@@ -60,7 +60,7 @@ class TestUpdateConfig:
     ) -> None:
         """更新配置成功"""
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
             tmp_path,
         )
         for name in ("inbox", "sorted", "unsorted", "archive", "misc"):
@@ -88,7 +88,7 @@ class TestUpdateConfig:
     ) -> None:
         """校验失败（如目录重复）时返回 400"""
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
             tmp_path,
         )
         path = tmp_path / "shared"
@@ -131,7 +131,7 @@ class TestUpdateRawConfig:
         tmp_path: Path,
     ) -> None:
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.RAW_MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
             tmp_path,
         )
         for name in RAW_FILE_ORGANIZE_PATH_FIELD_NAMES:

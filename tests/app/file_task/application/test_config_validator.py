@@ -7,7 +7,7 @@ validate_jav_video_organizer_config，以及 JavVideoOrganizeConfig 的
 路径策略：
 - 纯逻辑测试（不涉及文件系统）使用 /media/jav_workspace/xxx 字面量路径，无需目录存在。
 - check_dirs_exist / validate_jav_video_organizer_config 需要真实目录时使用 tmp_path
-  并通过 monkeypatch config.JAV_MEDIA_ROOT 指向 tmp_path，使 tmp_path 子目录视为合法路径。
+  并通过 monkeypatch config_common.JAV_MEDIA_ROOT 指向 tmp_path，使 tmp_path 子目录视为合法路径。
 """
 
 from collections.abc import Callable
@@ -16,10 +16,6 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from j_file_kit.app.file_task.application.config import (
-    JavVideoOrganizeConfig,
-    RawFileOrganizeConfig,
-)
 from j_file_kit.app.file_task.application.config_validator import (
     check_dir_conflicts,
     check_dirs_exist,
@@ -29,6 +25,8 @@ from j_file_kit.app.file_task.application.config_validator import (
     validate_raw_file_organizer_config,
     validate_raw_inbox_dir,
 )
+from j_file_kit.app.file_task.application.jav_task_config import JavVideoOrganizeConfig
+from j_file_kit.app.file_task.application.raw_task_config import RawFileOrganizeConfig
 
 pytestmark = pytest.mark.unit
 
@@ -193,7 +191,7 @@ class TestCheckDirsExist:
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
             tmp_path,
         )
         inbox = tmp_path / "inbox"
@@ -209,7 +207,7 @@ class TestCheckDirsExist:
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
             tmp_path,
         )
         inbox = tmp_path / "inbox"  # 不创建目录
@@ -233,7 +231,7 @@ class TestCheckDirsExist:
         jav_video_organize_config_factory: Callable[..., JavVideoOrganizeConfig],
     ) -> None:
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
             tmp_path,
         )
         config = jav_video_organize_config_factory(
@@ -257,7 +255,7 @@ class TestValidateJavVideoOrganizerConfig:
     ) -> None:
         """inbox 在 JAV_MEDIA_ROOT 下且存在时，返回空错误列表"""
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.JAV_MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
             tmp_path,
         )
         inbox = tmp_path / "inbox"
@@ -320,7 +318,7 @@ class TestValidateRawFileOrganizerConfig:
         raw_file_organize_config_factory: Callable[..., RawFileOrganizeConfig],
     ) -> None:
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config.RAW_MEDIA_ROOT",
+            "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
             tmp_path,
         )
         inbox = tmp_path / "inbox"

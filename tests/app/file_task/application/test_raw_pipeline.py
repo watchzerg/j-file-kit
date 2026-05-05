@@ -5,11 +5,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from j_file_kit.app.file_task.application.config import RawAnalyzeConfig
 from j_file_kit.app.file_task.application.file_ops import (
     JFK_CONFLICT_STEM_SUFFIX_BYTES,
     MAX_FILENAME_BYTES,
 )
+from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
 from j_file_kit.app.file_task.application.raw_pipeline.pipeline import RawFilePipeline
 from j_file_kit.app.file_task.domain.task_run import FileTaskRunStatistics
 from j_file_kit.infrastructure.persistence.sqlite.file_task.file_result_repository import (

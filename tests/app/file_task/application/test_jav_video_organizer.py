@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from j_file_kit.app.file_task.application.config import InboxDeleteRules
+from j_file_kit.app.file_task.application.config_common import InboxDeleteRules
 from j_file_kit.app.file_task.application.jav_video_organizer import JavVideoOrganizer
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
 from j_file_kit.app.file_task.domain.organizer_defaults import (

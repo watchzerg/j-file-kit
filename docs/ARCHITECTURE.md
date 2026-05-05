@@ -181,7 +181,7 @@ flowchart LR
 | `analyze_jav_file` | `application/jav_analyzer.py` | 纯函数；收件箱预删规则 → 扩展名分类 → 番号等 |
 | `execute_decision` | `application/executor.py` | 落地移动/删除；配合 dry_run |
 | `organizer_defaults` | `domain/organizer_defaults.py` | 共享扩展名等；JAV 另含站标去噪、misc 删除扩展名（由 `JavVideoOrganizer` 写入 `JavAnalyzeConfig`）；Raw 写入 `RawAnalyzeConfig` |
-| `TaskConfig` / `JavVideoOrganizeConfig` / `RawFileOrganizeConfig` | `domain/task_config.py` + `application/config.py` | YAML dict → 强类型；**`JAV_MEDIA_ROOT` / `RAW_MEDIA_ROOT`** 目录约束 |
+| `TaskConfig` / `JavVideoOrganizeConfig` / `RawFileOrganizeConfig` | `domain/task_config.py` + `application/jav_task_config.py`、`application/raw_task_config.py` | YAML dict → 强类型；**`JAV_MEDIA_ROOT` / `RAW_MEDIA_ROOT`** 目录约束（见 `application/config_common.py`） |
 | `FileResultRepository` | `domain/ports.py` + sqlite 实现 | 按 **run_id** 存文件级结果；收尾聚合成统计 |
 
 **Decision 模式**：`MoveDecision` / `DeleteDecision` / `SkipDecision`，分析阶段与执行阶段分离，便于 dry_run。
@@ -196,10 +196,10 @@ flowchart LR
 | 新任务类型或装配注入 | `domain/constants.py`、`application/*` 新 Runner、`api.py` 的 `_new_task_instance`、`app_state.py` 若需新 Bean |
 | 扫描/分析/移动规则 | `jav_analyzer.py`、`executor.py`、`jav_filename_util.py` |
 | 默认扩展名 / 站标去噪 | `domain/organizer_defaults.py`、`jav_video_organizer._create_analyze_config`、`raw_file_organizer._create_analyze_config` |
-| 配置字段与校验 | `application/config.py`、`config_validator.py`、`FileTaskConfigService` |
+| 配置字段与校验 | `application/*_task_config.py`、`application/config_common.py`、`config_validator.py`、`FileTaskConfigService` |
 | 任务并发、取消、run 状态机 | `file_task_run_manager.py`、`file_task_run_repository.py` |
 | 文件结果与统计 SQL | `file_result_repository.py` |
-| 媒体路径、日志、目录工具 | `shared/constants.py`（`MEDIA_ROOT`）、`application/config.py`（`JAV_MEDIA_ROOT`、`RAW_MEDIA_ROOT`）、`shared/utils/` |
+| 媒体路径、日志、目录工具 | `shared/constants.py`（`MEDIA_ROOT`）、`application/config_common.py`（`JAV_MEDIA_ROOT`、`RAW_MEDIA_ROOT`）、`shared/utils/` |
 
 ---
 
@@ -208,7 +208,7 @@ flowchart LR
 ### 9.1 添加任务类型
 
 1. `domain/constants.py`：`TASK_TYPE_*`。  
-2. `application/config.py`（及相关 validator / default factory）：新建 **配置 Pydantic 模型**。  
+2. `application/*_task_config.py`（及相关 `config_validator` / `default_task_configs`）：新建 **配置 Pydantic 模型**。  
 3. 实现 **`FileTaskRunner`**（通常内部复用或仿照 **`FilePipeline`**）。  
 4. `file_task/api.py`：**`_new_task_instance`** 增加分支；必要时 **`config_api`** 暴露配置。  
 5. 默认 YAML：`create_app` lifespan 或 **`DefaultFileTaskConfigInitializer`** 的默认列表。  

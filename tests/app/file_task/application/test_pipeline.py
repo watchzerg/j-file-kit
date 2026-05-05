@@ -8,10 +8,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from j_file_kit.app.file_task.application.config import JavAnalyzeConfig
 from j_file_kit.app.file_task.application.executor import (
     ExecutionResult,
 )
+from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
 from j_file_kit.app.file_task.application.pipeline import FilePipeline
 from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,

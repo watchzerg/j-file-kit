@@ -6,13 +6,13 @@
 import pytest
 from pydantic import ValidationError
 
-from j_file_kit.app.file_task.application.config import (
-    InboxDeleteRules,
-    JavVideoOrganizeConfig,
-    RawFileOrganizeConfig,
+from j_file_kit.app.file_task.application.config_common import InboxDeleteRules
+from j_file_kit.app.file_task.application.default_task_configs import (
     create_default_jav_video_organizer_task_config,
     create_default_raw_file_organizer_task_config,
 )
+from j_file_kit.app.file_task.application.jav_task_config import JavVideoOrganizeConfig
+from j_file_kit.app.file_task.application.raw_task_config import RawFileOrganizeConfig
 from j_file_kit.app.file_task.domain.constants import (
     TASK_TYPE_JAV_VIDEO_ORGANIZER,
     TASK_TYPE_RAW_FILE_ORGANIZER,
