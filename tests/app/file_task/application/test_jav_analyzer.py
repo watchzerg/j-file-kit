@@ -13,8 +13,8 @@ from unittest.mock import patch
 import pytest
 
 from j_file_kit.app.file_task.application.config_common import InboxDeleteRules
+from j_file_kit.app.file_task.application.jav_analysis.runner import analyze_jav_file
 from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
-from j_file_kit.app.file_task.application.jav_analyzer import analyze_jav_file
 from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,
     MoveDecision,
@@ -531,7 +531,7 @@ class TestAnalyzeJavFileSurrogateName:
 
 
 class TestAnalyzeJavFileMiscDeleteRulesMaxSizeValidation:
-    """_check_misc_delete_rules max_size 类型验证（通过 analyze_jav_file 间接）"""
+    """misc.check_misc_delete_rules 中 max_size 类型验证（经 analyze_jav_file 间接）"""
 
     def test_max_size_non_numeric_raises(
         self,

@@ -40,7 +40,7 @@ class JavVideoOrganizer:
              执行（或 dry_run 仅预览）→ 写入 SQLite 结果」，返回 `FileTaskRunStatistics`。
 
     边界：本类不包含遍历目录、`analyze_jav_file`、`execute_decision` 的实现；仅负责
-    把本任务类型的配置接到通用管道上。Decision 模式与统计细节见 `pipeline` / `jav_analyzer`。
+    把本任务类型的配置接到通用管道上。Decision 模式与统计细节见 `pipeline` / `jav_analysis.runner`。
     """
 
     def __init__(

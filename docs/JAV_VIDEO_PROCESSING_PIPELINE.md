@@ -70,19 +70,19 @@ flowchart TB
 
 ## 4. 单文件分析：`analyze_jav_file`
 
-**文件**：`application/jav_analyzer.py`。  
+**实现**：`application/jav_analysis/` 包；**编排入口**：**`jav_analysis.runner.analyze_jav_file`**（调用方显式从 `runner` 导入，包 `__init__` 不 re-export）。  
 **入口函数**：**`analyze_jav_file`**。  
-**性质**：**纯函数**，不读写磁盘（除预删除规则里可能 `stat` 体积）。  
+**性质**：**纯函数**，不读写磁盘（除规则内可能 `stat` 体积）。  
 **返回**：`FileDecision` = `MoveDecision | DeleteDecision | SkipDecision`（定义见 `domain/decisions.py`）。
 
 ### 4.1 总顺序（必须记住）
 
-1. **收件箱预删除**（`_check_inbox_delete_rules`）——在 **扩展名分类之前**。  
-2. **按扩展名分类**（`_classify_file`）→ `FileType`。  
+1. **收件箱预删除**（`jav_analysis.inbox.check_inbox_delete_rules`）——在 **扩展名分类之前**。  
+2. **按扩展名分类**（`jav_analysis.classify.classify_jav_file`）→ `FileType`。  
 3. 按类型分支：  
-   - `MISC` → `_decide_misc_action`  
-   - `ARCHIVE` → `_decide_archive_action`  
-   - `VIDEO` / `IMAGE` / `SUBTITLE` → `_decide_media_action`
+   - `MISC` → `jav_analysis.misc.decide_misc_action`  
+   - `ARCHIVE` → `jav_analysis.archive.decide_archive_action`  
+   - `VIDEO` / `IMAGE` / `SUBTITLE` → `jav_analysis.media.decide_media_action`
 
 ### 4.2 收件箱预删除（`InboxDeleteRules`）
 
@@ -90,23 +90,23 @@ flowchart TB
 - **评估顺序**（为少打盘）：`stem` **完全匹配** `exact_stems` → `stem` **包含**任一默认垃圾关键词（`DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS`）→ 若配置了 `max_size_bytes`，则 **`stat`，大小 ≤ 阈值**（含 0 可表示「空/极小文件」等用法，以配置为准）。  
 - 命中 → `DeleteDecision`，`file_type=UNCLASSIFIED`。
 
-### 4.3 扩展名分类（`_classify_file`）
+### 4.3 扩展名分类（`classify_jav_file`）
 
 按 `JavAnalyzeConfig` 中四类集合：**video / image / subtitle / archive** 扩展名来自 **`organizer_defaults`**（已规范为带点；匹配时用小写比较）；均不匹配 → **`MISC`**。
 
-### 4.4 Misc（`_decide_misc_action`）
+### 4.4 Misc（`decide_misc_action`）
 
-1. `_check_misc_delete_rules`：`misc_file_delete_rules` 字典——**扩展名列表**由代码常量注入（**优先级最高**）；若配置了 `max_size`，则再按体积阈值删除。旧 YAML 若含 `extensions` / `keywords` 键会在加载 `JavVideoOrganizeConfig` 时被剔除且不写回。  
+1. `check_misc_delete_rules`：`misc_file_delete_rules` 字典——**扩展名列表**由代码常量注入（**优先级最高**）；若配置了 `max_size`，则再按体积阈值删除。旧 YAML 若含 `extensions` / `keywords` 键会在加载 `JavVideoOrganizeConfig` 时被剔除且不写回。  
 2. 命中删除 → `DeleteDecision`。  
 3. 否则若 **`misc_dir` 未设置** → `SkipDecision`。  
 4. 否则 → **`MoveDecision`** 到 `misc_dir / 原文件名`（经 `sanitize_surrogate_str`）。
 
-### 4.5 压缩包（`_decide_archive_action`）
+### 4.5 压缩包（`decide_archive_action`）
 
 - **`archive_dir` 未设置** → `SkipDecision`。  
 - 否则 → `MoveDecision` 到 `archive_dir / 文件名`。
 
-### 4.6 视频 / 图片 / 字幕（`_decide_media_action`）
+### 4.6 视频 / 图片 / 字幕（`decide_media_action`）
 
 对 **VIDEO** 且配置了 **`video_small_delete_bytes`**：先 **体积** 严格小于阈值 → **直接 `DeleteDecision`**（不解析番号）。
 
@@ -203,7 +203,7 @@ flowchart TB
 |------|------|------|
 | 1 | `application/jav_video_organizer.py` | 配置 → `FilePipeline` |
 | 2 | `application/pipeline.py` | 扫描循环、单文件处理、收尾统计 |
-| 3 | `application/jav_analyzer.py` | `analyze_jav_file` 全部分支 |
+| 3 | `application/jav_analysis/`（`runner.py` 编排；`inbox` / `classify` / `misc` / `archive` / `media`） | `analyze_jav_file` 与各规则域 |
 | 4 | `application/jav_filename_util.py` | 番号匹配、文件名重构、`generate_sorted_dir` |
 | 5 | `application/executor.py` | `execute_decision`、dry_run |
 | 6 | `application/file_ops.py` | `scan_directory_items`、移动冲突消解 |

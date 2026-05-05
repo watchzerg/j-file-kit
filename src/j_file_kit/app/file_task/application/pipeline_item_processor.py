@@ -4,8 +4,8 @@ import time
 from pathlib import Path
 
 from j_file_kit.app.file_task.application.executor import execute_decision
+from j_file_kit.app.file_task.application.jav_analysis.runner import analyze_jav_file
 from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
-from j_file_kit.app.file_task.application.jav_analyzer import analyze_jav_file
 from j_file_kit.app.file_task.application.pipeline_observer import (
     PipelineRunCounters,
     log_file_processing_error,

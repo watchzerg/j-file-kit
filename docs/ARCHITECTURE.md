@@ -68,7 +68,9 @@ src/j_file_kit/
 │   │       ├── pipeline_observer.py        # 任务/逐文件日志；PipelineRunCounters（内存统计）
 │   │       ├── pipeline_directory_cleanup.py # 扫描后空目录收缩（非 scan_root）
 │   │       ├── raw_pipeline/        # RawFilePipeline：第一层三阶段（phase1–3 + pipeline 编排）
-│   │       ├── jav_analyzer.py     # analyze_jav_file → Decision
+│   │       ├── jav_analysis/       # JAV 单文件纯分析（包 __init__ 不聚合导出业务符号）
+│   │       │   ├── runner.py       # analyze_jav_file 编排入口
+│   │       │   └── classify.py、inbox.py、misc.py、archive.py、media.py  # 规则域子模块
 │   │       ├── executor.py         # execute_decision
 │   │       ├── config.py           # Jav*/Raw* OrganizeConfig、JavAnalyzeConfig、RawAnalyzeConfig 等
 │   │       ├── file_task_config_service.py
@@ -182,7 +184,7 @@ flowchart LR
 | `RawFilePipeline` | `application/raw_pipeline/pipeline.py` | 第一层三阶段：1→`files_misc`；2→`folders_to_delete`/清洗/`phase2_*`；3→`files_misc` 计数占位 |
 | `JavVideoOrganizer` | `application/jav_video_organizer.py` | 把 `JavVideoOrganizeConfig` 接到 `FilePipeline` |
 | `FilePipeline` | `application/pipeline.py` + `pipeline_*` 协作模块 | 扫描调度、生命周期；单文件处理与映射见协作模块 |
-| `analyze_jav_file` | `application/jav_analyzer.py` | 纯函数；收件箱预删规则 → 扩展名分类 → 番号等 |
+| `analyze_jav_file` | `application/jav_analysis/runner.py` | 纯函数编排；规则域见同包 `inbox` / `classify` / `misc` / `archive` / `media` |
 | `execute_decision` | `application/executor.py` | 落地移动/删除；配合 dry_run |
 | `organizer_defaults` | `domain/organizer_defaults.py` | 共享扩展名等；JAV 另含站标去噪、misc 删除扩展名（由 `JavVideoOrganizer` 写入 `JavAnalyzeConfig`）；Raw 写入 `RawAnalyzeConfig` |
 | `TaskConfig` / `JavVideoOrganizeConfig` / `RawFileOrganizeConfig` | `domain/task_config.py` + `application/jav_task_config.py`、`application/raw_task_config.py` | YAML dict → 强类型；**`JAV_MEDIA_ROOT` / `RAW_MEDIA_ROOT`** 目录约束（见 `application/config_common.py`） |
@@ -198,7 +200,7 @@ flowchart LR
 |------|----------------|
 | 新 HTTP 行为或路由前缀 | `api/app.py`、各 `app/*/api.py` |
 | 新任务类型或装配注入 | `domain/constants.py`、`application/*` 新 Runner、`api.py` 的 `_new_task_instance`、`app_state.py` 若需新 Bean |
-| 扫描/分析/移动规则 | `jav_analyzer.py`、`executor.py`、`jav_filename_util.py` |
+| 扫描/分析/移动规则 | `jav_analysis/`、`executor.py`、`jav_filename_util.py` |
 | 默认扩展名 / 站标去噪 | `domain/organizer_defaults.py`、`jav_video_organizer._create_analyze_config`、`raw_file_organizer._create_analyze_config` |
 | 配置字段与校验 | `application/*_task_config.py`、`application/config_common.py`、`config_validator.py`、`FileTaskConfigService` |
 | 任务并发、取消、run 状态机 | `file_task_run_manager.py`、`file_task_run_repository.py` |
