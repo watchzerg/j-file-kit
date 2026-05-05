@@ -20,12 +20,11 @@ repos:
         language: system
         types_or: [python]
         
-      - id: mypy
-        name: mypy
-        entry: uv run mypy
-        args: ["."]
+      - id: ty
+        name: ty
+        entry: uv run ty check
         language: system
-        pass_filenames: false # 不传递文件名，因为 mypy 会自动选择相关模块
+        pass_filenames: false # 不传递文件名：ty 从 pyproject.toml 发现项目
 
       - id: pytest
         name: pytest (unit + testmon)
@@ -69,12 +68,11 @@ repos:
         always_run: true
         stages: [pre-push]
 
-      - id: mypy-push
-        name: mypy (all files)
-        entry: uv run mypy
-        args: ["--no-incremental", "."]
+      - id: ty-push
+        name: ty (all files)
+        entry: uv run ty check
         language: system
-        pass_filenames: false # 检查所有文件
+        pass_filenames: false # 全量类型检查
         always_run: true
         stages: [pre-push]
 

@@ -102,7 +102,7 @@
 
 - `ruff check --select F401`：检查未使用的导入
 - `ruff check --select F841`：检查未使用的变量
-- `mypy --strict`：类型检查
+- `ty check`：类型检查
 - `vulture`：查找未使用的代码
 - 使用 `grep` 搜索特定模式，使用 `ast` 模块解析 Python 代码
 

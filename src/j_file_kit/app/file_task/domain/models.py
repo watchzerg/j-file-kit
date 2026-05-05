@@ -393,9 +393,9 @@ class TaskConfig(BaseModel):
     enabled: bool = Field(True, description="是否启用")
     config: dict[str, Any] = Field(..., description="任务特定配置")
 
-    def get_config(self, config_type: type[_T]) -> _T:  # type: ignore[valid-type]
+    def get_config(self, config_type: type[_T]) -> _T:  # ty: ignore[invalid-type-form]
         """将本记录的 `config` dict 校验并转换为指定 Pydantic 模型（如 `JavVideoOrganizeConfig`）。
 
         典型调用点：`JavVideoOrganizer.__init__` 中完成一次反序列化，整次 run 共用 `self.file_config`。
         """
-        return config_type.model_validate(self.config)  # type: ignore[no-any-return, attr-defined]
+        return config_type.model_validate(self.config)

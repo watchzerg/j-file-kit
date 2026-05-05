@@ -19,7 +19,6 @@ pre-push:
 # 清理临时文件
 clean:
     rm -rf .pytest_cache
-    rm -rf .mypy_cache
     rm -rf .ruff_cache
     rm -rf dist
     rm -rf build
