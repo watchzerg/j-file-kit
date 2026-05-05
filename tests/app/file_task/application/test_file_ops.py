@@ -12,6 +12,7 @@ from j_file_kit.app.file_task.application.file_ops import (
     JFK_CONFLICT_STEM_SUFFIX_BYTES,
     MAX_FILENAME_BYTES,
     generate_alternative_filename,
+    move_directory_with_conflict_resolution,
     move_file_with_conflict_resolution,
     normalize_move_basename,
     scan_directory_items,
@@ -83,6 +84,37 @@ class TestMoveFileWithConflictResolution:
         target = tmp_path / "b.txt"
         with pytest.raises(FileNotFoundError):
             move_file_with_conflict_resolution(source, target)
+
+
+class TestMoveDirectoryWithConflictResolution:
+    """move_directory_with_conflict_resolution"""
+
+    def test_moves_directory_when_target_missing(self, tmp_path: Path) -> None:
+        dest_parent = tmp_path / "misc"
+        dest_parent.mkdir()
+        src = tmp_path / "inbox" / "box"
+        src.mkdir(parents=True)
+        (src / "f.txt").write_text("hi")
+        target = dest_parent / "box"
+        result = move_directory_with_conflict_resolution(src, target)
+        assert result == target
+        assert (target / "f.txt").read_text() == "hi"
+        assert not src.exists()
+
+    def test_conflict_adds_suffix(self, tmp_path: Path) -> None:
+        dest_parent = tmp_path / "misc"
+        dest_parent.mkdir()
+        collision = dest_parent / "box"
+        collision.mkdir()
+        (collision / "old.txt").write_text("was")
+        src = tmp_path / "box"
+        src.mkdir()
+        (src / "new.txt").write_text("new")
+        result = move_directory_with_conflict_resolution(src, dest_parent / "box")
+        assert result.parent == dest_parent
+        assert result != collision
+        assert result.is_dir()
+        assert (result / "new.txt").read_text() == "new"
 
 
 class TestNormalizeMoveBasename:

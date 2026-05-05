@@ -179,7 +179,7 @@ class JavAnalyzeConfig(BaseModel):
 
 RAW_FILE_ORGANIZE_PATH_FIELD_NAMES: tuple[str, ...] = (
     "inbox_dir",
-    "folders_game",
+    "folders_to_delete",
     "folders_video_huge",
     "folders_video_complex",
     "folders_video_movie",
@@ -208,7 +208,10 @@ class RawFileOrganizeConfig(BaseModel):
     """
 
     inbox_dir: Path | None = Field(default=None, description="inbox：BT 下载初始目录")
-    folders_game: Path | None = Field(default=None, description="游戏目录")
+    folders_to_delete: Path | None = Field(
+        default=None,
+        description="待人工确认的疑似删除目录（Raw 阶段 2.1 命中关键字时整目录迁入）",
+    )
     folders_video_huge: Path | None = Field(
         default=None,
         description="超大体积目录（人工处理）",
@@ -265,10 +268,14 @@ class RawAnalyzeConfig(BaseModel):
     """Raw 分析阶段配置（不含 `inbox_dir`）。
 
     由 `RawFileOrganizer` 从任务配置注入各归宿路径与扩展名集合。
-    当前 `RawFilePipeline` 阶段 1 使用其中的 `files_misc`；扩展名驱动的分流与其它 `analyze_raw_*` 规则后续迭代填充。
+    当前 `RawFilePipeline` 阶段 1 使用 `files_misc`；阶段 2 使用 `folders_to_delete`；
+    扩展名驱动的分流与其它 `analyze_raw_*` 规则后续迭代填充。
     """
 
-    folders_game: Path | None = Field(default=None, description="游戏目录")
+    folders_to_delete: Path | None = Field(
+        default=None,
+        description="待人工确认的疑似删除目录（Raw 阶段 2.1）",
+    )
     folders_video_huge: Path | None = Field(
         default=None,
         description="超大体积目录（人工处理）",
@@ -344,7 +351,7 @@ def create_default_raw_file_organizer_task_config() -> TaskConfig:
         enabled=True,
         config={
             "inbox_dir": f"{base}/inbox",
-            "folders_game": f"{base}/folders_game",
+            "folders_to_delete": f"{base}/folders_to_delete",
             "folders_video_huge": f"{base}/folders_video_huge",
             "folders_video_complex": f"{base}/folders_video_complex",
             "folders_video_movie": f"{base}/folders_video_movie",

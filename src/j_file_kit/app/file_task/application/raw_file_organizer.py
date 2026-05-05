@@ -1,7 +1,8 @@
 """Raw 收件箱整理任务入口（`FileTaskRunner` 实现）。
 
 与 `JavVideoOrganizer` 对称：`TaskConfig` → `RawFileOrganizeConfig` → `RawAnalyzeConfig` → `RawFilePipeline`。
-`RawFilePipeline` 已实现 inbox 第一层三阶段编排：阶段 1 将散落文件移入 `files_misc` 并落库；阶段 2/3 占位。
+`RawFilePipeline`：阶段 1 将散落文件移入 `files_misc` 并落库；阶段 2 处理第一层目录（关键字迁至
+`folders_to_delete` / 目录内清洗 / 分类占位）；阶段 3 `files_misc` 分流占位。
 独立的 `analyze_raw_*` 纯函数与目录内深度规则由后续迭代填充。
 """
 
@@ -50,7 +51,7 @@ class RawFileOrganizer:
         """从任务配置派生分析 DTO；扩展名来自 `organizer_defaults`。"""
         c = self.file_config
         return RawAnalyzeConfig(
-            folders_game=c.folders_game,
+            folders_to_delete=c.folders_to_delete,
             folders_video_huge=c.folders_video_huge,
             folders_video_complex=c.folders_video_complex,
             folders_video_movie=c.folders_video_movie,

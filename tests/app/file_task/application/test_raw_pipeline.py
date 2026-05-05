@@ -30,9 +30,15 @@ def _empty_repo_stats() -> dict[str, float | int]:
     }
 
 
-def _raw_cfg(tmp_path: Path, *, files_misc: Path | None) -> RawAnalyzeConfig:
+def _raw_cfg(
+    tmp_path: Path,
+    *,
+    files_misc: Path | None,
+    folders_to_delete: Path | None = None,
+) -> RawAnalyzeConfig:
+    _ = tmp_path
     return RawAnalyzeConfig(
-        folders_game=None,
+        folders_to_delete=folders_to_delete,
         folders_video_huge=None,
         folders_video_complex=None,
         folders_video_movie=None,
@@ -86,7 +92,7 @@ def test_phase1_moves_level1_file_only(
     misc.mkdir()
     sub = inbox / "nested"
     sub.mkdir()
-    (sub / "inner.txt").write_text("in")
+    (sub / "inner.mp4").write_text("in")
     (inbox / "root.txt").write_text("root")
 
     pipe = RawFilePipeline(
@@ -102,13 +108,14 @@ def test_phase1_moves_level1_file_only(
     assert (misc / "root.txt").exists()
     assert (misc / "root.txt").read_text() == "root"
     assert not (inbox / "root.txt").exists()
-    assert (sub / "inner.txt").exists()
+    assert (sub / "inner.mp4").exists()
 
     assert stats.phase1_seen_files == 1
     assert stats.phase1_moved_files == 1
     assert stats.phase1_error_files == 0
     assert stats.phase2_seen_dirs == 1
-    assert stats.phase2_deferred_dirs == 1
+    assert stats.phase2_deferred_classification_dirs == 1
+    assert stats.phase2_moved_to_delete_dirs == 0
     assert stats.phase3_seen_files_misc == 1
     assert stats.phase3_deferred_files_misc == 1
     assert stats.total_items >= 1
@@ -199,3 +206,198 @@ def test_dry_run_does_not_move(
     assert list(misc.iterdir()) == []
     assert stats.phase1_moved_files == 1
     assert stats.success_items >= 1
+
+
+def test_phase2_keyword_moves_dir_to_folders_to_delete(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    d = inbox / "something-FC2-PPV-xyz"
+    d.mkdir()
+    (d / "kept.mp4").write_text("vid")
+
+    pipe = RawFilePipeline(
+        run_id=11,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(
+            tmp_path,
+            files_misc=misc,
+            folders_to_delete=td,
+        ),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run()
+
+    assert not (inbox / "something-FC2-PPV-xyz").exists()
+    dest_dirs = [p for p in td.iterdir() if p.is_dir()]
+    assert len(dest_dirs) == 1
+    assert (dest_dirs[0] / "kept.mp4").read_text() == "vid"
+    assert stats.phase2_moved_to_delete_dirs == 1
+    assert stats.phase2_removed_dirs == 0
+
+
+def test_phase2_keyword_moves_dir_case_insensitive(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    d = inbox / "fc2-ppv-pack"
+    d.mkdir()
+    (d / "a.txt").write_text("x")
+
+    pipe = RawFilePipeline(
+        run_id=22,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(
+            tmp_path,
+            files_misc=misc,
+            folders_to_delete=td,
+        ),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run()
+    assert stats.phase2_moved_to_delete_dirs == 1
+    assert not d.exists()
+
+
+def test_phase2_raises_when_keyword_hit_but_folders_to_delete_unset(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    inbox.mkdir()
+    misc.mkdir()
+    d = inbox / "FC2-PPV-only"
+    d.mkdir()
+    (d / "a.txt").write_text("x")
+
+    pipe = RawFilePipeline(
+        run_id=55,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(tmp_path, files_misc=misc, folders_to_delete=None),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    with pytest.raises(ValueError, match="folders_to_delete"):
+        pipe.run()
+
+
+def test_phase2_clean_deletes_junk_and_removes_empty_root(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    d = inbox / "junk_root"
+    d.mkdir()
+    (d / "note.txt").write_text("rm")
+    (d / "preview_release.mp4").write_text("junk stem")
+    (d / "zero.mp4").write_bytes(b"")
+
+    pipe = RawFilePipeline(
+        run_id=33,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(
+            tmp_path,
+            files_misc=misc,
+            folders_to_delete=td,
+        ),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run()
+
+    assert not d.exists()
+    assert stats.phase2_cleaned_deleted_files >= 3
+    assert stats.phase2_removed_dirs == 1
+
+
+def test_phase2_clean_keeps_non_junk_and_defers_classification(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    d = inbox / "keep_dir"
+    d.mkdir()
+    (d / "video.mp4").write_text("full")
+    (d / "junk.txt").write_text("bye")
+
+    pipe = RawFilePipeline(
+        run_id=44,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(
+            tmp_path,
+            files_misc=misc,
+            folders_to_delete=td,
+        ),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run()
+
+    assert d.exists()
+    assert (d / "video.mp4").exists()
+    assert not (d / "junk.txt").exists()
+    assert stats.phase2_cleaned_deleted_files == 1
+    assert stats.phase2_deferred_classification_dirs == 1
+    assert stats.phase2_removed_dirs == 0
+
+
+def test_phase2_dry_run_count_without_deleting_dir_contents(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    d = inbox / "trash"
+    d.mkdir()
+    (d / "x.txt").write_text("stay")
+
+    pipe = RawFilePipeline(
+        run_id=66,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(
+            tmp_path,
+            files_misc=misc,
+            folders_to_delete=td,
+        ),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run(dry_run=True)
+
+    assert (d / "x.txt").exists()
+    assert stats.phase2_cleaned_deleted_files == 1

@@ -16,6 +16,9 @@ DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS: tuple[str, ...] = (
     "temp",
 )
 
+# Raw 阶段 2.1：目录 basename 任一关键字子串命中（NFKC+casefold，见 RawFilePipeline）则整目录迁入 folders_to_delete
+DEFAULT_RAW_DIR_TO_DELETE_KEYWORDS: tuple[str, ...] = ("FC2-PPV",)
+
 DEFAULT_VIDEO_EXTENSIONS: frozenset[str] = frozenset(
     {
         ".mp4",

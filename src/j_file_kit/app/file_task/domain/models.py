@@ -346,9 +346,25 @@ class FileTaskRunStatistics(BaseModel):
         0,
         description="Raw：阶段2 见到的 inbox 第一层目录数",
     )
-    phase2_deferred_dirs: int = Field(
+    phase2_moved_to_delete_dirs: int = Field(
         0,
-        description="Raw：阶段2 暂未处理的目录数（占位阶段与实际暂缓语义一致）",
+        description="Raw：阶段2.1 整目录迁入 folders_to_delete 的数量（含 dry_run 预览计数）",
+    )
+    phase2_cleaned_deleted_files: int = Field(
+        0,
+        description="Raw：阶段2.2 清洗阶段删除的文件数（含 dry_run 预览计数）",
+    )
+    phase2_cleaned_deleted_empty_dirs: int = Field(
+        0,
+        description="Raw：阶段2.2 清洗阶段删除的空目录数（不含整目录迁出；含 dry_run 预览计数）",
+    )
+    phase2_removed_dirs: int = Field(
+        0,
+        description="Raw：阶段2.2 清洗后 inbox 第一层目录被 rmdir 移除的数量（因内容删空）",
+    )
+    phase2_deferred_classification_dirs: int = Field(
+        0,
+        description="Raw：阶段2.3 占位：仍保留且待后续分类的目录数",
     )
     phase3_seen_files_misc: int = Field(
         0,

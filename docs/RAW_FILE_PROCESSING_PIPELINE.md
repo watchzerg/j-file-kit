@@ -12,10 +12,17 @@
 ## 三阶段（当前行为）
 
 1. **阶段 1**：将 inbox **第一层文件**移动到 **`files_misc`**（`RawAnalyzeConfig.files_misc`）。移动前做文件名规范化（含 UTF-8 字节上限与 `-jfk-xxxx` 冲突后缀预留），冲突消解与 **`executor.execute_decision`** / **`move_file_with_conflict_resolution`** 一致；每条结果写入 **`file_results`**（与 JAV 管道相同端口）。
-2. **阶段 2（占位）**：仅枚举 inbox **第一层目录**并计数；目录内分析、整目录移动、空目录清理等**非本期**。
+2. **阶段 2**：对 inbox **第一层目录**逐项处理。**2.1** 若目录名命中 `organizer_defaults.DEFAULT_RAW_DIR_TO_DELETE_KEYWORDS`
+   任一子串（NFKC + 大小写无关），整目录迁入 **`folders_to_delete`**；目录 basename 冲突与文件一致，
+   使用 **`file_ops.move_directory_with_conflict_resolution`**（`-jfk-xxxx`）。
+   **2.2** 未命中关键字则自底向上清洗：扩展名落入 **`DEFAULT_MISC_FILE_DELETE_EXTENSIONS`**、或 **stem**
+   含 **`DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS`**、或体积为 **0** 的文件删除；并删除因此产生的空子目录，
+   至多删空当前的「第一层目录」本身（不触碰 `inbox` 上一级）。**dry_run** 下不改动磁盘，
+   但阶段化计数仍会按预览累加。**2.3** 若在 2.2 后目录仍存在，仅占位打点并记日志「待分类」（策略非本期）。
 3. **阶段 3（占位）**：统计 **`files_misc` 下第一层文件**数（分流至各 `files_*` **非本期**）。
 
-取消：`cancellation_event` 置位后，在阶段 1 条目之间检测并提前结束（后续阶段不执行）。
+取消：`cancellation_event` 置位后，在阶段 **1（每个第一层文件之间）**
+与阶段 **2（每个第一层目录开始前及 2.2 目录内扫描迭代中）**检测并提前结束（后续阶段不执行）。
 
 ## 统计字段（run 级）
 

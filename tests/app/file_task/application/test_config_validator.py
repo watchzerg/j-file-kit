@@ -303,7 +303,7 @@ class TestCheckRawDirConflicts:
         shared = Path("/media/raw_workspace/shared")
         config = raw_file_organize_config_factory(
             inbox_dir=shared,
-            folders_game=shared,
+            folders_to_delete=shared,
         )
         errors = check_raw_dir_conflicts(config)
         assert len(errors) == 1

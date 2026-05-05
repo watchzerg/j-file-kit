@@ -5,7 +5,7 @@
 
 设计意图：
 - generate_alternative_filename：生成 -jfk-xxxx 格式的候选文件名
-- move_file_with_conflict_resolution：移动文件并自动处理路径冲突
+- move_file_with_conflict_resolution / move_directory_with_conflict_resolution：移动文件或目录并处理路径冲突（复用同一套候选名规则）
 - truncate_utf8_to_max_bytes / normalize_move_basename：文件名 UTF-8 字节上限与冲突后缀预留
 - scan_directory_items：自底向上扫描目录，用于文件任务处理流程
 """
@@ -124,36 +124,20 @@ def generate_alternative_filename(target_path: Path) -> Path:
     return parent / new_name
 
 
-def move_file_with_conflict_resolution(source: Path, target: Path) -> Path:
-    """移动文件，自动处理路径冲突
+def move_path_with_conflict_resolution(source: Path, target: Path) -> Path:
+    """在同卷上移动任意路径条目（常规文件或目录），目标已存在则用 `-jfk-xxxx` 重试 basename。
 
-    先尝试直接移动，如果目标路径已存在，自动生成唯一路径并重试。
-    生成的路径使用 `-jfk-xxxx` 格式后缀（file_task domain 的业务约定）。
-    最多重试 10 次，超过后抛出异常。
-
-    设计意图：
-    - 使用 -jfk- 后缀是 file_task domain 的业务逻辑
-    - 始终基于原始目标路径生成候选路径，避免文件名越来越长
-
-    Args:
-        source: 源文件路径
-        target: 目标文件路径（可能已存在）
-
-    Returns:
-        实际移动到的目标路径（可能与输入的 target 不同）
+    与 `generate_alternative_filename` 的规则一致：`move_file_with_conflict_resolution` 与本函数
+    共享实现，便于 Raw 等环节整目录迁入归宿时复用同一种冲突消解语义。
 
     Raises:
-        FileNotFoundError: 源文件不存在
-        RuntimeError: 重试 10 次后仍无法找到唯一路径
-        OSError: 其他移动操作失败
+        FileExistsError / OSError：源不存在或 `rename` 失败时由系统抛出。
     """
     original_target = target
     current_target = target
     max_attempts = 10
 
     for attempt in range(max_attempts):
-        # 先检查目标是否存在：POSIX 的 os.rename() 会原子性覆盖已有文件，
-        # 不会抛出 FileExistsError，因此必须显式检查。
         if current_target.exists():
             if attempt == max_attempts - 1:
                 raise RuntimeError(
@@ -168,10 +152,22 @@ def move_file_with_conflict_resolution(source: Path, target: Path) -> Path:
         except OSError:
             raise
 
-    # 理论上不会执行到这里，但为了满足类型检查
     raise RuntimeError(
         f"无法为 {original_target} 生成唯一路径，已尝试 {max_attempts} 次",
     )
+
+
+def move_file_with_conflict_resolution(source: Path, target: Path) -> Path:
+    """移动文件，自动处理路径冲突（实现见 `move_path_with_conflict_resolution`）。"""
+    return move_path_with_conflict_resolution(source, target)
+
+
+def move_directory_with_conflict_resolution(source: Path, target: Path) -> Path:
+    """整目录移动；`-jfk-xxxx` basename 消解与 `move_file_with_conflict_resolution` 一致。"""
+    if not source.is_dir():
+        msg = f"源路径不是目录: {source}"
+        raise NotADirectoryError(msg)
+    return move_path_with_conflict_resolution(source, target)
 
 
 def scan_directory_items(root: Path) -> Generator[tuple[Path, PathEntryType]]:
