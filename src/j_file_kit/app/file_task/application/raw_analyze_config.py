@@ -29,9 +29,20 @@ class RawAnalyzeConfig(BaseModel):
         default=None,
         description="无法自动分类的杂项目录",
     )
+    files_video_to_delete: Path | None = Field(
+        default=None,
+        description="待人工确认后删除的视频文件目录",
+    )
     files_video_jav: Path | None = Field(default=None, description="JAV 视频文件目录")
     files_video_us: Path | None = Field(default=None, description="US 视频文件目录")
-    files_video_vr: Path | None = Field(default=None, description="VR 视频文件目录")
+    files_video_jav_vr: Path | None = Field(
+        default=None,
+        description="JAV VR 视频文件目录",
+    )
+    files_video_us_vr: Path | None = Field(
+        default=None,
+        description="US VR 视频文件目录",
+    )
     files_video_movie: Path | None = Field(default=None, description="电影文件目录")
     files_video_misc: Path | None = Field(default=None, description="杂项视频文件目录")
     files_compressed: Path | None = Field(default=None, description="压缩文件目录")

@@ -14,6 +14,7 @@ from j_file_kit.app.file_task.application.config_common import InboxDeleteRules
 from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
 from j_file_kit.app.file_task.application.jav_pipeline.pipeline import FilePipeline
 from j_file_kit.app.file_task.application.jav_task_config import JavVideoOrganizeConfig
+from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
 from j_file_kit.app.file_task.application.raw_task_config import RawFileOrganizeConfig
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
@@ -74,9 +75,11 @@ def raw_file_organize_config_factory() -> Callable[..., RawFileOrganizeConfig]:
             "folders_pic": None,
             "folders_audio": None,
             "folders_misc": None,
+            "files_video_to_delete": None,
             "files_video_jav": None,
             "files_video_us": None,
-            "files_video_vr": None,
+            "files_video_jav_vr": None,
+            "files_video_us_vr": None,
             "files_video_movie": None,
             "files_video_misc": None,
             "files_compressed": None,
@@ -122,6 +125,61 @@ def analyze_config_factory(
             video_small_delete_bytes=video_small_delete_bytes,
             inbox_delete_rules=inbox_delete_rules or InboxDeleteRules(),
             jav_filename_strip_substrings=(),
+        )
+
+    return _create
+
+
+@pytest.fixture
+def raw_analyze_config_factory() -> Callable[..., RawAnalyzeConfig]:
+    """构造 `RawAnalyzeConfig`，用于 raw pipeline 单测。"""
+
+    def _create(
+        tmp_path: Path,
+        *,
+        files_misc: Path | None,
+        folders_to_delete: Path | None = None,
+        with_classification_destinations: bool = True,
+    ) -> RawAnalyzeConfig:
+        folders_pic = folders_audio = folders_compressed = None
+        folders_video = folders_misc = None
+        if with_classification_destinations:
+            folders_pic = tmp_path / "folders_pic"
+            folders_audio = tmp_path / "folders_audio"
+            folders_compressed = tmp_path / "folders_compressed"
+            folders_video = tmp_path / "folders_video"
+            folders_misc = tmp_path / "folders_misc"
+            for path in (
+                folders_pic,
+                folders_audio,
+                folders_compressed,
+                folders_video,
+                folders_misc,
+            ):
+                path.mkdir(parents=True, exist_ok=True)
+        return RawAnalyzeConfig(
+            folders_to_delete=folders_to_delete,
+            folders_video=folders_video,
+            folders_compressed=folders_compressed,
+            folders_pic=folders_pic,
+            folders_audio=folders_audio,
+            folders_misc=folders_misc,
+            files_video_to_delete=None,
+            files_video_jav=None,
+            files_video_us=None,
+            files_video_jav_vr=None,
+            files_video_us_vr=None,
+            files_video_movie=None,
+            files_video_misc=None,
+            files_compressed=None,
+            files_pic=None,
+            files_audio=None,
+            files_misc=files_misc,
+            video_extensions={".mp4"},
+            image_extensions={".jpg", ".jpeg", ".png"},
+            subtitle_extensions={".srt"},
+            archive_extensions={".zip"},
+            audio_extensions={".mp3"},
         )
 
     return _create
