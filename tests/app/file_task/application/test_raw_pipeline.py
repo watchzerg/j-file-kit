@@ -10,7 +10,7 @@ from j_file_kit.app.file_task.application.file_ops import (
     JFK_CONFLICT_STEM_SUFFIX_BYTES,
     MAX_FILENAME_BYTES,
 )
-from j_file_kit.app.file_task.application.raw_pipeline import RawFilePipeline
+from j_file_kit.app.file_task.application.raw_pipeline.pipeline import RawFilePipeline
 from j_file_kit.app.file_task.domain.models import FileTaskRunStatistics
 from j_file_kit.infrastructure.persistence.sqlite.file_task.file_result_repository import (
     FileResultRepositoryImpl,

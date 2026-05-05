@@ -58,7 +58,7 @@ src/j_file_kit/
 │   │       ├── jav_video_organizer.py   # JavVideoOrganizer：组装 FilePipeline（FileTaskRunner 实现）
 │   │       ├── raw_file_organizer.py   # RawFileOrganizer：组装 RawFilePipeline（FileTaskRunner 实现）
 │   │       ├── pipeline.py         # FilePipeline：扫描 → analyze → execute → 落库
-│   │       ├── raw_pipeline.py      # RawFilePipeline：第一层三阶段（1→files_misc；2 目录迁至删除区/清洗/分类占位；3 占位）
+│   │       ├── raw_pipeline/        # RawFilePipeline：第一层三阶段（phase1–3 + pipeline 编排）
 │   │       ├── jav_analyzer.py     # analyze_jav_file → Decision
 │   │       ├── executor.py         # execute_decision
 │   │       ├── config.py           # Jav*/Raw* OrganizeConfig、JavAnalyzeConfig、RawAnalyzeConfig 等
@@ -170,7 +170,7 @@ flowchart LR
 |------|------|------|
 | `FileTaskRunner` | `domain/models.py` | Protocol：`task_type` + `run(...)` |
 | `RawFileOrganizer` | `application/raw_file_organizer.py` | 把 `RawFileOrganizeConfig` 接到 `RawFilePipeline` |
-| `RawFilePipeline` | `application/raw_pipeline.py` | 第一层三阶段：1→`files_misc`；2→`folders_to_delete`/清洗/`phase2_*`；3→`files_misc` 计数占位 |
+| `RawFilePipeline` | `application/raw_pipeline/pipeline.py` | 第一层三阶段：1→`files_misc`；2→`folders_to_delete`/清洗/`phase2_*`；3→`files_misc` 计数占位 |
 | `JavVideoOrganizer` | `application/jav_video_organizer.py` | 把 `JavVideoOrganizeConfig` 接到 `FilePipeline` |
 | `FilePipeline` | `application/pipeline.py` | 扫描 → Decision → 执行 → 每文件入库 |
 | `analyze_jav_file` | `application/jav_analyzer.py` | 纯函数；收件箱预删规则 → 扩展名分类 → 番号等 |

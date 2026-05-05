@@ -13,7 +13,7 @@ from j_file_kit.app.file_task.application.config import (
     RawAnalyzeConfig,
     RawFileOrganizeConfig,
 )
-from j_file_kit.app.file_task.application.raw_pipeline import RawFilePipeline
+from j_file_kit.app.file_task.application.raw_pipeline.pipeline import RawFilePipeline
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_RAW_FILE_ORGANIZER
 from j_file_kit.app.file_task.domain.models import FileTaskRunStatistics, TaskConfig
 from j_file_kit.app.file_task.domain.organizer_defaults import (
