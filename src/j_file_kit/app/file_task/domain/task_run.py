@@ -136,9 +136,37 @@ class FileTaskRunStatistics(BaseModel):
         0,
         description="Raw：阶段2.3 因长度预算等跳过折叠的目录数（不中断 run）",
     )
-    phase2_deferred_classification_dirs: int = Field(
+    phase2_flattened_dirs: int = Field(
         0,
-        description="Raw：阶段2.4 占位：仍保留且待后续分类的目录数",
+        description="Raw：阶段2.4 符合小目录规则并拆解迁入 files_misc 的目录数（含 dry_run 预览）",
+    )
+    phase2_flattened_files: int = Field(
+        0,
+        description="Raw：阶段2.4 拆解目录时迁入 files_misc 的文件数（含 dry_run 预览）",
+    )
+    phase2_moved_to_pic_dirs: int = Field(
+        0,
+        description="Raw：阶段2.4 整目录迁入 folders_pic 的数量（含 dry_run 预览）",
+    )
+    phase2_moved_to_audio_dirs: int = Field(
+        0,
+        description="Raw：阶段2.4 整目录迁入 folders_audio 的数量（含 dry_run 预览）",
+    )
+    phase2_moved_to_compressed_dirs: int = Field(
+        0,
+        description="Raw：阶段2.4 整目录迁入 folders_compressed 的数量（含 dry_run 预览）",
+    )
+    phase2_moved_to_video_dirs: int = Field(
+        0,
+        description="Raw：阶段2.4 整目录迁入 folders_video 的数量（含 dry_run 预览）",
+    )
+    phase2_moved_to_misc_dirs: int = Field(
+        0,
+        description="Raw：阶段2.4 整目录迁入 folders_misc 的数量（含 dry_run 预览）",
+    )
+    phase2_classification_errors: int = Field(
+        0,
+        description="Raw：阶段2.4 分类或迁移失败次数（不中断 run）",
     )
     phase3_seen_files_misc: int = Field(
         0,

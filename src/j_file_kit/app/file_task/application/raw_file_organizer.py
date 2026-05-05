@@ -2,7 +2,7 @@
 
 与 `JavVideoOrganizer` 对称：`TaskConfig` → `RawFileOrganizeConfig` → `RawAnalyzeConfig` → `RawFilePipeline`。
 `RawFilePipeline`：阶段 1 将散落文件移入 `files_misc` 并落库；阶段 2 处理第一层目录（关键字迁至
-`folders_to_delete` / 目录内清洗 / 分类占位）；阶段 3 `files_misc` 分流占位。
+`folders_to_delete` / 目录内清洗 / 单链折叠 / 按类型分类）；阶段 3 `files_misc` 分流占位。
 独立的 `analyze_raw_*` 纯函数与目录内深度规则由后续迭代填充。
 """
 

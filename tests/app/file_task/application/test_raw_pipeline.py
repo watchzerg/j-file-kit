@@ -35,15 +35,25 @@ def _raw_cfg(
     *,
     files_misc: Path | None,
     folders_to_delete: Path | None = None,
+    with_classification_destinations: bool = True,
 ) -> RawAnalyzeConfig:
     _ = tmp_path
+    fp = fa = fc = fv = fm = None
+    if with_classification_destinations:
+        fp = tmp_path / "folders_pic"
+        fa = tmp_path / "folders_audio"
+        fc = tmp_path / "folders_compressed"
+        fv = tmp_path / "folders_video"
+        fm = tmp_path / "folders_misc"
+        for p in (fp, fa, fc, fv, fm):
+            p.mkdir(parents=True, exist_ok=True)
     return RawAnalyzeConfig(
         folders_to_delete=folders_to_delete,
-        folders_video=None,
-        folders_compressed=None,
-        folders_pic=None,
-        folders_audio=None,
-        folders_misc=None,
+        folders_video=fv,
+        folders_compressed=fc,
+        folders_pic=fp,
+        folders_audio=fa,
+        folders_misc=fm,
         files_video_jav=None,
         files_video_us=None,
         files_video_vr=None,
@@ -54,7 +64,7 @@ def _raw_cfg(
         files_audio=None,
         files_misc=files_misc,
         video_extensions={".mp4"},
-        image_extensions={".jpg"},
+        image_extensions={".jpg", ".jpeg", ".png"},
         subtitle_extensions={".srt"},
         archive_extensions={".zip"},
         audio_extensions={".mp3"},
@@ -105,16 +115,18 @@ def test_phase1_moves_level1_file_only(
     assert (misc / "root.txt").exists()
     assert (misc / "root.txt").read_text() == "root"
     assert not (inbox / "root.txt").exists()
-    assert (sub / "inner.mp4").exists()
+    assert (misc / "nested_inner.mp4").exists()
+    assert not sub.exists()
 
     assert stats.phase1_seen_files == 1
     assert stats.phase1_moved_files == 1
     assert stats.phase1_error_files == 0
     assert stats.phase2_seen_dirs == 1
-    assert stats.phase2_deferred_classification_dirs == 1
+    assert stats.phase2_flattened_dirs == 1
+    assert stats.phase2_flattened_files == 1
     assert stats.phase2_moved_to_delete_dirs == 0
-    assert stats.phase3_seen_files_misc == 1
-    assert stats.phase3_deferred_files_misc == 1
+    assert stats.phase3_seen_files_misc == 2
+    assert stats.phase3_deferred_files_misc == 2
     assert stats.total_items >= 1
 
 
@@ -331,7 +343,7 @@ def test_phase2_clean_deletes_junk_and_removes_empty_root(
     assert stats.phase2_removed_dirs == 1
 
 
-def test_phase2_clean_keeps_non_junk_and_defers_classification(
+def test_phase2_clean_keeps_non_junk_then_flattens_small_video_dir(
     tmp_path: Path,
     file_result_repository: FileResultRepositoryImpl,
 ) -> None:
@@ -360,12 +372,12 @@ def test_phase2_clean_keeps_non_junk_and_defers_classification(
     )
     stats = pipe.run()
 
-    assert d.exists()
-    assert (d / "video.mp4").exists()
-    assert not (d / "junk.txt").exists()
+    assert not d.exists()
+    assert (misc / "keep_dir_video.mp4").exists()
     assert stats.phase2_cleaned_deleted_files == 1
-    assert stats.phase2_deferred_classification_dirs == 1
-    assert stats.phase2_removed_dirs == 0
+    assert stats.phase2_flattened_dirs == 1
+    assert stats.phase2_flattened_files == 1
+    assert stats.phase2_removed_dirs == 1
 
 
 def test_phase2_dry_run_count_without_deleting_dir_contents(
@@ -398,6 +410,7 @@ def test_phase2_dry_run_count_without_deleting_dir_contents(
 
     assert (d / "x.txt").exists()
     assert stats.phase2_cleaned_deleted_files == 1
+    assert stats.phase2_moved_to_misc_dirs == 1
 
 
 def test_phase2_collapses_single_chain_directory(
@@ -430,12 +443,13 @@ def test_phase2_collapses_single_chain_directory(
     )
     stats = pipe.run()
 
-    merged = inbox / "abc_def_ghi"
-    assert merged.is_dir()
-    assert (merged / "clip.mp4").read_text() == "vid"
+    assert (misc / "abc_def_ghi_clip.mp4").exists()
+    assert not (inbox / "abc_def_ghi").exists()
     assert not root.exists()
     assert stats.phase2_collapsed_chain_dirs == 1
     assert stats.phase2_skipped_collapse_dirs == 0
+    assert stats.phase2_flattened_dirs == 1
+    assert stats.phase2_flattened_files == 1
 
 
 def test_phase2_collapse_renames_on_destination_conflict(
@@ -472,13 +486,13 @@ def test_phase2_collapse_renames_on_destination_conflict(
 
     assert stats.phase2_collapsed_chain_dirs == 1
     assert stats.phase2_skipped_collapse_dirs == 0
-
-    with_video = [
-        p for p in inbox.iterdir() if p.is_dir() and (p / "clip.mp4").exists()
-    ]
-    assert len(with_video) == 1
-    assert "-jfk-" in with_video[0].name
-    assert (with_video[0] / "clip.mp4").read_text() == "vid"
+    assert stats.phase2_flattened_dirs == 1
+    dest_files = [p for p in misc.iterdir() if p.is_file()]
+    assert len(dest_files) == 1
+    assert dest_files[0].suffix == ".mp4"
+    assert "-jfk-" in dest_files[0].stem or dest_files[0].stem.startswith("abc_def_ghi")
+    assert dest_files[0].read_text() == "vid"
+    assert not root.exists()
 
 
 def test_phase2_collapse_skips_when_merge_budget_impossible(
@@ -518,8 +532,12 @@ def test_phase2_collapse_skips_when_merge_budget_impossible(
 
     assert stats.phase2_collapsed_chain_dirs == 0
     assert stats.phase2_skipped_collapse_dirs == 1
-    assert root.exists()
-    assert (cur / "z.mp4").exists()
+    assert not root.exists()
+    assert stats.phase2_moved_to_video_dirs == 1
+    fv = tmp_path / "folders_video"
+    moved_roots = list(fv.iterdir())
+    assert len(moved_roots) == 1
+    assert list(moved_roots[0].rglob("z.mp4"))
 
 
 def test_phase2_collapse_dry_run_counts_only(
@@ -555,3 +573,155 @@ def test_phase2_collapse_dry_run_counts_only(
     assert root.exists()
     assert (root / "def" / "ghi" / "clip.mp4").exists()
     assert stats.phase2_collapsed_chain_dirs == 1
+    assert stats.phase2_moved_to_video_dirs == 1
+
+
+def test_phase2_raises_when_classification_destinations_unconfigured(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    inbox.mkdir()
+    misc.mkdir()
+    d = inbox / "needs_buckets"
+    d.mkdir()
+    (d / "a.mp4").write_text("v")
+
+    pipe = RawFilePipeline(
+        run_id=200,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(
+            tmp_path,
+            files_misc=misc,
+            with_classification_destinations=False,
+        ),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    with pytest.raises(ValueError, match="阶段2.4"):
+        pipe.run()
+
+
+def test_phase2_flatten_video_plus_cover_jpg(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    rel = inbox / "release"
+    rel.mkdir()
+    (rel / "cover.jpg").write_text("img")
+    (rel / "main.mp4").write_text("vid")
+
+    pipe = RawFilePipeline(
+        run_id=201,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(tmp_path, files_misc=misc, folders_to_delete=td),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run()
+
+    assert not rel.exists()
+    assert (misc / "release_cover.jpg").exists()
+    assert (misc / "release_main.mp4").exists()
+    assert stats.phase2_flattened_dirs == 1
+    assert stats.phase2_flattened_files == 2
+
+
+def test_phase2_flatten_skipped_when_more_than_five_files(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    pack = inbox / "sixpack"
+    pack.mkdir()
+    for i in range(6):
+        (pack / f"{i}.mp4").write_text("x")
+
+    pipe = RawFilePipeline(
+        run_id=202,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(tmp_path, files_misc=misc, folders_to_delete=td),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run()
+
+    assert stats.phase2_flattened_dirs == 0
+    assert stats.phase2_moved_to_video_dirs == 1
+    fv = tmp_path / "folders_video"
+    assert len(list(fv.iterdir())) == 1
+
+
+def test_phase2_flatten_preserves_name_when_stem_matches_dir(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    d = inbox / "episode"
+    d.mkdir()
+    (d / "episode.mp4").write_text("z")
+
+    pipe = RawFilePipeline(
+        run_id=203,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(tmp_path, files_misc=misc, folders_to_delete=td),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run()
+
+    assert (misc / "episode.mp4").exists()
+    assert stats.phase2_flattened_files == 1
+
+
+def test_phase2_whole_dir_nested_images_to_pic(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+) -> None:
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    album = inbox / "vacation"
+    album.mkdir()
+    (album / "a.jpg").write_text("a")
+    (album / "deep").mkdir()
+    (album / "deep" / "x.jpg").write_text("p")
+
+    pipe = RawFilePipeline(
+        run_id=204,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=_raw_cfg(tmp_path, files_misc=misc, folders_to_delete=td),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run()
+
+    assert stats.phase2_moved_to_pic_dirs == 1
+    pic_root = tmp_path / "folders_pic" / "vacation"
+    assert pic_root.is_dir()
+    assert (pic_root / "deep" / "x.jpg").exists()

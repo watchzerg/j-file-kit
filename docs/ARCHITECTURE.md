@@ -199,7 +199,7 @@ flowchart LR
 |------|------|------|
 | `FileTaskRunner` | `domain/task_runner.py` | Protocol：`task_type` + `run(...)` |
 | `RawFileOrganizer` | `application/raw_file_organizer.py` | 把 `RawFileOrganizeConfig` 接到 `RawFilePipeline` |
-| `RawFilePipeline` | `application/raw_pipeline/pipeline.py` | 第一层三阶段：1→`files_misc`；2→`folders_to_delete`/清洗/`phase2_*`；3→`files_misc` 计数占位 |
+| `RawFilePipeline` | `application/raw_pipeline/pipeline.py` | 第一层三阶段：1→`files_misc`；2→`folders_to_delete`/清洗/折叠/2.4 分类；3→`files_misc` 计数占位 |
 | `JavVideoOrganizer` | `application/jav_video_organizer.py` | 把 `JavVideoOrganizeConfig` 接到 `FilePipeline` |
 | `FilePipeline` | `application/jav_pipeline/pipeline.py` 与子模块 | 扫描调度、生命周期；单文件处理与映射见同包 `item_processor` / `result_mapper` |
 | `analyze_jav_file` | `application/jav_analysis/runner.py` | 纯函数编排；规则域见同包 `inbox` / `classify` / `misc` / `archive` / `media` |
