@@ -9,8 +9,11 @@ from pathlib import Path
 import pytest
 
 from j_file_kit.app.file_task.application.file_ops import (
+    JFK_CONFLICT_STEM_SUFFIX_BYTES,
+    MAX_FILENAME_BYTES,
     generate_alternative_filename,
     move_file_with_conflict_resolution,
+    normalize_move_basename,
     scan_directory_items,
 )
 from j_file_kit.app.file_task.domain.models import PathEntryType
@@ -80,6 +83,20 @@ class TestMoveFileWithConflictResolution:
         target = tmp_path / "b.txt"
         with pytest.raises(FileNotFoundError):
             move_file_with_conflict_resolution(source, target)
+
+
+class TestNormalizeMoveBasename:
+    """normalize_move_basename：字节上限与冲突后缀预留"""
+
+    def test_short_name_unchanged(self) -> None:
+        assert normalize_move_basename("a.txt") == "a.txt"
+
+    def test_long_name_within_budget(self) -> None:
+        long_stem = "x" * 400
+        name = f"{long_stem}.txt"
+        out = normalize_move_basename(name)
+        assert len(out.encode()) <= MAX_FILENAME_BYTES - JFK_CONFLICT_STEM_SUFFIX_BYTES
+        assert out.endswith(".txt")
 
 
 class TestScanDirectoryItems:

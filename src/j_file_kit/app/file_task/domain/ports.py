@@ -126,6 +126,7 @@ class FileResultRepository(Protocol):
 
         键名约定：`total_items`、`success_items`、`error_items`、`skipped_items`、
         `warning_items`、`total_duration_ms`（与 `FileTaskRunStatistics` 字段对齐）。
+        Raw 管道还会在内存侧合并 `phase*` 阶段计数后再校验模型。
         """
         ...
 

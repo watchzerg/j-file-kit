@@ -6,6 +6,7 @@
 设计意图：
 - generate_alternative_filename：生成 -jfk-xxxx 格式的候选文件名
 - move_file_with_conflict_resolution：移动文件并自动处理路径冲突
+- truncate_utf8_to_max_bytes / normalize_move_basename：文件名 UTF-8 字节上限与冲突后缀预留
 - scan_directory_items：自底向上扫描目录，用于文件任务处理流程
 """
 
@@ -17,6 +18,62 @@ from pathlib import Path
 from random import choices as random_choices
 
 from j_file_kit.app.file_task.domain.models import PathEntryType
+
+# 与常见文件系统文件名上限一致（ext4 / APFS 等）
+MAX_FILENAME_BYTES = 255
+# `generate_alternative_filename` 在 stem 与扩展名之间插入的 ASCII 后缀长度（`-jfk-xxxx`）
+JFK_CONFLICT_STEM_SUFFIX_BYTES = len(b"-jfk-xxxx")
+
+
+def truncate_utf8_to_max_bytes(text: str, max_bytes: int) -> str:
+    """将字符串截断到 UTF-8 编码长度不超过 max_bytes（在完整码点边界截断）。"""
+    if max_bytes <= 0:
+        return ""
+    encoded = text.encode()
+    if len(encoded) <= max_bytes:
+        return text
+    return encoded[:max_bytes].decode(errors="ignore")
+
+
+def normalize_move_basename(
+    filename: str,
+    *,
+    max_filename_bytes: int = MAX_FILENAME_BYTES,
+    reserve_conflict_suffix_bytes: int = JFK_CONFLICT_STEM_SUFFIX_BYTES,
+) -> str:
+    """将「仅文件名」规范化到文件系统上限内，并为 `-jfk-xxxx` 冲突后缀预留 stem 空间。
+
+    `move_file_with_conflict_resolution` 在冲突时会在 stem 与扩展名之间插入 ASCII 后缀；
+    若初始目标名已占满 255 字节，冲突重试会导致超长文件名。因此在裁剪时默认预留后缀字节。
+
+    Args:
+        filename: 原始文件名（可含扩展名），应为 basename 而非完整路径。
+        max_filename_bytes: 允许的文件名最大 UTF-8 字节数。
+        reserve_conflict_suffix_bytes: 为冲突消解预留的字节数（默认匹配 `-jfk-xxxx`）。
+    """
+    if not filename:
+        return filename
+    path = Path(filename)
+    ext_part = path.suffix
+    stem = path.stem if ext_part else path.name
+    ext_len = len(ext_part.encode())
+    budget_stem = max_filename_bytes - reserve_conflict_suffix_bytes - ext_len
+    if budget_stem <= 0:
+        stem_trunc = truncate_utf8_to_max_bytes(
+            path.name,
+            max_filename_bytes - reserve_conflict_suffix_bytes,
+        )
+        if ext_part and not stem_trunc:
+            stem_trunc = "_"
+        out = f"{stem_trunc}{ext_part}" if ext_part else stem_trunc
+        cap = max_filename_bytes - reserve_conflict_suffix_bytes
+        if len(out.encode()) > cap:
+            return truncate_utf8_to_max_bytes(out, cap)
+        return out
+    stem_trunc = truncate_utf8_to_max_bytes(stem, budget_stem)
+    if not stem_trunc:
+        stem_trunc = "_"
+    return f"{stem_trunc}{ext_part}"
 
 
 def generate_alternative_filename(target_path: Path) -> Path:

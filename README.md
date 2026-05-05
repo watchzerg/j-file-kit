@@ -1,6 +1,6 @@
 # j-file-kit
 
-基于 Python + FastAPI 的媒体文件自动整理工具，**以 Docker 容器方式运行，面向 Unraid 设计**。核心功能之一是将 **`jav_workspace/inbox`（容器内默认路径为 `/media/jav_workspace/inbox`）** 中的视频文件按番号识别后自动分类归档到 `sorted`、`unsorted`、`archive` 等目录；另提供 **`raw_workspace`** 下的 **Raw 收件箱整理**任务骨架（路径与 API 见 [docs/RAW_FILE_PROCESSING_PIPELINE.md](docs/RAW_FILE_PROCESSING_PIPELINE.md)）。任务通过 HTTP API 触发与查询状态。
+基于 Python + FastAPI 的媒体文件自动整理工具，**以 Docker 容器方式运行，面向 Unraid 设计**。核心功能之一是将 **`jav_workspace/inbox`（容器内默认路径为 `/media/jav_workspace/inbox`）** 中的视频文件按番号识别后自动分类归档到 `sorted`、`unsorted`、`archive` 等目录；另提供 **`raw_workspace`** 下的 **Raw 收件箱整理**（inbox 第一层三阶段：阶段 1 归集至 `files_misc` 等；详见 [docs/RAW_FILE_PROCESSING_PIPELINE.md](docs/RAW_FILE_PROCESSING_PIPELINE.md)）。任务通过 HTTP API 触发与查询状态。
 
 架构设计见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 

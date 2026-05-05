@@ -318,6 +318,9 @@ class FileTaskRunStatistics(BaseModel):
 
     在 JAV 整理链路中：`FilePipeline._finish_task` 调用 `FileResultRepository.get_statistics(run_id)`，
     将聚合字典 `model_validate` 为本模型。语义上以仓储聚合为准，而非仅依赖管道内存计数。
+
+    Raw 整理链路：`RawFilePipeline` 在上述聚合之上合并「阶段化」计数（仍不写目录明细表），
+    键名见 `phase*` 字段。
     """
 
     total_items: int = Field(0, description="总item数")
@@ -326,6 +329,35 @@ class FileTaskRunStatistics(BaseModel):
     skipped_items: int = Field(0, description="跳过item数")
     warning_items: int = Field(0, description="警告item数")
     total_duration_ms: float = Field(0.0, description="总耗时（毫秒）")
+
+    phase1_seen_files: int = Field(
+        0,
+        description="Raw：阶段1 见到的 inbox 第一层文件数",
+    )
+    phase1_moved_files: int = Field(
+        0,
+        description="Raw：阶段1 成功归入 files_misc 的文件数（含 dry_run 预览成功）",
+    )
+    phase1_error_files: int = Field(
+        0,
+        description="Raw：阶段1 处理失败的文件数",
+    )
+    phase2_seen_dirs: int = Field(
+        0,
+        description="Raw：阶段2 见到的 inbox 第一层目录数",
+    )
+    phase2_deferred_dirs: int = Field(
+        0,
+        description="Raw：阶段2 暂未处理的目录数（占位阶段与实际暂缓语义一致）",
+    )
+    phase3_seen_files_misc: int = Field(
+        0,
+        description="Raw：阶段3 开始时 files_misc 下第一层文件数",
+    )
+    phase3_deferred_files_misc: int = Field(
+        0,
+        description="Raw：阶段3 占位暂未分流处理的文件数",
+    )
 
 
 class FileTaskRun(BaseModel):

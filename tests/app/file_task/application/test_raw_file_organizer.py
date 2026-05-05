@@ -65,9 +65,18 @@ def test_run_returns_empty_statistics(
         enabled=True,
         config={"inbox_dir": str(inbox)},
     )
+    repo = MagicMock()
+    repo.get_statistics.return_value = {
+        "total_items": 0,
+        "success_items": 0,
+        "error_items": 0,
+        "skipped_items": 0,
+        "warning_items": 0,
+        "total_duration_ms": 0.0,
+    }
     org = RawFileOrganizer(
         task_config=tc,
         log_dir=tmp_path / "logs",
-        file_result_repository=MagicMock(),
+        file_result_repository=repo,
     )
     assert org.run(run_id=1) == FileTaskRunStatistics()

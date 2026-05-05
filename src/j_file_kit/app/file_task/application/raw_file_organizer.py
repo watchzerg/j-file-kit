@@ -1,7 +1,8 @@
 """Raw 收件箱整理任务入口（`FileTaskRunner` 实现）。
 
 与 `JavVideoOrganizer` 对称：`TaskConfig` → `RawFileOrganizeConfig` → `RawAnalyzeConfig` → `RawFilePipeline`。
-本期管道为空实现；分析规则与第一层目录遍历由后续迭代填充。
+`RawFilePipeline` 已实现 inbox 第一层三阶段编排：阶段 1 将散落文件移入 `files_misc` 并落库；阶段 2/3 占位。
+独立的 `analyze_raw_*` 纯函数与目录内深度规则由后续迭代填充。
 """
 
 import threading
@@ -80,7 +81,7 @@ class RawFileOrganizer:
         dry_run: bool = False,
         cancellation_event: threading.Event | None = None,
     ) -> FileTaskRunStatistics:
-        """组装 `RawFilePipeline` 并委托执行（本期管道为空统计）。"""
+        """组装 `RawFilePipeline` 并委托执行（见 `RawFilePipeline.run` 三阶段语义）。"""
         if self.file_config.inbox_dir is None:
             raise ValueError("inbox_dir 未设置")
 

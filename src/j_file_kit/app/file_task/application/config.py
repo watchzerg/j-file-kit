@@ -266,9 +266,10 @@ class RawFileOrganizeConfig(BaseModel):
 
 
 class RawAnalyzeConfig(BaseModel):
-    """Raw 分析阶段配置（不含 `inbox_dir`），供后续 `analyze_raw_*` 纯函数使用。
+    """Raw 分析阶段配置（不含 `inbox_dir`）。
 
-    本期仅承载归宿目录与来自 `organizer_defaults` 的扩展名集合；具体分析规则后续填充。
+    由 `RawFileOrganizer` 从任务配置注入各归宿路径与扩展名集合。
+    当前 `RawFilePipeline` 阶段 1 使用其中的 `files_misc`；扩展名驱动的分流与其它 `analyze_raw_*` 规则后续迭代填充。
     """
 
     folders_game: Path | None = Field(default=None, description="游戏目录")
