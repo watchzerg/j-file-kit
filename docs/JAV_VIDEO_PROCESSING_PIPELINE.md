@@ -130,7 +130,7 @@ flowchart TB
 
 ## 5. 番号、文件名与 sorted 子目录
 
-**文件**：`application/jav_filename_util.py`、`domain/models.py`（`SerialId`、数字有效性）。
+**文件**：`application/jav_filename_util.py`、`domain/serial_id.py`（`SerialId`、数字有效性）。
 
 ### 5.1 匹配规则（摘要）
 

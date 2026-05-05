@@ -49,7 +49,12 @@ src/j_file_kit/
 │   │   ├── api.py                  # POST /api/tasks/{task_type}/start 等
 │   │   ├── config_api.py           # 任务配置 CRUD/校验
 │   │   ├── domain/
-│   │   │   ├── models.py           # TaskConfig、FileTaskRunner Protocol、FileTaskRunStatistics…
+│   │   │   ├── file_types.py       # PathEntryType、FileType
+│   │   │   ├── serial_id.py        # SerialId、番号数字校验
+│   │   │   ├── task_run.py         # FileTaskRun*、状态/触发枚举、统计
+│   │   │   ├── task_errors.py      # FileTask*Error
+│   │   │   ├── task_runner.py      # FileTaskRunner Protocol
+│   │   │   ├── task_config.py      # TaskConfig
 │   │   │   ├── decisions.py        # Move/Delete/Skip + FileItemData
 │   │   │   ├── ports.py            # FileTaskRunRepository、FileResultRepository、TaskConfigRepository
 │   │   │   ├── constants.py        # TASK_TYPE_JAV_VIDEO_ORGANIZER、TASK_TYPE_RAW_FILE_ORGANIZER 等
@@ -168,7 +173,7 @@ flowchart LR
 
 | 名称 | 位置 | 说明 |
 |------|------|------|
-| `FileTaskRunner` | `domain/models.py` | Protocol：`task_type` + `run(...)` |
+| `FileTaskRunner` | `domain/task_runner.py` | Protocol：`task_type` + `run(...)` |
 | `RawFileOrganizer` | `application/raw_file_organizer.py` | 把 `RawFileOrganizeConfig` 接到 `RawFilePipeline` |
 | `RawFilePipeline` | `application/raw_pipeline/pipeline.py` | 第一层三阶段：1→`files_misc`；2→`folders_to_delete`/清洗/`phase2_*`；3→`files_misc` 计数占位 |
 | `JavVideoOrganizer` | `application/jav_video_organizer.py` | 把 `JavVideoOrganizeConfig` 接到 `FilePipeline` |
@@ -176,7 +181,7 @@ flowchart LR
 | `analyze_jav_file` | `application/jav_analyzer.py` | 纯函数；收件箱预删规则 → 扩展名分类 → 番号等 |
 | `execute_decision` | `application/executor.py` | 落地移动/删除；配合 dry_run |
 | `organizer_defaults` | `domain/organizer_defaults.py` | 共享扩展名等；JAV 另含站标去噪、misc 删除扩展名（由 `JavVideoOrganizer` 写入 `JavAnalyzeConfig`）；Raw 写入 `RawAnalyzeConfig` |
-| `TaskConfig` / `JavVideoOrganizeConfig` / `RawFileOrganizeConfig` | `domain/models` + `application/config.py` | YAML dict → 强类型；**`JAV_MEDIA_ROOT` / `RAW_MEDIA_ROOT`** 目录约束 |
+| `TaskConfig` / `JavVideoOrganizeConfig` / `RawFileOrganizeConfig` | `domain/task_config.py` + `application/config.py` | YAML dict → 强类型；**`JAV_MEDIA_ROOT` / `RAW_MEDIA_ROOT`** 目录约束 |
 | `FileResultRepository` | `domain/ports.py` + sqlite 实现 | 按 **run_id** 存文件级结果；收尾聚合成统计 |
 
 **Decision 模式**：`MoveDecision` / `DeleteDecision` / `SkipDecision`，分析阶段与执行阶段分离，便于 dry_run。

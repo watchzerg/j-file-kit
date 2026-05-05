@@ -17,7 +17,7 @@ from collections.abc import Generator
 from pathlib import Path
 from random import choices as random_choices
 
-from j_file_kit.app.file_task.domain.models import PathEntryType
+from j_file_kit.app.file_task.domain.file_types import PathEntryType
 
 # 与常见文件系统文件名上限一致（ext4 / APFS 等）
 MAX_FILENAME_BYTES = 255

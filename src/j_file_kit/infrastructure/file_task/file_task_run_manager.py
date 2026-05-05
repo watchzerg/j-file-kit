@@ -9,16 +9,18 @@ from datetime import datetime
 
 from loguru import logger
 
-from j_file_kit.app.file_task.domain.models import (
+from j_file_kit.app.file_task.domain.ports import FileTaskRunRepository
+from j_file_kit.app.file_task.domain.task_errors import (
     FileTaskAlreadyRunningError,
     FileTaskCancelledError,
     FileTaskNotFoundError,
+)
+from j_file_kit.app.file_task.domain.task_run import (
     FileTaskRun,
-    FileTaskRunner,
     FileTaskRunStatus,
     FileTaskTriggerType,
 )
-from j_file_kit.app.file_task.domain.ports import FileTaskRunRepository
+from j_file_kit.app.file_task.domain.task_runner import FileTaskRunner
 
 
 def generate_run_name(

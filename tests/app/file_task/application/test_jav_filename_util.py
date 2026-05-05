@@ -15,7 +15,7 @@ from j_file_kit.app.file_task.application.jav_filename_util import (
     generate_sorted_dir,
     strip_jav_filename_noise,
 )
-from j_file_kit.app.file_task.domain.models import SerialId
+from j_file_kit.app.file_task.domain.serial_id import SerialId
 
 pytestmark = pytest.mark.unit
 

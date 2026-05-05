@@ -8,10 +8,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from j_file_kit.app.file_task.domain.models import (
+from j_file_kit.app.file_task.domain.task_errors import (
     FileTaskAlreadyRunningError,
     FileTaskCancelledError,
     FileTaskNotFoundError,
+)
+from j_file_kit.app.file_task.domain.task_run import (
     FileTaskRun,
     FileTaskRunStatus,
     FileTaskTriggerType,

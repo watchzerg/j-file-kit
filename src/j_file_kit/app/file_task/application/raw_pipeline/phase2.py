@@ -19,7 +19,7 @@ from j_file_kit.app.file_task.application.raw_pipeline.keywords import (
     normalize_for_match,
     normalize_keyword_tokens,
 )
-from j_file_kit.app.file_task.domain.models import PathEntryType
+from j_file_kit.app.file_task.domain.file_types import PathEntryType
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_MISC_FILE_DELETE_EXTENSIONS,
     DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS,

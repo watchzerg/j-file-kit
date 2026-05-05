@@ -17,7 +17,7 @@ from j_file_kit.app.file_task.application.file_ops import (
     normalize_move_basename,
     scan_directory_items,
 )
-from j_file_kit.app.file_task.domain.models import PathEntryType
+from j_file_kit.app.file_task.domain.file_types import PathEntryType
 
 pytestmark = pytest.mark.unit
 

@@ -16,8 +16,8 @@ from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseC
 from j_file_kit.app.file_task.application.raw_pipeline.phase1 import run_phase1
 from j_file_kit.app.file_task.application.raw_pipeline.phase2 import run_phase2
 from j_file_kit.app.file_task.application.raw_pipeline.phase3 import run_phase3
-from j_file_kit.app.file_task.domain.models import FileTaskRunStatistics
 from j_file_kit.app.file_task.domain.ports import FileResultRepository
+from j_file_kit.app.file_task.domain.task_run import FileTaskRunStatistics
 from j_file_kit.shared.utils.logging import configure_task_logger, remove_task_logger
 
 

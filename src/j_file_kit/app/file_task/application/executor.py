@@ -22,7 +22,8 @@ from j_file_kit.app.file_task.domain.decisions import (
     MoveDecision,
     SkipDecision,
 )
-from j_file_kit.app.file_task.domain.models import FileType, SerialId
+from j_file_kit.app.file_task.domain.file_types import FileType
+from j_file_kit.app.file_task.domain.serial_id import SerialId
 from j_file_kit.shared.utils.file_utils import delete_file_if_exists, ensure_directory
 
 

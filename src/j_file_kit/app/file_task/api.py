@@ -24,12 +24,12 @@ from j_file_kit.app.file_task.domain.constants import (
     TASK_TYPE_JAV_VIDEO_ORGANIZER,
     TASK_TYPE_RAW_FILE_ORGANIZER,
 )
-from j_file_kit.app.file_task.domain.models import (
-    FileTaskRunner,
+from j_file_kit.app.file_task.domain.task_config import TaskConfig
+from j_file_kit.app.file_task.domain.task_run import (
     FileTaskRunStatus,
     FileTaskTriggerType,
-    TaskConfig,
 )
+from j_file_kit.app.file_task.domain.task_runner import FileTaskRunner
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 

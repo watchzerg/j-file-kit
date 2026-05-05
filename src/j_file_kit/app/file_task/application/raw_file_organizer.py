@@ -15,7 +15,6 @@ from j_file_kit.app.file_task.application.config import (
 )
 from j_file_kit.app.file_task.application.raw_pipeline.pipeline import RawFilePipeline
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_RAW_FILE_ORGANIZER
-from j_file_kit.app.file_task.domain.models import FileTaskRunStatistics, TaskConfig
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_ARCHIVE_EXTENSIONS,
     DEFAULT_IMAGE_EXTENSIONS,
@@ -24,6 +23,8 @@ from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_VIDEO_EXTENSIONS,
 )
 from j_file_kit.app.file_task.domain.ports import FileResultRepository
+from j_file_kit.app.file_task.domain.task_config import TaskConfig
+from j_file_kit.app.file_task.domain.task_run import FileTaskRunStatistics
 
 
 class RawFileOrganizer:

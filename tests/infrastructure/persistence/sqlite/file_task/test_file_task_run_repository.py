@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pytest
 
-from j_file_kit.app.file_task.domain.models import (
+from j_file_kit.app.file_task.domain.task_run import (
     FileTaskRunStatus,
     FileTaskTriggerType,
 )

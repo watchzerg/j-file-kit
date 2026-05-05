@@ -27,13 +27,13 @@ from j_file_kit.app.file_task.domain.constants import (
     TASK_TYPE_JAV_VIDEO_ORGANIZER,
     TASK_TYPE_RAW_FILE_ORGANIZER,
 )
-from j_file_kit.app.file_task.domain.models import (
+from j_file_kit.app.file_task.domain.ports import TaskConfigRepository
+from j_file_kit.app.file_task.domain.task_errors import (
     FileTaskAlreadyRunningError,
     FileTaskCancelledError,
     FileTaskError,
     FileTaskNotFoundError,
 )
-from j_file_kit.app.file_task.domain.ports import TaskConfigRepository
 from j_file_kit.app.media_browser.api import router as media_browser_router
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,

@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from j_file_kit.app.file_task.domain.models import TaskConfig
+from j_file_kit.app.file_task.domain.task_config import TaskConfig
 from j_file_kit.infrastructure.persistence.yaml.default_file_task_config_initializer import (
     DefaultFileTaskConfigInitializer,
 )

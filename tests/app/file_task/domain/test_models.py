@@ -8,13 +8,13 @@ from datetime import datetime
 import pytest
 
 from j_file_kit.app.file_task.application.config import JavVideoOrganizeConfig
-from j_file_kit.app.file_task.domain.models import (
-    FileTaskRunReport,
+from j_file_kit.app.file_task.domain.serial_id import (
     SerialId,
-    TaskConfig,
     effective_serial_digit_len,
     serial_number_raw_is_valid,
 )
+from j_file_kit.app.file_task.domain.task_config import TaskConfig
+from j_file_kit.app.file_task.domain.task_run import FileTaskRunReport
 
 pytestmark = pytest.mark.unit
 

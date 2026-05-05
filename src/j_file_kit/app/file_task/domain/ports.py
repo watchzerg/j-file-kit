@@ -12,11 +12,11 @@ from datetime import datetime
 from typing import Any, Protocol
 
 from j_file_kit.app.file_task.domain.decisions import FileItemData
-from j_file_kit.app.file_task.domain.models import (
+from j_file_kit.app.file_task.domain.task_config import TaskConfig
+from j_file_kit.app.file_task.domain.task_run import (
     FileTaskRun,
     FileTaskRunStatus,
     FileTaskTriggerType,
-    TaskConfig,
 )
 
 

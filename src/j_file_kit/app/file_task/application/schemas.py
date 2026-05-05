@@ -11,7 +11,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from j_file_kit.app.file_task.domain.models import FileTaskRunStatus
+from j_file_kit.app.file_task.domain.task_run import FileTaskRunStatus
 
 
 class StartTaskRequest(BaseModel):

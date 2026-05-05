@@ -7,7 +7,8 @@ import pytest
 
 from j_file_kit.app.file_task.application.raw_file_organizer import RawFileOrganizer
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_RAW_FILE_ORGANIZER
-from j_file_kit.app.file_task.domain.models import FileTaskRunStatistics, TaskConfig
+from j_file_kit.app.file_task.domain.task_config import TaskConfig
+from j_file_kit.app.file_task.domain.task_run import FileTaskRunStatistics
 
 pytestmark = pytest.mark.unit
 

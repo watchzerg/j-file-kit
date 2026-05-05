@@ -27,7 +27,7 @@ from j_file_kit.app.file_task.domain.constants import (
     TASK_TYPE_JAV_VIDEO_ORGANIZER,
     TASK_TYPE_RAW_FILE_ORGANIZER,
 )
-from j_file_kit.app.file_task.domain.models import TaskConfig
+from j_file_kit.app.file_task.domain.task_config import TaskConfig
 
 pytestmark = pytest.mark.unit
 

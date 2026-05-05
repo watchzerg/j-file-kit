@@ -30,7 +30,7 @@ from j_file_kit.app.file_task.domain.decisions import (
     MoveDecision,
     SkipDecision,
 )
-from j_file_kit.app.file_task.domain.models import FileType
+from j_file_kit.app.file_task.domain.file_types import FileType
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS,
 )

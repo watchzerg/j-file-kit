@@ -25,8 +25,9 @@ from j_file_kit.app.file_task.domain.decisions import (
     MoveDecision,
     SkipDecision,
 )
-from j_file_kit.app.file_task.domain.models import FileTaskRunStatistics, PathEntryType
+from j_file_kit.app.file_task.domain.file_types import PathEntryType
 from j_file_kit.app.file_task.domain.ports import FileResultRepository
+from j_file_kit.app.file_task.domain.task_run import FileTaskRunStatistics
 from j_file_kit.shared.utils.file_utils import (
     delete_directory_if_empty,
     sanitize_surrogate_str,
