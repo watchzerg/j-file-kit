@@ -56,8 +56,36 @@ test-unit:
 test-int:
     uv run pytest -m integration
 
+# 确保 Docker 可用：就绪则跳过；macOS 未就绪时 `open -a Docker` 并最多等待 180s（懒加载）。非 macOS 请手动启动 Docker
+ensure-docker:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if docker info >/dev/null 2>&1; then
+        echo "Docker 已就绪"
+        exit 0
+    fi
+    case "$(uname -s)" in
+        Darwin)
+            echo "正在启动 Docker Desktop…"
+            open -a Docker
+            deadline=$((SECONDS + 180))
+            while ! docker info >/dev/null 2>&1; do
+                if (( SECONDS > deadline )); then
+                    echo "超时：Docker 仍未就绪，请检查 Docker Desktop。" >&2
+                    exit 1
+                fi
+                sleep 2
+            done
+            echo "Docker 已就绪"
+            ;;
+        *)
+            echo "未检测到可用的 Docker，且当前系统未配置自动启动（仅 macOS 支持 open Docker Desktop）。" >&2
+            exit 1
+            ;;
+    esac
+
 # 运行 E2E 测试（需要 Docker 运行中）
-test-e2e:
+test-e2e: ensure-docker
     uv run pytest -m e2e -v
 
 # 运行测试并输出覆盖率报告
@@ -73,23 +101,22 @@ gen-test-files:
 # 打版本 tag 并推送，触发 GitHub Actions 构建镜像
 # 会先运行 E2E 测试，全部通过后才打 tag（需要 Docker 运行中）
 # 用法：just release 1.2.3
-release VERSION:
-    uv run pytest -m e2e -v
+release VERSION: test-e2e
     git tag v{{VERSION}}
     git push origin v{{VERSION}}
 
 # 本地构建镜像（不启动容器），完成后输出镜像体积
-docker-build:
+docker-build: ensure-docker
     docker build -t j-file-kit:local .
     @echo ""
     docker images j-file-kit:local --format "镜像: {{{{.Repository}}}}:{{{{.Tag}}}}  大小: {{{{.Size}}}}  创建: {{{{.CreatedSince}}}}"
 
 # 进入本地构建的镜像，查看文件结构（需先执行 docker-build）
-docker-sh:
+docker-sh: ensure-docker
     docker run --rm -it --entrypoint sh j-file-kit:local
 
 # 构建镜像并在后台启动容器（读取 .env 中的 MEDIA_ROOT）
-docker-up:
+docker-up: ensure-docker
     docker compose up -d --build
 
 # 停止并移除容器
