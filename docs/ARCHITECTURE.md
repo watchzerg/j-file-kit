@@ -8,7 +8,7 @@
 
 | 逻辑主题 | 主要目录 / 文件 |
 |------|------|
-| Raw 收件箱三阶段编排 | `application/raw_pipeline/pipeline.py`、`application/raw_pipeline/phase1.py`、`application/raw_pipeline/phase2.py`、`application/raw_pipeline/phase3.py` |
+| Raw 收件箱三阶段编排 | `application/raw_pipeline/`：`pipeline.py`、`phase1.py`、`phase2.py`（编排）、`phase2_preflight.py`、`phase2_delete_move.py`、`phase2_clean.py`、`phase2_collapse.py`、`phase2_classify.py`、`phase3.py` |
 | Raw 阶段共享上下文与计数 | `application/raw_pipeline/context.py`、`application/raw_pipeline/counters.py`、`application/raw_pipeline/keywords.py` |
 | JAV 单文件分析编排 | `application/jav_analysis/runner.py` |
 | JAV 分析规则域 | `application/jav_analysis/classify.py`、`application/jav_analysis/inbox.py`、`application/jav_analysis/misc.py`、`application/jav_analysis/archive.py`、`application/jav_analysis/media.py` |
@@ -84,7 +84,11 @@ src/j_file_kit/
 │   │       │   ├── observer.py          # 日志与 PipelineRunCounters
 │   │       │   ├── directory_cleanup.py # 扫描后空目录收缩（非 scan_root）
 │   │       │   └── executor.py          # execute_decision（Raw 阶段 1 共用）
-│   │       ├── raw_pipeline/        # RawFilePipeline：第一层三阶段（phase1–3 + pipeline 编排）
+│   │       ├── raw_pipeline/        # RawFilePipeline：第一层三阶段；阶段 2 规则在 phase2_* 子模块
+│   │       │   ├── pipeline.py、context.py、counters.py、keywords.py
+│   │       │   ├── phase1.py、phase2.py、phase3.py
+│   │       │   ├── phase2_preflight.py、phase2_delete_move.py、phase2_clean.py
+│   │       │   └── phase2_collapse.py、phase2_classify.py
 │   │       ├── jav_analysis/       # JAV 单文件纯分析（包 __init__ 不聚合导出业务符号）
 │   │       │   ├── runner.py       # analyze_jav_file 编排入口
 │   │       │   └── classify.py、inbox.py、misc.py、archive.py、media.py  # 规则域子模块
@@ -199,7 +203,7 @@ flowchart LR
 |------|------|------|
 | `FileTaskRunner` | `domain/task_runner.py` | Protocol：`task_type` + `run(...)` |
 | `RawFileOrganizer` | `application/raw_file_organizer.py` | 把 `RawFileOrganizeConfig` 接到 `RawFilePipeline` |
-| `RawFilePipeline` | `application/raw_pipeline/pipeline.py` | 第一层三阶段：1→`files_misc`；2→`folders_to_delete`/清洗/折叠/2.4 分类；3→`files_misc` 计数占位 |
+| `RawFilePipeline` | `application/raw_pipeline/pipeline.py` | 第一层三阶段编排：1→`files_misc`；2→`phase2.py` 调度，`phase2_*` 实现；3→`files_misc` 计数占位 |
 | `JavVideoOrganizer` | `application/jav_video_organizer.py` | 把 `JavVideoOrganizeConfig` 接到 `FilePipeline` |
 | `FilePipeline` | `application/jav_pipeline/pipeline.py` 与子模块 | 扫描调度、生命周期；单文件处理与映射见同包 `item_processor` / `result_mapper` |
 | `analyze_jav_file` | `application/jav_analysis/runner.py` | 纯函数编排；规则域见同包 `inbox` / `classify` / `misc` / `archive` / `media` |
@@ -223,9 +227,7 @@ flowchart LR
 | 配置字段与校验 | `application/*_task_config.py`、`application/config_common.py`、`config_validator.py`、`FileTaskConfigService` |
 | 任务并发、取消、run 状态机 | `file_task_run_manager.py`、`file_task_run_repository.py` |
 | 文件结果与统计 SQL | `file_result_repository.py` |
-| 媒体路径、日志、目录工具 | `shared/constants.py`（`MEDIA_ROOT`）、`application/config_common.py`（`JAV_MEDIA_ROOT`、`RAW_MEDIA_ROOT`）、`shared/utils/` |
-
----
+| Raw 阶段 2 规则（2.1–2.4） | 先定是否改编排 `raw_pipeline/phase2.py`；规则细节改对应 `raw_pipeline/phase2_*.py`（见 `RAW_FILE_PROCESSING_PIPELINE.md` 映射表） |
 
 ## 9. 扩展指南
 

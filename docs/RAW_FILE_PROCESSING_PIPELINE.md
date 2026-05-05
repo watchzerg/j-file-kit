@@ -30,7 +30,19 @@
 
 ### 阶段 2：第一层目录（逐项：2.1 → 2.2 → 2.3 → 2.4）
 
-**代码**：[`application/raw_pipeline/phase2.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2.py)（`run_phase2` → `_phase2_process_one_level1_dir`）
+**编排入口**：[`application/raw_pipeline/phase2.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2.py)（`run_phase2`：目录循环、取消检测、子阶段顺序）。
+
+**子阶段与实现模块**（`phase2_*` 含规则与副作用；统计仍统一累加到 `phase2_*` 计数器）：
+
+| 子阶段 | 模块 |
+|--------|------|
+| 前置（第一层目录列表、关键字 token、`folders_to_delete` / 2.4 归宿校验） | [`phase2_preflight.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_preflight.py) |
+| 2.1 | [`phase2_delete_move.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_delete_move.py) |
+| 2.2 | [`phase2_clean.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_clean.py) |
+| 2.3 | [`phase2_collapse.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_collapse.py) |
+| 2.4 | [`phase2_classify.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_classify.py) |
+
+**变更入口**：仅当「阶段顺序、跨子阶段协作、取消粒度」变化时改编排层（`phase2.py`）；单个子阶段的命中规则与落盘细节改对应 `phase2_*` 模块。
 
 对 inbox **每个第一层子目录**按顺序执行下列子阶段（命中迁出或目录消失则后续子阶段不再对该目录生效）。
 
@@ -113,6 +125,6 @@
 
 ## 统计字段（run 级）
 
-除聚合字段 `total_items` / `success_*` 等外，`FileTaskRunStatistics` 含 **`phase1_*` / `phase2_*` / `phase3_*`**，语义见领域模型 [`domain/task_run.py`](../src/j_file_kit/app/file_task/domain/task_run.py)。
+除聚合字段 `total_items` / `success_*` 等外，`FileTaskRunStatistics` 含 **`phase1_*` / `phase2_*` / `phase3_*`**，语义见领域模型 [`domain/task_run.py`](../src/j_file_kit/app/file_task/domain/task_run.py)。`phase2_*` 字段是对外稳定契约：内部可拆分为多个 `phase2_*` 模块实现，计数口径保持不变。
 
 总体架构见 [ARCHITECTURE.md](./ARCHITECTURE.md)。若与代码冲突，**以源码为准**。

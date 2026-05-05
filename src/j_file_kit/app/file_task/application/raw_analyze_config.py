@@ -13,8 +13,8 @@ class RawAnalyzeConfig(BaseModel):
     """Raw 分析阶段配置（不含 `inbox_dir`）。
 
     由 `RawFileOrganizer` 从任务配置注入各归宿路径与扩展名集合。
-    当前 `RawFilePipeline` 阶段 1 使用 `files_misc`；阶段 2 使用 `folders_to_delete`；
-    扩展名驱动的分流与其它 `analyze_raw_*` 规则后续迭代填充。
+    当前 `RawFilePipeline` 阶段 1 使用 `files_misc`；阶段 2 使用 `folders_to_delete` 及分类归宿路径，
+    具体规则见 `raw_pipeline/phase2_*.py`；扩展名驱动的分流与其它 `analyze_raw_*` 规则后续迭代填充。
     """
 
     folders_to_delete: Path | None = Field(
