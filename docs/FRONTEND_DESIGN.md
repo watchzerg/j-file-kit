@@ -272,18 +272,23 @@
 
 ---
 
-## 10. 落地里程碑（建议）
+## 10. 落地里程碑
 
-| 阶段 | 范围 | 依赖后端 |
-|------|------|----------|
-| **M1：骨架** | AppShell + 路由扩展（`/tasks`、`/tasks/:runId`）+ 现有 4 页占位重构 | 无 |
-| **M2：Dashboard MVP** | NewTaskPanel（双卡）+ RecentRunsList（用现有 list 接口，简报字段先空） + GlobalRunBanner | A6（必须）；A1 简报字段（推荐） |
-| **M3：任务详情 MVP** | 概览 Tab（含 Raw phase 卡片） + 取消 / 重跑 | A2（必须） |
-| **M4：任务列表 MVP** | 筛选 + 分页 + 行操作（不含删除） | A1（必须） |
-| **M5：配置中心** | JAV / Raw 表单 + MediaPickerDialog | B1（推荐） |
-| **M6：文件结果 Tab** | 详情页 Tab B | A3（必须） |
-| **M7：日志 Tab + 删除** | 详情页 Tab C + 列表/详情删除按钮 | A5、A4 |
-| **M8：全局配置只读 + 系统信息** | 配置 Tab 1 + Dashboard 页脚 | B1、B2 |
+当前进度：
+
+- **M1：骨架已完成**。完成记录见 [`FE-M1.md`](./FE-M1.md)。
+- **下一阶段准备进行 M2：Dashboard MVP**。重点是 `GlobalRunBanner`、`NewTaskPanel` 与 `RecentRunsList`。
+
+| 阶段 | 状态 | 范围 | 依赖后端 |
+|------|------|------|----------|
+| **M1：骨架** | 已完成 | AppShell + 路由扩展（`/tasks`、`/tasks/:runId`）+ 现有页面占位重构 | 无 |
+| **M2：Dashboard MVP** | 下一步 | NewTaskPanel（双卡）+ RecentRunsList（用现有 list 接口，简报字段先空） + GlobalRunBanner | A6（必须）；A1 简报字段（推荐） |
+| **M3：任务详情 MVP** | 待做 | 概览 Tab（含 Raw phase 卡片） + 取消 / 重跑 | A2（必须） |
+| **M4：任务列表 MVP** | 待做 | 筛选 + 分页 + 行操作（不含删除） | A1（必须） |
+| **M5：配置中心** | 待做 | JAV / Raw 表单 + MediaPickerDialog | B1（推荐） |
+| **M6：文件结果 Tab** | 待做 | 详情页 Tab B | A3（必须） |
+| **M7：日志 Tab + 删除** | 待做 | 详情页 Tab C + 列表/详情删除按钮 | A5、A4 |
+| **M8：全局配置只读 + 系统信息** | 待做 | 配置 Tab 1 + Dashboard 页脚 | B1、B2 |
 
 每个里程碑独立可发布；M2 / M3 完成后已经显著优于"什么都没有"的现状。
 
