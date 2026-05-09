@@ -9,6 +9,8 @@ export type FileTaskRunStatus =
 
 export type FileTaskTriggerType = "manual" | "auto";
 
+export type FileTaskType = "jav_video_organizer" | "raw_file_organizer";
+
 export interface StartTaskRequest {
   dry_run?: boolean;
   trigger_type?: FileTaskTriggerType | null;
@@ -29,6 +31,19 @@ export interface FileTaskRunStatusResponse {
   error_message: string | null;
   total_items: number | null;
 }
+
+export interface ActiveFileTaskRun {
+  run_id: number;
+  run_name: string;
+  task_type: FileTaskType;
+  trigger_type: FileTaskTriggerType;
+  status: FileTaskRunStatus;
+  start_time: string;
+  end_time: string | null;
+  error_message: string | null;
+}
+
+export type ActiveFileTaskRunResponse = ActiveFileTaskRun | null;
 
 export interface CancelFileTaskRunResponse {
   run_id: number;

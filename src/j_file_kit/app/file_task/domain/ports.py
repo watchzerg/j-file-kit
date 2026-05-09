@@ -95,6 +95,14 @@ class FileTaskRunRepository(Protocol):
         """
         ...
 
+    def get_active_run(self) -> FileTaskRun | None:
+        """获取当前待处理或运行中的执行实例，无则返回 None
+
+        Returns:
+            待处理或运行中的执行实例，如果没有则返回 None
+        """
+        ...
+
     def get_pending_or_running_runs(self) -> list[FileTaskRun]:
         """获取所有待处理或运行中的执行实例（用于启动时崩溃恢复）
 

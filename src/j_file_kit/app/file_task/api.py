@@ -13,6 +13,7 @@ from j_file_kit.api.app_state import AppState
 from j_file_kit.app.file_task.application.jav_video_organizer import JavVideoOrganizer
 from j_file_kit.app.file_task.application.raw_file_organizer import RawFileOrganizer
 from j_file_kit.app.file_task.application.schemas import (
+    ActiveFileTaskRunResponse,
     CancelFileTaskRunResponse,
     FileTaskRunListItem,
     FileTaskRunListResponse,
@@ -151,6 +152,28 @@ async def start_task(
         run_id=run_id,
         run_name=run.run_name,
         status=run.status,
+    )
+
+
+@router.get("/active", response_model=ActiveFileTaskRunResponse | None)
+async def get_active_run(
+    request: Request,
+) -> ActiveFileTaskRunResponse | None:
+    """查询当前待处理或运行中的执行实例。"""
+    app_state: AppState = request.app.state.app_state
+    run = app_state.file_task_run_manager.get_active_run()
+    if run is None:
+        return None
+
+    return ActiveFileTaskRunResponse(
+        run_id=run.run_id,
+        run_name=run.run_name,
+        task_type=run.task_type,
+        trigger_type=run.trigger_type,
+        status=run.status,
+        start_time=run.start_time,
+        end_time=run.end_time,
+        error_message=run.error_message,
     )
 
 

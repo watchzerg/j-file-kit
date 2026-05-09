@@ -204,6 +204,28 @@ class FileTaskRunRepositoryImpl:
 
             return self._row_to_run(row)
 
+    def get_active_run(self) -> FileTaskRun | None:
+        """获取当前待处理或运行中的执行实例，无则返回 None"""
+        with self._conn_manager.get_cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT * FROM file_task_runs
+                WHERE status IN (?, ?)
+                ORDER BY start_time DESC
+                LIMIT 1
+                """,
+                (
+                    FileTaskRunStatus.PENDING.value,
+                    FileTaskRunStatus.RUNNING.value,
+                ),
+            )
+            row = cursor.fetchone()
+
+            if not row:
+                return None
+
+            return self._row_to_run(row)
+
     def get_pending_or_running_runs(self) -> list[FileTaskRun]:
         """获取所有待处理或运行中的执行实例（用于启动时崩溃恢复）
 

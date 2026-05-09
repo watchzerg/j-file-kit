@@ -70,7 +70,7 @@ class TestFileTaskRunManager:
         mock_repo: MagicMock,
         mock_task: MagicMock,
     ) -> None:
-        mock_repo.get_running_run.return_value = None
+        mock_repo.get_active_run.return_value = None
         mock_repo.get_pending_or_running_runs.return_value = []
         mock_repo.create_run.return_value = 42
         manager = FileTaskRunManager(mock_repo)
@@ -83,12 +83,32 @@ class TestFileTaskRunManager:
         mock_repo: MagicMock,
         mock_task: MagicMock,
     ) -> None:
-        mock_repo.get_running_run.return_value = FileTaskRun(
+        mock_repo.get_active_run.return_value = FileTaskRun(
             run_id=1,
             run_name="x",
             task_type="x",
             trigger_type=FileTaskTriggerType.MANUAL,
             status=FileTaskRunStatus.RUNNING,
+            start_time=datetime.now(),
+            end_time=None,
+            error_message=None,
+        )
+        mock_repo.get_pending_or_running_runs.return_value = []
+        manager = FileTaskRunManager(mock_repo)
+        with pytest.raises(FileTaskAlreadyRunningError):
+            manager.start_run(mock_task)
+
+    def test_start_run_when_pending_raises(
+        self,
+        mock_repo: MagicMock,
+        mock_task: MagicMock,
+    ) -> None:
+        mock_repo.get_active_run.return_value = FileTaskRun(
+            run_id=2,
+            run_name="pending",
+            task_type="x",
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.PENDING,
             start_time=datetime.now(),
             end_time=None,
             error_message=None,

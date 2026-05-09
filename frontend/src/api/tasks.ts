@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
 import type {
+  ActiveFileTaskRunResponse,
   CancelFileTaskRunResponse,
   FileTaskRunListResponse,
   FileTaskRunStatusResponse,
@@ -16,6 +17,8 @@ export const TASK_TYPES = {
 export type TaskType = (typeof TASK_TYPES)[keyof typeof TASK_TYPES];
 
 const POLL_INTERVAL_MS = 2_000;
+const ACTIVE_RUN_POLL_INTERVAL_MS = 3_000;
+const RECENT_RUNS_LIMIT = 10;
 
 function isActiveStatus(status: FileTaskRunStatusResponse["status"]) {
   return status === "pending" || status === "running";
@@ -25,6 +28,26 @@ export function useTaskRunList() {
   return useQuery({
     queryKey: ["tasks", "runs"],
     queryFn: () => apiClient.get<FileTaskRunListResponse>("/api/tasks"),
+  });
+}
+
+export function useRecentTaskRuns() {
+  return useQuery({
+    queryKey: ["tasks", "runs", "recent"],
+    queryFn: async () => {
+      const response =
+        await apiClient.get<FileTaskRunListResponse>("/api/tasks");
+      return response.runs.slice(0, RECENT_RUNS_LIMIT);
+    },
+  });
+}
+
+export function useActiveTaskRun() {
+  return useQuery({
+    queryKey: ["tasks", "active"],
+    queryFn: () =>
+      apiClient.get<ActiveFileTaskRunResponse>("/api/tasks/active"),
+    refetchInterval: ACTIVE_RUN_POLL_INTERVAL_MS,
   });
 }
 
@@ -51,6 +74,7 @@ export function useStartTask(taskType: TaskType) {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks", "runs"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "active"] });
     },
   });
 }
@@ -62,6 +86,7 @@ export function useCancelTaskRun(runId: number) {
       apiClient.post<CancelFileTaskRunResponse>(`/api/tasks/${runId}/cancel`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks", "runs"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "active"] });
     },
   });
 }

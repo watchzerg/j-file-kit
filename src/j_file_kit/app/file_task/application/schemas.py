@@ -11,7 +11,10 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from j_file_kit.app.file_task.domain.task_run import FileTaskRunStatus
+from j_file_kit.app.file_task.domain.task_run import (
+    FileTaskRunStatus,
+    FileTaskTriggerType,
+)
 
 
 class StartTaskRequest(BaseModel):
@@ -39,6 +42,19 @@ class FileTaskRunStatusResponse(BaseModel):
     end_time: datetime | None = Field(None, description="结束时间")
     error_message: str | None = Field(None, description="错误消息")
     total_items: int | None = Field(None, description="已处理item数")
+
+
+class ActiveFileTaskRunResponse(BaseModel):
+    """当前活跃执行实例响应"""
+
+    run_id: int = Field(..., description="执行实例ID")
+    run_name: str = Field(..., description="执行实例名称")
+    task_type: str = Field(..., description="任务类型")
+    trigger_type: FileTaskTriggerType = Field(..., description="触发类型")
+    status: FileTaskRunStatus = Field(..., description="执行状态")
+    start_time: datetime = Field(..., description="开始时间")
+    end_time: datetime | None = Field(None, description="结束时间")
+    error_message: str | None = Field(None, description="错误消息")
 
 
 class CancelFileTaskRunResponse(BaseModel):

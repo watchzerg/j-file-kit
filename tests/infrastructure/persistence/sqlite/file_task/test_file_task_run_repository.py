@@ -115,6 +115,40 @@ class TestFileTaskRunRepository:
         assert run is not None
         assert run.run_id == run_id
 
+    def test_get_active_run(
+        self,
+        file_task_run_repository: FileTaskRunRepositoryImpl,
+    ) -> None:
+        assert file_task_run_repository.get_active_run() is None
+        file_task_run_repository.create_run(
+            run_name="completed",
+            task_type="x",
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.COMPLETED,
+            start_time=datetime(2024, 1, 1),
+        )
+        pending_id = file_task_run_repository.create_run(
+            run_name="pending",
+            task_type="x",
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.PENDING,
+            start_time=datetime(2024, 1, 2),
+        )
+        running_id = file_task_run_repository.create_run(
+            run_name="running",
+            task_type="x",
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.RUNNING,
+            start_time=datetime(2024, 1, 3),
+        )
+
+        active = file_task_run_repository.get_active_run()
+
+        assert active is not None
+        assert active.run_id == running_id
+        assert active.run_name == "running"
+        assert active.run_id != pending_id
+
     def test_get_pending_or_running_runs(
         self,
         file_task_run_repository: FileTaskRunRepositoryImpl,

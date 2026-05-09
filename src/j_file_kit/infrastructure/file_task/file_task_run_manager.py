@@ -93,9 +93,9 @@ class FileTaskRunManager:
             FileTaskAlreadyRunningError: 如果已有执行实例正在运行
         """
         with self._lock:
-            running_run = self.file_task_run_repository.get_running_run()
-            if running_run:
-                raise FileTaskAlreadyRunningError(running_run.run_id)
+            active_run = self.file_task_run_repository.get_active_run()
+            if active_run:
+                raise FileTaskAlreadyRunningError(active_run.run_id)
 
             start_time = datetime.now()
 
@@ -242,6 +242,10 @@ class FileTaskRunManager:
             执行实例列表
         """
         return self.file_task_run_repository.list_runs()
+
+    def get_active_run(self) -> FileTaskRun | None:
+        """获取当前待处理或运行中的执行实例，无则返回 None。"""
+        return self.file_task_run_repository.get_active_run()
 
     def _recover_from_crash(self) -> None:
         """从崩溃中恢复：将历史遗留的 PENDING/RUNNING 实例标记为 FAILED

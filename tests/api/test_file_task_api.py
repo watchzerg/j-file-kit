@@ -4,6 +4,7 @@
 """
 
 from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -11,6 +12,10 @@ import pytest
 from j_file_kit.app.file_task.domain.constants import (
     TASK_TYPE_JAV_VIDEO_ORGANIZER,
     TASK_TYPE_RAW_FILE_ORGANIZER,
+)
+from j_file_kit.app.file_task.domain.task_run import (
+    FileTaskRunStatus,
+    FileTaskTriggerType,
 )
 
 pytestmark = pytest.mark.integration
@@ -231,3 +236,57 @@ class TestListRuns:
         assert "run_id" in runs[0]
         assert "run_name" in runs[0]
         assert "status" in runs[0]
+
+
+class TestGetActiveRun:
+    """GET /api/tasks/active"""
+
+    def test_get_active_run_empty(self, client) -> None:
+        """无活跃 run 时返回 null。"""
+        response = client.get("/api/tasks/active")
+        assert response.status_code == 200
+        assert response.json() is None
+
+    def test_get_active_run_returns_pending_or_running(self, client) -> None:
+        """pending/running run 会作为活跃 run 返回。"""
+        app_state = client.app.state.app_state
+        app_state.file_task_run_repository.create_run(
+            run_name="completed",
+            task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.COMPLETED,
+            start_time=datetime(2024, 1, 1),
+        )
+        run_id = app_state.file_task_run_repository.create_run(
+            run_name="pending",
+            task_type=TASK_TYPE_RAW_FILE_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.PENDING,
+            start_time=datetime(2024, 1, 2),
+        )
+
+        response = client.get("/api/tasks/active")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["run_id"] == run_id
+        assert data["run_name"] == "pending"
+        assert data["task_type"] == TASK_TYPE_RAW_FILE_ORGANIZER
+        assert data["trigger_type"] == "manual"
+        assert data["status"] == "pending"
+
+    def test_get_active_run_ignores_terminal_runs(self, client) -> None:
+        """只有终态 run 时返回 null。"""
+        app_state = client.app.state.app_state
+        app_state.file_task_run_repository.create_run(
+            run_name="completed",
+            task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.COMPLETED,
+            start_time=datetime(2024, 1, 1),
+        )
+
+        response = client.get("/api/tasks/active")
+
+        assert response.status_code == 200
+        assert response.json() is None
