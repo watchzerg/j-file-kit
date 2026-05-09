@@ -5,8 +5,16 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from j_file_kit.app.file_task.application.config_common import raw_workspace_paths
 from j_file_kit.app.file_task.application.raw_file_organizer import RawFileOrganizer
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_RAW_FILE_ORGANIZER
+from j_file_kit.app.file_task.domain.organizer_defaults import (
+    DEFAULT_ARCHIVE_EXTENSIONS,
+    DEFAULT_IMAGE_EXTENSIONS,
+    DEFAULT_MUSIC_EXTENSIONS,
+    DEFAULT_SUBTITLE_EXTENSIONS,
+    DEFAULT_VIDEO_EXTENSIONS,
+)
 from j_file_kit.app.file_task.domain.task_config import TaskConfig
 from j_file_kit.app.file_task.domain.task_run import FileTaskRunStatistics
 
@@ -84,3 +92,60 @@ def test_run_returns_empty_statistics(
         file_result_repository=repo,
     )
     assert org.run(run_id=1) == FileTaskRunStatistics()
+
+
+class TestRawFileOrganizerCreateAnalyzeConfig:
+    """与 JAV 对称：验证 ``_create_analyze_config`` 的字段映射完整性。"""
+
+    @pytest.fixture
+    def organizer(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> RawFileOrganizer:
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
+            tmp_path,
+        )
+        ws = tmp_path / "raw_ws"
+        ws.mkdir()
+        tc = TaskConfig(
+            type=TASK_TYPE_RAW_FILE_ORGANIZER,
+            enabled=True,
+            config={"workspace_root": str(ws)},
+        )
+        return RawFileOrganizer(
+            task_config=tc,
+            log_dir=tmp_path / "logs",
+            file_result_repository=MagicMock(),
+        )
+
+    def test_maps_all_path_fields(self, organizer: RawFileOrganizer) -> None:
+        paths = raw_workspace_paths(organizer.file_config.workspace_root)
+        config = organizer._create_analyze_config()
+        assert config.folders_to_delete == paths.folders_to_delete
+        assert config.folders_video == paths.folders_video
+        assert config.folders_compressed == paths.folders_compressed
+        assert config.folders_pic == paths.folders_pic
+        assert config.folders_audio == paths.folders_audio
+        assert config.folders_misc == paths.folders_misc
+        assert config.files_to_delete == paths.files_to_delete
+        assert config.files_video_jav == paths.files_video_jav
+        assert config.files_video_us == paths.files_video_us
+        assert config.files_video_jav_vr == paths.files_video_jav_vr
+        assert config.files_video_us_vr == paths.files_video_us_vr
+        assert config.files_video_movie == paths.files_video_movie
+        assert config.files_video_misc == paths.files_video_misc
+        assert config.files_compressed == paths.files_compressed
+        assert config.files_pic == paths.files_pic
+        assert config.files_audio == paths.files_audio
+        assert config.files_misc == paths.files_misc
+
+    def test_maps_all_extension_sets(self, organizer: RawFileOrganizer) -> None:
+        config = organizer._create_analyze_config()
+        assert config.video_extensions == set(DEFAULT_VIDEO_EXTENSIONS)
+        assert config.image_extensions == set(DEFAULT_IMAGE_EXTENSIONS)
+        assert config.subtitle_extensions == set(DEFAULT_SUBTITLE_EXTENSIONS)
+        assert config.archive_extensions == set(DEFAULT_ARCHIVE_EXTENSIONS)
+        # audio_extensions 直接来自 DEFAULT_MUSIC_EXTENSIONS（音乐扩展名作为 Raw 音频扩展名）
+        assert config.audio_extensions == set(DEFAULT_MUSIC_EXTENSIONS)

@@ -120,3 +120,78 @@ class TestJavVideoOrganizerCreateAnalyzeConfig:
             config.jav_filename_strip_substrings
             == DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS
         )
+
+    def test_strip_misc_extensions_from_yaml_also_removes_keywords(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        # YAML 中即使写了 misc_file_delete_rules.{extensions, keywords}，
+        # JavVideoOrganizeConfig.model_validator 也会剔除这两个非可调键，
+        # 之后 _create_analyze_config 注入的 extensions 仅来自 organizer_defaults。
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
+            tmp_path,
+        )
+        ws = tmp_path / "jav_ws"
+        ws.mkdir()
+        (ws / "inbox").mkdir()
+        tc = TaskConfig(
+            type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
+            enabled=True,
+            config={
+                "workspace_root": str(ws),
+                "misc_file_delete_rules": {
+                    "max_size": 200,
+                    "extensions": [".legacy"],
+                    "keywords": ["legacy_keyword"],
+                },
+            },
+        )
+        organizer = JavVideoOrganizer(
+            task_config=tc,
+            log_dir=tmp_path,
+            file_result_repository=MagicMock(),
+        )
+        # 模型层已剔除 extensions / keywords
+        assert "extensions" not in organizer.file_config.misc_file_delete_rules
+        assert "keywords" not in organizer.file_config.misc_file_delete_rules
+
+        config = organizer._create_analyze_config()
+        # _create_analyze_config 用 organizer_defaults 重新注入 extensions
+        assert config.misc_file_delete_rules["extensions"] == sorted(
+            DEFAULT_MISC_FILE_DELETE_EXTENSIONS,
+        )
+        # max_size 透传保留
+        assert config.misc_file_delete_rules["max_size"] == 200
+        # keywords 不应出现在 analyze 配置中
+        assert "keywords" not in config.misc_file_delete_rules
+
+    def test_video_small_delete_bytes_propagated(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
+            tmp_path,
+        )
+        ws = tmp_path / "jav_ws"
+        ws.mkdir()
+        (ws / "inbox").mkdir()
+        tc = TaskConfig(
+            type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
+            enabled=True,
+            config={
+                "workspace_root": str(ws),
+                "misc_file_delete_rules": {},
+                "video_small_delete_bytes": 2048,
+            },
+        )
+        organizer = JavVideoOrganizer(
+            task_config=tc,
+            log_dir=tmp_path,
+            file_result_repository=MagicMock(),
+        )
+        config = organizer._create_analyze_config()
+        assert config.video_small_delete_bytes == 2048

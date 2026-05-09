@@ -3,6 +3,9 @@
 覆盖 POST start、GET status、POST cancel、GET list 端点。
 """
 
+from collections.abc import Callable
+from pathlib import Path
+
 import pytest
 
 from j_file_kit.app.file_task.domain.constants import (
@@ -16,20 +19,15 @@ pytestmark = pytest.mark.integration
 class TestStartTask:
     """POST /api/tasks/{task_type}/start"""
 
-    def test_start_raw_task_success(self, client) -> None:
-        """启动 raw_file_organizer 成功返回 run 信息。"""
+    @pytest.mark.parametrize(
+        "task_type",
+        [TASK_TYPE_JAV_VIDEO_ORGANIZER, TASK_TYPE_RAW_FILE_ORGANIZER],
+        ids=["jav", "raw"],
+    )
+    def test_start_task_success(self, client, task_type: str) -> None:
+        """启动任务返回 run_id、run_name、status（JAV / Raw）。"""
         response = client.post(
-            f"/api/tasks/{TASK_TYPE_RAW_FILE_ORGANIZER}/start",
-            json={"dry_run": False},
-        )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["run_id"] > 0
-
-    def test_start_task_success(self, client) -> None:
-        """启动任务返回 run_id、run_name、status"""
-        response = client.post(
-            f"/api/tasks/{TASK_TYPE_JAV_VIDEO_ORGANIZER}/start",
+            f"/api/tasks/{task_type}/start",
             json={"dry_run": False},
         )
         assert response.status_code == 200
@@ -48,10 +46,15 @@ class TestStartTask:
         assert response.status_code == 404
         assert "任务不存在" in response.json()["detail"]
 
-    def test_start_task_invalid_trigger_type(self, client) -> None:
-        """无效触发类型返回 400"""
+    @pytest.mark.parametrize(
+        "task_type",
+        [TASK_TYPE_JAV_VIDEO_ORGANIZER, TASK_TYPE_RAW_FILE_ORGANIZER],
+        ids=["jav", "raw"],
+    )
+    def test_start_task_invalid_trigger_type(self, client, task_type: str) -> None:
+        """无效触发类型返回 400（JAV / Raw）。"""
         response = client.post(
-            f"/api/tasks/{TASK_TYPE_JAV_VIDEO_ORGANIZER}/start",
+            f"/api/tasks/{task_type}/start",
             json={"dry_run": False, "trigger_type": "invalid"},
         )
         assert response.status_code == 400
@@ -61,10 +64,15 @@ class TestStartTask:
 class TestGetRunStatus:
     """GET /api/tasks/{run_id}"""
 
-    def test_get_run_status_success(self, client) -> None:
-        """查询执行实例状态"""
+    @pytest.mark.parametrize(
+        "task_type",
+        [TASK_TYPE_JAV_VIDEO_ORGANIZER, TASK_TYPE_RAW_FILE_ORGANIZER],
+        ids=["jav", "raw"],
+    )
+    def test_get_run_status_success(self, client, task_type: str) -> None:
+        """查询执行实例状态（JAV / Raw）。"""
         start_resp = client.post(
-            f"/api/tasks/{TASK_TYPE_JAV_VIDEO_ORGANIZER}/start",
+            f"/api/tasks/{task_type}/start",
             json={"dry_run": False},
         )
         assert start_resp.status_code == 200
@@ -94,38 +102,67 @@ class TestGetRunStatus:
 class TestCancelRun:
     """POST /api/tasks/{run_id}/cancel"""
 
+    @pytest.mark.parametrize(
+        (
+            "task_type",
+            "media_root_module_attr",
+            "config_url",
+            "workspace_dir",
+            "inbox_parent_dir",
+        ),
+        [
+            (
+                TASK_TYPE_JAV_VIDEO_ORGANIZER,
+                "JAV_MEDIA_ROOT",
+                "/api/file-task/config/jav-video-organizer",
+                lambda p: p,
+                lambda p: p,
+            ),
+            (
+                TASK_TYPE_RAW_FILE_ORGANIZER,
+                "RAW_MEDIA_ROOT",
+                "/api/file-task/config/raw-file-organizer",
+                lambda p: p / "raw_ws",
+                lambda p: p / "raw_ws",
+            ),
+        ],
+        ids=["jav", "raw"],
+    )
     def test_cancel_run_success(
         self,
         monkeypatch: pytest.MonkeyPatch,
         client,
-        tmp_path,
+        tmp_path: Path,
+        task_type: str,
+        media_root_module_attr: str,
+        config_url: str,
+        workspace_dir: Callable[[Path], Path],
+        inbox_parent_dir: Callable[[Path], Path],
     ) -> None:
-        """取消执行实例
-
-        需具备有效 workspace（含 inbox）使任务运行足够久以便取消。
-        创建多文件以延长扫描时间。
-        """
+        """取消执行实例（JAV / Raw）：扩大 inbox 工作量以便有机会在运行中 cancel。"""
         monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
+            f"j_file_kit.app.file_task.application.config_common.{media_root_module_attr}",
             tmp_path,
         )
-        inbox = tmp_path / "inbox"
-        inbox.mkdir()
+        ws = workspace_dir(tmp_path)
+        ws.mkdir(parents=True, exist_ok=True)
+        inbox = inbox_parent_dir(tmp_path) / "inbox"
+        inbox.mkdir(parents=True, exist_ok=True)
         for i in range(100):
             (inbox / f"file_{i}.mp4").touch()
 
         config_resp = client.patch(
-            "/api/file-task/config/jav-video-organizer",
+            config_url,
             json={
                 "config": {
-                    "workspace_root": str(tmp_path),
+                    "workspace_root": str(ws),
                 },
             },
         )
         assert config_resp.status_code == 200
 
         start_resp = client.post(
-            f"/api/tasks/{TASK_TYPE_JAV_VIDEO_ORGANIZER}/start",
+            f"/api/tasks/{task_type}/start",
             json={"dry_run": False},
         )
         assert start_resp.status_code == 200
@@ -147,10 +184,15 @@ class TestCancelRun:
         assert response.status_code == 400
         assert "无效的执行实例ID格式" in response.json()["detail"]
 
-    def test_cancel_run_already_completed(self, client) -> None:
-        """对已完成的 run 取消返回 400"""
+    @pytest.mark.parametrize(
+        "task_type",
+        [TASK_TYPE_JAV_VIDEO_ORGANIZER, TASK_TYPE_RAW_FILE_ORGANIZER],
+        ids=["jav", "raw"],
+    )
+    def test_cancel_run_already_completed(self, client, task_type: str) -> None:
+        """对已完成的 run 再次取消返回 400（JAV / Raw）。"""
         start_resp = client.post(
-            f"/api/tasks/{TASK_TYPE_JAV_VIDEO_ORGANIZER}/start",
+            f"/api/tasks/{task_type}/start",
             json={"dry_run": False},
         )
         assert start_resp.status_code == 200
@@ -171,10 +213,15 @@ class TestListRuns:
         assert response.status_code == 200
         assert response.json()["runs"] == []
 
-    def test_list_runs_with_items(self, client) -> None:
-        """有执行记录时返回列表"""
+    @pytest.mark.parametrize(
+        "task_type",
+        [TASK_TYPE_JAV_VIDEO_ORGANIZER, TASK_TYPE_RAW_FILE_ORGANIZER],
+        ids=["jav", "raw"],
+    )
+    def test_list_runs_with_items(self, client, task_type: str) -> None:
+        """有执行记录时返回列表（JAV / Raw）。"""
         client.post(
-            f"/api/tasks/{TASK_TYPE_JAV_VIDEO_ORGANIZER}/start",
+            f"/api/tasks/{task_type}/start",
             json={"dry_run": False},
         )
         response = client.get("/api/tasks")

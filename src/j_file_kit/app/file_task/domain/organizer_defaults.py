@@ -31,9 +31,21 @@ DEFAULT_CAMELCASE_NO_SPLIT_WORDS: frozenset[str] = frozenset(
 """
 
 DEFAULT_RAW_JUNK_KEYWORDS: tuple[str, ...] = (
-    "扫码下载1024安卓APP",
-    "1024手机网址",
     "FC2-PPV",
+    "RARBG_DO_NOT_MIRROR",
+    "發布器",
+    "发布器",
+    "社区回家指南",
+    "論壇文宣",
+    "美女直播",
+    "手机网址",
+    "新地址",
+    "扫码",
+    "二维码",
+    "影视联盟",
+    "安卓APP",
+    "文宣",
+    "手机版网址",
 )
 
 DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES: int = 100 * 1024 * 1024
