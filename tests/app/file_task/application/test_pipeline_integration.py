@@ -67,6 +67,28 @@ class TestVideoWithoutSerialMovedToUnsorted:
 class TestInboxPreDelete:
     """收件箱预删除（扩展名分类前）"""
 
+    def test_junk_keyword_stem_deleted_before_classify(
+        self,
+        pipeline_with_real_repo,
+        tmp_path: Path,
+    ) -> None:
+        """stem 在 token 边界命中默认 junk 关键字则删除（与 Raw 共用字典），先于扩展名分类。"""
+        inbox = tmp_path / "inbox"
+        inbox.mkdir(parents=True)
+        (tmp_path / "logs").mkdir(parents=True)
+        (tmp_path / "sorted").mkdir(parents=True)
+        (tmp_path / "unsorted").mkdir(parents=True)
+        (tmp_path / "archive").mkdir(parents=True)
+        (tmp_path / "misc").mkdir(parents=True)
+
+        source = inbox / "prefix_文宣_suffix.mp4"
+        source.touch()
+
+        pipeline_with_real_repo.run(dry_run=False)
+
+        assert not source.exists()
+        assert not (tmp_path / "unsorted" / source.name).exists()
+
     def test_exact_stem_matched_file_deleted(
         self,
         pipeline_with_inbox_delete_repo,

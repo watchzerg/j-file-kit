@@ -5,6 +5,7 @@ Pipeline 集成测试需真实 SQLite 和 FileResultRepository。
 """
 
 from collections.abc import Callable
+from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
@@ -12,13 +13,22 @@ import pytest
 
 from j_file_kit.app.file_task.application.config_common import (
     InboxDeleteRules,
+    RawWorkspacePaths,
     raw_workspace_paths,
 )
 from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
 from j_file_kit.app.file_task.application.jav_pipeline.pipeline import FilePipeline
 from j_file_kit.app.file_task.application.jav_task_config import JavVideoOrganizeConfig
 from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
+from j_file_kit.app.file_task.application.raw_pipeline.pipeline import RawFilePipeline
 from j_file_kit.app.file_task.application.raw_task_config import RawFileOrganizeConfig
+from j_file_kit.app.file_task.domain.organizer_defaults import (
+    DEFAULT_ARCHIVE_EXTENSIONS,
+    DEFAULT_IMAGE_EXTENSIONS,
+    DEFAULT_MUSIC_EXTENSIONS,
+    DEFAULT_SUBTITLE_EXTENSIONS,
+    DEFAULT_VIDEO_EXTENSIONS,
+)
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
@@ -169,6 +179,66 @@ def raw_analyze_config_factory() -> Callable[..., RawAnalyzeConfig]:
         )
 
     return _create
+
+
+def ensure_raw_workspace_directories(workspace_root: Path) -> RawWorkspacePaths:
+    """创建与生产一致的 Raw workspace 一级目录树（见 ``raw_workspace_paths``）。"""
+    paths = raw_workspace_paths(workspace_root)
+    for field in fields(paths):
+        getattr(paths, field.name).mkdir(parents=True, exist_ok=True)
+    return paths
+
+
+def raw_analyze_config_matching_organizer(paths: RawWorkspacePaths) -> RawAnalyzeConfig:
+    """与 ``RawFileOrganizer._create_analyze_config`` 对齐，供 Raw 集成测试使用。"""
+    return RawAnalyzeConfig(
+        folders_to_delete=paths.folders_to_delete,
+        folders_video=paths.folders_video,
+        folders_compressed=paths.folders_compressed,
+        folders_pic=paths.folders_pic,
+        folders_audio=paths.folders_audio,
+        folders_misc=paths.folders_misc,
+        files_to_delete=paths.files_to_delete,
+        files_video_jav=paths.files_video_jav,
+        files_video_us=paths.files_video_us,
+        files_video_jav_vr=paths.files_video_jav_vr,
+        files_video_us_vr=paths.files_video_us_vr,
+        files_video_movie=paths.files_video_movie,
+        files_video_misc=paths.files_video_misc,
+        files_compressed=paths.files_compressed,
+        files_pic=paths.files_pic,
+        files_audio=paths.files_audio,
+        files_misc=paths.files_misc,
+        video_extensions=set(DEFAULT_VIDEO_EXTENSIONS),
+        image_extensions=set(DEFAULT_IMAGE_EXTENSIONS),
+        subtitle_extensions=set(DEFAULT_SUBTITLE_EXTENSIONS),
+        archive_extensions=set(DEFAULT_ARCHIVE_EXTENSIONS),
+        audio_extensions=set(DEFAULT_MUSIC_EXTENSIONS),
+    )
+
+
+@pytest.fixture
+def raw_integration_paths(tmp_path: Path) -> RawWorkspacePaths:
+    """Raw 集成测试：``tmp_path/raw_workspace`` 下完整一级目录布局。"""
+    return ensure_raw_workspace_directories(tmp_path / "raw_workspace")
+
+
+@pytest.fixture
+def raw_pipeline_with_real_repo(
+    tmp_path: Path,
+    raw_integration_paths: RawWorkspacePaths,
+    file_result_repository: FileResultRepositoryImpl,
+) -> RawFilePipeline:
+    """Raw 集成测试：``RawFilePipeline`` + 真实 ``FileResultRepository`` + 生产对齐目录。"""
+    config = raw_analyze_config_matching_organizer(raw_integration_paths)
+    return RawFilePipeline(
+        run_id=1,
+        run_name="raw_file_organizer",
+        scan_root=raw_integration_paths.inbox,
+        analyze_config=config,
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
 
 
 @pytest.fixture

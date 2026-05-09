@@ -1,10 +1,10 @@
 """E2E 测试 fixtures
 
 管理 Docker 容器的生命周期，为端到端测试提供：
-- 宿主机临时媒体目录（挂载进容器的 /media）
-- 宿主机临时数据目录（挂载进容器的 /data）
+- 宿主机临时媒体目录（挂载进容器的 /media）：``jav_workspace`` 与 ``raw_workspace`` 及各自一级子目录
+- 宿主机临时应用数据目录（挂载进容器的 /data）
 - 运行中的容器服务 URL
-- 每个测试前清理媒体目录的 fixture
+- 每个测试前清理媒体目录的 fixture（JAV / Raw workspace 一并重置）
 """
 
 import os
@@ -12,12 +12,14 @@ import shutil
 import subprocess
 import time
 from collections.abc import Generator
+from dataclasses import fields
 from pathlib import Path
 
 import pytest
 import requests
 import yaml
 
+from j_file_kit.app.file_task.application.config_common import raw_workspace_paths
 from j_file_kit.app.file_task.application.default_task_configs import (
     create_default_jav_video_organizer_task_config,
     create_default_raw_file_organizer_task_config,
@@ -39,9 +41,9 @@ _BASE_URL = "http://localhost:8000"
 
 @pytest.fixture(scope="module")
 def media_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """创建临时媒体根目录，包含所有必要子目录。
+    """创建临时媒体根目录，包含 JAV 与 Raw workspace 的一级子目录。
 
-    目录层级与容器内一致：root/jav_workspace/inbox 等，对应 /media/jav_workspace/inbox。
+    目录层级与容器内一致：``/media/jav_workspace/*``、``/media/raw_workspace/*``（见 ``raw_workspace_paths``）。
     module 级别：同一测试文件内所有用例共享同一目录，
     通过 clean_media fixture 在用例间清理。
     """
@@ -50,6 +52,7 @@ def media_root(tmp_path_factory: pytest.TempPathFactory) -> Path:
     jav_workspace_root.mkdir()
     for subdir in _MEDIA_SUBDIRS:
         (jav_workspace_root / subdir).mkdir()
+    _ensure_raw_workspace_directories(root / "raw_workspace")
     return root
 
 
@@ -106,7 +109,7 @@ def docker_service(
 
 @pytest.fixture
 def clean_media(media_root: Path) -> Path:
-    """在每个测试前清空并重建所有媒体子目录。
+    """在每个测试前清空并重建 JAV / Raw workspace 下标准子目录。
 
     Returns:
         媒体根目录路径，各子目录已清空就绪。
@@ -116,10 +119,30 @@ def clean_media(media_root: Path) -> Path:
         d = jav_workspace_root / subdir
         shutil.rmtree(d, ignore_errors=True)
         d.mkdir()
+    _reset_raw_workspace_directories(media_root / "raw_workspace")
     return media_root
 
 
 # ── 内部辅助函数 ───────────────────────────────────────────────────────────────
+
+
+def _ensure_raw_workspace_directories(workspace_root: Path) -> None:
+    """创建 Raw workspace 根及其 ``raw_workspace_paths`` 定义的一级目录。"""
+    paths = raw_workspace_paths(workspace_root)
+    for field in fields(paths):
+        getattr(paths, field.name).mkdir(parents=True, exist_ok=True)
+
+
+def _reset_raw_workspace_directories(workspace_root: Path) -> None:
+    """清空并重建 Raw 各标准子目录（保留 workspace 根）。"""
+    paths = raw_workspace_paths(workspace_root)
+    paths.root.mkdir(parents=True, exist_ok=True)
+    for field in fields(paths):
+        if field.name == "root":
+            continue
+        p = getattr(paths, field.name)
+        shutil.rmtree(p, ignore_errors=True)
+        p.mkdir(parents=True, exist_ok=True)
 
 
 def _seed_e2e_task_config_yaml(app_data_dir: Path) -> None:
