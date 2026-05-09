@@ -44,3 +44,19 @@ class RawAnalyzeConfig(BaseModel):
         ...,
         description="音频扩展名（带点；来自 organizer_defaults.music）",
     )
+
+
+def classify_file_media_kind(suffix: str, cfg: RawAnalyzeConfig) -> str | None:
+    """按文件扩展名返回媒体类型（image/video/audio/archive/subtitle），未知返回 None。"""
+    ext = suffix.lower()
+    if ext in cfg.image_extensions:
+        return "image"
+    if ext in cfg.video_extensions:
+        return "video"
+    if ext in cfg.audio_extensions:
+        return "audio"
+    if ext in cfg.archive_extensions:
+        return "archive"
+    if ext in cfg.subtitle_extensions:
+        return "subtitle"
+    return None

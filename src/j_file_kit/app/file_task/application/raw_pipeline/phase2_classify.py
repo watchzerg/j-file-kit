@@ -11,7 +11,10 @@ from j_file_kit.app.file_task.application.file_ops import (
     normalize_move_basename,
     scan_directory_items,
 )
-from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
+from j_file_kit.app.file_task.application.raw_analyze_config import (
+    RawAnalyzeConfig,
+    classify_file_media_kind,
+)
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
 from j_file_kit.app.file_task.domain.file_types import PathEntryType
@@ -32,21 +35,6 @@ def _list_direct_entries(dir_path: Path) -> tuple[list[Path], list[Path]]:
     files.sort(key=lambda x: x.name)
     subdirs.sort(key=lambda x: x.name)
     return files, subdirs
-
-
-def _media_kind_flat(suffix: str, cfg: RawAnalyzeConfig) -> str | None:
-    ext = suffix.lower()
-    if ext in cfg.image_extensions:
-        return "image"
-    if ext in cfg.video_extensions:
-        return "video"
-    if ext in cfg.audio_extensions:
-        return "audio"
-    if ext in cfg.archive_extensions:
-        return "archive"
-    if ext in cfg.subtitle_extensions:
-        return "subtitle"
-    return None
 
 
 def _media_kind_dir(suffix: str, cfg: RawAnalyzeConfig) -> str:
@@ -79,7 +67,7 @@ def should_flatten_small_dir(files: list[Path], cfg: RawAnalyzeConfig) -> bool:
         return False
     kinds: set[str] = set()
     for p in files:
-        k = _media_kind_flat(p.suffix, cfg)
+        k = classify_file_media_kind(p.suffix, cfg)
         if k is None:
             return False
         kinds.add(k)

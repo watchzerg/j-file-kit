@@ -20,7 +20,10 @@ from j_file_kit.app.file_task.application.file_ops import (
     move_file_with_conflict_resolution,
     normalize_move_basename,
 )
-from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
+from j_file_kit.app.file_task.application.raw_analyze_config import (
+    RawAnalyzeConfig,
+    classify_file_media_kind,
+)
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
 from j_file_kit.app.file_task.domain.organizer_defaults import (
@@ -72,17 +75,6 @@ def _phase30_stem_matches_probable_junk_keywords(
 ) -> bool:
     """与阶段 2.2 相同的 stem 关键字子串口径（规范化后）。"""
     return name_matches_any_keyword(path.stem, junk_keywords_norm)
-
-
-def _preflight_phase30_files_to_delete(
-    files_level1: list[Path],
-    junk_keywords_norm: tuple[str, ...],
-    cfg: RawAnalyzeConfig,
-) -> None:
-    """预留：junk stem 预清理所需 ``files_to_delete``；路径已由 workspace 派生。"""
-    _ = files_level1
-    _ = junk_keywords_norm
-    _ = cfg.files_to_delete
 
 
 def _phase30_preclean_misc_level1(
@@ -150,28 +142,6 @@ def _phase30_preclean_misc_level1(
     return remaining
 
 
-def _classify_misc_file_suffix(suffix: str, cfg: RawAnalyzeConfig) -> str | None:
-    """按扩展名归类；顺序与阶段 2.4 ``_media_kind_flat`` 一致。"""
-    ext = suffix.lower()
-    if ext in cfg.image_extensions:
-        return "image"
-    if ext in cfg.video_extensions:
-        return "video"
-    if ext in cfg.audio_extensions:
-        return "audio"
-    if ext in cfg.archive_extensions:
-        return "archive"
-    if ext in cfg.subtitle_extensions:
-        return "subtitle"
-    return None
-
-
-def _preflight_phase3_destinations(files: list[Path], cfg: RawAnalyzeConfig) -> None:
-    """归宿均由 workspace 派生；保留签名供编排一致性。"""
-    _ = files
-    _ = cfg
-
-
 def _video_destination_root(bucket: str, cfg: RawAnalyzeConfig) -> Path:
     match bucket:
         case "movie":
@@ -191,12 +161,6 @@ def _video_destination_root(bucket: str, cfg: RawAnalyzeConfig) -> Path:
             raise RuntimeError(msg)
 
 
-def _preflight_video_destinations(files: list[Path], cfg: RawAnalyzeConfig) -> None:
-    """视频桶归宿均由 workspace 派生。"""
-    _ = files
-    _ = cfg
-
-
 def _destination_root_for_routed_kind(kind: str, cfg: RawAnalyzeConfig) -> Path:
     match kind:
         case "archive":
@@ -208,6 +172,63 @@ def _destination_root_for_routed_kind(kind: str, cfg: RawAnalyzeConfig) -> Path:
         case _:
             msg = f"阶段3 不支持的路由类型: {kind}"
             raise RuntimeError(msg)
+
+
+def _move_routed_file(
+    ctx: PhaseContext,
+    path: Path,
+    dest_root: Path,
+    *,
+    kind: str,
+    video_bucket: str | None,
+    dry_run: bool,
+) -> bool:
+    """迁移单个文件到目标目录；返回 True 表示成功（含 dry_run 预览），False 表示失败。"""
+    basename = normalize_move_basename(sanitize_surrogate_str(path.name))
+    target = dest_root / basename
+    extra: dict[str, str] = {"kind": kind}
+    if video_bucket is not None:
+        extra["video_bucket"] = video_bucket
+
+    if dry_run:
+        logger.bind(
+            run_id=str(ctx.run_id),
+            run_name=ctx.run_name,
+            level="RAW_PHASE",
+            phase=3,
+            subphase="route_preview",
+            source=str(path),
+            target=str(target),
+            **extra,
+        ).info("阶段3（dry_run）：预览分流")
+        return True
+
+    try:
+        ensure_directory(dest_root, parents=True)
+        final = move_file_with_conflict_resolution(path, target)
+        logger.bind(
+            run_id=str(ctx.run_id),
+            run_name=ctx.run_name,
+            level="RAW_PHASE",
+            phase=3,
+            subphase="route",
+            source=str(path),
+            target=str(final),
+            **extra,
+        ).info("阶段3：文件已分流")
+        return True
+    except (OSError, RuntimeError) as e:
+        logger.bind(
+            run_id=str(ctx.run_id),
+            run_name=ctx.run_name,
+            level="RAW_PHASE",
+            phase=3,
+            subphase="route_error",
+            source=str(path),
+            error=str(e),
+            **extra,
+        ).error("阶段3：分流失败")
+        return False
 
 
 def run_phase3(
@@ -232,7 +253,6 @@ def run_phase3(
 
     level1_before = _list_files_misc_level1(misc)
     junk_norm = normalize_keyword_tokens(DEFAULT_RAW_JUNK_KEYWORDS)
-    _preflight_phase30_files_to_delete(level1_before, junk_norm, ctx.analyze_config)
     files = _phase30_preclean_misc_level1(
         ctx,
         files=level1_before,
@@ -242,115 +262,33 @@ def run_phase3(
         counters=counters,
     )
     counters.phase3_seen_files_misc = len(files)
-    _preflight_phase3_destinations(files, ctx.analyze_config)
-    _preflight_video_destinations(files, ctx.analyze_config)
 
     deferred = 0
     routed_ok = 0
 
     for path in files:
-        kind = _classify_misc_file_suffix(path.suffix, ctx.analyze_config)
-        if kind in ("video", "subtitle"):
-            # 字幕与视频共用桶路由：stem 关键字匹配决定目标 files_video_* 目录
-            bucket = classify_video_bucket(path.stem)
-            dest_root = _video_destination_root(bucket, ctx.analyze_config)
-
-            basename = normalize_move_basename(sanitize_surrogate_str(path.name))
-            target = dest_root / basename
-
-            if dry_run:
-                routed_ok += 1
-                logger.bind(
-                    run_id=str(ctx.run_id),
-                    run_name=ctx.run_name,
-                    level="RAW_PHASE",
-                    phase=3,
-                    subphase="route_preview",
-                    kind=kind,
-                    video_bucket=bucket,
-                    source=str(path),
-                    target=str(target),
-                ).info("阶段3（dry_run）：预览视频/字幕分流")
-                continue
-
-            try:
-                ensure_directory(dest_root, parents=True)
-                final = move_file_with_conflict_resolution(path, target)
-                routed_ok += 1
-                logger.bind(
-                    run_id=str(ctx.run_id),
-                    run_name=ctx.run_name,
-                    level="RAW_PHASE",
-                    phase=3,
-                    subphase="route",
-                    kind=kind,
-                    video_bucket=bucket,
-                    source=str(path),
-                    target=str(final),
-                ).info("阶段3：视频/字幕已分流")
-            except (OSError, RuntimeError) as e:
-                deferred += 1
-                logger.bind(
-                    run_id=str(ctx.run_id),
-                    run_name=ctx.run_name,
-                    level="RAW_PHASE",
-                    phase=3,
-                    subphase="route_error",
-                    kind=kind,
-                    video_bucket=bucket,
-                    source=str(path),
-                    error=str(e),
-                ).error("阶段3：视频/字幕分流失败")
-            continue
-
+        kind = classify_file_media_kind(path.suffix, ctx.analyze_config)
         if kind is None:
             deferred += 1
             continue
 
-        dest_root = _destination_root_for_routed_kind(kind, ctx.analyze_config)
-        basename = normalize_move_basename(sanitize_surrogate_str(path.name))
-        target = dest_root / basename
+        if kind in ("video", "subtitle"):
+            # 字幕与视频共用桶路由：stem 关键字匹配决定目标 files_video_* 目录
+            bucket = classify_video_bucket(path.stem)
+            dest_root = _video_destination_root(bucket, ctx.analyze_config)
+            ok = _move_routed_file(
+                ctx, path, dest_root, kind=kind, video_bucket=bucket, dry_run=dry_run
+            )
+        else:
+            dest_root = _destination_root_for_routed_kind(kind, ctx.analyze_config)
+            ok = _move_routed_file(
+                ctx, path, dest_root, kind=kind, video_bucket=None, dry_run=dry_run
+            )
 
-        if dry_run:
+        if ok:
             routed_ok += 1
-            logger.bind(
-                run_id=str(ctx.run_id),
-                run_name=ctx.run_name,
-                level="RAW_PHASE",
-                phase=3,
-                subphase="route_preview",
-                kind=kind,
-                source=str(path),
-                target=str(target),
-            ).info("阶段3（dry_run）：预览分流")
-            continue
-
-        try:
-            ensure_directory(dest_root, parents=True)
-            final = move_file_with_conflict_resolution(path, target)
-            routed_ok += 1
-            logger.bind(
-                run_id=str(ctx.run_id),
-                run_name=ctx.run_name,
-                level="RAW_PHASE",
-                phase=3,
-                subphase="route",
-                kind=kind,
-                source=str(path),
-                target=str(final),
-            ).info("阶段3：文件已分流")
-        except (OSError, RuntimeError) as e:
+        else:
             deferred += 1
-            logger.bind(
-                run_id=str(ctx.run_id),
-                run_name=ctx.run_name,
-                level="RAW_PHASE",
-                phase=3,
-                subphase="route_error",
-                kind=kind,
-                source=str(path),
-                error=str(e),
-            ).error("阶段3：分流失败")
 
     counters.phase3_deferred_files_misc = deferred
 
