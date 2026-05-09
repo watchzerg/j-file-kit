@@ -47,7 +47,7 @@ def test_routes_each_video_keyword(
     )
     (misc / "m_AMZN.mp4").write_text("a")
     (misc / "v_VirtualTaboo.mp4").write_text("b")
-    (misc / "u_HardCoreGangbang.mp4").write_text("c")
+    (misc / "u_HardcoreGangBang.mp4").write_text("c")
     (misc / "JAVR-001.mp4").write_text("d")
 
     counters = RawPhaseCounters()
@@ -60,7 +60,7 @@ def test_routes_each_video_keyword(
         tmp_path / "files_video_us_vr" / "VirtualTaboo" / "v_VirtualTaboo.mp4"
     ).read_text() == "b"
     assert (
-        tmp_path / "files_video_us" / "HardCoreGangbang" / "u_HardCoreGangbang.mp4"
+        tmp_path / "files_video_us" / "HardcoreGangBang" / "u_HardcoreGangBang.mp4"
     ).read_text() == "c"
     assert (tmp_path / "files_video_jav_vr" / "JAVR-001.mp4").read_text() == "d"
 
@@ -122,9 +122,9 @@ def test_classify_video_bucket_slr_still_works() -> None:
     assert classify_video_bucket("SLR_scene.01") == "us_vr"
 
 
-def test_classify_video_bucket_hard_core_gangbang_dot_variant() -> None:
-    # HardCoreGangbang → Hard.Core.Gangbang
-    assert classify_video_bucket("Hard.Core.Gangbang.scene") == "us"
+def test_classify_video_bucket_hardcore_gangbang_dot_variant() -> None:
+    # HardcoreGangBang → Hardcore.Gang.Bang（Hardcore 为完整词根，不为 Hard.Core）
+    assert classify_video_bucket("Hardcore.Gang.Bang.scene") == "us"
 
 
 def test_classify_video_bucket_camelcase_no_false_positive() -> None:
@@ -137,9 +137,9 @@ def test_classify_video_bucket_camelcase_no_false_positive() -> None:
 
 def test_classify_video_bucket_and_subdir_us_returns_keyword() -> None:
     # US 桶命中时返回原始关键词作为子目录名
-    assert classify_video_bucket_and_subdir("u_HardCoreGangbang_scene") == (
+    assert classify_video_bucket_and_subdir("u_HardcoreGangBang_scene") == (
         "us",
-        "HardCoreGangbang",
+        "HardcoreGangBang",
     )
 
 
@@ -147,9 +147,9 @@ def test_classify_video_bucket_and_subdir_us_camelcase_variant_returns_original_
     None
 ):
     # CamelCase 变体命中时，子目录名仍为原始关键词（非归一化变体）
-    assert classify_video_bucket_and_subdir("Hard.Core.Gangbang.scene") == (
+    assert classify_video_bucket_and_subdir("Hardcore.Gang.Bang.scene") == (
         "us",
-        "HardCoreGangbang",
+        "HardcoreGangBang",
     )
 
 
@@ -243,8 +243,7 @@ def test_classify_video_bucket_and_subdir_ordered_first_wins(
     phase_context_factory: Callable[[RawAnalyzeConfig], PhaseContext],
 ) -> None:
     # 当 stem 同时含两个 US 关键词时，配置顺序靠前的关键词优先命中
-    # DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS 当前只有 HardCoreGangbang；
-    # 此测试通过 run_phase3 验证保序行为：文件落入 HardCoreGangbang 子目录
+    # 此处选用 HardcoreGangBang 及其点分变体验证保序：文件落入 HardcoreGangBang 子目录
     misc = tmp_path / "files_misc"
     misc.mkdir()
     config = raw_analyze_config_factory(
@@ -254,7 +253,7 @@ def test_classify_video_bucket_and_subdir_ordered_first_wins(
         files_pic=tmp_path / "files_pic",
         files_audio=tmp_path / "files_audio",
     )
-    (misc / "Hard.Core.Gangbang.scene.mp4").write_text("x")
+    (misc / "Hardcore.Gang.Bang.scene.mp4").write_text("x")
 
     counters = RawPhaseCounters()
     run_phase3(phase_context_factory(config), counters, dry_run=False)
@@ -262,8 +261,8 @@ def test_classify_video_bucket_and_subdir_ordered_first_wins(
     assert (
         tmp_path
         / "files_video_us"
-        / "HardCoreGangbang"
-        / "Hard.Core.Gangbang.scene.mp4"
+        / "HardcoreGangBang"
+        / "Hardcore.Gang.Bang.scene.mp4"
     ).exists()
     assert counters.phase3_deferred_files_misc == 0
 
@@ -283,15 +282,15 @@ def test_routes_us_video_to_keyword_subdir(
         files_pic=tmp_path / "files_pic",
         files_audio=tmp_path / "files_audio",
     )
-    (misc / "HardCoreGangbang.scene.mp4").write_text("v")
-    (misc / "HardCoreGangbang.scene.srt").write_text("s")
+    (misc / "HardcoreGangBang.scene.mp4").write_text("v")
+    (misc / "HardcoreGangBang.scene.srt").write_text("s")
 
     counters = RawPhaseCounters()
     run_phase3(phase_context_factory(config), counters, dry_run=False)
 
-    subdir = tmp_path / "files_video_us" / "HardCoreGangbang"
-    assert (subdir / "HardCoreGangbang.scene.mp4").read_text() == "v"
-    assert (subdir / "HardCoreGangbang.scene.srt").read_text() == "s"
+    subdir = tmp_path / "files_video_us" / "HardcoreGangBang"
+    assert (subdir / "HardcoreGangBang.scene.mp4").read_text() == "v"
+    assert (subdir / "HardcoreGangBang.scene.srt").read_text() == "s"
     assert list(misc.iterdir()) == []
     assert counters.phase3_deferred_files_misc == 0
 

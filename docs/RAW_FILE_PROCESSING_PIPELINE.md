@@ -251,7 +251,7 @@ flowchart LR
 
 **JAV 番号识别**：步骤 4 / 5 调用 `generate_jav_filename(stem, strip_substrings=DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS)` 提取 `SerialId`，口径与 JAV 管线完全一致，JAV 匹配策略演进后此处天然受益。
 
-**`files_video_movie`、`files_video_us_vr` 和 `files_video_us` 子目录分组**：三桶关键词在桶内均保序首中即止；命中的第一个**原始配置关键词**（如 `AMZN`、`VirtualTaboo`、`HardCoreGangbang`）作为子目录名，文件落入 `files_video_movie/{keyword}/`、`files_video_us_vr/{keyword}/` 或 `files_video_us/{keyword}/`。三目录本身不直接存放文件。
+**`files_video_movie`、`files_video_us_vr` 和 `files_video_us` 子目录分组**：三桶关键词在桶内均保序首中即止；命中的第一个**原始配置关键词**（如 `AMZN`、`VirtualTaboo`、`HardcoreGangBang`）作为子目录名，文件落入 `files_video_movie/{keyword}/`、`files_video_us_vr/{keyword}/` 或 `files_video_us/{keyword}/`。三目录本身不直接存放文件。
 
 **`DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS`（补充）**：
 

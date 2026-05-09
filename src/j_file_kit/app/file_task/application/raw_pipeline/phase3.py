@@ -95,7 +95,7 @@ def _find_first_us_vr_keyword_match(stem: str) -> str | None:
 def _find_first_us_keyword_match(stem: str) -> str | None:
     """按配置顺序匹配 US 桶关键词，返回第一个命中的原始关键词；均未命中返回 None。
 
-    匹配保序（首中即止），命中时返回原始配置关键词（如 ``HardCoreGangbang``），
+    匹配保序（首中即止），命中时返回原始配置关键词（如 ``HardcoreGangBang``），
     而非归一化变体，用作 ``files_video_us/`` 的子目录名。
     """
     for original_kw, variants in _US_KW_ORDERED:
@@ -109,7 +109,7 @@ def classify_video_bucket_and_subdir(stem: str) -> tuple[str, str | None]:
 
     桶名：``movie`` | ``us_vr`` | ``us`` | ``jav_vr`` | ``jav`` | ``misc``。
     子目录名：桶名为 ``movie``、``us_vr`` 或 ``us`` 时非 None，值为命中的原始配置关键词
-    （如 ``AMZN``、``VirtualTaboo``、``HardCoreGangbang``），分别用作
+    （如 ``AMZN``、``VirtualTaboo``、``HardcoreGangBang``），分别用作
     ``files_video_movie/{keyword}/``、``files_video_us_vr/{keyword}/`` 和
     ``files_video_us/{keyword}/`` 子目录名。其余桶均返回 None。
 
