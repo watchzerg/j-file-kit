@@ -46,8 +46,11 @@ from j_file_kit.shared.utils.name_keyword_match import (
 _JUNK_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
     DEFAULT_RAW_JUNK_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
 )
-_MOVIE_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
-    DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
+# movie 桶：保留 (原始关键词, 归一化变体元组) 的有序结构，用于保序首中即止匹配并返回原始关键词
+_MOVIE_KW_ORDERED: tuple[tuple[str, tuple[str, ...]], ...] = tuple(
+    (kw, expand_keyword_to_variants(kw, DEFAULT_CAMELCASE_NO_SPLIT_WORDS))
+    for kw in DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS
+    if kw
 )
 # US_VR 桶：保留 (原始关键词, 归一化变体元组) 的有序结构，用于保序首中即止匹配并返回原始关键词
 _US_VR_KW_ORDERED: tuple[tuple[str, tuple[str, ...]], ...] = tuple(
@@ -67,6 +70,18 @@ _JAV_VR_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
 _JAV_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
     DEFAULT_RAW_VIDEO_BUCKET_JAV_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
 )
+
+
+def _find_first_movie_keyword_match(stem: str) -> str | None:
+    """按配置顺序匹配 movie 桶关键词，返回第一个命中的原始关键词；均未命中返回 None。
+
+    匹配保序（首中即止），命中时返回原始配置关键词（如 ``AMZN``），
+    而非归一化变体，用作 ``files_video_movie/`` 的子目录名。
+    """
+    for original_kw, variants in _MOVIE_KW_ORDERED:
+        if name_matches_any_keyword(stem, variants):
+            return original_kw
+    return None
 
 
 def _find_first_us_vr_keyword_match(stem: str) -> str | None:
@@ -97,13 +112,15 @@ def classify_video_bucket_and_subdir(stem: str) -> tuple[str, str | None]:
     """按产品顺序返回 (桶名, 子目录名)。
 
     桶名：``movie`` | ``us_vr`` | ``us`` | ``jav_vr`` | ``jav`` | ``misc``。
-    子目录名：桶名为 ``us_vr`` 或 ``us`` 时非 None，值为命中的原始配置关键词
-    （如 ``VirtualTaboo``、``HardCoreGangbang``），分别用作
-    ``files_video_us_vr/{keyword}/`` 和 ``files_video_us/{keyword}/`` 子目录名。
-    其余桶均返回 None。关键词匹配使用 CamelCase 变体展开；各桶内保序首中即止。
+    子目录名：桶名为 ``movie``、``us_vr`` 或 ``us`` 时非 None，值为命中的原始配置关键词
+    （如 ``AMZN``、``VirtualTaboo``、``HardCoreGangbang``），分别用作
+    ``files_video_movie/{keyword}/``、``files_video_us_vr/{keyword}/`` 和
+    ``files_video_us/{keyword}/`` 子目录名。其余桶均返回 None。
+    关键词匹配使用 CamelCase 变体展开；各桶内保序首中即止。
     """
-    if name_matches_any_keyword(stem, _MOVIE_KW_EX):
-        return "movie", None
+    movie_kw = _find_first_movie_keyword_match(stem)
+    if movie_kw is not None:
+        return "movie", movie_kw
     us_vr_kw = _find_first_us_vr_keyword_match(stem)
     if us_vr_kw is not None:
         return "us_vr", us_vr_kw
@@ -211,7 +228,7 @@ def _video_destination_root(
 ) -> Path:
     match bucket:
         case "movie":
-            return cfg.files_video_movie
+            return cfg.files_video_movie / subdir if subdir else cfg.files_video_movie
         case "us_vr":
             return cfg.files_video_us_vr / subdir if subdir else cfg.files_video_us_vr
         case "us":

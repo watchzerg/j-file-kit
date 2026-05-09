@@ -54,7 +54,7 @@ def test_routes_each_video_keyword(
 
     assert counters.phase3_deferred_files_misc == 0
     assert list(misc.iterdir()) == []
-    assert (tmp_path / "files_video_movie" / "m_AMZN.mp4").read_text() == "a"
+    assert (tmp_path / "files_video_movie" / "AMZN" / "m_AMZN.mp4").read_text() == "a"
     assert (
         tmp_path / "files_video_us_vr" / "VirtualTaboo" / "v_VirtualTaboo.mp4"
     ).read_text() == "b"
@@ -83,7 +83,7 @@ def test_amzn_only_routes_to_movie(
     counters = RawPhaseCounters()
     run_phase3(phase_context_factory(config), counters, dry_run=False)
 
-    assert (tmp_path / "files_video_movie" / "x_AMZN.mp4").read_text() == "m"
+    assert (tmp_path / "files_video_movie" / "AMZN" / "x_AMZN.mp4").read_text() == "m"
     assert counters.phase3_deferred_files_misc == 0
 
 
@@ -153,9 +153,41 @@ def test_classify_video_bucket_and_subdir_us_camelcase_variant_returns_original_
 
 
 def test_classify_video_bucket_and_subdir_non_subdir_buckets_return_none() -> None:
-    # movie / jav_vr / misc 桶返回 None 子目录名；us 和 us_vr 桶返回关键词
-    assert classify_video_bucket_and_subdir("x_AMZN_feature") == ("movie", None)
+    # jav_vr / misc 桶返回 None 子目录名；movie / us_vr / us 桶返回关键词
     assert classify_video_bucket_and_subdir("unknown_stem") == ("misc", None)
+
+
+def test_classify_video_bucket_and_subdir_movie_returns_keyword() -> None:
+    # movie 桶命中时返回原始关键词作为子目录名
+    assert classify_video_bucket_and_subdir("x_AMZN_feature") == ("movie", "AMZN")
+
+
+def test_routes_movie_video_to_keyword_subdir(
+    tmp_path: Path,
+    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
+    phase_context_factory: Callable[[RawAnalyzeConfig], PhaseContext],
+) -> None:
+    # 集成验证：movie 视频文件实际落入 files_video_movie/{keyword}/ 子目录
+    misc = tmp_path / "files_misc"
+    misc.mkdir()
+    config = raw_analyze_config_factory(
+        tmp_path,
+        files_misc=misc,
+        files_compressed=tmp_path / "files_compressed",
+        files_pic=tmp_path / "files_pic",
+        files_audio=tmp_path / "files_audio",
+    )
+    (misc / "AMZN.movie.mp4").write_text("v")
+    (misc / "AMZN.movie.srt").write_text("s")
+
+    counters = RawPhaseCounters()
+    run_phase3(phase_context_factory(config), counters, dry_run=False)
+
+    subdir = tmp_path / "files_video_movie" / "AMZN"
+    assert (subdir / "AMZN.movie.mp4").read_text() == "v"
+    assert (subdir / "AMZN.movie.srt").read_text() == "s"
+    assert list(misc.iterdir()) == []
+    assert counters.phase3_deferred_files_misc == 0
 
 
 def test_classify_video_bucket_and_subdir_us_vr_returns_keyword() -> None:
