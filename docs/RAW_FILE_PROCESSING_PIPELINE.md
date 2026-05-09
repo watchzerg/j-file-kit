@@ -247,6 +247,21 @@ flowchart LR
 | 5 | `DEFAULT_RAW_VIDEO_BUCKET_JAV_KEYWORDS` | `files_video_jav`（当前空元组，实际不命中） |
 | 6 | 均未命中 | `files_video_misc` |
 
+**`DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS`（补充）**：
+
+- `SLR`
+- `LethalHardcoreVR`
+- `AsianSexVR`
+- `VirtualTaboo`
+- `VRLatina`
+- `FuckPassVR`
+- `SLR_Taboo`
+- `BadoinkVR`
+- `czechvr`
+- `VRSpy`
+- `VRCosplayX`
+- `VirtualRealPorn`
+
 **log 字段**：`kind` 保持原值（`"video"` 或 `"subtitle"`），`video_bucket` 记录命中桶名。
 
 ---

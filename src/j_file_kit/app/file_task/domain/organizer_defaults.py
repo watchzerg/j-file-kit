@@ -27,7 +27,24 @@ DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES: int = 100 * 1024 * 1024
 
 DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS: tuple[str, ...] = ("AMZN",)
 
-DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS: tuple[str, ...] = ("VirtualTaboo",)
+DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS: tuple[str, ...] = (
+    "SLR",
+    "LethalHardcoreVR",
+    "AsianSexVR",
+    "VirtualTaboo",
+    "VRLatina",
+    "FuckPassVR",
+    "SLR_Taboo",
+    "BadoinkVR",
+    "CzechVR",
+    "CzechVRFetish",
+    "VRSpy",
+    "VRCosplayX",
+    "VirtualRealPorn",
+    "RealJamVR",
+    "BadoinkVR",
+    "VRedging",
+)
 
 DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS: tuple[str, ...] = ("HardCoreGangbang",)
 

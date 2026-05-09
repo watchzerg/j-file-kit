@@ -26,27 +26,29 @@ _TEST_STRIP_BBS_2048: tuple[str, ...] = ("BBS-2048",)
 class TestGenerateJavFilename:
     """generate_jav_filename 文件名重构"""
 
-    def test_serial_at_start_with_part3(self) -> None:
-        new_name, serial_id = generate_jav_filename("ABC-100_video.mp4")
-        assert new_name == "ABC-100 video.mp4"
+    @pytest.mark.parametrize(
+        ("raw", "expected_name", "expected_prefix", "expected_number"),
+        [
+            ("ABC-100_video.mp4", "ABC-100 video.mp4", "ABC", "100"),
+            ("ABC-100.mp4", "ABC-100.mp4", "ABC", "100"),
+            ("prefix_ABC-100.mp4", "ABC-100 prefix-serialId.mp4", "ABC", "100"),
+            ("video_ABC-100_hd.mp4", "ABC-100 video-serialId-hd.mp4", "ABC", "100"),
+            ("ABC_123.mp4", "ABC-123.mp4", "ABC", "123"),
+            ("abc-123.mp4", "ABC-123.mp4", "ABC", "123"),
+        ],
+    )
+    def test_serial_rewrite_cases(
+        self,
+        raw: str,
+        expected_name: str,
+        expected_prefix: str,
+        expected_number: str,
+    ) -> None:
+        new_name, serial_id = generate_jav_filename(raw)
+        assert new_name == expected_name
         assert serial_id is not None
-        assert serial_id.prefix == "ABC"
-        assert serial_id.number == "100"
-
-    def test_serial_at_start_part3_empty(self) -> None:
-        new_name, serial_id = generate_jav_filename("ABC-100.mp4")
-        assert new_name == "ABC-100.mp4"
-        assert serial_id is not None
-
-    def test_serial_not_at_start_part3_empty(self) -> None:
-        new_name, serial_id = generate_jav_filename("prefix_ABC-100.mp4")
-        assert new_name == "ABC-100 prefix-serialId.mp4"
-        assert serial_id is not None
-
-    def test_serial_not_at_start_with_part3(self) -> None:
-        new_name, serial_id = generate_jav_filename("video_ABC-100_hd.mp4")
-        assert new_name == "ABC-100 video-serialId-hd.mp4"
-        assert serial_id is not None
+        assert serial_id.prefix == expected_prefix
+        assert serial_id.number == expected_number
 
     def test_no_serial_returns_original(self) -> None:
         new_name, serial_id = generate_jav_filename("no_serial_here.mp4")
@@ -57,19 +59,6 @@ class TestGenerateJavFilename:
         new_name, _ = generate_jav_filename("  -  ABC-100  -  suffix  .mp4")
         assert "ABC-100" in new_name
         assert new_name.startswith("ABC-100")
-
-    def test_underscore_separator(self) -> None:
-        new_name, serial_id = generate_jav_filename("ABC_123.mp4")
-        assert serial_id is not None
-        assert serial_id.prefix == "ABC"
-        assert serial_id.number == "123"
-        assert new_name == "ABC-123.mp4"
-
-    def test_lowercase_serial_normalized(self) -> None:
-        new_name, serial_id = generate_jav_filename("abc-123.mp4")
-        assert serial_id is not None
-        assert serial_id.prefix == "ABC"
-        assert new_name == "ABC-123.mp4"
 
     def test_strip_site_noise_avoids_false_serial(self) -> None:
         """站标子串误识别为番号：去噪后无有效番号则返回原名（不去噪）。"""
@@ -272,21 +261,26 @@ class TestGenerateJavFilenameByteLimit:
 class TestMatchSerialIdFixedGrammar:
     """固定番号 grammar：前缀 2–6 字母、数字 3–5 字符、有效位 1–4"""
 
-    def test_typical_three_letter_three_digit(self) -> None:
-        sid, _, _ = _match_serial_id("ABC-123")
+    @pytest.mark.parametrize(
+        ("raw", "expected_prefix", "expected_number"),
+        [
+            ("ABC-123", "ABC", "123"),
+            ("AB-123", "AB", "123"),
+            ("ABCDEF-123", "ABCDEF", "123"),
+            ("AB-01234.mp4", "AB", "1234"),
+            ("BAZX-00399.mp4", "BAZX", "399"),
+        ],
+    )
+    def test_valid_patterns(
+        self,
+        raw: str,
+        expected_prefix: str,
+        expected_number: str,
+    ) -> None:
+        sid, _, _ = _match_serial_id(raw)
         assert sid is not None
-        assert sid.prefix == "ABC"
-        assert sid.number == "123"
-
-    def test_two_letter_prefix(self) -> None:
-        sid, _, _ = _match_serial_id("AB-123")
-        assert sid is not None
-        assert sid.prefix == "AB"
-
-    def test_six_letter_prefix(self) -> None:
-        sid, _, _ = _match_serial_id("ABCDEF-123")
-        assert sid is not None
-        assert sid.prefix == "ABCDEF"
+        assert sid.prefix == expected_prefix
+        assert sid.number == expected_number
 
     def test_rejects_two_digit_run(self) -> None:
         assert _match_serial_id("ABC-12")[0] is None
@@ -297,20 +291,9 @@ class TestMatchSerialIdFixedGrammar:
     def test_rejects_five_effective_digits(self) -> None:
         assert _match_serial_id("AB-12345")[0] is None
 
-    def test_accepts_01234_five_chars_four_effective(self) -> None:
-        sid, _, _ = _match_serial_id("AB-01234.mp4")
-        assert sid is not None
-        assert sid.number == "1234"
-
-    def test_case_insensitive(self) -> None:
-        assert _match_serial_id("abc-123")[0] is not None
-        assert _match_serial_id("Abc-123")[0] is not None
-
-    def test_no_separator(self) -> None:
-        assert _match_serial_id("ABC123")[0] is not None
-
-    def test_underscore_separator(self) -> None:
-        assert _match_serial_id("ABC_123")[0] is not None
+    @pytest.mark.parametrize("raw", ["abc-123", "Abc-123", "ABC123", "ABC_123"])
+    def test_case_and_separator_variants(self, raw: str) -> None:
+        assert _match_serial_id(raw)[0] is not None
 
     def test_single_letter_prefix_rejected(self) -> None:
         assert _match_serial_id("A-123")[0] is None
@@ -319,12 +302,6 @@ class TestMatchSerialIdFixedGrammar:
         sid, _, _ = _match_serial_id("ABC-1234")
         assert sid is not None
         assert sid.number == "1234"
-
-    def test_leading_zeros_five_char_run(self) -> None:
-        sid, _, _ = _match_serial_id("BAZX-00399.mp4")
-        assert sid is not None
-        assert sid.prefix == "BAZX"
-        assert sid.number == "399"
 
     def test_generate_jav_filename_uses_default_pattern(self) -> None:
         new_name, sid = generate_jav_filename("ABCD-123_video.mp4")
@@ -341,22 +318,14 @@ class TestMatchSerialIdFixedGrammar:
 class TestGenerateSortedDir:
     """generate_sorted_dir 子目录路径生成"""
 
-    def test_four_letter_prefix(self) -> None:
-        sid = SerialId(prefix="ABCD", number="123")
-        result = generate_sorted_dir(sid)
-        assert result == Path("A/AB/ABCD")
-
-    def test_three_letter_prefix(self) -> None:
-        sid = SerialId(prefix="XYZ", number="456")
-        result = generate_sorted_dir(sid)
-        assert result == Path("X/XY/XYZ")
-
-    def test_two_letter_prefix(self) -> None:
-        sid = SerialId(prefix="AB", number="789")
-        result = generate_sorted_dir(sid)
-        assert result == Path("A/AB/AB")
-
-    def test_five_letter_prefix(self) -> None:
-        sid = SerialId(prefix="ABCDE", number="00001")
-        result = generate_sorted_dir(sid)
-        assert result == Path("A/AB/ABCDE")
+    @pytest.mark.parametrize(
+        ("sid", "expected"),
+        [
+            (SerialId(prefix="ABCD", number="123"), Path("A/AB/ABCD")),
+            (SerialId(prefix="XYZ", number="456"), Path("X/XY/XYZ")),
+            (SerialId(prefix="AB", number="789"), Path("A/AB/AB")),
+            (SerialId(prefix="ABCDE", number="00001"), Path("A/AB/ABCDE")),
+        ],
+    )
+    def test_prefix_layout(self, sid: SerialId, expected: Path) -> None:
+        assert generate_sorted_dir(sid) == expected
