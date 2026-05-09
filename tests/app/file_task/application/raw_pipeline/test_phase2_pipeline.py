@@ -222,7 +222,8 @@ def test_phase2_clean_keeps_non_junk_then_flattens_small_video_dir(
     stats = pipe.run()
 
     assert not d.exists()
-    assert (misc / "keep_dir_video.mp4").exists()
+    files_video_misc = tmp_path / "files_video_misc"
+    assert (files_video_misc / "keep_dir_video.mp4").exists()
     assert stats.phase2_cleaned_deleted_files == 1
     assert stats.phase2_flattened_dirs == 1
     assert stats.phase2_flattened_files == 1
@@ -324,8 +325,9 @@ def test_phase2_flatten_video_plus_cover_jpg(
     files_pic = tmp_path / "files_pic"
     assert (files_pic / "release_cover.jpg").exists()
     assert (files_pic / "release_cover.jpg").read_text() == "img"
-    assert (misc / "release_main.mp4").exists()
-    assert (misc / "release_main.mp4").read_text() == "vid"
+    files_video_misc = tmp_path / "files_video_misc"
+    assert (files_video_misc / "release_main.mp4").exists()
+    assert (files_video_misc / "release_main.mp4").read_text() == "vid"
     assert stats.phase2_flattened_dirs == 1
     assert stats.phase2_flattened_files == 2
 
@@ -391,7 +393,8 @@ def test_phase2_flatten_preserves_name_when_stem_matches_dir(
     )
     stats = pipe.run()
 
-    assert (misc / "episode.mp4").exists()
+    files_video_misc = tmp_path / "files_video_misc"
+    assert (files_video_misc / "episode.mp4").exists()
     assert stats.phase2_flattened_files == 1
 
 

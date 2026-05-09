@@ -12,7 +12,7 @@ class RawPhaseCounters:
 
     phase3_seen_files_misc：阶段3.0 迁出 junk 之后，进入分流循环的一层文件数。
     phase3_deleted_junk_misc：阶段3.0 迁入 files_to_delete 计数（dry_run 同口径预览）。
-    phase3_deferred_files_misc：分流阶段未处理文件数。
+    phase3_deferred_files_misc：阶段3 结束时仍未完成分流者（如非视频未知扩展、I-O 失败）。
     """
 
     phase1_seen_files: int = 0

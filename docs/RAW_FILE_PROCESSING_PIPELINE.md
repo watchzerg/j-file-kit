@@ -19,7 +19,9 @@ flowchart LR
   end
   subgraph p3 [阶段3]
     M2[files_misc 第一层] --> J[3.0 junk→files_to_delete]
-    J --> R[3.x 按扩展名分流]
+    J --> R[3.1-3.3 压缩图片音频]
+    R --> V[3.4 视频关键字→files_video_*]
+    V --> Mkeep[非视频未知扩展留 misc]
   end
   p1 --> p2
   p2 --> p3
@@ -45,6 +47,7 @@ flowchart LR
 | `DEFAULT_RAW_JUNK_KEYWORDS` | 2.1 目录 basename；2.2 / 3.0 文件 stem 子串匹配。 |
 | `DEFAULT_MISC_FILE_DELETE_EXTENSIONS` | 2.2 命中即删（**无体积上限**）。 |
 | `DEFAULT_RAW_PHASE22_JUNK_DELETE_MAX_BYTES` | **仅 2.2**：stem 命中 junk 时还须 **`st_size` 严格小于**该值（默认 **100MiB**）。 |
+| `DEFAULT_RAW_PHASE34_VIDEO_*_KEYWORDS` | **阶段 3.4**：视频 stem 子串关键字（按桶，`jav` 桶可为空元组占位）。 |
 | 媒体扩展名集合 | `DEFAULT_*_EXTENSIONS` → 注入 **`RawAnalyzeConfig`**，供 2.4 / 3 分流判定。 |
 
 ---
@@ -59,7 +62,7 @@ flowchart LR
 | **2.3** | 仍存在的第一层目录 | 多层单链折叠为一层目录名（超长合并名有截断策略） | — |
 | **2.4** | 仍存在的第一层目录 | 小目录拆解→`files_misc`；否则按树内类型 **整目录**→ `folders_*` | 有待分类目录时 `files_misc` + 各 `folders_pic` / `audio` / `compressed` / `video` / `misc`（[`phase2_preflight.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_preflight.py)） |
 | **3.0** | `files_misc` **下一层文件** | stem 含 junk → **`files_to_delete`**（无体积条件） | 有待迁出 junk 文件时 `files_to_delete` |
-| **3.x** | 同上剩余队列 | zip/jpg/mp3…→ `files_compressed` / `files_pic` / `files_audio`；**视频扩展名暂留** `files_misc`；其余未知扩展名留驻 | 有待分流类型时对应 `files_*` |
+| **3.x** | 同上剩余队列（不含已迁 `files_to_delete`） | 压缩 / 图片 / 音频→ `files_compressed` / `files_pic` / `files_audio`；**视频**按 stem 关键字顺序归入各 **`files_video_*`**（未命中→ **`files_video_misc`**）；**非视频的未知扩展名**仍留 **`files_misc`** | 有待分流类型时对应 `files_*` / `files_video_*` |
 
 **编排**：[`phase2.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2.py)（`phase2_delete_move` / `clean` / `collapse` / `classify`）。
 
@@ -84,7 +87,7 @@ flowchart LR
 
 - **`phase3_deleted_junk_misc`**：3.0 迁入 `files_to_delete`（含 dry_run）。
 - **`phase3_seen_files_misc`**：3.0 之后参与分流的文件数。
-- **`phase3_deferred_files_misc`**：未成功分流（视频占位、未知扩展、失败）。
+- **`phase3_deferred_files_misc`**：未成功完成阶段 3 分流者（**非视频**的未知扩展仍驻 `files_misc`、迁移失败等；已成功迁入各 `files_*` / `files_video_*` 的视频不计入）。
 
 近似：`3.0 前 misc 第一层文件数 ≈ phase3_seen_files_misc + phase3_deleted_junk_misc`。
 

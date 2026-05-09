@@ -170,6 +170,22 @@ def raw_analyze_config_factory() -> Callable[..., RawAnalyzeConfig]:
         files_to_delete: Path
         | None
         | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
+        files_video_movie: Path
+        | None
+        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
+        files_video_us_vr: Path
+        | None
+        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
+        files_video_us: Path | None | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
+        files_video_jav_vr: Path
+        | None
+        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
+        files_video_jav: Path
+        | None
+        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
+        files_video_misc: Path
+        | None
+        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
     ) -> RawAnalyzeConfig:
         folders_pic = folders_audio = folders_compressed = None
         folders_video = folders_misc = None
@@ -211,12 +227,54 @@ def raw_analyze_config_factory() -> Callable[..., RawAnalyzeConfig]:
             tmp_path=tmp_path,
             default_name="files_to_delete",
         )
+        files_video_movie_resolved = _resolve_optional_files_bucket(
+            files_video_movie,
+            with_classification_destinations=with_classification_destinations,
+            tmp_path=tmp_path,
+            default_name="files_video_movie",
+        )
+        files_video_us_vr_resolved = _resolve_optional_files_bucket(
+            files_video_us_vr,
+            with_classification_destinations=with_classification_destinations,
+            tmp_path=tmp_path,
+            default_name="files_video_us_vr",
+        )
+        files_video_us_resolved = _resolve_optional_files_bucket(
+            files_video_us,
+            with_classification_destinations=with_classification_destinations,
+            tmp_path=tmp_path,
+            default_name="files_video_us",
+        )
+        files_video_jav_vr_resolved = _resolve_optional_files_bucket(
+            files_video_jav_vr,
+            with_classification_destinations=with_classification_destinations,
+            tmp_path=tmp_path,
+            default_name="files_video_jav_vr",
+        )
+        files_video_jav_resolved = _resolve_optional_files_bucket(
+            files_video_jav,
+            with_classification_destinations=with_classification_destinations,
+            tmp_path=tmp_path,
+            default_name="files_video_jav",
+        )
+        files_video_misc_resolved = _resolve_optional_files_bucket(
+            files_video_misc,
+            with_classification_destinations=with_classification_destinations,
+            tmp_path=tmp_path,
+            default_name="files_video_misc",
+        )
 
         for path in (
             files_compressed_resolved,
             files_pic_resolved,
             files_audio_resolved,
             files_to_delete_resolved,
+            files_video_movie_resolved,
+            files_video_us_vr_resolved,
+            files_video_us_resolved,
+            files_video_jav_vr_resolved,
+            files_video_jav_resolved,
+            files_video_misc_resolved,
         ):
             if path is not None:
                 path.mkdir(parents=True, exist_ok=True)
@@ -228,12 +286,12 @@ def raw_analyze_config_factory() -> Callable[..., RawAnalyzeConfig]:
             folders_audio=folders_audio,
             folders_misc=folders_misc,
             files_to_delete=files_to_delete_resolved,
-            files_video_jav=None,
-            files_video_us=None,
-            files_video_jav_vr=None,
-            files_video_us_vr=None,
-            files_video_movie=None,
-            files_video_misc=None,
+            files_video_jav=files_video_jav_resolved,
+            files_video_us=files_video_us_resolved,
+            files_video_jav_vr=files_video_jav_vr_resolved,
+            files_video_us_vr=files_video_us_vr_resolved,
+            files_video_movie=files_video_movie_resolved,
+            files_video_misc=files_video_misc_resolved,
             files_compressed=files_compressed_resolved,
             files_pic=files_pic_resolved,
             files_audio=files_audio_resolved,

@@ -1,12 +1,15 @@
-"""Raw 管道阶段 3：`files_misc` 第一层文件按扩展名分流。
+"""Raw 管道阶段 3：`files_misc` 第一层文件分流。
 
-阶段 3.0：对 stem 命中垃圾关键字的第一层文件迁入 ``files_to_delete``（``normalize_move_basename`` +
-``move_file_with_conflict_resolution``），不按体积过滤；
-再将压缩 / 图片 / 音频迁入 ``files_compressed`` / ``files_pic`` / ``files_audio``；
-视频与未知扩展名暂留在 ``files_misc``（视频占位，后续迭代）。
-命名与冲突与阶段 1 / 阶段 2.4 拆解一致：``normalize_move_basename`` +
-``move_file_with_conflict_resolution``（``-jfk-xxxx``）。见
-``docs/RAW_FILE_PROCESSING_PIPELINE.md``。
+阶段 3.0：stem 命中 junk 关键字的第一层文件迁入 ``files_to_delete``（无体积条件），
+不再参与后续 3.1~3.4。
+
+阶段 3.1~3.3：压缩 / 图片 / 音频迁入 ``files_compressed`` / ``files_pic`` / ``files_audio``。
+
+阶段 3.4：视频扩展名归桶——按 stem 关键字顺序匹配迁入 ``files_video_*``；
+均未命中则迁入 ``files_video_misc``。非视频且未知扩展名留在 ``files_misc``。
+
+命名与冲突：``normalize_move_basename`` + ``move_file_with_conflict_resolution``（``-jfk-xxxx``）。
+见 ``docs/RAW_FILE_PROCESSING_PIPELINE.md``。
 """
 
 from pathlib import Path
@@ -24,8 +27,54 @@ from j_file_kit.app.file_task.application.raw_pipeline.keywords import (
     normalize_for_match,
     normalize_keyword_tokens,
 )
-from j_file_kit.app.file_task.domain.organizer_defaults import DEFAULT_RAW_JUNK_KEYWORDS
+from j_file_kit.app.file_task.domain.organizer_defaults import (
+    DEFAULT_RAW_JUNK_KEYWORDS,
+    DEFAULT_RAW_PHASE34_VIDEO_JAV_KEYWORDS,
+    DEFAULT_RAW_PHASE34_VIDEO_JAV_VR_KEYWORDS,
+    DEFAULT_RAW_PHASE34_VIDEO_MOVIE_KEYWORDS,
+    DEFAULT_RAW_PHASE34_VIDEO_US_KEYWORDS,
+    DEFAULT_RAW_PHASE34_VIDEO_US_VR_KEYWORDS,
+)
 from j_file_kit.shared.utils.file_utils import ensure_directory, sanitize_surrogate_str
+
+
+def filename_contains_keyword(stem: str, keyword: str) -> bool:
+    """规范化后判断文件名 stem 是否包含关键字子串（NFKC + casefold）。
+
+    供阶段 3.4 及后续统一迭代关键字匹配策略时使用。
+    """
+    if not keyword:
+        return False
+    return normalize_for_match(keyword) in normalize_for_match(stem)
+
+
+def classify_phase34_video_bucket(stem: str) -> str:
+    """按产品顺序返回视频归宿桶标识（首个关键字命中即停）。
+
+    返回值：``movie`` | ``us_vr`` | ``us`` | ``jav_vr`` | ``jav`` | ``misc``。
+    ``misc`` 表示未命中任一关键字桶（迁入 ``files_video_misc``）。
+    """
+    if _stem_matches_any_phase34_keyword(
+        stem, DEFAULT_RAW_PHASE34_VIDEO_MOVIE_KEYWORDS
+    ):
+        return "movie"
+    if _stem_matches_any_phase34_keyword(
+        stem, DEFAULT_RAW_PHASE34_VIDEO_US_VR_KEYWORDS
+    ):
+        return "us_vr"
+    if _stem_matches_any_phase34_keyword(stem, DEFAULT_RAW_PHASE34_VIDEO_US_KEYWORDS):
+        return "us"
+    if _stem_matches_any_phase34_keyword(
+        stem, DEFAULT_RAW_PHASE34_VIDEO_JAV_VR_KEYWORDS
+    ):
+        return "jav_vr"
+    if _stem_matches_any_phase34_keyword(stem, DEFAULT_RAW_PHASE34_VIDEO_JAV_KEYWORDS):
+        return "jav"
+    return "misc"
+
+
+def _stem_matches_any_phase34_keyword(stem: str, keywords_raw: tuple[str, ...]) -> bool:
+    return any(filename_contains_keyword(stem, k) for k in keywords_raw if k)
 
 
 def _list_files_misc_level1(misc: Path) -> list[Path]:
@@ -169,6 +218,61 @@ def _preflight_phase3_destinations(files: list[Path], cfg: RawAnalyzeConfig) -> 
         raise ValueError(msg)
 
 
+def _video_destination_root(bucket: str, cfg: RawAnalyzeConfig) -> Path | None:
+    match bucket:
+        case "movie":
+            return cfg.files_video_movie
+        case "us_vr":
+            return cfg.files_video_us_vr
+        case "us":
+            return cfg.files_video_us
+        case "jav_vr":
+            return cfg.files_video_jav_vr
+        case "jav":
+            return cfg.files_video_jav
+        case "misc":
+            return cfg.files_video_misc
+        case _:
+            msg = f"阶段3.4 未知视频桶: {bucket}"
+            raise RuntimeError(msg)
+
+
+def _preflight_phase34_video_destinations(
+    files: list[Path], cfg: RawAnalyzeConfig
+) -> None:
+    """针对剩余队列中的视频文件，按将落入的桶检查 ``files_video_*`` 是否已配置。"""
+    required_buckets: set[str] = set()
+    for path in files:
+        if _classify_misc_file_suffix(path.suffix, cfg) != "video":
+            continue
+        required_buckets.add(classify_phase34_video_bucket(path.stem))
+
+    for bucket in required_buckets:
+        dest = _video_destination_root(bucket, cfg)
+        if dest is None:
+            field = _video_bucket_config_field_name(bucket)
+            msg = f"{field} 未设置（files_misc 中存在待分流至该桶的视频文件）"
+            raise ValueError(msg)
+
+
+def _video_bucket_config_field_name(bucket: str) -> str:
+    match bucket:
+        case "movie":
+            return "files_video_movie"
+        case "us_vr":
+            return "files_video_us_vr"
+        case "us":
+            return "files_video_us"
+        case "jav_vr":
+            return "files_video_jav_vr"
+        case "jav":
+            return "files_video_jav"
+        case "misc":
+            return "files_video_misc"
+        case _:
+            return "files_video_*"
+
+
 def _destination_root_for_routed_kind(kind: str, cfg: RawAnalyzeConfig) -> Path:
     match kind:
         case "archive":
@@ -192,7 +296,7 @@ def run_phase3(
     *,
     dry_run: bool,
 ) -> None:
-    """阶段 3：将 ``files_misc`` 第一层中可归类的文件迁入 ``files_*``；视频与未知扩展名延后。"""
+    """阶段 3：``files_misc`` 第一层预清理后按扩展名与视频关键字迁入各类 ``files_*``。"""
     misc = ctx.analyze_config.files_misc
     if misc is None or not misc.exists() or not misc.is_dir():
         counters.phase3_seen_files_misc = 0
@@ -219,13 +323,78 @@ def run_phase3(
     )
     counters.phase3_seen_files_misc = len(files)
     _preflight_phase3_destinations(files, ctx.analyze_config)
+    _preflight_phase34_video_destinations(files, ctx.analyze_config)
 
     deferred = 0
     routed_ok = 0
 
     for path in files:
         kind = _classify_misc_file_suffix(path.suffix, ctx.analyze_config)
-        if kind is None or kind == "video":
+        if kind == "video":
+            bucket = classify_phase34_video_bucket(path.stem)
+            dest_root = _video_destination_root(bucket, ctx.analyze_config)
+            if dest_root is None:
+                logger.bind(
+                    run_id=str(ctx.run_id),
+                    run_name=ctx.run_name,
+                    level="RAW_PHASE",
+                    phase=3,
+                    subphase="video_route_invariant",
+                    video_bucket=bucket,
+                    source=str(path),
+                ).error("阶段3.4：视频归宿未配置（预检应已拦截）")
+                deferred += 1
+                continue
+
+            basename = normalize_move_basename(sanitize_surrogate_str(path.name))
+            target = dest_root / basename
+
+            if dry_run:
+                routed_ok += 1
+                logger.bind(
+                    run_id=str(ctx.run_id),
+                    run_name=ctx.run_name,
+                    level="RAW_PHASE",
+                    phase=3,
+                    subphase="route_preview",
+                    kind="video",
+                    video_bucket=bucket,
+                    source=str(path),
+                    target=str(target),
+                ).info("阶段3（dry_run）：预览视频分流")
+                continue
+
+            try:
+                ensure_directory(dest_root, parents=True)
+                final = move_file_with_conflict_resolution(path, target)
+                routed_ok += 1
+                logger.bind(
+                    run_id=str(ctx.run_id),
+                    run_name=ctx.run_name,
+                    level="RAW_PHASE",
+                    phase=3,
+                    subphase="route",
+                    kind="video",
+                    video_bucket=bucket,
+                    source=str(path),
+                    target=str(final),
+                ).info("阶段3：视频已分流")
+            except (OSError, RuntimeError) as e:
+                deferred += 1
+                logger.bind(
+                    run_id=str(ctx.run_id),
+                    run_name=ctx.run_name,
+                    level="RAW_PHASE",
+                    phase=3,
+                    subphase="route_error",
+                    kind="video",
+                    video_bucket=bucket,
+                    source=str(path),
+                    error=str(e),
+                ).error("阶段3：视频分流失败")
+            continue
+
+        if kind is None:
             deferred += 1
             continue
 

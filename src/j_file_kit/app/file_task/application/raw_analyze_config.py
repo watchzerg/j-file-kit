@@ -14,7 +14,7 @@ class RawAnalyzeConfig(BaseModel):
 
     由 `RawFileOrganizer` 从任务配置注入各归宿路径与扩展名集合。
     当前 `RawFilePipeline` 阶段 1 使用 `files_misc`；阶段 2 使用 `folders_to_delete` 及分类归宿路径，
-    具体规则见 `raw_pipeline/phase2_*.py`；阶段 3 使用 `files_*` 将 `files_misc` 第一层文件按扩展名分流；
+    具体规则见 `raw_pipeline/phase2_*.py`；阶段 3 使用 `files_*` / `files_video_*` 将 ``files_misc`` 第一层文件按扩展名与视频关键字分流；
     其它 `analyze_raw_*` 规则后续迭代填充。
     """
 

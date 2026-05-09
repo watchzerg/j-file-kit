@@ -43,7 +43,8 @@ def test_phase2_collapses_single_chain_directory(
     )
     stats = pipe.run()
 
-    assert (misc / "abc_def_ghi_clip.mp4").exists()
+    files_video_misc = tmp_path / "files_video_misc"
+    assert (files_video_misc / "abc_def_ghi_clip.mp4").exists()
     assert not (inbox / "abc_def_ghi").exists()
     assert not root.exists()
     assert stats.phase2_collapsed_chain_dirs == 1
@@ -86,7 +87,8 @@ def test_phase2_collapse_renames_on_destination_conflict(
     assert stats.phase2_collapsed_chain_dirs == 1
     assert stats.phase2_skipped_collapse_dirs == 0
     assert stats.phase2_flattened_dirs == 1
-    dest_files = [p for p in misc.iterdir() if p.is_file()]
+    files_video_misc = tmp_path / "files_video_misc"
+    dest_files = [p for p in files_video_misc.iterdir() if p.is_file()]
     assert len(dest_files) == 1
     assert dest_files[0].suffix == ".mp4"
     assert "-jfk-" in dest_files[0].stem or dest_files[0].stem.startswith("abc_def_ghi")

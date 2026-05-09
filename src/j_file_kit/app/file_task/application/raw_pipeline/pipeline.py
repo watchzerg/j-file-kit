@@ -2,7 +2,7 @@
 
 设计意图：与 `FilePipeline` 解耦，采用 inbox **第一层** 文件与目录的三阶段编排：
 阶段 1 将散落文件收入 `files_misc`；阶段 2 处理第一层目录（关键字迁出 / 清洗 / 单链折叠 / 按类型分类），
-其中 2.1–2.4 规则在同包 `phase2_*` 子模块；`phase2.py` 仅编排；阶段 3 将 `files_misc` 第一层文件分流到 `files_compressed` / `files_pic` / `files_audio`（视频占位）。
+其中 2.1–2.4 规则在同包 `phase2_*` 子模块；`phase2.py` 仅编排；阶段 3 将 `files_misc` 第一层 3.0 junk→`files_to_delete`，再分流至 `files_compressed` / `files_pic` / `files_audio`，视频按关键字至各 `files_video_*`。
 分阶段实现位于同包 `phase1` / `phase2_*` / `phase3`。
 """
 

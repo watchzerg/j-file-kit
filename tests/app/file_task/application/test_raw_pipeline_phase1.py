@@ -81,7 +81,8 @@ def test_phase1_moves_level1_file_only(
     assert (misc / "root.txt").exists()
     assert (misc / "root.txt").read_text() == "root"
     assert not (inbox / "root.txt").exists()
-    assert (misc / "nested_inner.mp4").exists()
+    files_video_misc = tmp_path / "files_video_misc"
+    assert (files_video_misc / "nested_inner.mp4").exists()
     assert not sub.exists()
 
     assert stats.phase1_seen_files == 1
@@ -93,7 +94,7 @@ def test_phase1_moves_level1_file_only(
     assert stats.phase2_moved_to_delete_dirs == 0
     assert stats.phase3_seen_files_misc == 2
     assert stats.phase3_deleted_junk_misc == 0
-    assert stats.phase3_deferred_files_misc == 2
+    assert stats.phase3_deferred_files_misc == 1
     assert stats.total_items >= 1
 
 
