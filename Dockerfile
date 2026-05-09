@@ -1,6 +1,18 @@
 # syntax=docker/dockerfile:1
 
-# ── Builder ──────────────────────────────────────────────────────────────────
+# ── Frontend builder ──────────────────────────────────────────────────────────
+FROM oven/bun:1 AS frontend-builder
+
+WORKDIR /frontend
+
+# 先复制依赖声明，利用层缓存；源码变更不重跑 bun install
+COPY frontend/package.json frontend/bun.lock ./
+RUN bun install --frozen-lockfile
+
+COPY frontend/ ./
+RUN bun run build
+
+# ── Backend builder ───────────────────────────────────────────────────────────
 # uv 官方镜像内置 uv 和 Python 3.14，用于安装依赖并打包虚拟环境
 FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim AS builder
 
@@ -26,6 +38,9 @@ WORKDIR /app
 # 从 builder 阶段复制已完整安装的虚拟环境和源码
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
+
+# 从 frontend-builder 阶段复制前端构建产物（由 FastAPI StaticFiles serve）
+COPY --from=frontend-builder /frontend/dist /app/src/j_file_kit/static
 
 # 将 .venv 优先放入 PATH，使 python / uvicorn 等命令直接可用
 ENV PATH="/app/.venv/bin:$PATH"

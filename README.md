@@ -63,12 +63,12 @@ just docker-up         # 构建镜像并后台启动
 |---|---|
 | Name | `j-file-kit` |
 | Repository | `ghcr.io/watchzerg/j-file-kit:latest` |
-| Port（容器→宿主） | `8000` → `8000`，`1307` → `1307` |
+| Port（容器→宿主） | `8000` → `8000` |
 | 路径 1（容器→宿主） | `/data` → `/mnt/user/appdata/j-file-kit` |
 | 路径 2（容器→宿主） | `/media` → `/mnt/user/Porn-Japan/media` |
 | 环境变量 `PUID` | 你的 uid（执行 `id <username>` 查询） |
 | 环境变量 `PGID` | 你的 gid |
 
-确认后容器启动，访问 `http://<unraid-ip>:1307/docs`。
+确认后容器启动，访问 `http://<unraid-ip>:8000`（前端页面）；API 文档在 `http://<unraid-ip>:8000/docs`。
 
 **后续部署：** 首次创建即相当于保存了模板，之后进入 `Add Container`，在顶部 Template 下拉菜单中选择 `j-file-kit` 即可直接使用。

@@ -33,6 +33,13 @@ repos:
         language: system
         pass_filenames: false # 不传递文件名，因为 testmon 会自动选择相关测试
 
+      - id: fe-biome
+        name: biome check --write (frontend changed files)
+        entry: bash -c 'cd frontend && bunx biome check --write .'
+        language: system
+        files: ^frontend/src/.*\.(ts|tsx|css)$
+        pass_filenames: false
+
       # ----------- pre-push 阶段的钩子（全量检查）-----------
       - id: uv-pip-check-push
         name: uv pip check (dependency compatibility)
@@ -83,6 +90,30 @@ repos:
           "--maxfail=1", "--durations=10"]
         language: system
         pass_filenames: false # 运行所有测试，不使用增量模式
+        always_run: true
+        stages: [pre-push]
+
+      - id: fe-biome-push
+        name: biome check (frontend, strict)
+        entry: bash -c 'cd frontend && bunx biome check .'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: fe-tsc-push
+        name: tsc --noEmit (frontend type check)
+        entry: bash -c 'cd frontend && bunx tsc --noEmit'
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+
+      - id: fe-test-push
+        name: vitest run (frontend unit tests)
+        entry: bash -c 'cd frontend && bun run test'
+        language: system
+        pass_filenames: false
         always_run: true
         stages: [pre-push]
 

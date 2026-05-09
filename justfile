@@ -8,14 +8,6 @@ default:
 pre-install:
     uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 
-# 运行 pre-commit 阶段的钩子
-pre-commit:
-    uv run pre-commit run --hook-stage pre-commit --all-files
-
-# 运行 pre-push 阶段的钩子
-pre-push:
-    uv run pre-commit run --hook-stage pre-push --all-files
-
 # 清理临时文件
 clean:
     rm -rf .pytest_cache
@@ -44,17 +36,71 @@ py-upgrade VERSION:
     uv sync --all-groups
     uv run python -V
 
-# 运行所有测试
-test:
-    uv run pytest
 
-# 仅运行单元测试（快速，无 I/O）
-test-unit:
-    uv run pytest -m unit
+# ── 前端开发 ────────────────────────────────────────────────────────────────────────────────
 
-# 仅运行集成测试（涉及文件系统 / 数据库）
-test-int:
-    uv run pytest -m integration
+# 安装/同步前端依赖
+fe-install:
+    cd frontend && bun install
+
+# 启动前端开发服务器（Vite HMR，:5173）
+fe-dev:
+    cd frontend && bun run dev
+
+# 构建前端产物（输出到 src/j_file_kit/static/）
+fe-build:
+    cd frontend && bun run build
+
+# 前端 lint + format 检查（Biome）
+fe-check:
+    cd frontend && bunx biome check .
+
+# 自动修复前端 lint + format 问题
+fe-fix:
+    cd frontend && bunx biome check --write .
+
+# 运行前端单元测试（vitest）
+fe-test:
+    cd frontend && bun run test
+
+# 清理前端依赖和构建产物（重装前用）
+fe-clean:
+    rm -rf frontend/node_modules frontend/dist
+    rm -rf src/j_file_kit/static
+    @echo "前端清理完成"
+
+# 添加 shadcn/ui 组件，用法：just fe-add button
+fe-add COMPONENT:
+    cd frontend && bunx shadcn add {{COMPONENT}}
+
+# ── 全栈本地开发 ─────────────────────────────────────────────────────────────────────────────
+
+# 同时启动后端（:8000）和前端（:5173），两者就绪后自动打开默认浏览器 —— Ctrl+C 同时终止两者
+dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    trap 'echo ""; echo "正在关闭…"; kill $(jobs -p) 2>/dev/null; wait 2>/dev/null; echo "已退出"' INT TERM EXIT
+    echo "▶ 后端启动中 → http://localhost:8000  (base_dir=./app-data)"
+    J_FILE_KIT_BASE_DIR=./app-data uv run j-file-kit &
+    echo "▶ 前端启动中 → http://localhost:5173"
+    (cd frontend && bun run dev) &
+    # 等待 Vite 就绪（轮询 :5173），超时 30s
+    timeout=30
+    until curl -sf http://localhost:5173 >/dev/null 2>&1; do
+        sleep 0.5
+        timeout=$((timeout - 1))
+        if (( timeout <= 0 )); then
+            echo "⚠ 前端未在 30s 内就绪，跳过自动打开浏览器"
+            break
+        fi
+    done
+    if (( timeout > 0 )); then
+        echo "✓ 前端就绪，打开浏览器 → http://localhost:5173"
+        open http://localhost:5173
+    fi
+    wait
+
+# ── 基于 Docker的本地E2E测试 ────────────────────────────────────────────────────────────────
 
 # 确保 Docker 可用：就绪则跳过；macOS 未就绪时 `open -a Docker` 并最多等待 180s（懒加载）。非 macOS 请手动启动 Docker
 ensure-docker:
@@ -88,33 +134,6 @@ ensure-docker:
 test-e2e: ensure-docker
     uv run pytest -m e2e -v
 
-# 运行测试并输出覆盖率报告
-test-cov:
-    uv run pytest --cov=src/j_file_kit --cov-report=term-missing
-
-# ── 手工调试辅助 ────────────────────────────────────────────────────────────────
-
-# 生成测试文件到 $MEDIA_ROOT/jav_workspace/inbox（需 .env 中配置 MEDIA_ROOT）
-gen-test-files:
-    uv run python scripts/gen_test_files.py
-
-# 打版本 tag 并推送，触发 GitHub Actions 构建镜像
-# 会先运行 E2E 测试，全部通过后才打 tag（需要 Docker 运行中）
-# 用法：just release 1.2.3
-release VERSION: test-e2e
-    git tag v{{VERSION}}
-    git push origin v{{VERSION}}
-
-# 本地构建镜像（不启动容器），完成后输出镜像体积
-docker-build: ensure-docker
-    docker build -t j-file-kit:local .
-    @echo ""
-    docker images j-file-kit:local --format "镜像: {{{{.Repository}}}}:{{{{.Tag}}}}  大小: {{{{.Size}}}}  创建: {{{{.CreatedSince}}}}"
-
-# 进入本地构建的镜像，查看文件结构（需先执行 docker-build）
-docker-sh: ensure-docker
-    docker run --rm -it --entrypoint sh j-file-kit:local
-
 # 构建镜像并在后台启动容器（读取 .env 中的 MEDIA_ROOT）
 docker-up: ensure-docker
     docker compose up -d --build
@@ -127,29 +146,9 @@ docker-down:
 docker-logs:
     docker compose logs -f
 
-# 触发 jav_video_organizer 整理任务；DRY_RUN=true 可预览不实际移动文件
-# 用法：just task-run 或 just task-run DRY_RUN=true
-task-run DRY_RUN="false":
-    curl -sf -X POST http://localhost:8000/api/tasks/jav_video_organizer/start \
-        -H "Content-Type: application/json" \
-        -d '{"dry_run": {{DRY_RUN}}}' | python3 -m json.tool
-
-# 列出最近 10 个任务（run_id、状态、创建时间等）
-task-list:
-    #!/usr/bin/env python3
-    import json, urllib.request
-    with urllib.request.urlopen("http://localhost:8000/api/tasks") as resp:
-        data = json.load(resp)
-    runs = list(reversed(data.get("runs", [])[-10:]))
-    print("{:<8} {:<12} {:<40} {:<25} {}".format("run_id", "status", "run_name", "start_time", "end_time"))
-    print("-" * 110)
-    for r in runs:
-        print("{:<8} {:<12} {:<40} {:<25} {}".format(
-            r["run_id"], r["status"], r["run_name"],
-            str(r.get("start_time") or ""), str(r.get("end_time") or ""),
-        ))
-
-# 查询指定 run_id 的任务状态
-# 用法：just task-status 1
-task-status RUN_ID:
-    curl -sf http://localhost:8000/api/tasks/{{RUN_ID}} | python3 -m json.tool
+# 打版本 tag 并推送，触发 GitHub Actions 构建镜像
+# 会先运行 E2E 测试，全部通过后才打 tag（需要 Docker 运行中）
+# 用法：just release 1.2.3
+release VERSION: test-e2e
+    git tag v{{VERSION}}
+    git push origin v{{VERSION}}
