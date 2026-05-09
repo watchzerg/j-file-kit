@@ -148,6 +148,49 @@ def test_phase2_clean_deletes_junk_and_removes_empty_root(
     assert stats.phase2_removed_dirs == 1
 
 
+def test_phase2_clean_skips_junk_stem_when_file_not_under_100mib(
+    tmp_path: Path,
+    file_result_repository: FileResultRepositoryImpl,
+    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """junk stem 命中但体积 ≥ 阈值时不删；阈值可通过 organizer_defaults 猴子补丁。"""
+    monkeypatch.setattr(
+        "j_file_kit.app.file_task.domain.organizer_defaults.DEFAULT_RAW_PHASE22_JUNK_DELETE_MAX_BYTES",
+        50,
+    )
+    inbox = tmp_path / "inbox"
+    misc = tmp_path / "files_misc"
+    td = tmp_path / "folders_to_delete"
+    inbox.mkdir()
+    misc.mkdir()
+    td.mkdir()
+    d = inbox / "big_junk"
+    d.mkdir()
+    (d / "big_FC2-PPV.bin").write_bytes(b"x" * 50)
+    (d / "small_FC2-PPV.bin").write_bytes(b"x" * 49)
+
+    pipe = RawFilePipeline(
+        run_id=77,
+        run_name="raw_file_organizer",
+        scan_root=inbox,
+        analyze_config=raw_analyze_config_factory(
+            tmp_path,
+            files_misc=misc,
+            folders_to_delete=td,
+        ),
+        log_dir=tmp_path / "logs",
+        file_result_repository=file_result_repository,
+    )
+    stats = pipe.run()
+
+    big_paths = list(tmp_path.rglob("big_FC2-PPV.bin"))
+    assert len(big_paths) == 1
+    assert big_paths[0].stat().st_size == 50
+    assert not list(tmp_path.rglob("small_FC2-PPV.bin"))
+    assert stats.phase2_cleaned_deleted_files == 1
+
+
 def test_phase2_clean_keeps_non_junk_then_flattens_small_video_dir(
     tmp_path: Path,
     file_result_repository: FileResultRepositoryImpl,

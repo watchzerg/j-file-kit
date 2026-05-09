@@ -1,145 +1,91 @@
-# Raw 媒体整理处理流程
+# Raw 媒体整理管线
 
-任务类型：`TASK_TYPE_RAW_FILE_ORGANIZER`（`domain/constants.py`）。
-
-## 编排入口与代码位置
-
-- **`RawFileOrganizer`**：从 `TaskConfig` 解析 **`RawFileOrganizeConfig`**，组装 **`RawAnalyzeConfig`**（扩展名来自 `domain/organizer_defaults.py`），委托 **`RawFilePipeline.run()`**。
-- **`RawFilePipeline`**：只处理 **`inbox_dir`（即 `scan_root`）第一层**条目；编排见 [`application/raw_pipeline/pipeline.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/pipeline.py)（`phase1` → `phase2` → `phase3`）。
-- 阶段化计数写入 **`FileTaskRunStatistics`**（与 `FileResultRepository.get_statistics` 合并），本期**不写目录明细表**。
-
-配置与路径不变量：[`application/config_common.py`](../src/j_file_kit/app/file_task/application/config_common.py)（**`RAW_MEDIA_ROOT`**）、[`application/raw_task_config.py`](../src/j_file_kit/app/file_task/application/raw_task_config.py)（**`RawFileOrganizeConfig`**）。
+任务：`TASK_TYPE_RAW_FILE_ORGANIZER`。入口 **`RawFileOrganizer`** → **`RawFilePipeline.run()`**（[`pipeline.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/pipeline.py)）。仅处理 **`scan_root`（inbox）第一层**：散落文件、第一层子目录；**不递归 inbox 下的多级散落文件**（阶段 1）。计数写入 **`FileTaskRunStatistics`**；与代码冲突时**以源码为准**。
 
 ---
 
-## 业务逻辑速览（扩展新规则时先看本节）
+## 总览
 
-下列颗粒度与「计划文档」相近：判断**改 phase 几**、**前置条件**、**落盘路径**、**冲突/超长**口径。
-
-### 阶段 1：第一层散落文件 → `files_misc`
-
-**代码**：[`application/raw_pipeline/phase1.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase1.py)（`run_phase1`）
-
-- **范围**：仅 **`scan_root` 下一层普通文件**（不递归子目录）。
-- **动作**：移入 **`files_misc`**；每条写入 **`file_results`**（与 JAV 管道同一端口）。
-- **命名**：`normalize_move_basename`（UTF-8 字节上限 + 为 `-jfk-xxxx` 预留）；落地用 **`executor.execute_decision`**（与 **`move_file_with_conflict_resolution`** 语义一致）。
-- **配置**：若存在第一层文件且 **`files_misc`** 未配置 → 报错。
-- **dry_run**：不落盘，计数仍按预览累加。
-
----
-
-### 阶段 2：第一层目录（逐项：2.1 → 2.2 → 2.3 → 2.4）
-
-**编排入口**：[`application/raw_pipeline/phase2.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2.py)（`run_phase2`：目录循环、取消检测、子阶段顺序）。
-
-**子阶段与实现模块**（`phase2_*` 含规则与副作用；统计仍统一累加到 `phase2_*` 计数器）：
-
-| 子阶段 | 模块 |
-|--------|------|
-| 前置（第一层目录列表、关键字 token、`folders_to_delete` / 2.4 归宿校验） | [`phase2_preflight.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_preflight.py) |
-| 2.1 | [`phase2_delete_move.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_delete_move.py) |
-| 2.2 | [`phase2_clean.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_clean.py) |
-| 2.3 | [`phase2_collapse.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_collapse.py) |
-| 2.4 | [`phase2_classify.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_classify.py) |
-
-**变更入口**：仅当「阶段顺序、跨子阶段协作、取消粒度」变化时改编排层（`phase2.py`）；单个子阶段的命中规则与落盘细节改对应 `phase2_*` 模块。
-
-对 inbox **每个第一层子目录**按顺序执行下列子阶段（命中迁出或目录消失则后续子阶段不再对该目录生效）。
-
-#### 2.1：关键字目录 → `folders_to_delete`
-
-- **触发**：目录 basename 命中 **`organizer_defaults.DEFAULT_RAW_JUNK_KEYWORDS`** 任一子串（NFKC + 大小写无关）。
-- **动作**：**整目录**迁入 **`folders_to_delete`**。
-- **冲突**：**`file_ops.move_directory_with_conflict_resolution`**（`-jfk-xxxx`）。
-- **配置**：若本轮扫描中存在待迁出的关键字目录且 **`folders_to_delete`** 未配置 → 报错。
-- **dry_run**：不落盘，计数预览。
-
-#### 2.2：目录内清洗
-
-- **触发**：未命中 2.1 的第一层目录。
-- **删除文件**（命中任一即删）：扩展名 ∈ **`DEFAULT_MISC_FILE_DELETE_EXTENSIONS`**；或 stem（规范化匹配）含 **`DEFAULT_RAW_JUNK_KEYWORDS`**（与 2.1 同源）；或 **0 字节**。
-- **删空目录**：清洗产生的空子目录自下而上删掉；若第一层目录本身被删空则 **rmdir**（不触碰 `inbox` 上一级）。
-- **dry_run**：不删文件、不删目录，计数预览。
-- **扩展点**：新「垃圾识别」规则通常加在本子阶段（扩展名 / stem 规则）。
-- **与阶段 3.0**：2.2 递归整棵第一层子树内文件；3.0 仅处理 **`files_misc` 单层**，junk stem 命中即迁出（无体积条件）。
-
-#### 2.3：单链目录折叠（多层单路径 → 单层目录名）
-
-- **触发**：2.2 后目录仍存在；从第一层起点向下，连续满足「**仅有单子目录、当前层无文件**」，直到遇到文件、分叉或停止。
-- **动作**：链上各层目录名用 **`_`** 合并为新目录名；合并名 UTF-8 **≤255 字节**；超长时对长度 **≥10 字符**的段按比例截断，**短段不截断**；预算仍不足则 **跳过折叠**（不中断 run）。
-- **落地顺序**：链末端内容先入 staging → **`move_directory_with_conflict_resolution`** 整块迁至合并名（冲突 `-jfk-xxxx`）→ **成功后再**删旧链空目录。
-- **失败/取消**：非空 staging 不静默删除；尽量改名为 **`raw-chain-quarantine-run{run_id}-*`**。
-- **dry_run**：不改盘，折叠成功计数仍预览。
-- **扩展点**：合并名算法 / 折叠条件变更 → 本子阶段。
-
-#### 2.4：目录拆分与归档
-
-**输入**：2.2 + 2.3 之后的当前第一层目录路径。
-
-**小目录拆解**分支触发条件（需**同时**满足）：
-
-- **单层级**：目录下**只有文件、无子目录**。
-- **类型**：集合为「**单一类型（图片 / 视频 / 音频 / 压缩）**」或「**单一类型 + 图片**」（类型按 **`RawAnalyzeConfig`** 中扩展名集合判定）。
-- **数量**：直接子文件数 **≤ 5**。
-
-**小目录拆解后**：
-
-- 各文件移入 **`files_misc`**。
-- **`stem == 目录名`**：保持原名；否则 **`{dir}_{stem}{suffix}`**；允许仅靠后缀区分不同文件。
-- **命名 / 冲突**：**`normalize_move_basename`** + **`move_file_with_conflict_resolution`**（与阶段 1 超长与 `-jfk-xxxx` 口径一致）。
-- 拆解完成后删除空目录。
-
-**未知扩展名**（相对上述四类媒体扩展名集合）：在**拆解判定**中 **一票否决**，走 **整目录迁移**分支。
-
-**整目录迁移**（拆解未命中或其它情况：含子目录、文件数>5、类型组合不满足等）：
-
-- **画像**：按目录树内 **全部文件**（递归）的扩展名归类；字幕走字幕扩展名集合，否则为 **unknown**。
-- **规则**：
-  - 仅图片 → **`folders_pic`**
-  - 仅音频（**可含图片**）→ **`folders_audio`**
-  - 仅压缩（**可含图片**）→ **`folders_compressed`**
-  - 仅视频（**可含图片**）→ **`folders_video`**
-  - **其它混合**（含 unknown、字幕与其它组合等）→ **`folders_misc`**
-- **冲突**：**`move_directory_with_conflict_resolution`**（`-jfk-xxxx`）。
-- **配置**：若 inbox 存在任一 **非关键字**第一层目录，须同时配置 **`files_misc`** 与各 **`folders_pic` / `folders_audio` / `folders_compressed` / `folders_video` / `folders_misc`**（与是否配置 **`folders_to_delete`** 独立）。
-- **dry_run**：不落盘，拆解 / 整目录迁移计数预览。
-- **扩展点**：新归宿桶或新拆解条件 → 本子阶段；新媒体类型通常先扩 **`organizer_defaults`** + **`RawAnalyzeConfig`** 注入，再在 2.4 判定中使用。
+```mermaid
+flowchart LR
+  subgraph p1 [阶段1]
+    F[第一层文件] --> M[files_misc]
+  end
+  subgraph p2 [阶段2 每层目录]
+    D[inbox 子目录] --> A[2.1 关键字整目录]
+    A -->|否| B[2.2 递归清洗]
+    B --> C[2.3 单链折叠]
+    C --> E[2.4 拆解或整目录归档]
+  end
+  subgraph p3 [阶段3]
+    M2[files_misc 第一层] --> J[3.0 junk→files_to_delete]
+    J --> R[3.x 按扩展名分流]
+  end
+  p1 --> p2
+  p2 --> p3
+```
 
 ---
 
-### 阶段 3：`files_misc` 第一层文件（3.0 junk 迁出 → 3.1–3.3 分流）
+## 共享口径（各阶段一致）
 
-**代码**：[`application/raw_pipeline/phase3.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase3.py)
-
-#### 阶段 3.0：`files_misc` 单层 junk 迁入 `files_to_delete`
-
-- **顺序**：先于扩展名分流；迁出之后的剩余文件再参与 **前置配置校验与移动**。
-- **规则**：第一层普通文件，`stem` 规范化后含任一 **`DEFAULT_RAW_JUNK_KEYWORDS`**（与阶段 2.1 / 2.2 stem 同源）→ 迁入 **`files_to_delete`**（**`normalize_move_basename`** + **`move_file_with_conflict_resolution`**，与阶段 1 / 2.4 一致）；**不按文件体积过滤**。
-- **配置**：若第一层存在任一 junk stem 命中文件，则 **`files_to_delete`** 必须已配置；否则 **报错并中止 run**。
-- **dry_run**：不落盘迁移；预览计数记入 **`phase3_deleted_junk_misc`**，且该类文件 **不进入**随后的分流预览队列（与非 dry_run 下「迁出后已无此文件」一致）。
-
-#### 阶段 3.1–3.3：扩展名分流
-
-- **范围**：仅 **`files_misc` 下一层普通文件**（不递归子目录），且为 **3.0 junk 迁出之后的剩余队列**。
-- **动作**：按扩展名将压缩 / 图片 / 音频分别迁入 **`files_compressed`**、**`files_pic`**、**`files_audio`**。
-- **视频**：扩展名命中 **`RawAnalyzeConfig.video_extensions`** 的文件 **暂不移动**（占位，后续专用逻辑）。
-- **其它扩展名**：视为未知，**保留在 `files_misc`**。
-- **命名 / 冲突**：**`normalize_move_basename`**（UTF-8 字节上限 + 为 `-jfk-xxxx` 预留）+ **`move_file_with_conflict_resolution`**（与阶段 1、阶段 2.4 拆解一致）。
-- **配置**：若 `files_misc` 中 **在 3.0 之后**仍存在待分流的压缩 / 图片 / 音频文件，则对应的 **`files_compressed` / `files_pic` / `files_audio`** 必须已配置；否则 **报错并中止 run**。若 junk 迁出与延后规则导致 **无**上述类型待分流文件，不要求配置对应目录。
-- **dry_run**：不落盘；对可归类的文件仅作预览日志，计数上视为已路由（与阶段 1 预览语义一致：**`phase3_deferred_files_misc`** 不含本会成功的分流预览）。
-- **统计**：**`phase3_deleted_junk_misc`** 为 3.0 迁入 `files_to_delete`（含 dry_run 预览）；**`phase3_seen_files_misc`** 为 **3.0 之后**进入分流循环的第一层文件数；**`phase3_deferred_files_misc`** 为其中未分流数量（视频占位 + 未知扩展名 + 迁移失败）。粗算：**3.0 前第一层文件数 ≈ `phase3_seen_files_misc + phase3_deleted_junk_misc`**（仅以计数还原时）。
-
-## 取消（`cancellation_event`）
-
-置位后在下列间隙检测并结束后续阶段：
-
-- **阶段 1**：每个第一层文件之间。
-- **阶段 2**：每个第一层目录开始前；**2.2** 目录扫描迭代中；**2.3** 折叠迁移子项时；**2.4** 拆解时每个文件之间。
+| 项 | 说明 |
+|----|------|
+| **junk 关键字** | [`organizer_defaults.DEFAULT_RAW_JUNK_KEYWORDS`](../src/j_file_kit/app/file_task/domain/organizer_defaults.py)；目录名 / stem 均经同一套规范化（NFKC、大小写无关等，见 `raw_pipeline/keywords`）。 |
+| **移动命名** | **`normalize_move_basename`** + **`move_file_with_conflict_resolution`**（`-jfk-xxxx`）；目录整块迁移用 **`move_directory_with_conflict_resolution`**。 |
+| **dry_run** | 不写盘；计数与日志仍按「将要发生的动作」累加（细粒度见各阶段源码）。 |
+| **取消** | `cancellation_event` 置位后：阶段 1 逐文件、阶段 2 目录边界与 2.2 扫描迭代等处退出（[`pipeline.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/pipeline.py)）。 |
 
 ---
 
-## 统计字段（run 级）
+## 产品常量（Raw 相关摘录）
 
-除聚合字段 `total_items` / `success_*` 等外，`FileTaskRunStatistics` 含 **`phase1_*` / `phase2_*` / `phase3_*`**，语义见领域模型 [`domain/task_run.py`](../src/j_file_kit/app/file_task/domain/task_run.py)。`phase2_*` 字段是对外稳定契约：内部可拆分为多个 `phase2_*` 模块实现，计数口径保持不变。
+| 符号 | 用途 |
+|------|------|
+| `DEFAULT_RAW_JUNK_KEYWORDS` | 2.1 目录 basename；2.2 / 3.0 文件 stem 子串匹配。 |
+| `DEFAULT_MISC_FILE_DELETE_EXTENSIONS` | 2.2 命中即删（**无体积上限**）。 |
+| `DEFAULT_RAW_PHASE22_JUNK_DELETE_MAX_BYTES` | **仅 2.2**：stem 命中 junk 时还须 **`st_size` 严格小于**该值（默认 **100MiB**）。 |
+| 媒体扩展名集合 | `DEFAULT_*_EXTENSIONS` → 注入 **`RawAnalyzeConfig`**，供 2.4 / 3 分流判定。 |
 
-总体架构见 [ARCHITECTURE.md](./ARCHITECTURE.md)。若与代码冲突，**以源码为准**。
+---
+
+## 阶段简表
+
+| 阶段 | 范围 | 动作摘要 | 必填配置（触发时） |
+|------|------|----------|----------------------|
+| **1** | inbox 下一层**文件** | 迁入 `files_misc`，写 `file_results` | 有待移文件时 `files_misc` |
+| **2.1** | 各第一层**目录** basename | 含 junk 关键字则**整目录**→ `folders_to_delete` | 有待迁目录时 `folders_to_delete` |
+| **2.2** | 未迁走的目录**整棵子树** | 删垃圾文件、自下而上删空目录；规则见下节 | — |
+| **2.3** | 仍存在的第一层目录 | 多层单链折叠为一层目录名（超长合并名有截断策略） | — |
+| **2.4** | 仍存在的第一层目录 | 小目录拆解→`files_misc`；否则按树内类型 **整目录**→ `folders_*` | 有待分类目录时 `files_misc` + 各 `folders_pic` / `audio` / `compressed` / `video` / `misc`（[`phase2_preflight.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_preflight.py)） |
+| **3.0** | `files_misc` **下一层文件** | stem 含 junk → **`files_to_delete`**（无体积条件） | 有待迁出 junk 文件时 `files_to_delete` |
+| **3.x** | 同上剩余队列 | zip/jpg/mp3…→ `files_compressed` / `files_pic` / `files_audio`；**视频扩展名暂留** `files_misc`；其余未知扩展名留驻 | 有待分流类型时对应 `files_*` |
+
+**编排**：[`phase2.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2.py)（`phase2_delete_move` / `clean` / `collapse` / `classify`）。
+
+---
+
+## 2.2 删除规则（递归目录内文件）
+
+命中 **任一** 则删除：`misc` 扩展名 **或** stem 含 junk 且 **体积 < `DEFAULT_RAW_PHASE22_JUNK_DELETE_MAX_BYTES`** **或** 0 字节文件。then 删产生的空目录（第一层目录删空则 `rmdir`）。
+
+**对照 3.0**：2.2 在「第一层子目录以内」递归；3.0 只在 **`files_misc` 单层**，junk 命中即迁入 `files_to_delete`，**无** 100MiB 门槛。
+
+---
+
+## 2.4 拆分一句话
+
+- **小目录**（仅文件、无子目录、≤5 个文件、类型为单一媒体类或「单一类+图片」）：文件进 **`files_misc`**（命名规则见源码）。
+- **否则**：按整棵树扩展名画像迁到某一 **`folders_*`**；unknown 扩展名等混合类型 → **`folders_misc`**。
+
+---
+
+## 阶段 3 计数（近似）
+
+- **`phase3_deleted_junk_misc`**：3.0 迁入 `files_to_delete`（含 dry_run）。
+- **`phase3_seen_files_misc`**：3.0 之后参与分流的文件数。
+- **`phase3_deferred_files_misc`**：未成功分流（视频占位、未知扩展、失败）。
+
+近似：`3.0 前 misc 第一层文件数 ≈ phase3_seen_files_misc + phase3_deleted_junk_misc`。
+
+完整字段语义：**[`domain/task_run.py`](../src/j_file_kit/app/file_task/domain/task_run.py)**。架构总览：**[ARCHITECTURE.md](./ARCHITECTURE.md)**。
