@@ -80,3 +80,47 @@ def test_amzn_only_routes_to_movie(
 
     assert (tmp_path / "files_video_movie" / "x_AMZN.mp4").read_text() == "m"
     assert counters.phase3_deferred_files_misc == 0
+
+
+# --- CamelCase 变体匹配测试 ---
+
+
+def test_classify_video_bucket_camelcase_dot_variant() -> None:
+    # Lethal.Hardcore.VR（点分隔）应命中 us_vr 桶
+    assert classify_video_bucket("Lethal.Hardcore.VR_clip") == "us_vr"
+
+
+def test_classify_video_bucket_camelcase_underscore_variant() -> None:
+    assert classify_video_bucket("Lethal_Hardcore_VR_clip") == "us_vr"
+
+
+def test_classify_video_bucket_camelcase_hyphen_variant() -> None:
+    assert classify_video_bucket("Lethal-Hardcore-VR.clip") == "us_vr"
+
+
+def test_classify_video_bucket_camelcase_space_variant() -> None:
+    assert classify_video_bucket("Lethal Hardcore VR clip") == "us_vr"
+
+
+def test_classify_video_bucket_camelcase_original_still_works() -> None:
+    assert classify_video_bucket("LethalHardcoreVR.clip") == "us_vr"
+
+
+def test_classify_video_bucket_vredging_dot_variant() -> None:
+    # VRedging 含 no_split 保护的 VR 词根，VR.edging 应命中 us_vr 桶
+    assert classify_video_bucket("VR.edging.scene") == "us_vr"
+
+
+def test_classify_video_bucket_slr_still_works() -> None:
+    # SLR 全大写，无变体展开，原始形式仍可命中
+    assert classify_video_bucket("SLR_scene.01") == "us_vr"
+
+
+def test_classify_video_bucket_hard_core_gangbang_dot_variant() -> None:
+    # HardCoreGangbang → Hard.Core.Gangbang
+    assert classify_video_bucket("Hard.Core.Gangbang.scene") == "us"
+
+
+def test_classify_video_bucket_camelcase_no_false_positive() -> None:
+    # 无 token 边界时不应命中
+    assert classify_video_bucket("XLethalHardcoreVRY") == "misc"

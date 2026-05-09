@@ -27,6 +27,7 @@ from j_file_kit.app.file_task.application.raw_analyze_config import (
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
 from j_file_kit.app.file_task.domain.organizer_defaults import (
+    DEFAULT_CAMELCASE_NO_SPLIT_WORDS,
     DEFAULT_RAW_JUNK_KEYWORDS,
     DEFAULT_RAW_VIDEO_BUCKET_JAV_KEYWORDS,
     DEFAULT_RAW_VIDEO_BUCKET_JAV_VR_KEYWORDS,
@@ -36,8 +37,28 @@ from j_file_kit.app.file_task.domain.organizer_defaults import (
 )
 from j_file_kit.shared.utils.file_utils import ensure_directory, sanitize_surrogate_str
 from j_file_kit.shared.utils.name_keyword_match import (
+    expand_keywords_camelcase,
     name_matches_any_keyword,
-    normalize_keyword_tokens,
+)
+
+# 各视频桶关键词及 junk 关键词的 CamelCase 变体展开，模块初始化时计算一次
+_JUNK_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
+    DEFAULT_RAW_JUNK_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
+)
+_MOVIE_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
+    DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
+)
+_US_VR_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
+    DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
+)
+_US_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
+    DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
+)
+_JAV_VR_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
+    DEFAULT_RAW_VIDEO_BUCKET_JAV_VR_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
+)
+_JAV_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
+    DEFAULT_RAW_VIDEO_BUCKET_JAV_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
 )
 
 
@@ -46,22 +67,23 @@ def classify_video_bucket(stem: str) -> str:
 
     返回值：``movie`` | ``us_vr`` | ``us`` | ``jav_vr`` | ``jav`` | ``misc``。
     ``misc`` 表示未命中任一关键字桶（迁入 ``files_video_misc``）。
+    关键词匹配使用 CamelCase 变体展开，``LethalHardcoreVR`` 可命中 ``Lethal.Hardcore.VR`` 等变体。
     """
-    if _stem_matches_any_bucket_keyword(stem, DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS):
+    if _stem_matches_any_bucket_keyword(stem, _MOVIE_KW_EX):
         return "movie"
-    if _stem_matches_any_bucket_keyword(stem, DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS):
+    if _stem_matches_any_bucket_keyword(stem, _US_VR_KW_EX):
         return "us_vr"
-    if _stem_matches_any_bucket_keyword(stem, DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS):
+    if _stem_matches_any_bucket_keyword(stem, _US_KW_EX):
         return "us"
-    if _stem_matches_any_bucket_keyword(stem, DEFAULT_RAW_VIDEO_BUCKET_JAV_VR_KEYWORDS):
+    if _stem_matches_any_bucket_keyword(stem, _JAV_VR_KW_EX):
         return "jav_vr"
-    if _stem_matches_any_bucket_keyword(stem, DEFAULT_RAW_VIDEO_BUCKET_JAV_KEYWORDS):
+    if _stem_matches_any_bucket_keyword(stem, _JAV_KW_EX):
         return "jav"
     return "misc"
 
 
-def _stem_matches_any_bucket_keyword(stem: str, keywords_raw: tuple[str, ...]) -> bool:
-    return name_matches_any_keyword(stem, keywords_raw)
+def _stem_matches_any_bucket_keyword(stem: str, keywords_ex: tuple[str, ...]) -> bool:
+    return name_matches_any_keyword(stem, keywords_ex)
 
 
 def _list_files_misc_level1(misc: Path) -> list[Path]:
@@ -252,11 +274,10 @@ def run_phase3(
         return
 
     level1_before = _list_files_misc_level1(misc)
-    junk_norm = normalize_keyword_tokens(DEFAULT_RAW_JUNK_KEYWORDS)
     files = _phase30_preclean_misc_level1(
         ctx,
         files=level1_before,
-        junk_keywords_norm=junk_norm,
+        junk_keywords_norm=_JUNK_KW_EX,
         cfg=ctx.analyze_config,
         dry_run=dry_run,
         counters=counters,

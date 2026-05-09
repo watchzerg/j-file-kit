@@ -11,9 +11,18 @@ from pathlib import Path
 
 from j_file_kit.app.file_task.application.config_common import InboxDeleteRules
 from j_file_kit.app.file_task.domain.organizer_defaults import (
+    DEFAULT_CAMELCASE_NO_SPLIT_WORDS,
     DEFAULT_RAW_JUNK_KEYWORDS,
 )
-from j_file_kit.shared.utils.name_keyword_match import name_contains_keyword
+from j_file_kit.shared.utils.name_keyword_match import (
+    expand_keywords_camelcase,
+    name_matches_any_keyword,
+)
+
+# junk 关键词的 CamelCase 变体展开，模块初始化时计算一次
+_JUNK_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
+    DEFAULT_RAW_JUNK_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
+)
 
 
 def check_inbox_delete_rules(path: Path, rules: InboxDeleteRules) -> str | None:
@@ -29,9 +38,8 @@ def check_inbox_delete_rules(path: Path, rules: InboxDeleteRules) -> str | None:
     stem = path.stem
     if stem in rules.exact_stems:
         return f"stem 完全匹配收件箱删除规则: {stem!r}"
-    for kw in DEFAULT_RAW_JUNK_KEYWORDS:
-        if name_contains_keyword(stem, kw):
-            return f"stem 包含收件箱删除关键字: {kw!r}"
+    if name_matches_any_keyword(stem, _JUNK_KW_EX):
+        return "stem 包含收件箱删除关键字"
     if rules.max_size_bytes is not None:
         try:
             file_size = path.stat().st_size

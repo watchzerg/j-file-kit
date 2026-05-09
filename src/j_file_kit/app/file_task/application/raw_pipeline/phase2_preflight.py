@@ -6,9 +6,15 @@
 from pathlib import Path
 
 from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
-from j_file_kit.app.file_task.domain.organizer_defaults import DEFAULT_RAW_JUNK_KEYWORDS
-from j_file_kit.shared.utils.name_keyword_match import (
-    normalize_keyword_tokens,
+from j_file_kit.app.file_task.domain.organizer_defaults import (
+    DEFAULT_CAMELCASE_NO_SPLIT_WORDS,
+    DEFAULT_RAW_JUNK_KEYWORDS,
+)
+from j_file_kit.shared.utils.name_keyword_match import expand_keywords_camelcase
+
+# junk 关键词的 CamelCase 变体展开，模块初始化时计算一次
+_JUNK_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
+    DEFAULT_RAW_JUNK_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
 )
 
 
@@ -24,9 +30,8 @@ def list_inbox_level1_dirs(scan_root: Path) -> list[Path]:
 
 
 def build_phase2_normalized_keywords() -> tuple[tuple[str, ...], tuple[str, ...]]:
-    """返回 `(第一层目录 basename tokens, junk stem tokens)`——本期共用 ``DEFAULT_RAW_JUNK_KEYWORDS``。"""
-    norm = normalize_keyword_tokens(DEFAULT_RAW_JUNK_KEYWORDS)
-    return norm, norm
+    """返回 ``(目录 basename 展开关键字, junk stem 展开关键字)``——共用 DEFAULT_RAW_JUNK_KEYWORDS 展开结果。"""
+    return _JUNK_KW_EX, _JUNK_KW_EX
 
 
 def validate_phase2_preflight_paths(
