@@ -55,7 +55,9 @@ def test_routes_each_video_keyword(
     assert counters.phase3_deferred_files_misc == 0
     assert list(misc.iterdir()) == []
     assert (tmp_path / "files_video_movie" / "m_AMZN.mp4").read_text() == "a"
-    assert (tmp_path / "files_video_us_vr" / "v_VirtualTaboo.mp4").read_text() == "b"
+    assert (
+        tmp_path / "files_video_us_vr" / "VirtualTaboo" / "v_VirtualTaboo.mp4"
+    ).read_text() == "b"
     assert (
         tmp_path / "files_video_us" / "HardCoreGangbang" / "u_HardCoreGangbang.mp4"
     ).read_text() == "c"
@@ -150,11 +152,56 @@ def test_classify_video_bucket_and_subdir_us_camelcase_variant_returns_original_
     )
 
 
-def test_classify_video_bucket_and_subdir_non_us_returns_none_subdir() -> None:
-    # 非 US 桶：movie / us_vr / misc 均返回 None 子目录名
+def test_classify_video_bucket_and_subdir_non_subdir_buckets_return_none() -> None:
+    # movie / jav_vr / misc 桶返回 None 子目录名；us 和 us_vr 桶返回关键词
     assert classify_video_bucket_and_subdir("x_AMZN_feature") == ("movie", None)
-    assert classify_video_bucket_and_subdir("v_VirtualTaboo_ep01") == ("us_vr", None)
     assert classify_video_bucket_and_subdir("unknown_stem") == ("misc", None)
+
+
+def test_classify_video_bucket_and_subdir_us_vr_returns_keyword() -> None:
+    # US_VR 桶命中时返回原始关键词作为子目录名
+    assert classify_video_bucket_and_subdir("v_VirtualTaboo_ep01") == (
+        "us_vr",
+        "VirtualTaboo",
+    )
+
+
+def test_classify_video_bucket_and_subdir_us_vr_camelcase_variant_returns_original_keyword() -> (
+    None
+):
+    # CamelCase 变体命中时，子目录名仍为原始关键词（非归一化变体）
+    assert classify_video_bucket_and_subdir("Lethal.Hardcore.VR.clip") == (
+        "us_vr",
+        "LethalHardcoreVR",
+    )
+
+
+def test_routes_us_vr_video_to_keyword_subdir(
+    tmp_path: Path,
+    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
+    phase_context_factory: Callable[[RawAnalyzeConfig], PhaseContext],
+) -> None:
+    # 集成验证：US_VR 视频文件实际落入 files_video_us_vr/{keyword}/ 子目录
+    misc = tmp_path / "files_misc"
+    misc.mkdir()
+    config = raw_analyze_config_factory(
+        tmp_path,
+        files_misc=misc,
+        files_compressed=tmp_path / "files_compressed",
+        files_pic=tmp_path / "files_pic",
+        files_audio=tmp_path / "files_audio",
+    )
+    (misc / "VirtualTaboo.scene.mp4").write_text("v")
+    (misc / "VirtualTaboo.scene.srt").write_text("s")
+
+    counters = RawPhaseCounters()
+    run_phase3(phase_context_factory(config), counters, dry_run=False)
+
+    subdir = tmp_path / "files_video_us_vr" / "VirtualTaboo"
+    assert (subdir / "VirtualTaboo.scene.mp4").read_text() == "v"
+    assert (subdir / "VirtualTaboo.scene.srt").read_text() == "s"
+    assert list(misc.iterdir()) == []
+    assert counters.phase3_deferred_files_misc == 0
 
 
 def test_classify_video_bucket_and_subdir_ordered_first_wins(

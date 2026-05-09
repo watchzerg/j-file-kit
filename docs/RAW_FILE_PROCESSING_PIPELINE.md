@@ -241,13 +241,13 @@ flowchart LR
 | 顺序 | 关键字常量 | 目标目录 |
 |------|-----------|---------|
 | 1 | `DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS` | `files_video_movie` |
-| 2 | `DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS` | `files_video_us_vr` |
+| 2 | `DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS` | `files_video_us_vr/{keyword}/` |
 | 3 | `DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS` | `files_video_us/{keyword}/` |
 | 4 | `DEFAULT_RAW_VIDEO_BUCKET_JAV_VR_KEYWORDS` | `files_video_jav_vr` |
 | 5 | `DEFAULT_RAW_VIDEO_BUCKET_JAV_KEYWORDS` | `files_video_jav`（当前空元组，实际不命中） |
 | 6 | 均未命中 | `files_video_misc` |
 
-**`files_video_us` 子目录分组**：US 桶关键词在桶内同样保序首中即止；命中的第一个**原始配置关键词**（如 `HardCoreGangbang`）作为子目录名，文件落入 `files_video_us/{keyword}/`。`files_video_us/` 本身不直接存放文件。
+**`files_video_us_vr` 和 `files_video_us` 子目录分组**：两桶关键词在桶内均保序首中即止；命中的第一个**原始配置关键词**（如 `VirtualTaboo`、`HardCoreGangbang`）作为子目录名，文件落入 `files_video_us_vr/{keyword}/` 或 `files_video_us/{keyword}/`。两目录本身不直接存放文件。
 
 **`DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS`（补充）**：
 
@@ -264,7 +264,7 @@ flowchart LR
 - `VRCosplayX`
 - `VirtualRealPorn`
 
-**log 字段**：`kind` 保持原值（`"video"` 或 `"subtitle"`），`video_bucket` 记录命中桶名，`video_subdir` 记录 US 桶命中的原始关键词（非 US 桶时无此字段）。
+**log 字段**：`kind` 保持原值（`"video"` 或 `"subtitle"`），`video_bucket` 记录命中桶名，`subdir` 记录 US_VR 或 US 桶命中的原始关键词（其余桶无此字段）。
 
 ---
 

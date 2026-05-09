@@ -49,8 +49,11 @@ _JUNK_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
 _MOVIE_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
     DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
 )
-_US_VR_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
-    DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
+# US_VR 桶：保留 (原始关键词, 归一化变体元组) 的有序结构，用于保序首中即止匹配并返回原始关键词
+_US_VR_KW_ORDERED: tuple[tuple[str, tuple[str, ...]], ...] = tuple(
+    (kw, expand_keyword_to_variants(kw, DEFAULT_CAMELCASE_NO_SPLIT_WORDS))
+    for kw in DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS
+    if kw
 )
 # US 桶：保留 (原始关键词, 归一化变体元组) 的有序结构，用于保序首中即止匹配并返回原始关键词
 _US_KW_ORDERED: tuple[tuple[str, tuple[str, ...]], ...] = tuple(
@@ -66,6 +69,18 @@ _JAV_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
 )
 
 
+def _find_first_us_vr_keyword_match(stem: str) -> str | None:
+    """按配置顺序匹配 US_VR 桶关键词，返回第一个命中的原始关键词；均未命中返回 None。
+
+    匹配保序（首中即止），命中时返回原始配置关键词（如 ``VirtualTaboo``），
+    而非归一化变体，用作 ``files_video_us_vr/`` 的子目录名。
+    """
+    for original_kw, variants in _US_VR_KW_ORDERED:
+        if name_matches_any_keyword(stem, variants):
+            return original_kw
+    return None
+
+
 def _find_first_us_keyword_match(stem: str) -> str | None:
     """按配置顺序匹配 US 桶关键词，返回第一个命中的原始关键词；均未命中返回 None。
 
@@ -79,17 +94,19 @@ def _find_first_us_keyword_match(stem: str) -> str | None:
 
 
 def classify_video_bucket_and_subdir(stem: str) -> tuple[str, str | None]:
-    """按产品顺序返回 (桶名, us子目录名)。
+    """按产品顺序返回 (桶名, 子目录名)。
 
     桶名：``movie`` | ``us_vr`` | ``us`` | ``jav_vr`` | ``jav`` | ``misc``。
-    us子目录名：仅当桶名为 ``us`` 时非 None，值为命中的原始配置关键词（如 ``HardCoreGangbang``），
-    用作 ``files_video_us/{keyword}/`` 子目录名。其余桶均返回 None。
-    关键词匹配使用 CamelCase 变体展开；US 桶内保序首中即止。
+    子目录名：桶名为 ``us_vr`` 或 ``us`` 时非 None，值为命中的原始配置关键词
+    （如 ``VirtualTaboo``、``HardCoreGangbang``），分别用作
+    ``files_video_us_vr/{keyword}/`` 和 ``files_video_us/{keyword}/`` 子目录名。
+    其余桶均返回 None。关键词匹配使用 CamelCase 变体展开；各桶内保序首中即止。
     """
     if name_matches_any_keyword(stem, _MOVIE_KW_EX):
         return "movie", None
-    if name_matches_any_keyword(stem, _US_VR_KW_EX):
-        return "us_vr", None
+    us_vr_kw = _find_first_us_vr_keyword_match(stem)
+    if us_vr_kw is not None:
+        return "us_vr", us_vr_kw
     us_kw = _find_first_us_keyword_match(stem)
     if us_kw is not None:
         return "us", us_kw
@@ -190,15 +207,15 @@ def _phase30_preclean_misc_level1(
 
 
 def _video_destination_root(
-    bucket: str, cfg: RawAnalyzeConfig, us_subdir: str | None = None
+    bucket: str, cfg: RawAnalyzeConfig, subdir: str | None = None
 ) -> Path:
     match bucket:
         case "movie":
             return cfg.files_video_movie
         case "us_vr":
-            return cfg.files_video_us_vr
+            return cfg.files_video_us_vr / subdir if subdir else cfg.files_video_us_vr
         case "us":
-            return cfg.files_video_us / us_subdir if us_subdir else cfg.files_video_us
+            return cfg.files_video_us / subdir if subdir else cfg.files_video_us
         case "jav_vr":
             return cfg.files_video_jav_vr
         case "jav":
@@ -230,7 +247,7 @@ def _move_routed_file(
     *,
     kind: str,
     video_bucket: str | None,
-    video_subdir: str | None = None,
+    subdir: str | None = None,
     dry_run: bool,
 ) -> bool:
     """迁移单个文件到目标目录；返回 True 表示成功（含 dry_run 预览），False 表示失败。"""
@@ -239,8 +256,8 @@ def _move_routed_file(
     extra: dict[str, str] = {"kind": kind}
     if video_bucket is not None:
         extra["video_bucket"] = video_bucket
-    if video_subdir is not None:
-        extra["video_subdir"] = video_subdir
+    if subdir is not None:
+        extra["subdir"] = subdir
 
     if dry_run:
         logger.bind(
@@ -325,15 +342,15 @@ def run_phase3(
 
         if kind in ("video", "subtitle"):
             # 字幕与视频共用桶路由：stem 关键字匹配决定目标 files_video_* 目录
-            bucket, us_subdir = classify_video_bucket_and_subdir(path.stem)
-            dest_root = _video_destination_root(bucket, ctx.analyze_config, us_subdir)
+            bucket, subdir = classify_video_bucket_and_subdir(path.stem)
+            dest_root = _video_destination_root(bucket, ctx.analyze_config, subdir)
             ok = _move_routed_file(
                 ctx,
                 path,
                 dest_root,
                 kind=kind,
                 video_bucket=bucket,
-                video_subdir=us_subdir,
+                subdir=subdir,
                 dry_run=dry_run,
             )
         else:
