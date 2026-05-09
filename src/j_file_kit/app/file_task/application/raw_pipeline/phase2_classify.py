@@ -44,6 +44,8 @@ def _media_kind_flat(suffix: str, cfg: RawAnalyzeConfig) -> str | None:
         return "audio"
     if ext in cfg.archive_extensions:
         return "archive"
+    if ext in cfg.subtitle_extensions:
+        return "subtitle"
     return None
 
 
@@ -65,7 +67,10 @@ def _media_kind_dir(suffix: str, cfg: RawAnalyzeConfig) -> str:
 def _flatten_kinds_allowed(kinds: set[str]) -> bool:
     if len(kinds) == 1:
         return True
-    return len(kinds) == 2 and "image" in kinds
+    if len(kinds) == 2 and "image" in kinds:
+        return True
+    # 字幕是视频的伴随类型：video 可额外带 subtitle / image（或两者同时）
+    return "video" in kinds and kinds <= {"video", "subtitle", "image"}
 
 
 def should_flatten_small_dir(files: list[Path], cfg: RawAnalyzeConfig) -> bool:
@@ -99,7 +104,7 @@ def _whole_dir_destination_for_kinds(
         return audio, "audio"
     if kinds <= {"archive", "image"} and "archive" in kinds:
         return compressed, "compressed"
-    if kinds <= {"video", "image"} and "video" in kinds:
+    if kinds <= {"video", "image", "subtitle"} and "video" in kinds:
         return video, "video"
     return misc_root, "misc"
 

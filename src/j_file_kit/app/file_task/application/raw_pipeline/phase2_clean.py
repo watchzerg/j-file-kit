@@ -1,6 +1,6 @@
 """Raw 阶段 2.2：第一层目录内垃圾文件删除与空目录收缩。
 
-junk stem 删除须满足 ``organizer_defaults.DEFAULT_RAW_PHASE22_JUNK_DELETE_MAX_BYTES``（默认 100MiB）。
+junk stem 删除须满足 ``organizer_defaults.DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES``（默认 100MiB）。
 """
 
 import threading
@@ -141,7 +141,7 @@ def clean_level1_dir(
     若第一层目录被删空则 ``rmdir``。返回 ``True`` 表示已请求取消。
     """
     misc_ext = DEFAULT_MISC_FILE_DELETE_EXTENSIONS
-    junk_max = organizer_defaults.DEFAULT_RAW_PHASE22_JUNK_DELETE_MAX_BYTES
+    junk_max = organizer_defaults.DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES
     root_resolved = root_dir.resolve(strict=False)
 
     try:

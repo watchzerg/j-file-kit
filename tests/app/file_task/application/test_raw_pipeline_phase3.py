@@ -14,7 +14,7 @@ from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeCo
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
 from j_file_kit.app.file_task.application.raw_pipeline.phase3 import (
-    classify_phase34_video_bucket,
+    classify_video_bucket,
     run_phase3,
 )
 from j_file_kit.shared.utils.name_keyword_match import name_contains_keyword
@@ -310,15 +310,15 @@ def test_name_contains_keyword_case_insensitive() -> None:
     assert name_contains_keyword("Foo_AMZN_bar", "amzn")
 
 
-def test_classify_phase34_movie_wins_over_us_vr() -> None:
-    assert classify_phase34_video_bucket("AMZN_VirtualTaboo_x") == "movie"
+def test_classify_movie_wins_over_us_vr() -> None:
+    assert classify_video_bucket("AMZN_VirtualTaboo_x") == "movie"
 
 
-def test_classify_phase34_jav_empty_keywords_goes_misc() -> None:
-    assert classify_phase34_video_bucket("jav_only_stem") == "misc"
+def test_classify_jav_empty_keywords_goes_misc() -> None:
+    assert classify_video_bucket("jav_only_stem") == "misc"
 
 
-def test_phase34_routes_each_keyword_bucket(
+def test_video_bucket_routes_each_keyword(
     tmp_path: Path,
     raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
 ) -> None:
@@ -347,7 +347,7 @@ def test_phase34_routes_each_keyword_bucket(
     assert (tmp_path / "files_video_jav_vr" / "jv_JAV-VR.mp4").read_text() == "d"
 
 
-def test_phase34_amzn_only_routes_to_movie_bucket(
+def test_video_bucket_amzn_only_routes_to_movie(
     tmp_path: Path,
     raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
 ) -> None:
@@ -369,7 +369,7 @@ def test_phase34_amzn_only_routes_to_movie_bucket(
     assert counters.phase3_deferred_files_misc == 0
 
 
-def test_phase34_video_conflict_resolution(
+def test_video_bucket_conflict_resolution(
     tmp_path: Path,
     raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
 ) -> None:
@@ -398,7 +398,7 @@ def test_phase34_video_conflict_resolution(
     assert {p.read_text() for p in in_misc_bucket} == {"old", "new"}
 
 
-def test_phase34_truncates_long_video_basename(
+def test_video_bucket_truncates_long_basename(
     tmp_path: Path,
     raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
 ) -> None:
@@ -429,7 +429,7 @@ def test_phase34_truncates_long_video_basename(
     )
 
 
-def test_phase34_preclean_removes_junk_video_before_keyword_routing(
+def test_video_bucket_preclean_removes_junk_before_routing(
     tmp_path: Path,
     raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
 ) -> None:

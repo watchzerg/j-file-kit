@@ -127,7 +127,7 @@ def test_phase2_clean_skips_junk_stem_when_file_not_under_100mib(
 ) -> None:
     """junk stem 命中但体积 ≥ 阈值时不删；阈值可通过 organizer_defaults 猴子补丁。"""
     monkeypatch.setattr(
-        "j_file_kit.app.file_task.domain.organizer_defaults.DEFAULT_RAW_PHASE22_JUNK_DELETE_MAX_BYTES",
+        "j_file_kit.app.file_task.domain.organizer_defaults.DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES",
         50,
     )
     inbox = tmp_path / "inbox"

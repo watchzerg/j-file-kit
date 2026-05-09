@@ -25,11 +25,11 @@ from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseConte
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_RAW_JUNK_KEYWORDS,
-    DEFAULT_RAW_PHASE34_VIDEO_JAV_KEYWORDS,
-    DEFAULT_RAW_PHASE34_VIDEO_JAV_VR_KEYWORDS,
-    DEFAULT_RAW_PHASE34_VIDEO_MOVIE_KEYWORDS,
-    DEFAULT_RAW_PHASE34_VIDEO_US_KEYWORDS,
-    DEFAULT_RAW_PHASE34_VIDEO_US_VR_KEYWORDS,
+    DEFAULT_RAW_VIDEO_BUCKET_JAV_KEYWORDS,
+    DEFAULT_RAW_VIDEO_BUCKET_JAV_VR_KEYWORDS,
+    DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS,
+    DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS,
+    DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS,
 )
 from j_file_kit.shared.utils.file_utils import ensure_directory, sanitize_surrogate_str
 from j_file_kit.shared.utils.name_keyword_match import (
@@ -38,32 +38,26 @@ from j_file_kit.shared.utils.name_keyword_match import (
 )
 
 
-def classify_phase34_video_bucket(stem: str) -> str:
+def classify_video_bucket(stem: str) -> str:
     """按产品顺序返回视频归宿桶标识（首个关键字命中即停）。
 
     返回值：``movie`` | ``us_vr`` | ``us`` | ``jav_vr`` | ``jav`` | ``misc``。
     ``misc`` 表示未命中任一关键字桶（迁入 ``files_video_misc``）。
     """
-    if _stem_matches_any_phase34_keyword(
-        stem, DEFAULT_RAW_PHASE34_VIDEO_MOVIE_KEYWORDS
-    ):
+    if _stem_matches_any_bucket_keyword(stem, DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS):
         return "movie"
-    if _stem_matches_any_phase34_keyword(
-        stem, DEFAULT_RAW_PHASE34_VIDEO_US_VR_KEYWORDS
-    ):
+    if _stem_matches_any_bucket_keyword(stem, DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS):
         return "us_vr"
-    if _stem_matches_any_phase34_keyword(stem, DEFAULT_RAW_PHASE34_VIDEO_US_KEYWORDS):
+    if _stem_matches_any_bucket_keyword(stem, DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS):
         return "us"
-    if _stem_matches_any_phase34_keyword(
-        stem, DEFAULT_RAW_PHASE34_VIDEO_JAV_VR_KEYWORDS
-    ):
+    if _stem_matches_any_bucket_keyword(stem, DEFAULT_RAW_VIDEO_BUCKET_JAV_VR_KEYWORDS):
         return "jav_vr"
-    if _stem_matches_any_phase34_keyword(stem, DEFAULT_RAW_PHASE34_VIDEO_JAV_KEYWORDS):
+    if _stem_matches_any_bucket_keyword(stem, DEFAULT_RAW_VIDEO_BUCKET_JAV_KEYWORDS):
         return "jav"
     return "misc"
 
 
-def _stem_matches_any_phase34_keyword(stem: str, keywords_raw: tuple[str, ...]) -> bool:
+def _stem_matches_any_bucket_keyword(stem: str, keywords_raw: tuple[str, ...]) -> bool:
     return name_matches_any_keyword(stem, keywords_raw)
 
 
@@ -167,6 +161,8 @@ def _classify_misc_file_suffix(suffix: str, cfg: RawAnalyzeConfig) -> str | None
         return "audio"
     if ext in cfg.archive_extensions:
         return "archive"
+    if ext in cfg.subtitle_extensions:
+        return "subtitle"
     return None
 
 
@@ -195,9 +191,7 @@ def _video_destination_root(bucket: str, cfg: RawAnalyzeConfig) -> Path:
             raise RuntimeError(msg)
 
 
-def _preflight_phase34_video_destinations(
-    files: list[Path], cfg: RawAnalyzeConfig
-) -> None:
+def _preflight_video_destinations(files: list[Path], cfg: RawAnalyzeConfig) -> None:
     """视频桶归宿均由 workspace 派生。"""
     _ = files
     _ = cfg
@@ -249,15 +243,16 @@ def run_phase3(
     )
     counters.phase3_seen_files_misc = len(files)
     _preflight_phase3_destinations(files, ctx.analyze_config)
-    _preflight_phase34_video_destinations(files, ctx.analyze_config)
+    _preflight_video_destinations(files, ctx.analyze_config)
 
     deferred = 0
     routed_ok = 0
 
     for path in files:
         kind = _classify_misc_file_suffix(path.suffix, ctx.analyze_config)
-        if kind == "video":
-            bucket = classify_phase34_video_bucket(path.stem)
+        if kind in ("video", "subtitle"):
+            # 字幕与视频共用桶路由：stem 关键字匹配决定目标 files_video_* 目录
+            bucket = classify_video_bucket(path.stem)
             dest_root = _video_destination_root(bucket, ctx.analyze_config)
 
             basename = normalize_move_basename(sanitize_surrogate_str(path.name))
@@ -271,11 +266,11 @@ def run_phase3(
                     level="RAW_PHASE",
                     phase=3,
                     subphase="route_preview",
-                    kind="video",
+                    kind=kind,
                     video_bucket=bucket,
                     source=str(path),
                     target=str(target),
-                ).info("阶段3（dry_run）：预览视频分流")
+                ).info("阶段3（dry_run）：预览视频/字幕分流")
                 continue
 
             try:
@@ -288,11 +283,11 @@ def run_phase3(
                     level="RAW_PHASE",
                     phase=3,
                     subphase="route",
-                    kind="video",
+                    kind=kind,
                     video_bucket=bucket,
                     source=str(path),
                     target=str(final),
-                ).info("阶段3：视频已分流")
+                ).info("阶段3：视频/字幕已分流")
             except (OSError, RuntimeError) as e:
                 deferred += 1
                 logger.bind(
@@ -301,11 +296,11 @@ def run_phase3(
                     level="RAW_PHASE",
                     phase=3,
                     subphase="route_error",
-                    kind="video",
+                    kind=kind,
                     video_bucket=bucket,
                     source=str(path),
                     error=str(e),
-                ).error("阶段3：视频分流失败")
+                ).error("阶段3：视频/字幕分流失败")
             continue
 
         if kind is None:
