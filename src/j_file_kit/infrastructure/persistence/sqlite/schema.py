@@ -23,6 +23,7 @@ class SQLiteSchemaInitializer:
         with lock:
             cursor = conn.cursor()
             self._create_tables(cursor)
+            self._migrate_tables(cursor)
             self._create_indexes(cursor)
             conn.commit()
 
@@ -34,6 +35,7 @@ class SQLiteSchemaInitializer:
                 run_name TEXT NOT NULL,
                 task_type TEXT NOT NULL,
                 trigger_type TEXT NOT NULL,
+                dry_run INTEGER NOT NULL DEFAULT 0,
                 status TEXT NOT NULL,
                 start_time TEXT NOT NULL,
                 end_time TEXT,
@@ -62,6 +64,14 @@ class SQLiteSchemaInitializer:
             )
             """,
         )
+
+    def _migrate_tables(self, cursor: sqlite3.Cursor) -> None:
+        cursor.execute("PRAGMA table_info(file_task_runs)")
+        columns = {row[1] for row in cursor.fetchall()}
+        if "dry_run" not in columns:
+            cursor.execute(
+                "ALTER TABLE file_task_runs ADD COLUMN dry_run INTEGER NOT NULL DEFAULT 0",
+            )
 
     def _create_indexes(self, cursor: sqlite3.Cursor) -> None:
         cursor.execute(

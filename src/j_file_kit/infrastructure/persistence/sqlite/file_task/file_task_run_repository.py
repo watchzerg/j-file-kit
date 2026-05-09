@@ -11,6 +11,7 @@ from typing import Any
 
 from j_file_kit.app.file_task.domain.task_run import (
     FileTaskRun,
+    FileTaskRunStatistics,
     FileTaskRunStatus,
     FileTaskTriggerType,
 )
@@ -43,17 +44,25 @@ class FileTaskRunRepositoryImpl:
         Returns:
             FileTaskRun 对象
         """
+        statistics = None
+        if row["statistics"]:
+            statistics = FileTaskRunStatistics.model_validate(
+                json.loads(row["statistics"]),
+            )
+
         return FileTaskRun(
             run_id=row["run_id"],
             run_name=row["run_name"],
             task_type=row["task_type"],
             trigger_type=FileTaskTriggerType(row["trigger_type"]),
+            dry_run=bool(row["dry_run"]),
             status=FileTaskRunStatus(row["status"]),
             start_time=datetime.fromisoformat(row["start_time"]),
             end_time=datetime.fromisoformat(row["end_time"])
             if row["end_time"]
             else None,
             error_message=row["error_message"],
+            statistics=statistics,
         )
 
     def create_run(
@@ -63,6 +72,7 @@ class FileTaskRunRepositoryImpl:
         trigger_type: FileTaskTriggerType,
         status: FileTaskRunStatus,
         start_time: datetime,
+        dry_run: bool = False,
     ) -> int:
         """创建执行实例记录，返回生成的 run_id
 
@@ -72,6 +82,7 @@ class FileTaskRunRepositoryImpl:
             trigger_type: 触发类型
             status: 执行状态
             start_time: 开始时间
+            dry_run: 是否为预览模式
 
         Returns:
             生成的执行实例ID
@@ -79,13 +90,17 @@ class FileTaskRunRepositoryImpl:
         with self._conn_manager.get_cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO file_task_runs (run_name, task_type, trigger_type, status, start_time, end_time, error_message)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO file_task_runs (
+                    run_name, task_type, trigger_type, dry_run, status,
+                    start_time, end_time, error_message
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     run_name,
                     task_type,
                     trigger_type.value,
+                    int(dry_run),
                     status.value,
                     start_time.isoformat(),
                     None,

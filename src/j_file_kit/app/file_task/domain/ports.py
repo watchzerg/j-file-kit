@@ -34,6 +34,7 @@ class FileTaskRunRepository(Protocol):
         trigger_type: FileTaskTriggerType,
         status: FileTaskRunStatus,
         start_time: datetime,
+        dry_run: bool = False,
     ) -> int:
         """创建执行实例记录，返回生成的 run_id
 
@@ -43,6 +44,7 @@ class FileTaskRunRepository(Protocol):
             trigger_type: 触发类型
             status: 执行状态
             start_time: 开始时间
+            dry_run: 是否为预览模式
 
         Returns:
             生成的执行实例 ID

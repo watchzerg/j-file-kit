@@ -7,6 +7,8 @@
 - GET /：列出所有执行实例
 """
 
+from datetime import datetime
+
 from fastapi import APIRouter, HTTPException, Request, status
 
 from j_file_kit.api.app_state import AppState
@@ -27,7 +29,8 @@ from j_file_kit.app.file_task.domain.constants import (
 )
 from j_file_kit.app.file_task.domain.task_config import TaskConfig
 from j_file_kit.app.file_task.domain.task_run import (
-    FileTaskRunStatus,
+    FileTaskRun,
+    FileTaskRunStatistics,
     FileTaskTriggerType,
 )
 from j_file_kit.app.file_task.domain.task_runner import FileTaskRunner
@@ -109,6 +112,19 @@ def _new_task_instance(task_type: str, app_state: AppState) -> FileTaskRunner:
     )
 
 
+def _duration_ms(run: FileTaskRun) -> float:
+    end_time = run.end_time or datetime.now()
+    return max(0.0, (end_time - run.start_time).total_seconds() * 1000)
+
+
+def _statistics_for_run(run: FileTaskRun, app_state: AppState) -> FileTaskRunStatistics:
+    if run.statistics is not None:
+        return run.statistics
+
+    stats = app_state.file_result_repository.get_statistics(run.run_id)
+    return FileTaskRunStatistics.model_validate(stats)
+
+
 @router.post("/{task_type}/start", response_model=StartTaskResponse)
 async def start_task(
     task_type: str,
@@ -152,6 +168,7 @@ async def start_task(
         run_id=run_id,
         run_name=run.run_name,
         status=run.status,
+        dry_run=run.dry_run,
     )
 
 
@@ -198,19 +215,20 @@ async def get_run_status(
     run_id_int = _parse_run_id(run_id)
     run = app_state.file_task_run_manager.get_run(run_id_int)
 
-    total_items = None
-    if run.status in (FileTaskRunStatus.COMPLETED, FileTaskRunStatus.RUNNING):
-        stats = app_state.file_result_repository.get_statistics(run_id_int)
-        total_items = stats.get("total_items")
+    statistics = _statistics_for_run(run, app_state)
 
     return FileTaskRunStatusResponse(
         run_id=run_id_int,
         run_name=run.run_name,
+        task_type=run.task_type,
+        trigger_type=run.trigger_type,
+        dry_run=run.dry_run,
         status=run.status,
         start_time=run.start_time,
         end_time=run.end_time,
         error_message=run.error_message,
-        total_items=total_items,
+        duration_ms=_duration_ms(run),
+        statistics=statistics,
     )
 
 

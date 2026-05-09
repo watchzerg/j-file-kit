@@ -41,6 +41,7 @@ class TestStartTask:
         assert data["run_id"] > 0
         assert "run_name" in data
         assert "status" in data
+        assert data["dry_run"] is False
 
     def test_start_task_invalid_task_type(self, client) -> None:
         """未知任务类型返回 404"""
@@ -90,6 +91,52 @@ class TestGetRunStatus:
         assert "run_name" in data
         assert "status" in data
         assert "start_time" in data
+        assert data["task_type"] == task_type
+        assert data["trigger_type"] == "manual"
+        assert data["dry_run"] is False
+        assert "duration_ms" in data
+        assert data["statistics"]["total_items"] >= 0
+
+    def test_get_run_status_returns_detail_statistics(self, client) -> None:
+        """详情接口返回 dry_run、耗时和完整统计快照。"""
+        app_state = client.app.state.app_state
+        start_time = datetime(2024, 1, 1, 12, 0, 0)
+        end_time = datetime(2024, 1, 1, 12, 0, 1)
+        run_id = app_state.file_task_run_repository.create_run(
+            run_name="raw-detail",
+            task_type=TASK_TYPE_RAW_FILE_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.PENDING,
+            start_time=start_time,
+            dry_run=True,
+        )
+        app_state.file_task_run_repository.update_run(
+            run_id,
+            status=FileTaskRunStatus.COMPLETED,
+            end_time=end_time,
+            statistics={
+                "total_items": 3,
+                "success_items": 2,
+                "error_items": 1,
+                "phase1_seen_files": 7,
+                "phase3_deferred_files_misc": 4,
+            },
+        )
+
+        response = client.get(f"/api/tasks/{run_id}")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["run_id"] == run_id
+        assert data["task_type"] == TASK_TYPE_RAW_FILE_ORGANIZER
+        assert data["trigger_type"] == "manual"
+        assert data["dry_run"] is True
+        assert data["duration_ms"] == 1000
+        assert data["statistics"]["total_items"] == 3
+        assert data["statistics"]["success_items"] == 2
+        assert data["statistics"]["error_items"] == 1
+        assert data["statistics"]["phase1_seen_files"] == 7
+        assert data["statistics"]["phase3_deferred_files_misc"] == 4
 
     def test_get_run_status_not_found(self, client) -> None:
         """不存在的 run_id 返回 404"""

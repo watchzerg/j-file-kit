@@ -111,6 +111,7 @@ class FileTaskRunManager:
                 trigger_type=trigger_type,
                 status=FileTaskRunStatus.PENDING,
                 start_time=start_time,
+                dry_run=dry_run,
             )
 
             cancellation_event = threading.Event()

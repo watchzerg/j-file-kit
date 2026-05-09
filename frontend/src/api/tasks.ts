@@ -3,8 +3,9 @@ import { apiClient } from "./client";
 import type {
   ActiveFileTaskRunResponse,
   CancelFileTaskRunResponse,
+  FileTaskRunDetailResponse,
   FileTaskRunListResponse,
-  FileTaskRunStatusResponse,
+  FileTaskRunStatus,
   StartTaskRequest,
   StartTaskResponse,
 } from "./types";
@@ -20,7 +21,7 @@ const POLL_INTERVAL_MS = 2_000;
 const ACTIVE_RUN_POLL_INTERVAL_MS = 3_000;
 const RECENT_RUNS_LIMIT = 10;
 
-function isActiveStatus(status: FileTaskRunStatusResponse["status"]) {
+function isActiveStatus(status: FileTaskRunStatus) {
   return status === "pending" || status === "running";
 }
 
@@ -51,11 +52,11 @@ export function useActiveTaskRun() {
   });
 }
 
-export function useTaskRunStatus(runId: number | null) {
+export function useTaskRunDetail(runId: number | null) {
   return useQuery({
     queryKey: ["tasks", "runs", runId],
     queryFn: () =>
-      apiClient.get<FileTaskRunStatusResponse>(`/api/tasks/${runId}`),
+      apiClient.get<FileTaskRunDetailResponse>(`/api/tasks/${runId}`),
     enabled: runId !== null,
     refetchInterval: (query) =>
       query.state.data && isActiveStatus(query.state.data.status)

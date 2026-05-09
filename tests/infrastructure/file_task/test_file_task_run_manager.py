@@ -77,6 +77,22 @@ class TestFileTaskRunManager:
         run_id = manager.start_run(mock_task)
         assert run_id == 42
         mock_repo.create_run.assert_called_once()
+        assert mock_repo.create_run.call_args.kwargs["dry_run"] is False
+
+    def test_start_run_persists_dry_run(
+        self,
+        mock_repo: MagicMock,
+        mock_task: MagicMock,
+    ) -> None:
+        mock_repo.get_active_run.return_value = None
+        mock_repo.get_pending_or_running_runs.return_value = []
+        mock_repo.create_run.return_value = 42
+        manager = FileTaskRunManager(mock_repo)
+
+        run_id = manager.start_run(mock_task, dry_run=True)
+
+        assert run_id == 42
+        assert mock_repo.create_run.call_args.kwargs["dry_run"] is True
 
     def test_start_run_when_running_raises(
         self,

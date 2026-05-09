@@ -278,14 +278,15 @@
 
 - **M1：骨架已完成**。完成记录见 [`FE-M1.md`](./FE-M1.md)。
 - **M2：Dashboard MVP 已完成**。完成记录见 [`FE-M2.md`](./FE-M2.md)。
-- **下一阶段准备进行 M3：任务详情 MVP**。重点是概览 Tab、完整 run detail、Raw phase 统计与取消 / 重跑操作。
+- **M3：任务详情 MVP 已完成**。完成记录见 [`FE-M3.md`](./FE-M3.md)。
+- **下一阶段准备进行 M4：任务列表 MVP**。重点是筛选、分页、列表行操作，以及扩展 list 接口的简报字段。
 
 | 阶段 | 状态 | 范围 | 依赖后端 |
 |------|------|------|----------|
 | **M1：骨架** | 已完成 | AppShell + 路由扩展（`/tasks`、`/tasks/:runId`）+ 现有页面占位重构 | 无 |
 | **M2：Dashboard MVP** | 已完成 | NewTaskPanel（双卡）+ RecentRunsList（用现有 list 接口，简报字段先空） + GlobalRunBanner | A6 已完成；A1 简报字段仍待 M4 |
-| **M3：任务详情 MVP** | 下一步 | 概览 Tab（含 Raw phase 卡片） + 取消 / 重跑 | A2（必须） |
-| **M4：任务列表 MVP** | 待做 | 筛选 + 分页 + 行操作（不含删除） | A1（必须） |
+| **M3：任务详情 MVP** | 已完成 | 概览 Tab（含 Raw phase 卡片） + 取消 / 重跑 | A2 已完成 |
+| **M4：任务列表 MVP** | 下一步 | 筛选 + 分页 + 行操作（不含删除） | A1（必须） |
 | **M5：配置中心** | 待做 | JAV / Raw 表单 + MediaPickerDialog | B1（推荐） |
 | **M6：文件结果 Tab** | 待做 | 详情页 Tab B | A3（必须） |
 | **M7：日志 Tab + 删除** | 待做 | 详情页 Tab C + 列表/详情删除按钮 | A5、A4 |

@@ -30,7 +30,6 @@ describe("App routes", () => {
   it("renders all M1 routes", () => {
     const routes = [
       { path: "/tasks", heading: "任务列表" },
-      { path: "/tasks/123", heading: "任务详情 #123" },
       { path: "/config", heading: "任务配置" },
       { path: "/media", heading: "媒体目录" },
     ];
@@ -45,6 +44,23 @@ describe("App routes", () => {
 
       unmount();
     }
+  });
+
+  it("renders task detail overview", async () => {
+    renderAt("/tasks/123");
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "raw_file_organizer-manual-20260510010101000",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Raw 文件整理")).toBeInTheDocument();
+    expect(screen.getByText("Dry Run")).toBeInTheDocument();
+    expect(screen.getByText("统计概览")).toBeInTheDocument();
+    expect(screen.getByText("Raw 阶段统计")).toBeInTheDocument();
+    expect(screen.getByText("阶段 1：收散落文件")).toBeInTheDocument();
+    expect(screen.getByText("暂留 files_misc")).toBeInTheDocument();
+    expect(screen.getByText("12")).toBeInTheDocument();
   });
 
   it("navigates with TopNav and marks only the matching link active", async () => {
@@ -67,12 +83,14 @@ describe("App routes", () => {
     expect(dashboardLink).toHaveClass("text-muted-foreground");
   });
 
-  it("switches task detail placeholder tabs locally", async () => {
+  it("keeps later task detail tabs as placeholders", async () => {
     const user = userEvent.setup();
     renderAt("/tasks/123");
 
     expect(
-      screen.getByText("[区块占位] 当前 Tab 内容：概览"),
+      await screen.findByRole("heading", {
+        name: "raw_file_organizer-manual-20260510010101000",
+      }),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole("tab", { name: "日志（M7 实现）" }));
@@ -124,6 +142,7 @@ describe("App routes", () => {
           run_id: 77,
           run_name: "jav-run",
           status: "pending",
+          dry_run: true,
         });
       }),
     );
@@ -147,6 +166,94 @@ describe("App routes", () => {
       });
       expect(window.location.pathname).toBe("/tasks/77");
     });
+  });
+
+  it("restarts a task detail with the same dry run setting", async () => {
+    const user = userEvent.setup();
+    const startHandler = vi.fn();
+    server.use(
+      http.post("/api/tasks/raw_file_organizer/start", async ({ request }) => {
+        startHandler(await request.json());
+        return HttpResponse.json({
+          run_id: 55,
+          run_name: "raw-rerun",
+          status: "pending",
+          dry_run: true,
+        });
+      }),
+    );
+
+    renderAt("/tasks/123");
+
+    await user.click(await screen.findByRole("button", { name: "重跑" }));
+
+    await waitFor(() => {
+      expect(startHandler).toHaveBeenCalledWith({
+        dry_run: true,
+        trigger_type: "manual",
+      });
+      expect(window.location.pathname).toBe("/tasks/55");
+    });
+  });
+
+  it("cancels a running task from the detail page", async () => {
+    const user = userEvent.setup();
+    const cancelHandler = vi.fn();
+    server.use(
+      http.get("/api/tasks/321", () =>
+        HttpResponse.json({
+          run_id: 321,
+          run_name: "running-detail",
+          task_type: "jav_video_organizer",
+          trigger_type: "manual",
+          dry_run: false,
+          status: "running",
+          start_time: new Date().toISOString(),
+          end_time: null,
+          error_message: null,
+          duration_ms: 0,
+          statistics: {
+            total_items: 0,
+            success_items: 0,
+            error_items: 0,
+            skipped_items: 0,
+            warning_items: 0,
+            total_duration_ms: 0,
+            phase1_seen_files: 0,
+            phase1_moved_files: 0,
+            phase1_error_files: 0,
+            phase2_seen_dirs: 0,
+            phase2_moved_to_delete_dirs: 0,
+            phase2_cleaned_deleted_files: 0,
+            phase2_cleaned_deleted_empty_dirs: 0,
+            phase2_removed_dirs: 0,
+            phase2_collapsed_chain_dirs: 0,
+            phase2_skipped_collapse_dirs: 0,
+            phase2_flattened_dirs: 0,
+            phase2_flattened_files: 0,
+            phase2_moved_to_pic_dirs: 0,
+            phase2_moved_to_audio_dirs: 0,
+            phase2_moved_to_compressed_dirs: 0,
+            phase2_moved_to_video_dirs: 0,
+            phase2_moved_to_misc_dirs: 0,
+            phase2_classification_errors: 0,
+            phase3_seen_files_misc: 0,
+            phase3_deleted_junk_misc: 0,
+            phase3_deferred_files_misc: 0,
+          },
+        }),
+      ),
+      http.post("/api/tasks/321/cancel", () => {
+        cancelHandler();
+        return HttpResponse.json({ run_id: 321, message: "任务已取消" });
+      }),
+    );
+
+    renderAt("/tasks/321");
+
+    await user.click(await screen.findByRole("button", { name: "取消" }));
+
+    await waitFor(() => expect(cancelHandler).toHaveBeenCalledOnce());
   });
 
   it("cancels the active run from the global banner", async () => {
