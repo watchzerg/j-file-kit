@@ -170,13 +170,17 @@ class FileTaskRunStatistics(BaseModel):
     )
     phase3_seen_files_misc: int = Field(
         0,
-        description="Raw：阶段3 开始时 files_misc 下第一层文件数",
+        description=("Raw：阶段3.0 之后 files_misc 下第一层进入分流循环的文件数"),
+    )
+    phase3_deleted_junk_misc: int = Field(
+        0,
+        description="Raw：阶段3.0 按 stem junk 关键字且体积<阈值删除的文件数（含 dry_run 预览）",
     )
     phase3_deferred_files_misc: int = Field(
         0,
         description=(
-            "Raw：阶段3 未分流处理的文件数（视频占位、未知扩展名、迁移失败；"
-            "不含已成功迁入 files_* 的文件）"
+            "Raw：阶段3 分流未完成处理的文件数（视频占位、未知扩展名、迁移失败；"
+            "不含已成功迁入 files_*；基于阶段3.0 后的第一层队列）"
         ),
     )
 

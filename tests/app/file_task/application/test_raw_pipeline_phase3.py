@@ -14,6 +14,9 @@ from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeCo
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
 from j_file_kit.app.file_task.application.raw_pipeline.phase3 import run_phase3
+from j_file_kit.app.file_task.domain.organizer_defaults import (
+    DEFAULT_RAW_SMALL_BATCH_MAX_BYTES,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -52,6 +55,7 @@ def test_phase3_moves_archive_image_audio(
     run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
 
     assert counters.phase3_seen_files_misc == 3
+    assert counters.phase3_deleted_junk_misc == 0
     assert counters.phase3_deferred_files_misc == 0
     assert (fc / "a.zip").read_text() == "zip"
     assert (fp / "b.jpg").read_text() == "img"
@@ -79,6 +83,7 @@ def test_phase3_defers_video_and_unknown(
     run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
 
     assert counters.phase3_seen_files_misc == 2
+    assert counters.phase3_deleted_junk_misc == 0
     assert counters.phase3_deferred_files_misc == 2
     assert (misc / "v.mp4").exists()
     assert (misc / "u.txt").exists()
@@ -104,6 +109,7 @@ def test_phase3_conflict_resolution(
     counters = RawPhaseCounters()
     run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
 
+    assert counters.phase3_deleted_junk_misc == 0
     assert counters.phase3_deferred_files_misc == 0
     assert not (misc / "dup.zip").exists()
     in_fc = list(fc.glob("dup*.zip"))
@@ -132,6 +138,7 @@ def test_phase3_truncates_long_basename(
     counters = RawPhaseCounters()
     run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
 
+    assert counters.phase3_deleted_junk_misc == 0
     assert counters.phase3_deferred_files_misc == 0
     moved = list(fc.iterdir())
     assert len(moved) == 1
@@ -182,6 +189,7 @@ def test_phase3_dry_run_does_not_move(
     run_phase3(_ctx(tmp_path, cfg), counters, dry_run=True)
 
     assert counters.phase3_seen_files_misc == 2
+    assert counters.phase3_deleted_junk_misc == 0
     assert counters.phase3_deferred_files_misc == 1
     assert (misc / "a.zip").exists()
     assert (misc / "b.mp4").exists()
@@ -203,4 +211,105 @@ def test_phase3_skips_when_misc_missing(
     counters = RawPhaseCounters()
     run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
     assert counters.phase3_seen_files_misc == 0
+    assert counters.phase3_deleted_junk_misc == 0
     assert counters.phase3_deferred_files_misc == 0
+
+
+def test_phase3_preclean_deletes_small_junk_stem_then_routes_archive(
+    tmp_path: Path,
+    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
+) -> None:
+    misc = tmp_path / "files_misc"
+    fc = tmp_path / "files_compressed"
+    misc.mkdir()
+    cfg = raw_analyze_config_factory(
+        tmp_path,
+        files_misc=misc,
+        files_compressed=fc,
+        files_pic=tmp_path / "files_pic",
+        files_audio=tmp_path / "files_audio",
+    )
+    (misc / "ad_FC2-PPV.txt").write_text("junk")
+    (misc / "a.zip").write_text("z")
+
+    counters = RawPhaseCounters()
+    run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
+
+    assert counters.phase3_deleted_junk_misc == 1
+    assert counters.phase3_seen_files_misc == 1
+    assert (fc / "a.zip").read_text() == "z"
+    assert not (misc / "ad_FC2-PPV.txt").exists()
+
+
+def test_phase3_preclean_keeps_junk_when_file_ge_threshold_bytes(
+    tmp_path: Path,
+    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
+) -> None:
+    misc = tmp_path / "files_misc"
+    misc.mkdir()
+    cfg = raw_analyze_config_factory(
+        tmp_path,
+        files_misc=misc,
+        files_compressed=tmp_path / "files_compressed",
+        files_pic=tmp_path / "files_pic",
+        files_audio=tmp_path / "files_audio",
+    )
+    p = misc / "big_FC2-PPV.bin"
+    p.write_bytes(b"z" * DEFAULT_RAW_SMALL_BATCH_MAX_BYTES)
+
+    counters = RawPhaseCounters()
+    run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
+
+    assert counters.phase3_deleted_junk_misc == 0
+    assert counters.phase3_seen_files_misc == 1
+    assert p.exists()
+    assert p.stat().st_size == DEFAULT_RAW_SMALL_BATCH_MAX_BYTES
+
+
+def test_phase3_only_junk_archive_preclean_does_not_require_files_compressed(
+    tmp_path: Path,
+    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
+) -> None:
+    """唯余 zip 也因 stem junk 删掉时，不因缺压缩归宿而报错。"""
+    misc = tmp_path / "files_misc"
+    misc.mkdir()
+    cfg = raw_analyze_config_factory(
+        tmp_path,
+        files_misc=misc,
+        files_compressed=None,
+        files_pic=None,
+        files_audio=None,
+    )
+    (misc / "junk_FC2-PPV.zip").write_bytes(b"x")
+
+    counters = RawPhaseCounters()
+    run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
+
+    assert counters.phase3_deleted_junk_misc == 1
+    assert counters.phase3_seen_files_misc == 0
+    assert list(misc.iterdir()) == []
+
+
+def test_phase3_dry_run_preclean_counts_without_unlink(
+    tmp_path: Path,
+    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
+) -> None:
+    misc = tmp_path / "files_misc"
+    fc = tmp_path / "files_compressed"
+    misc.mkdir()
+    cfg = raw_analyze_config_factory(
+        tmp_path,
+        files_misc=misc,
+        files_compressed=fc,
+        files_pic=tmp_path / "files_pic",
+        files_audio=tmp_path / "files_audio",
+    )
+    (misc / "promo_FC2-PPV.jpg").write_text("pic")
+
+    counters = RawPhaseCounters()
+    run_phase3(_ctx(tmp_path, cfg), counters, dry_run=True)
+
+    assert counters.phase3_deleted_junk_misc == 1
+    assert counters.phase3_seen_files_misc == 0
+    assert counters.phase3_deferred_files_misc == 0
+    assert (misc / "promo_FC2-PPV.jpg").exists()

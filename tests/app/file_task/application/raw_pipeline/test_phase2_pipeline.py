@@ -126,7 +126,7 @@ def test_phase2_clean_deletes_junk_and_removes_empty_root(
     d = inbox / "junk_root"
     d.mkdir()
     (d / "note.txt").write_text("rm")
-    (d / "preview_release.mp4").write_text("junk stem")
+    (d / "preview_FC2-PPV.mp4").write_text("junk stem")
     (d / "zero.mp4").write_bytes(b"")
 
     pipe = RawFilePipeline(

@@ -7,11 +7,13 @@
 - generate_alternative_filename：生成 -jfk-xxxx 格式的候选文件名
 - move_file_with_conflict_resolution / move_directory_with_conflict_resolution：移动文件或目录并处理路径冲突（复用同一套候选名规则）
 - truncate_utf8_to_max_bytes / normalize_move_basename：文件名 UTF-8 字节上限与冲突后缀预留
+- sum_regular_file_sizes_under：递归求常规文件体积和，用于 Raw 2.2 删除门禁
 - scan_directory_items：自底向上扫描目录，用于文件任务处理流程
 """
 
 import os
 import re
+import stat as stat_module
 import string
 from collections.abc import Generator
 from pathlib import Path
@@ -168,6 +170,28 @@ def move_directory_with_conflict_resolution(source: Path, target: Path) -> Path:
         msg = f"源路径不是目录: {source}"
         raise NotADirectoryError(msg)
     return move_path_with_conflict_resolution(source, target)
+
+
+def sum_regular_file_sizes_under(root: Path) -> int | None:
+    """递归求 ``root`` 下全部常规文件的 ``st_size`` 之和。
+
+    任一文件 ``stat`` 失败或遍历失败时返回 ``None``，由调用方视为「不可测体积」，
+    对 Raw 2.2 门禁采取保守策略（跳过对该目录的文件删除）。
+    """
+    total = 0
+    try:
+        for dirpath, _dirnames, filenames in os.walk(root, topdown=True):
+            for filename in filenames:
+                path = Path(dirpath) / filename
+                try:
+                    st = path.stat(follow_symlinks=False)
+                    if stat_module.S_ISREG(st.st_mode):
+                        total += st.st_size
+                except OSError:
+                    return None
+    except OSError:
+        return None
+    return total
 
 
 def scan_directory_items(root: Path) -> Generator[tuple[Path, PathEntryType]]:

@@ -57,9 +57,11 @@
 #### 2.2：目录内清洗
 
 - **触发**：未命中 2.1 的第一层目录。
-- **删除文件**（命中任一即删）：扩展名 ∈ **`DEFAULT_MISC_FILE_DELETE_EXTENSIONS`**；或 stem（规范化匹配）含 **`DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS`**；或 **0 字节**。
+- **体积门禁**（先于下面「删除候选」）：对该目录树下 **全部常规文件**（递归，`stat` **不跟随**符号链接） **`st_size` 之和**。若 **`和 ≥ organizer_defaults.DEFAULT_RAW_SMALL_BATCH_MAX_BYTES`（100MiB）**、或 **`和` 无法可靠统计**，则 **不执行本节「删除文件」**（仍为后续 2.3 / 2.4 保留内容）；门禁仅约束 **unlink**，**删空目录的 rmdir 收缩仍可执行**。
+- **删除文件**（命中任一即删；仅在上 **和 &lt; 100MiB** 且可统计时执行）：扩展名 ∈ **`DEFAULT_MISC_FILE_DELETE_EXTENSIONS`**；或 stem（规范化匹配）含 **`DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS`**；或 **0 字节**。
 - **删空目录**：清洗产生的空子目录自下而上删掉；若第一层目录本身被删空则 **rmdir**（不触碰 `inbox` 上一级）。
 - **dry_run**：不删文件、不删目录，计数预览。
+- **与阶段 3.0**：2.2 命中 stem 关键字时受 **目录总字节**上限；阶段 3.0（`files_misc` 单层文件）同源关键字但 **单文件**须 **&lt; 100MiB** 才删，因此大包里的小 junk 可能迁入 `files_misc` 后才在 3.0 删除。
 - **扩展点**：新「垃圾识别」规则通常加在本子阶段（扩展名 / stem 规则）。
 
 #### 2.3：单链目录折叠（多层单路径 → 单层目录名）
@@ -106,18 +108,26 @@
 
 ---
 
-### 阶段 3：`files_misc` 第一层文件 → `files_compressed` / `files_pic` / `files_audio`
+### 阶段 3：`files_misc` 第一层文件（3.0 预删 → 3.1–3.3 分流）
 
 **代码**：[`application/raw_pipeline/phase3.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase3.py)
 
-- **范围**：仅 **`files_misc` 下一层普通文件**（不递归子目录）。
+#### 阶段 3.0：`files_misc` 单层 junk 预删
+
+- **顺序**：先于扩展名分流；预删之后的剩余文件再参与 **前置配置校验与移动**。
+- **规则**：第一层普通文件，`stem` 规范化后含任一 **`DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS`**（与阶段 2.2 同源），且 **`stat().st_size < DEFAULT_RAW_SMALL_BATCH_MAX_BYTES`（严格小于 100MiB）** → **unlink**。**0 字节**满足不等式。
+- **dry_run**：不落盘删除；预览计数记入 **`phase3_deleted_junk_misc`**，且该类文件 **不进入**随后的分流预览队列（与同任务非 dry_run 下「删掉后已无此文件」一致）。
+
+#### 阶段 3.1–3.3：扩展名分流
+
+- **范围**：仅 **`files_misc` 下一层普通文件**（不递归子目录），且为 **3.0 之后的剩余队列**。
 - **动作**：按扩展名将压缩 / 图片 / 音频分别迁入 **`files_compressed`**、**`files_pic`**、**`files_audio`**。
 - **视频**：扩展名命中 **`RawAnalyzeConfig.video_extensions`** 的文件 **暂不移动**（占位，后续专用逻辑）。
 - **其它扩展名**：视为未知，**保留在 `files_misc`**。
 - **命名 / 冲突**：**`normalize_move_basename`**（UTF-8 字节上限 + 为 `-jfk-xxxx` 预留）+ **`move_file_with_conflict_resolution`**（与阶段 1、阶段 2.4 拆解一致）。
-- **配置**：若 `files_misc` 中存在待分流的压缩 / 图片 / 音频文件，则对应的 **`files_compressed` / `files_pic` / `files_audio`** 必须已配置；否则 **报错并中止 run**。仅含视频或未知扩展名时，不要求配置上述目录。
+- **配置**：若 `files_misc` 中 **在 3.0 之后**仍存在待分流的压缩 / 图片 / 音频文件，则对应的 **`files_compressed` / `files_pic` / `files_audio`** 必须已配置；否则 **报错并中止 run**。若预删与延后规则导致 **无**上述类型待分流文件，不要求配置对应目录。
 - **dry_run**：不落盘；对可归类的文件仅作预览日志，计数上视为已路由（与阶段 1 预览语义一致：**`phase3_deferred_files_misc`** 不含本会成功的分流预览）。
-- **统计**：**`phase3_seen_files_misc`** 为第一层文件总数；**`phase3_deferred_files_misc`** 为未分流数量（视频占位 + 未知扩展名 + 迁移失败）；不设更细粒度 phase3 字段。
+- **统计**：**`phase3_deleted_junk_misc`** 为 3.0 删除（含 dry_run 预览）；**`phase3_seen_files_misc`** 为 **3.0 之后**进入分流循环的第一层文件数；**`phase3_deferred_files_misc`** 为其中未分流数量（视频占位 + 未知扩展名 + 迁移失败）。粗算：**3.0 前第一层文件数 ≈ `phase3_seen_files_misc + phase3_deleted_junk_misc`**（仅以计数还原时）。
 
 ## 取消（`cancellation_event`）
 

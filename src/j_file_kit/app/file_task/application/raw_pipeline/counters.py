@@ -10,7 +10,9 @@ from dataclasses import dataclass
 class RawPhaseCounters:
     """单次 run 内阶段计数（并入返回统计；不落目录明细表）。
 
-    phase3_deferred_files_misc：视频占位、未知扩展名、迁移失败；不含已成功迁入 files_* 的文件。
+    phase3_seen_files_misc：阶段3.0 预删 junk 之后，进入分流循环的一层文件数。
+    phase3_deleted_junk_misc：阶段3.0 预删计数（dry_run 同口径预览）。
+    phase3_deferred_files_misc：分流阶段未处理文件数。
     """
 
     phase1_seen_files: int = 0
@@ -32,6 +34,7 @@ class RawPhaseCounters:
     phase2_moved_to_misc_dirs: int = 0
     phase2_classification_errors: int = 0
     phase3_seen_files_misc: int = 0
+    phase3_deleted_junk_misc: int = 0
     phase3_deferred_files_misc: int = 0
 
     def as_dict(self) -> dict[str, int]:
@@ -55,5 +58,6 @@ class RawPhaseCounters:
             "phase2_moved_to_misc_dirs": self.phase2_moved_to_misc_dirs,
             "phase2_classification_errors": self.phase2_classification_errors,
             "phase3_seen_files_misc": self.phase3_seen_files_misc,
+            "phase3_deleted_junk_misc": self.phase3_deleted_junk_misc,
             "phase3_deferred_files_misc": self.phase3_deferred_files_misc,
         }

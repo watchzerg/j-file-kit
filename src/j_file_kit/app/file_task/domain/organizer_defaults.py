@@ -6,6 +6,7 @@
 其列表同样由此模块提供；YAML 仅保留 misc 删除的 max_size。
 
 `DEFAULT_MUSIC_EXTENSIONS`：音乐类扩展名，在 Raw 分析配置中作 `audio_extensions` 注入；JAV **`JavAnalyzeConfig`** 尚未接入。
+`DEFAULT_RAW_SMALL_BATCH_MAX_BYTES`：Raw 阶段 2.2 目录内「可删垃圾」的树体积门禁上界（含即不删）；阶段 3.0 单文件 junk stem 删除亦须 **`st_size` 小于**该阈值。
 
 六类扩展名集合（video / image / subtitle / archive / music / misc_delete）在分类与删除规则中按互斥假设使用；**启动时**须通过 `validate_organizer_extension_sets_disjoint()` 校验两两交集为空。
 """
@@ -13,13 +14,14 @@
 DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS: tuple[str, ...] = (
     "扫码下载1024安卓APP",
     "1024手机网址",
-    "sample",
-    "preview",
-    "temp",
+    "FC2-PPV",
 )
 
 # Raw 阶段 2.1：目录 basename 任一关键字子串命中（NFKC+casefold，见 RawFilePipeline）则整目录迁入 folders_to_delete
 DEFAULT_RAW_DIR_TO_DELETE_KEYWORDS: tuple[str, ...] = ("FC2-PPV",)
+
+# Raw 阶段 2.2：目录树下全部常规文件字节和；和 >= 此值则不执行清洗删除。阶段 3.0：单文件字节数须严格小于此值才按 junk stem 删除。
+DEFAULT_RAW_SMALL_BATCH_MAX_BYTES: int = 100 * 1024 * 1024
 
 DEFAULT_VIDEO_EXTENSIONS: frozenset[str] = frozenset(
     {
