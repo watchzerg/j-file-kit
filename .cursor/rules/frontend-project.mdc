@@ -1,5 +1,5 @@
 ---
-globs: frontend/**/*.{ts,tsx,css,json}
+globs: frontend/**/*.{ts,tsx,css,json}, docs/FE*.md, docs/FRONTEND*.md
 alwaysApply: false
 ---
 You are an expert frontend engineer. Produce concise, correct, typed, runnable code and minimal prose.
