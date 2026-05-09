@@ -5,6 +5,9 @@
 
 from typing import Any
 
+from j_file_kit.app.file_task.application.config_common import (
+    ensure_workspace_root_and_inbox,
+)
 from j_file_kit.app.file_task.application.config_validator import (
     validate_jav_video_organizer_config,
     validate_raw_file_organizer_config,
@@ -55,7 +58,8 @@ class FileTaskConfigService:
     ) -> JavVideoOrganizeConfig:
         """合并 JAV 视频整理任务配置更新。
 
-        从存储的原始 dict 出发做合并，避免对旧数据重复触发 model_validator（如 JAV_MEDIA_ROOT 约束）。
+        ``{**current_raw, **update}`` 后经 ``JavVideoOrganizeConfig.model_validate``，
+        触发 ``workspace_root`` 媒体边界等不变量。
 
         Args:
             current_raw: 存储层的原始配置字典
@@ -75,7 +79,7 @@ class FileTaskConfigService:
     ) -> None:
         """验证并保存 JAV 视频整理任务配置。
 
-        验证目录配置（inbox_dir 必填、路径冲突检查），然后在单次写入中同时持久化
+        创建 workspace_root 与 inbox，校验就绪后在单次写入中同时持久化
         config 和可选的 enabled 字段，避免多次 I/O。
 
         Args:
@@ -84,8 +88,13 @@ class FileTaskConfigService:
             enabled: 可选，如果提供则同时更新启用状态
 
         Raises:
-            ValueError: 如果配置验证失败（目录缺失、路径冲突等）
+            ValueError: 如果配置验证失败或无法创建 workspace/inbox
         """
+        try:
+            ensure_workspace_root_and_inbox(merged_config.workspace_root)
+        except OSError as e:
+            raise ValueError(f"无法创建 workspace 或 inbox 目录: {e!s}") from e
+
         errors = validate_jav_video_organizer_config(merged_config)
         if errors:
             raise ValueError(
@@ -131,6 +140,11 @@ class FileTaskConfigService:
         enabled: bool | None = None,
     ) -> None:
         """验证并保存 raw_file_organizer 配置。"""
+        try:
+            ensure_workspace_root_and_inbox(merged_config.workspace_root)
+        except OSError as e:
+            raise ValueError(f"无法创建 workspace 或 inbox 目录: {e!s}") from e
+
         errors = validate_raw_file_organizer_config(merged_config)
         if errors:
             raise ValueError(

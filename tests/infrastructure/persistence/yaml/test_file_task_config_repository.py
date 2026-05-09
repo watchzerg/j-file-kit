@@ -42,13 +42,18 @@ class TestFileTaskConfigRepositoryGetByType:
         self,
         repository: FileTaskConfigRepositoryImpl,
         config_path: Path,
+        tmp_path: Path,
     ) -> None:
+        ws = tmp_path / "jav_workspace"
         config_path.write_text(
             yaml.dump(
                 {
                     "jav_video_organizer": {
                         "enabled": True,
-                        "config": {"inbox_dir": None, "misc_file_delete_rules": {}},
+                        "config": {
+                            "workspace_root": str(ws),
+                            "misc_file_delete_rules": {},
+                        },
                     },
                 },
                 allow_unicode=True,
@@ -59,7 +64,7 @@ class TestFileTaskConfigRepositoryGetByType:
         assert result is not None
         assert result.type == "jav_video_organizer"
         assert result.enabled is True
-        assert result.config.get("inbox_dir") is None
+        assert result.config.get("workspace_root") == str(ws)
 
 
 class TestFileTaskConfigRepositoryUpdate:
@@ -83,29 +88,30 @@ class TestFileTaskConfigRepositoryUpdate:
         config_path: Path,
         tmp_path: Path,
     ) -> None:
+        ws_existing = tmp_path / "jav_workspace_existing"
         config_path.write_text(
             yaml.dump(
                 {
                     "jav_video_organizer": {
                         "enabled": True,
-                        "config": {"inbox_dir": None},
+                        "config": {"workspace_root": str(ws_existing)},
                     },
                 },
                 allow_unicode=True,
             ),
             encoding="utf-8",
         )
-        inbox_dir = str(tmp_path / "inbox")
+        ws_new = tmp_path / "jav_workspace_updated"
         config = TaskConfig(
             type="jav_video_organizer",
             enabled=False,
-            config={"inbox_dir": inbox_dir},
+            config={"workspace_root": str(ws_new)},
         )
         repository.update(config)
         result = repository.get_by_type("jav_video_organizer")
         assert result is not None
         assert result.enabled is False
-        assert result.config.get("inbox_dir") == inbox_dir
+        assert result.config.get("workspace_root") == str(ws_new)
 
 
 class TestFileTaskConfigRepositoryYamlErrors:

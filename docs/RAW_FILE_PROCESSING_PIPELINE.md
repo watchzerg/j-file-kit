@@ -4,6 +4,12 @@
 
 ---
 
+## 配置与目录约定
+
+YAML / HTTP PATCH 仅持久化 **`workspace_root`**（须在 **`RAW_MEDIA_ROOT`** `/media/raw_workspace` 下）。**`inbox`、`files_misc`、`folders_*`、`files_*`** 等子目录名由 [`config_common.raw_workspace_paths`](../src/j_file_kit/app/file_task/application/config_common.py) 集中定义；保存配置时会创建 **`workspace_root`** 与 **`inbox`**；任务启动前再次校验 **`inbox`**；管线内目标目录在移动前按需 **`mkdir`**。
+
+---
+
 ## 总览
 
 ```mermaid
@@ -54,7 +60,7 @@ flowchart LR
 
 ## 阶段简表
 
-| 阶段 | 范围 | 动作摘要 | 必填配置（触发时） |
+| 阶段 | 范围 | 动作摘要 | 涉及目录（均由 `raw_workspace_paths` 派生） |
 |------|------|----------|----------------------|
 | **1** | inbox 下一层**文件** | 迁入 `files_misc`，写 `file_results` | 有待移文件时 `files_misc` |
 | **2.1** | 各第一层**目录** basename | junk 关键字 **token 边界**命中则**整目录**→ `folders_to_delete` | 有待迁目录时 `folders_to_delete` |

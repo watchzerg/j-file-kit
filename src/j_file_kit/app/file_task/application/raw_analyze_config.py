@@ -1,7 +1,7 @@
 """Raw 纯分析阶段配置：管线阶段使用的路径 + 扩展名归集 DTO。
 
-不含 `inbox_dir`，与 `RawFileOrganizeConfig` 分离是为了让 `analyze_raw_*` 与阶段函数签名保持稳定，
-任务组织器负责从任务配置裁剪出分析所需字段。
+归宿路径均从 ``workspace_root`` 与代码约定子目录派生，由 ``RawFileOrganizer`` 注入；
+不含收件箱路径字段，扫描根由管线上下文单独持有。
 """
 
 from pathlib import Path
@@ -10,49 +10,31 @@ from pydantic import BaseModel, Field
 
 
 class RawAnalyzeConfig(BaseModel):
-    """Raw 分析阶段配置（不含 `inbox_dir`）。
+    """Raw 分析阶段配置（不含收件箱路径）。
 
-    由 `RawFileOrganizer` 从任务配置注入各归宿路径与扩展名集合。
-    当前 `RawFilePipeline` 阶段 1 使用 `files_misc`；阶段 2 使用 `folders_to_delete` 及分类归宿路径，
-    具体规则见 `raw_pipeline/phase2_*.py`；阶段 3 使用 `files_*` / `files_video_*` 将 ``files_misc`` 第一层文件按扩展名与视频关键字分流；
-    其它 `analyze_raw_*` 规则后续迭代填充。
+    `RawFilePipeline` 阶段 1 使用 ``files_misc``；阶段 2 使用 ``folders_to_delete`` 及分类归宿；
+    阶段 3 将 ``files_misc`` 第一层按规则迁入各 ``files_*`` / ``files_video_*``。
     """
 
-    folders_to_delete: Path | None = Field(
-        default=None,
-        description="待人工确认的疑似删除目录（Raw 阶段 2.1）",
+    folders_to_delete: Path = Field(
+        ..., description="阶段 2.1：关键字目录迁入（人工确认删除）"
     )
-    folders_video: Path | None = Field(default=None, description="视频目录")
-    folders_compressed: Path | None = Field(default=None, description="压缩文件目录")
-    folders_pic: Path | None = Field(default=None, description="图片目录")
-    folders_audio: Path | None = Field(default=None, description="音频目录")
-    folders_misc: Path | None = Field(
-        default=None,
-        description="无法自动分类的杂项目录",
-    )
-    files_to_delete: Path | None = Field(
-        default=None,
-        description="阶段 3.0：stem 命中 junk 关键字时从 files_misc 迁入的目录（人工确认后删除）",
-    )
-    files_video_jav: Path | None = Field(default=None, description="JAV 视频文件目录")
-    files_video_us: Path | None = Field(default=None, description="US 视频文件目录")
-    files_video_jav_vr: Path | None = Field(
-        default=None,
-        description="JAV VR 视频文件目录",
-    )
-    files_video_us_vr: Path | None = Field(
-        default=None,
-        description="US VR 视频文件目录",
-    )
-    files_video_movie: Path | None = Field(default=None, description="电影文件目录")
-    files_video_misc: Path | None = Field(default=None, description="杂项视频文件目录")
-    files_compressed: Path | None = Field(default=None, description="压缩文件目录")
-    files_pic: Path | None = Field(default=None, description="图片文件目录")
-    files_audio: Path | None = Field(default=None, description="音频文件目录")
-    files_misc: Path | None = Field(
-        default=None,
-        description="无法自动分类的杂项文件目录",
-    )
+    folders_video: Path = Field(..., description="视频目录")
+    folders_compressed: Path = Field(..., description="压缩文件目录")
+    folders_pic: Path = Field(..., description="图片目录")
+    folders_audio: Path = Field(..., description="音频目录")
+    folders_misc: Path = Field(..., description="无法自动分类的目录级杂项")
+    files_to_delete: Path = Field(..., description="阶段 3.0 junk stem 迁入目录")
+    files_video_jav: Path = Field(..., description="JAV 视频文件目录")
+    files_video_us: Path = Field(..., description="US 视频文件目录")
+    files_video_jav_vr: Path = Field(..., description="JAV VR 视频文件目录")
+    files_video_us_vr: Path = Field(..., description="US VR 视频文件目录")
+    files_video_movie: Path = Field(..., description="电影文件目录")
+    files_video_misc: Path = Field(..., description="杂项视频文件目录")
+    files_compressed: Path = Field(..., description="压缩文件目录")
+    files_pic: Path = Field(..., description="图片文件目录")
+    files_audio: Path = Field(..., description="音频文件目录")
+    files_misc: Path = Field(..., description="无法自动分类的文件级杂项")
 
     video_extensions: set[str] = Field(..., description="视频扩展名（带点）")
     image_extensions: set[str] = Field(..., description="图片扩展名（带点）")

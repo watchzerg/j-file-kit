@@ -1,7 +1,4 @@
-"""配置 API 集成测试
-
-覆盖 GET、PATCH /api/file-task/config/jav-video-organizer 端点。
-"""
+"""配置 API 集成测试。"""
 
 from pathlib import Path
 
@@ -10,9 +7,6 @@ import yaml
 from fastapi.testclient import TestClient
 
 from j_file_kit.api.app import create_app
-from j_file_kit.app.file_task.application.config_common import (
-    RAW_FILE_ORGANIZE_PATH_FIELD_NAMES,
-)
 
 pytestmark = pytest.mark.integration
 
@@ -21,7 +15,6 @@ class TestGetConfig:
     """GET /api/file-task/config/jav-video-organizer"""
 
     def test_get_config_success(self, client) -> None:
-        """获取配置返回 type、enabled、config"""
         response = client.get("/api/file-task/config/jav-video-organizer")
         assert response.status_code == 200
         data = response.json()
@@ -30,7 +23,6 @@ class TestGetConfig:
         assert "config" in data
 
     def test_get_config_not_found(self, tmp_path: Path) -> None:
-        """配置不存在时返回 404"""
         config_dir = tmp_path / "config"
         config_dir.mkdir(parents=True)
         config_path = config_dir / "task_config.yaml"
@@ -58,52 +50,25 @@ class TestUpdateConfig:
         client,
         tmp_path: Path,
     ) -> None:
-        """更新配置成功"""
         monkeypatch.setattr(
             "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
             tmp_path,
         )
-        for name in ("inbox", "sorted", "unsorted", "archive", "misc"):
-            (tmp_path / name).mkdir()
+        ws = tmp_path / "jav_ws"
         response = client.patch(
             "/api/file-task/config/jav-video-organizer",
-            json={
-                "config": {
-                    "inbox_dir": str(tmp_path / "inbox"),
-                    "sorted_dir": str(tmp_path / "sorted"),
-                    "unsorted_dir": str(tmp_path / "unsorted"),
-                    "archive_dir": str(tmp_path / "archive"),
-                    "misc_dir": str(tmp_path / "misc"),
-                },
-            },
+            json={"config": {"workspace_root": str(ws)}},
         )
         assert response.status_code == 200
         assert response.json()["code"] == "SUCCESS"
+        assert ws.is_dir()
+        assert (ws / "inbox").is_dir()
 
-    def test_update_config_validation_failure(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-        client,
-        tmp_path: Path,
-    ) -> None:
-        """校验失败（如目录重复）时返回 400"""
-        monkeypatch.setattr(
-            "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
-            tmp_path,
-        )
-        path = tmp_path / "shared"
-        path.mkdir()
+    def test_update_config_validation_failure(self, client) -> None:
+        """workspace_root 不在 JAV_MEDIA_ROOT 下时合并模型失败。"""
         response = client.patch(
             "/api/file-task/config/jav-video-organizer",
-            json={
-                "config": {
-                    "inbox_dir": str(path),
-                    "sorted_dir": str(path),
-                    "unsorted_dir": str(path),
-                    "archive_dir": None,
-                    "misc_dir": None,
-                },
-            },
+            json={"config": {"workspace_root": "/etc"}},
         )
         assert response.status_code == 400
         assert response.json()["detail"]["code"] == "INVALID_CONFIG"
@@ -134,14 +99,11 @@ class TestUpdateRawConfig:
             "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
             tmp_path,
         )
-        for name in RAW_FILE_ORGANIZE_PATH_FIELD_NAMES:
-            (tmp_path / name).mkdir()
-        cfg = {
-            name: str(tmp_path / name) for name in RAW_FILE_ORGANIZE_PATH_FIELD_NAMES
-        }
+        ws = tmp_path / "raw_ws"
         response = client.patch(
             "/api/file-task/config/raw-file-organizer",
-            json={"config": cfg},
+            json={"config": {"workspace_root": str(ws)}},
         )
         assert response.status_code == 200
         assert response.json()["code"] == "SUCCESS"
+        assert (ws / "inbox").is_dir()

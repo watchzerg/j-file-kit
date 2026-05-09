@@ -85,14 +85,10 @@ def _preflight_phase30_files_to_delete(
     junk_keywords_norm: tuple[str, ...],
     cfg: RawAnalyzeConfig,
 ) -> None:
-    """若第一层存在 junk stem 命中，则必须配置 ``files_to_delete``。"""
-    needs_bucket = any(
-        _phase30_stem_matches_probable_junk_keywords(p, junk_keywords_norm)
-        for p in files_level1
-    )
-    if needs_bucket and cfg.files_to_delete is None:
-        msg = "files_to_delete 未设置（files_misc 第一层存在待按 junk stem 迁出的文件）"
-        raise ValueError(msg)
+    """预留：junk stem 预清理所需 ``files_to_delete``；路径已由 workspace 派生。"""
+    _ = files_level1
+    _ = junk_keywords_norm
+    _ = cfg.files_to_delete
 
 
 def _phase30_preclean_misc_level1(
@@ -112,17 +108,6 @@ def _phase30_preclean_misc_level1(
             continue
 
         dest_root = cfg.files_to_delete
-        if dest_root is None:
-            logger.bind(
-                run_id=str(ctx.run_id),
-                run_name=ctx.run_name,
-                level="RAW_PHASE",
-                phase=3,
-                subphase="preclean_invariant",
-                source=str(path),
-            ).error("阶段3.0：files_to_delete 未配置（预检应已拦截）")
-            remaining.append(path)
-            continue
 
         if dry_run:
             counters.phase3_deleted_junk_misc += 1
@@ -186,28 +171,12 @@ def _classify_misc_file_suffix(suffix: str, cfg: RawAnalyzeConfig) -> str | None
 
 
 def _preflight_phase3_destinations(files: list[Path], cfg: RawAnalyzeConfig) -> None:
-    """若存在待分流的压缩 / 图片 / 音频文件，则要求对应 ``files_*`` 目录已配置。"""
-    needs_archive = needs_image = needs_audio = False
-    for path in files:
-        kind = _classify_misc_file_suffix(path.suffix, cfg)
-        if kind == "archive":
-            needs_archive = True
-        elif kind == "image":
-            needs_image = True
-        elif kind == "audio":
-            needs_audio = True
-    if needs_archive and cfg.files_compressed is None:
-        msg = "files_compressed 未设置（files_misc 中存在待分流的压缩文件）"
-        raise ValueError(msg)
-    if needs_image and cfg.files_pic is None:
-        msg = "files_pic 未设置（files_misc 中存在待分流的图片文件）"
-        raise ValueError(msg)
-    if needs_audio and cfg.files_audio is None:
-        msg = "files_audio 未设置（files_misc 中存在待分流的音频文件）"
-        raise ValueError(msg)
+    """归宿均由 workspace 派生；保留签名供编排一致性。"""
+    _ = files
+    _ = cfg
 
 
-def _video_destination_root(bucket: str, cfg: RawAnalyzeConfig) -> Path | None:
+def _video_destination_root(bucket: str, cfg: RawAnalyzeConfig) -> Path:
     match bucket:
         case "movie":
             return cfg.files_video_movie
@@ -229,54 +198,22 @@ def _video_destination_root(bucket: str, cfg: RawAnalyzeConfig) -> Path | None:
 def _preflight_phase34_video_destinations(
     files: list[Path], cfg: RawAnalyzeConfig
 ) -> None:
-    """针对剩余队列中的视频文件，按将落入的桶检查 ``files_video_*`` 是否已配置。"""
-    required_buckets: set[str] = set()
-    for path in files:
-        if _classify_misc_file_suffix(path.suffix, cfg) != "video":
-            continue
-        required_buckets.add(classify_phase34_video_bucket(path.stem))
-
-    for bucket in required_buckets:
-        dest = _video_destination_root(bucket, cfg)
-        if dest is None:
-            field = _video_bucket_config_field_name(bucket)
-            msg = f"{field} 未设置（files_misc 中存在待分流至该桶的视频文件）"
-            raise ValueError(msg)
-
-
-def _video_bucket_config_field_name(bucket: str) -> str:
-    match bucket:
-        case "movie":
-            return "files_video_movie"
-        case "us_vr":
-            return "files_video_us_vr"
-        case "us":
-            return "files_video_us"
-        case "jav_vr":
-            return "files_video_jav_vr"
-        case "jav":
-            return "files_video_jav"
-        case "misc":
-            return "files_video_misc"
-        case _:
-            return "files_video_*"
+    """视频桶归宿均由 workspace 派生。"""
+    _ = files
+    _ = cfg
 
 
 def _destination_root_for_routed_kind(kind: str, cfg: RawAnalyzeConfig) -> Path:
     match kind:
         case "archive":
-            dest = cfg.files_compressed
+            return cfg.files_compressed
         case "image":
-            dest = cfg.files_pic
+            return cfg.files_pic
         case "audio":
-            dest = cfg.files_audio
+            return cfg.files_audio
         case _:
             msg = f"阶段3 不支持的路由类型: {kind}"
             raise RuntimeError(msg)
-    if dest is None:
-        msg = f"阶段3 归宿目录未注入: {kind}"
-        raise RuntimeError(msg)
-    return dest
 
 
 def run_phase3(
@@ -287,7 +224,7 @@ def run_phase3(
 ) -> None:
     """阶段 3：``files_misc`` 第一层预清理后按扩展名与视频关键字迁入各类 ``files_*``。"""
     misc = ctx.analyze_config.files_misc
-    if misc is None or not misc.exists() or not misc.is_dir():
+    if not misc.exists() or not misc.is_dir():
         counters.phase3_seen_files_misc = 0
         counters.phase3_deleted_junk_misc = 0
         counters.phase3_deferred_files_misc = 0
@@ -322,18 +259,6 @@ def run_phase3(
         if kind == "video":
             bucket = classify_phase34_video_bucket(path.stem)
             dest_root = _video_destination_root(bucket, ctx.analyze_config)
-            if dest_root is None:
-                logger.bind(
-                    run_id=str(ctx.run_id),
-                    run_name=ctx.run_name,
-                    level="RAW_PHASE",
-                    phase=3,
-                    subphase="video_route_invariant",
-                    video_bucket=bucket,
-                    source=str(path),
-                ).error("阶段3.4：视频归宿未配置（预检应已拦截）")
-                deferred += 1
-                continue
 
             basename = normalize_move_basename(sanitize_surrogate_str(path.name))
             target = dest_root / basename

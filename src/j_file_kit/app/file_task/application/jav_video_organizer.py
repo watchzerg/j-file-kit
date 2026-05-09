@@ -7,6 +7,7 @@
 import threading
 from pathlib import Path
 
+from j_file_kit.app.file_task.application.config_common import jav_workspace_paths
 from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
 from j_file_kit.app.file_task.application.jav_pipeline.pipeline import FilePipeline
 from j_file_kit.app.file_task.application.jav_task_config import JavVideoOrganizeConfig
@@ -28,20 +29,20 @@ class JavVideoOrganizer:
     """JAV 视频收件箱整理用例（`FileTaskRunner` 协议实现）。
 
     核心流程（读者只需把握这一条链路）：
-        1. 构造：注入 `TaskConfig`、`log_dir`、`FileResultRepository`，并将 YAML 中的
-           `config` 反序列化为强类型的 `JavVideoOrganizeConfig`（目录与可调删除策略等）；
-           扩展名与站标去噪由 `organizer_defaults` 在 `_create_analyze_config` 注入。
-        2. run：
-           - 要求 `inbox_dir` 已配置，否则立即失败；
-           - 把 `JavVideoOrganizeConfig` 压平为 `JavAnalyzeConfig`（供 `analyze_jav_file` 使用）；
-           - 用 `inbox_dir` 作为扫描根目录创建 `FilePipeline`，传入同一 `run_id` 与
-             `file_result_repository`；
-           - 委托 `FilePipeline.run()`：对收件箱内每个文件执行「分析 → Decision →
-             执行（或 dry_run 仅预览）→ 写入 SQLite 结果」，返回 `FileTaskRunStatistics`。
+    1. 构造：注入 `TaskConfig`、`log_dir`、`FileResultRepository`，并将 YAML 中的
+       `config` 反序列化为强类型的 `JavVideoOrganizeConfig`（仅 ``workspace_root`` 与可调删除策略）；
+       归宿子目录由 ``jav_workspace_paths`` 派生；扩展名与站标去噪由 `organizer_defaults` 注入。
+    2. run：
+       - 校验派生 ``inbox`` 目录存在（否则失败）；
+       - 把 ``workspace_root`` 派生路径压平为 `JavAnalyzeConfig`（供 `analyze_jav_file` 使用）；
+       - 用收件箱路径作为扫描根创建 `FilePipeline`，传入同一 `run_id` 与
+         `file_result_repository`；
+       - 委托 `FilePipeline.run()`：对收件箱内每个文件执行「分析 → Decision →
+         执行（或 dry_run 仅预览）→ 写入 SQLite 结果」，返回 `FileTaskRunStatistics`。
 
-        边界：本类不包含遍历目录、`analyze_jav_file`、`execute_decision` 的实现；仅负责
-        把本任务类型的配置接到通用管道上。Decision 模式与统计细节见 `jav_pipeline` /
-        `jav_analysis.runner`。
+    边界：本类不包含遍历目录、`analyze_jav_file`、`execute_decision` 的实现；仅负责
+    把本任务类型的配置接到通用管道上。Decision 模式与统计细节见 `jav_pipeline` /
+    `jav_analysis.runner`。
     """
 
     def __init__(
@@ -52,8 +53,8 @@ class JavVideoOrganizer:
     ) -> None:
         """绑定任务配置与持久化端口，并解析出 `JavVideoOrganizeConfig`。
 
-        `task_config` 来自 YAML；`get_config(JavVideoOrganizeConfig)` 在此处完成类型化，
-        后续 `run()` 只操作 `self.file_config` 与派生的 `JavAnalyzeConfig`。
+        `task_config` 来自 YAML；`get_config(JavVideoOrganizeConfig)` 在此处完成类型化
+        （仅 ``workspace_root`` 与可调删除规则），后续 `run()` 只操作 `self.file_config` 与派生的 `JavAnalyzeConfig`。
         """
         self._task_config = task_config
         self.log_dir = log_dir
@@ -77,15 +78,16 @@ class JavVideoOrganizer:
         """
         misc_rules = dict(self.file_config.misc_file_delete_rules)
         misc_rules["extensions"] = sorted(DEFAULT_MISC_FILE_DELETE_EXTENSIONS)
+        paths = jav_workspace_paths(self.file_config.workspace_root)
         return JavAnalyzeConfig(
             video_extensions=set(DEFAULT_VIDEO_EXTENSIONS),
             image_extensions=set(DEFAULT_IMAGE_EXTENSIONS),
             subtitle_extensions=set(DEFAULT_SUBTITLE_EXTENSIONS),
             archive_extensions=set(DEFAULT_ARCHIVE_EXTENSIONS),
-            sorted_dir=self.file_config.sorted_dir,
-            unsorted_dir=self.file_config.unsorted_dir,
-            archive_dir=self.file_config.archive_dir,
-            misc_dir=self.file_config.misc_dir,
+            sorted_dir=paths.sorted_dir,
+            unsorted_dir=paths.unsorted_dir,
+            archive_dir=paths.archive_dir,
+            misc_dir=paths.misc_dir,
             misc_file_delete_rules=misc_rules,
             video_small_delete_bytes=self.file_config.video_small_delete_bytes,
             inbox_delete_rules=self.file_config.inbox_delete_rules,
@@ -104,19 +106,21 @@ class JavVideoOrganizer:
         - `cancellation_event` 由上层注入，管道内轮询后提前结束遍历（详见 `FilePipeline.run`）。
 
         Raises:
-            ValueError: `inbox_dir` 未在配置中设置。
+            ValueError: 派生收件箱目录不可用。
 
         与协议 `FileTaskRunner.run` 签名一致，供 `FileTaskRunManager` 调用。
         """
-        if self.file_config.inbox_dir is None:
-            raise ValueError("inbox_dir 未设置")
+        paths = jav_workspace_paths(self.file_config.workspace_root)
+        if not paths.inbox.exists() or not paths.inbox.is_dir():
+            msg = f"收件箱目录不存在或不是目录: {paths.inbox}"
+            raise ValueError(msg)
 
         analyze_config = self._create_analyze_config()
 
         pipeline = FilePipeline(
             run_id=run_id,
             run_name=self.task_type,
-            scan_root=self.file_config.inbox_dir,
+            scan_root=paths.inbox,
             analyze_config=analyze_config,
             log_dir=self.log_dir,
             file_result_repository=self._file_result_repository,

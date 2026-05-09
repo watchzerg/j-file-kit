@@ -24,7 +24,7 @@ router = APIRouter(prefix="/api/file-task/config", tags=["file-task-config"])
 
 @router.get("/jav-video-organizer", response_model=GetFileTaskConfigResponse)
 async def get_jav_video_organizer_config(request: Request) -> GetFileTaskConfigResponse:
-    """获取 JAV 视频整理任务配置（仓储原始 dict；扩展名与站标去噪等见 `organizer_defaults`）。"""
+    """获取 JAV 视频整理任务配置（仓储 dict：`workspace_root` + 删除规则等业务字段）。"""
     app_state: AppState = request.app.state.app_state
 
     task_config = app_state.file_task_config_repository.get_by_type(
@@ -48,7 +48,7 @@ async def update_jav_video_organizer_config(
     body: UpdateFileTaskConfigRequest,
     request: Request,
 ) -> UpdateFileTaskConfigResponse:
-    """更新 JAV 视频整理任务配置（部分更新）"""
+    """更新 JAV 视频整理任务配置（部分更新）。成功后持久化并创建 `workspace_root` + `inbox`。"""
     app_state: AppState = request.app.state.app_state
 
     task_config = app_state.file_task_config_repository.get_by_type(
@@ -84,7 +84,7 @@ async def update_jav_video_organizer_config(
 
 @router.get("/raw-file-organizer", response_model=GetFileTaskConfigResponse)
 async def get_raw_file_organizer_config(request: Request) -> GetFileTaskConfigResponse:
-    """获取 Raw 收件箱整理任务配置（仓储原始 dict）。"""
+    """获取 Raw 收件箱整理任务配置（仓储 dict：仅 `workspace_root`）。"""
     app_state: AppState = request.app.state.app_state
 
     task_config = app_state.file_task_config_repository.get_by_type(
@@ -108,7 +108,7 @@ async def update_raw_file_organizer_config(
     body: UpdateFileTaskConfigRequest,
     request: Request,
 ) -> UpdateFileTaskConfigResponse:
-    """更新 Raw 收件箱整理任务配置（部分更新）。"""
+    """更新 Raw 收件箱整理任务配置（部分更新）。成功后持久化并创建 `workspace_root` + `inbox`。"""
     app_state: AppState = request.app.state.app_state
 
     task_config = app_state.file_task_config_repository.get_by_type(

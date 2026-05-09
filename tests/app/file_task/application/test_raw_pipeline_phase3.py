@@ -150,47 +150,6 @@ def test_phase3_truncates_long_basename(
     )
 
 
-def test_phase3_raises_when_destination_missing(
-    tmp_path: Path,
-    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
-) -> None:
-    misc = tmp_path / "files_misc"
-    misc.mkdir()
-    cfg = raw_analyze_config_factory(
-        tmp_path,
-        files_misc=misc,
-        files_compressed=None,
-        files_pic=tmp_path / "files_pic",
-        files_audio=tmp_path / "files_audio",
-    )
-    (misc / "need_dest.zip").write_text("z")
-
-    counters = RawPhaseCounters()
-    with pytest.raises(ValueError, match="files_compressed"):
-        run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
-
-
-def test_phase3_raises_when_files_to_delete_missing_for_junk_stem(
-    tmp_path: Path,
-    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
-) -> None:
-    misc = tmp_path / "files_misc"
-    misc.mkdir()
-    cfg = raw_analyze_config_factory(
-        tmp_path,
-        files_misc=misc,
-        files_compressed=tmp_path / "files_compressed",
-        files_pic=tmp_path / "files_pic",
-        files_audio=tmp_path / "files_audio",
-        files_to_delete=None,
-    )
-    (misc / "promo_FC2-PPV.txt").write_text("x")
-
-    counters = RawPhaseCounters()
-    with pytest.raises(ValueError, match="files_to_delete"):
-        run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
-
-
 def test_phase3_dry_run_does_not_move(
     tmp_path: Path,
     raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
@@ -309,9 +268,6 @@ def test_phase3_only_junk_archive_preclean_does_not_require_files_compressed(
     cfg = raw_analyze_config_factory(
         tmp_path,
         files_misc=misc,
-        files_compressed=None,
-        files_pic=None,
-        files_audio=None,
         files_to_delete=fdel,
     )
     (misc / "junk_FC2-PPV.zip").write_bytes(b"x")
@@ -391,7 +347,7 @@ def test_phase34_routes_each_keyword_bucket(
     assert (tmp_path / "files_video_jav_vr" / "jv_JAV-VR.mp4").read_text() == "d"
 
 
-def test_phase34_raises_when_files_video_misc_missing(
+def test_phase34_amzn_only_routes_to_movie_bucket(
     tmp_path: Path,
     raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
 ) -> None:
@@ -403,42 +359,13 @@ def test_phase34_raises_when_files_video_misc_missing(
         files_compressed=tmp_path / "files_compressed",
         files_pic=tmp_path / "files_pic",
         files_audio=tmp_path / "files_audio",
-        files_video_misc=None,
-    )
-    (misc / "plain.mp4").write_text("x")
-
-    counters = RawPhaseCounters()
-    with pytest.raises(ValueError, match="files_video_misc"):
-        run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
-
-
-def test_phase34_amzn_only_does_not_require_files_video_misc_if_misc_unused(
-    tmp_path: Path,
-    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
-) -> None:
-    misc = tmp_path / "files_misc"
-    misc.mkdir()
-    movie_dir = tmp_path / "files_video_movie_only"
-    movie_dir.mkdir()
-    cfg = raw_analyze_config_factory(
-        tmp_path,
-        files_misc=misc,
-        files_compressed=tmp_path / "files_compressed",
-        files_pic=tmp_path / "files_pic",
-        files_audio=tmp_path / "files_audio",
-        files_video_movie=movie_dir,
-        files_video_us_vr=None,
-        files_video_us=None,
-        files_video_jav_vr=None,
-        files_video_jav=None,
-        files_video_misc=None,
     )
     (misc / "x_AMZN.mp4").write_text("m")
 
     counters = RawPhaseCounters()
     run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
 
-    assert (movie_dir / "x_AMZN.mp4").read_text() == "m"
+    assert (tmp_path / "files_video_movie" / "x_AMZN.mp4").read_text() == "m"
     assert counters.phase3_deferred_files_misc == 0
 
 
@@ -516,8 +443,6 @@ def test_phase34_preclean_removes_junk_video_before_keyword_routing(
         files_pic=tmp_path / "files_pic",
         files_audio=tmp_path / "files_audio",
         files_to_delete=fdel,
-        files_video_misc=None,
-        files_video_movie=None,
     )
     (misc / "junk_FC2-PPV.mp4").write_bytes(b"v")
 

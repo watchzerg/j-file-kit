@@ -10,7 +10,6 @@ from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeCo
 from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,
     MoveDecision,
-    SkipDecision,
 )
 
 pytestmark = pytest.mark.unit
@@ -28,18 +27,6 @@ class TestAnalyzeJavFileArchive:
         decision = analyze_jav_file(path, config)
         assert isinstance(decision, MoveDecision)
         assert decision.target_path == tmp_path / "archive" / "data.zip"
-
-    def test_archive_dir_none_skips(
-        self,
-        analyze_config_factory: Callable[..., JavAnalyzeConfig],
-        tmp_path: Path,
-    ) -> None:
-        config = analyze_config_factory(archive_dir=None)
-        path = tmp_path / "data.zip"
-        path.touch()
-        decision = analyze_jav_file(path, config)
-        assert isinstance(decision, SkipDecision)
-        assert "archive_dir" in decision.reason
 
 
 class TestAnalyzeJavFileMisc:
@@ -84,18 +71,6 @@ class TestAnalyzeJavFileMisc:
         decision = analyze_jav_file(path, config)
         assert isinstance(decision, MoveDecision)
         assert decision.target_path == tmp_path / "misc" / "other.xyz"
-
-    def test_misc_dir_none_skips(
-        self,
-        analyze_config_factory: Callable[..., JavAnalyzeConfig],
-        tmp_path: Path,
-    ) -> None:
-        config = analyze_config_factory(misc_dir=None)
-        path = tmp_path / "other.xyz"
-        path.touch()
-        decision = analyze_jav_file(path, config)
-        assert isinstance(decision, SkipDecision)
-        assert "misc_dir" in decision.reason
 
     def test_misc_empty_rules_no_delete(
         self,

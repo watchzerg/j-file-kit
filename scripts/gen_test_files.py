@@ -7,7 +7,7 @@
   python scripts/gen_test_files.py [目标目录]
 
   未传参数时，自动读取项目根目录的 .env 文件中的 MEDIA_ROOT 变量，
-  生成到 $MEDIA_ROOT/jav_workspace/inbox（与 jav_video_organizer 默认 inbox_dir 对齐）。
+  生成到 $MEDIA_ROOT/jav_workspace/inbox（默认 workspace_root 派生的收件箱）。
 
 测试场景分组（见下方 TEST_FILES）：
   A. 标准有番号媒体       → sorted/

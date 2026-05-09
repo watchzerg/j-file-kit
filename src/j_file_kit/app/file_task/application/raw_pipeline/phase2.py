@@ -1,8 +1,7 @@
 """Raw 管道阶段 2 编排入口：inbox 第一层目录（2.1→2.2→2.3→2.4）。
 
 具体规则实现在同包 ``phase2_*`` 子模块；本文件仅负责取消检测、目录循环与阶段顺序。
-迁出前预先判断是否存在「待删除关键字」目录：若存在则必须配置 ``folders_to_delete``，
-避免半套配置在 run 中途才失败。行为见 ``docs/RAW_FILE_PROCESSING_PIPELINE.md``。
+归宿路径由 workspace 派生；关键字目录迁至 ``folders_to_delete``。
 """
 
 import threading
@@ -39,7 +38,7 @@ def _phase2_process_one_level1_dir(
     *,
     dir_keywords_norm: tuple[str, ...],
     junk_keywords_norm: tuple[str, ...],
-    dest_delete: Path | None,
+    dest_delete: Path,
     dry_run: bool,
     cancellation_event: threading.Event | None,
 ) -> bool:
@@ -49,9 +48,6 @@ def _phase2_process_one_level1_dir(
         ``True`` 表示应终止阶段 2（取消）。
     """
     if dir_name_matches(dir_path, dir_keywords_norm):
-        if dest_delete is None:
-            msg = "folders_to_delete 未设置"
-            raise ValueError(msg)
         move_dir_to_delete(
             ctx,
             dir_path,

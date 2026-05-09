@@ -13,7 +13,6 @@ from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,
     FileDecision,
     MoveDecision,
-    SkipDecision,
 )
 from j_file_kit.app.file_task.domain.file_types import FileType
 from j_file_kit.shared.utils.file_utils import sanitize_surrogate_str
@@ -63,7 +62,7 @@ def decide_misc_action(
     file_type: FileType,
     config: JavAnalyzeConfig,
 ) -> FileDecision:
-    """Misc：命中删除规则则删；否则移到 ``misc_dir``；目录未配置则 Skip。
+    """Misc：命中删除规则则删；否则移到派生的 ``misc_dir``。
 
     Args:
         path: 文件路径
@@ -71,7 +70,7 @@ def decide_misc_action(
         config: JAV 分析配置
 
     Returns:
-        ``DeleteDecision``、``MoveDecision`` 或 ``SkipDecision``
+        ``DeleteDecision`` 或 ``MoveDecision``
     """
     delete_reason = check_misc_delete_rules(path, config.misc_file_delete_rules)
     if delete_reason:
@@ -79,13 +78,6 @@ def decide_misc_action(
             source_path=path,
             file_type=file_type,
             reason=delete_reason,
-        )
-
-    if config.misc_dir is None:
-        return SkipDecision(
-            source_path=path,
-            file_type=file_type,
-            reason="misc_dir 未设置，无法移动 Misc 文件",
         )
 
     return MoveDecision(

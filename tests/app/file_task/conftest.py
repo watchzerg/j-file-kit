@@ -13,24 +13,24 @@ from j_file_kit.app.file_task.domain.task_config import TaskConfig
 
 @pytest.fixture
 def task_config_factory(tmp_path: Path):
-    """创建 TaskConfig 的工厂，支持覆盖默认配置。"""
+    """构造 ``TaskConfig``（JAV 为 ``workspace_root`` 契约）。
+
+    若测试会 ``get_config(JavVideoOrganizeConfig)``，需 monkeypatch ``JAV_MEDIA_ROOT`` 为
+    包含 ``workspace_root`` 的目录（见 ``tests/app/file_task/application/test_jav_video_organizer.py``）。
+    """
 
     def _create(
         task_type: str = TASK_TYPE_JAV_VIDEO_ORGANIZER,
         enabled: bool = True,
-        inbox_dir: Path | None = None,
+        workspace_root: Path | None = None,
         **config_overrides: object,
     ) -> TaskConfig:
-        inbox = inbox_dir if inbox_dir is not None else tmp_path / "inbox"
-        config = {
-            "inbox_dir": str(inbox),
-            "sorted_dir": str(tmp_path / "sorted"),
-            "unsorted_dir": str(tmp_path / "unsorted"),
-            "archive_dir": str(tmp_path / "archive"),
-            "misc_dir": str(tmp_path / "misc"),
+        root = workspace_root if workspace_root is not None else tmp_path / "jav_ws"
+        config: dict[str, object] = {
+            "workspace_root": str(root),
             "misc_file_delete_rules": {},
-            **config_overrides,
         }
+        config.update(config_overrides)
         return TaskConfig(type=task_type, enabled=enabled, config=config)
 
     return _create

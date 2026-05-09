@@ -10,7 +10,10 @@ from typing import Any
 
 import pytest
 
-from j_file_kit.app.file_task.application.config_common import InboxDeleteRules
+from j_file_kit.app.file_task.application.config_common import (
+    InboxDeleteRules,
+    raw_workspace_paths,
+)
 from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
 from j_file_kit.app.file_task.application.jav_pipeline.pipeline import FilePipeline
 from j_file_kit.app.file_task.application.jav_task_config import JavVideoOrganizeConfig
@@ -38,22 +41,14 @@ def base_extensions() -> dict[str, list[str]]:
 @pytest.fixture
 def jav_video_organize_config_factory() -> Callable[..., JavVideoOrganizeConfig]:
     def _create(
-        inbox_dir: Path | None = None,
-        sorted_dir: Path | None = None,
-        unsorted_dir: Path | None = None,
-        archive_dir: Path | None = None,
-        misc_dir: Path | None = None,
+        workspace_root: Path | None = None,
         **overrides: object,
     ) -> JavVideoOrganizeConfig:
-        config = {
-            "inbox_dir": inbox_dir,
-            "sorted_dir": sorted_dir,
-            "unsorted_dir": unsorted_dir,
-            "archive_dir": archive_dir,
-            "misc_dir": misc_dir,
+        config: dict[str, object] = {
+            "workspace_root": workspace_root or Path("/media/jav_workspace"),
             "misc_file_delete_rules": {},
-            **overrides,
         }
+        config.update(overrides)
         return JavVideoOrganizeConfig.model_validate(config)
 
     return _create
@@ -64,28 +59,11 @@ def raw_file_organize_config_factory() -> Callable[..., RawFileOrganizeConfig]:
     """构造 `RawFileOrganizeConfig`，用于 raw 校验单测。"""
 
     def _create(
-        inbox_dir: Path | None = None,
+        workspace_root: Path | None = None,
         **overrides: object,
     ) -> RawFileOrganizeConfig:
         config: dict[str, object] = {
-            "inbox_dir": inbox_dir,
-            "folders_to_delete": None,
-            "folders_video": None,
-            "folders_compressed": None,
-            "folders_pic": None,
-            "folders_audio": None,
-            "folders_misc": None,
-            "files_to_delete": None,
-            "files_video_jav": None,
-            "files_video_us": None,
-            "files_video_jav_vr": None,
-            "files_video_us_vr": None,
-            "files_video_movie": None,
-            "files_video_misc": None,
-            "files_compressed": None,
-            "files_pic": None,
-            "files_audio": None,
-            "files_misc": None,
+            "workspace_root": workspace_root or Path("/media/raw_workspace"),
         }
         config.update(overrides)
         return RawFileOrganizeConfig.model_validate(config)
@@ -95,11 +73,12 @@ def raw_file_organize_config_factory() -> Callable[..., RawFileOrganizeConfig]:
 
 @pytest.fixture
 def analyze_config_factory(
+    tmp_path: Path,
     base_extensions: dict[str, list[str]],
 ) -> Callable[..., JavAnalyzeConfig]:
     """构造 `JavAnalyzeConfig`，用于 analyzer/pipeline 单测（不经 `JavVideoOrganizer`）。
 
-    生产路径下扩展名与 misc.extensions、站标去噪由 `organizer_defaults` 注入；此处手写字段仅为隔离测试。
+    未显式传入的归宿目录默认为 ``tmp_path`` 下同名子目录。
     """
 
     def _create(
@@ -117,10 +96,10 @@ def analyze_config_factory(
             image_extensions=ext_sets["image_extensions"],
             subtitle_extensions=ext_sets["subtitle_extensions"],
             archive_extensions=ext_sets["archive_extensions"],
-            sorted_dir=sorted_dir,
-            unsorted_dir=unsorted_dir,
-            archive_dir=archive_dir,
-            misc_dir=misc_dir,
+            sorted_dir=sorted_dir or tmp_path / "sorted",
+            unsorted_dir=unsorted_dir or tmp_path / "unsorted",
+            archive_dir=archive_dir or tmp_path / "archive",
+            misc_dir=misc_dir or tmp_path / "misc",
             misc_file_delete_rules=misc_file_delete_rules or {},
             video_small_delete_bytes=video_small_delete_bytes,
             inbox_delete_rules=inbox_delete_rules or InboxDeleteRules(),
@@ -130,172 +109,58 @@ def analyze_config_factory(
     return _create
 
 
-class _UseDefaultFileBuckets:
-    """Sentinel for raw test factory: use default ``files_*`` next to ``folders_*``."""
-
-
-USE_DEFAULT_FILE_BUCKETS = _UseDefaultFileBuckets()
-
-
-def _resolve_optional_files_bucket(
-    param: Path | None | _UseDefaultFileBuckets,
-    *,
-    with_classification_destinations: bool,
-    tmp_path: Path,
-    default_name: str,
-) -> Path | None:
-    """Resolve ``files_*`` path for raw test configs (explicit path vs default vs unset)."""
-    if isinstance(param, _UseDefaultFileBuckets):
-        if with_classification_destinations:
-            return tmp_path / default_name
-        return None
-    return param
-
-
 @pytest.fixture
 def raw_analyze_config_factory() -> Callable[..., RawAnalyzeConfig]:
-    """构造 `RawAnalyzeConfig`，用于 raw pipeline 单测。"""
+    """构造 `RawAnalyzeConfig`：路径默认按 ``raw_workspace_paths(tmp_path)``。"""
 
     def _create(
         tmp_path: Path,
         *,
-        files_misc: Path | None,
-        folders_to_delete: Path | None = None,
-        with_classification_destinations: bool = True,
-        files_compressed: Path
-        | None
-        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
-        files_pic: Path | None | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
-        files_audio: Path | None | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
-        files_to_delete: Path
-        | None
-        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
-        files_video_movie: Path
-        | None
-        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
-        files_video_us_vr: Path
-        | None
-        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
-        files_video_us: Path | None | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
-        files_video_jav_vr: Path
-        | None
-        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
-        files_video_jav: Path
-        | None
-        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
-        files_video_misc: Path
-        | None
-        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
+        files_misc: Path | None = None,
+        **path_overrides: Path,
     ) -> RawAnalyzeConfig:
-        folders_pic = folders_audio = folders_compressed = None
-        folders_video = folders_misc = None
-        if with_classification_destinations:
-            folders_pic = tmp_path / "folders_pic"
-            folders_audio = tmp_path / "folders_audio"
-            folders_compressed = tmp_path / "folders_compressed"
-            folders_video = tmp_path / "folders_video"
-            folders_misc = tmp_path / "folders_misc"
-            for path in (
-                folders_pic,
-                folders_audio,
-                folders_compressed,
-                folders_video,
-                folders_misc,
-            ):
-                path.mkdir(parents=True, exist_ok=True)
-        files_compressed_resolved = _resolve_optional_files_bucket(
-            files_compressed,
-            with_classification_destinations=with_classification_destinations,
-            tmp_path=tmp_path,
-            default_name="files_compressed",
-        )
-        files_pic_resolved = _resolve_optional_files_bucket(
-            files_pic,
-            with_classification_destinations=with_classification_destinations,
-            tmp_path=tmp_path,
-            default_name="files_pic",
-        )
-        files_audio_resolved = _resolve_optional_files_bucket(
-            files_audio,
-            with_classification_destinations=with_classification_destinations,
-            tmp_path=tmp_path,
-            default_name="files_audio",
-        )
-        files_to_delete_resolved = _resolve_optional_files_bucket(
-            files_to_delete,
-            with_classification_destinations=with_classification_destinations,
-            tmp_path=tmp_path,
-            default_name="files_to_delete",
-        )
-        files_video_movie_resolved = _resolve_optional_files_bucket(
-            files_video_movie,
-            with_classification_destinations=with_classification_destinations,
-            tmp_path=tmp_path,
-            default_name="files_video_movie",
-        )
-        files_video_us_vr_resolved = _resolve_optional_files_bucket(
-            files_video_us_vr,
-            with_classification_destinations=with_classification_destinations,
-            tmp_path=tmp_path,
-            default_name="files_video_us_vr",
-        )
-        files_video_us_resolved = _resolve_optional_files_bucket(
-            files_video_us,
-            with_classification_destinations=with_classification_destinations,
-            tmp_path=tmp_path,
-            default_name="files_video_us",
-        )
-        files_video_jav_vr_resolved = _resolve_optional_files_bucket(
-            files_video_jav_vr,
-            with_classification_destinations=with_classification_destinations,
-            tmp_path=tmp_path,
-            default_name="files_video_jav_vr",
-        )
-        files_video_jav_resolved = _resolve_optional_files_bucket(
-            files_video_jav,
-            with_classification_destinations=with_classification_destinations,
-            tmp_path=tmp_path,
-            default_name="files_video_jav",
-        )
-        files_video_misc_resolved = _resolve_optional_files_bucket(
-            files_video_misc,
-            with_classification_destinations=with_classification_destinations,
-            tmp_path=tmp_path,
-            default_name="files_video_misc",
-        )
+        p = raw_workspace_paths(tmp_path)
+        paths_map: dict[str, Path] = {
+            "folders_to_delete": p.folders_to_delete,
+            "folders_video": p.folders_video,
+            "folders_compressed": p.folders_compressed,
+            "folders_pic": p.folders_pic,
+            "folders_audio": p.folders_audio,
+            "folders_misc": p.folders_misc,
+            "files_to_delete": p.files_to_delete,
+            "files_video_jav": p.files_video_jav,
+            "files_video_us": p.files_video_us,
+            "files_video_jav_vr": p.files_video_jav_vr,
+            "files_video_us_vr": p.files_video_us_vr,
+            "files_video_movie": p.files_video_movie,
+            "files_video_misc": p.files_video_misc,
+            "files_compressed": p.files_compressed,
+            "files_pic": p.files_pic,
+            "files_audio": p.files_audio,
+            "files_misc": files_misc if files_misc is not None else p.files_misc,
+        }
+        paths_map.update(path_overrides)
+        for dest in paths_map.values():
+            dest.mkdir(parents=True, exist_ok=True)
 
-        for path in (
-            files_compressed_resolved,
-            files_pic_resolved,
-            files_audio_resolved,
-            files_to_delete_resolved,
-            files_video_movie_resolved,
-            files_video_us_vr_resolved,
-            files_video_us_resolved,
-            files_video_jav_vr_resolved,
-            files_video_jav_resolved,
-            files_video_misc_resolved,
-        ):
-            if path is not None:
-                path.mkdir(parents=True, exist_ok=True)
         return RawAnalyzeConfig(
-            folders_to_delete=folders_to_delete,
-            folders_video=folders_video,
-            folders_compressed=folders_compressed,
-            folders_pic=folders_pic,
-            folders_audio=folders_audio,
-            folders_misc=folders_misc,
-            files_to_delete=files_to_delete_resolved,
-            files_video_jav=files_video_jav_resolved,
-            files_video_us=files_video_us_resolved,
-            files_video_jav_vr=files_video_jav_vr_resolved,
-            files_video_us_vr=files_video_us_vr_resolved,
-            files_video_movie=files_video_movie_resolved,
-            files_video_misc=files_video_misc_resolved,
-            files_compressed=files_compressed_resolved,
-            files_pic=files_pic_resolved,
-            files_audio=files_audio_resolved,
-            files_misc=files_misc,
+            folders_to_delete=paths_map["folders_to_delete"],
+            folders_video=paths_map["folders_video"],
+            folders_compressed=paths_map["folders_compressed"],
+            folders_pic=paths_map["folders_pic"],
+            folders_audio=paths_map["folders_audio"],
+            folders_misc=paths_map["folders_misc"],
+            files_to_delete=paths_map["files_to_delete"],
+            files_video_jav=paths_map["files_video_jav"],
+            files_video_us=paths_map["files_video_us"],
+            files_video_jav_vr=paths_map["files_video_jav_vr"],
+            files_video_us_vr=paths_map["files_video_us_vr"],
+            files_video_movie=paths_map["files_video_movie"],
+            files_video_misc=paths_map["files_video_misc"],
+            files_compressed=paths_map["files_compressed"],
+            files_pic=paths_map["files_pic"],
+            files_audio=paths_map["files_audio"],
+            files_misc=paths_map["files_misc"],
             video_extensions={".mp4"},
             image_extensions={".jpg", ".jpeg", ".png"},
             subtitle_extensions={".srt"},

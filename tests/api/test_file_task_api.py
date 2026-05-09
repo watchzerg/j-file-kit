@@ -102,7 +102,7 @@ class TestCancelRun:
     ) -> None:
         """取消执行实例
 
-        需配置有效 inbox_dir 使任务运行足够久以便取消。
+        需具备有效 workspace（含 inbox）使任务运行足够久以便取消。
         创建多文件以延长扫描时间。
         """
         monkeypatch.setattr(
@@ -118,11 +118,7 @@ class TestCancelRun:
             "/api/file-task/config/jav-video-organizer",
             json={
                 "config": {
-                    "inbox_dir": str(inbox),
-                    "sorted_dir": None,
-                    "unsorted_dir": None,
-                    "archive_dir": None,
-                    "misc_dir": None,
+                    "workspace_root": str(tmp_path),
                 },
             },
         )

@@ -18,7 +18,7 @@ def test_task_type(tmp_path: Path) -> None:
         type=TASK_TYPE_RAW_FILE_ORGANIZER,
         enabled=True,
         config={
-            "inbox_dir": "/media/raw_workspace/inbox",
+            "workspace_root": "/media/raw_workspace",
         },
     )
     org = RawFileOrganizer(
@@ -29,7 +29,7 @@ def test_task_type(tmp_path: Path) -> None:
     assert org.task_type == TASK_TYPE_RAW_FILE_ORGANIZER
 
 
-def test_run_requires_inbox(
+def test_run_requires_existing_inbox(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -37,17 +37,19 @@ def test_run_requires_inbox(
         "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
         tmp_path,
     )
+    ws = tmp_path / "raw_ws"
+    ws.mkdir()
     tc = TaskConfig(
         type=TASK_TYPE_RAW_FILE_ORGANIZER,
         enabled=True,
-        config={"inbox_dir": None},
+        config={"workspace_root": str(ws)},
     )
     org = RawFileOrganizer(
         task_config=tc,
         log_dir=tmp_path / "logs",
         file_result_repository=MagicMock(),
     )
-    with pytest.raises(ValueError, match="inbox_dir"):
+    with pytest.raises(ValueError, match="收件箱目录不存在"):
         org.run(run_id=1)
 
 
@@ -59,12 +61,13 @@ def test_run_returns_empty_statistics(
         "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
         tmp_path,
     )
-    inbox = tmp_path / "inbox"
-    inbox.mkdir()
+    ws = tmp_path / "raw_ws"
+    ws.mkdir()
+    (ws / "inbox").mkdir()
     tc = TaskConfig(
         type=TASK_TYPE_RAW_FILE_ORGANIZER,
         enabled=True,
-        config={"inbox_dir": str(inbox)},
+        config={"workspace_root": str(ws)},
     )
     repo = MagicMock()
     repo.get_statistics.return_value = {

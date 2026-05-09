@@ -14,7 +14,6 @@ from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,
     FileDecision,
     MoveDecision,
-    SkipDecision,
 )
 from j_file_kit.app.file_task.domain.file_types import FileType
 from j_file_kit.shared.utils.file_utils import sanitize_surrogate_str
@@ -61,13 +60,6 @@ def decide_media_action(
     )
 
     if serial_id:
-        if config.sorted_dir is None:
-            return SkipDecision(
-                source_path=path,
-                file_type=file_type,
-                reason="sorted_dir 未设置，无法移动有番号文件",
-            )
-
         sub_dir = generate_sorted_dir(serial_id)
         target_path = config.sorted_dir / sub_dir / new_filename
 
@@ -83,12 +75,6 @@ def decide_media_action(
             source_path=path,
             file_type=file_type,
             reason="图片无番号，直接删除",
-        )
-    if config.unsorted_dir is None:
-        return SkipDecision(
-            source_path=path,
-            file_type=file_type,
-            reason="unsorted_dir 未设置，无法移动无番号文件",
         )
 
     return MoveDecision(

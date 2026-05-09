@@ -10,6 +10,7 @@
 import threading
 from pathlib import Path
 
+from j_file_kit.app.file_task.application.config_common import raw_workspace_paths
 from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
 from j_file_kit.app.file_task.application.raw_pipeline.pipeline import RawFilePipeline
 from j_file_kit.app.file_task.application.raw_task_config import RawFileOrganizeConfig
@@ -48,26 +49,26 @@ class RawFileOrganizer:
         return TASK_TYPE_RAW_FILE_ORGANIZER
 
     def _create_analyze_config(self) -> RawAnalyzeConfig:
-        """从任务配置派生分析 DTO；扩展名来自 `organizer_defaults`。"""
-        c = self.file_config
+        """从 ``workspace_root`` 派生分析 DTO；扩展名来自 `organizer_defaults`。"""
+        p = raw_workspace_paths(self.file_config.workspace_root)
         return RawAnalyzeConfig(
-            folders_to_delete=c.folders_to_delete,
-            folders_video=c.folders_video,
-            folders_compressed=c.folders_compressed,
-            folders_pic=c.folders_pic,
-            folders_audio=c.folders_audio,
-            folders_misc=c.folders_misc,
-            files_to_delete=c.files_to_delete,
-            files_video_jav=c.files_video_jav,
-            files_video_us=c.files_video_us,
-            files_video_jav_vr=c.files_video_jav_vr,
-            files_video_us_vr=c.files_video_us_vr,
-            files_video_movie=c.files_video_movie,
-            files_video_misc=c.files_video_misc,
-            files_compressed=c.files_compressed,
-            files_pic=c.files_pic,
-            files_audio=c.files_audio,
-            files_misc=c.files_misc,
+            folders_to_delete=p.folders_to_delete,
+            folders_video=p.folders_video,
+            folders_compressed=p.folders_compressed,
+            folders_pic=p.folders_pic,
+            folders_audio=p.folders_audio,
+            folders_misc=p.folders_misc,
+            files_to_delete=p.files_to_delete,
+            files_video_jav=p.files_video_jav,
+            files_video_us=p.files_video_us,
+            files_video_jav_vr=p.files_video_jav_vr,
+            files_video_us_vr=p.files_video_us_vr,
+            files_video_movie=p.files_video_movie,
+            files_video_misc=p.files_video_misc,
+            files_compressed=p.files_compressed,
+            files_pic=p.files_pic,
+            files_audio=p.files_audio,
+            files_misc=p.files_misc,
             video_extensions=set(DEFAULT_VIDEO_EXTENSIONS),
             image_extensions=set(DEFAULT_IMAGE_EXTENSIONS),
             subtitle_extensions=set(DEFAULT_SUBTITLE_EXTENSIONS),
@@ -82,14 +83,16 @@ class RawFileOrganizer:
         cancellation_event: threading.Event | None = None,
     ) -> FileTaskRunStatistics:
         """组装 `RawFilePipeline` 并委托执行（见 `RawFilePipeline.run` 三阶段语义）。"""
-        if self.file_config.inbox_dir is None:
-            raise ValueError("inbox_dir 未设置")
+        paths = raw_workspace_paths(self.file_config.workspace_root)
+        if not paths.inbox.exists() or not paths.inbox.is_dir():
+            msg = f"收件箱目录不存在或不是目录: {paths.inbox}"
+            raise ValueError(msg)
 
         analyze_config = self._create_analyze_config()
         pipeline = RawFilePipeline(
             run_id=run_id,
             run_name=self.task_type,
-            scan_root=self.file_config.inbox_dir,
+            scan_root=paths.inbox,
             analyze_config=analyze_config,
             log_dir=self.log_dir,
             file_result_repository=self._file_result_repository,

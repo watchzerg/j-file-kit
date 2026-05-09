@@ -90,15 +90,6 @@ def _whole_dir_destination_for_kinds(
     compressed = cfg.folders_compressed
     video = cfg.folders_video
     misc_root = cfg.folders_misc
-    if (
-        pic is None
-        or audio is None
-        or compressed is None
-        or video is None
-        or misc_root is None
-    ):
-        msg = "阶段2.4 归宿目录未注入（违反前置校验）"
-        raise RuntimeError(msg)
 
     if not kinds:
         return misc_root, "misc"
@@ -205,9 +196,6 @@ def flatten_dir_into_misc(
 ) -> bool:
     """拆解单层目录；``True`` 表示迁移过程中检测到取消。"""
     misc = ctx.analyze_config.files_misc
-    if misc is None:
-        phases.phase2_classification_errors += 1
-        return False
 
     files, subdirs = _list_direct_entries(dir_path)
     if subdirs or not files:

@@ -57,7 +57,7 @@ class FilePipeline:
     ) -> None:
         """绑定一次 run 的标识、扫描根、分析配置、日志目录与结果仓储。
 
-        `scan_root` 在 JAV 任务中为 `inbox_dir`；`analyze_config` 已不含 inbox 路径。
+        `scan_root` 在 JAV 任务中为 workspace 派生的收件箱路径；`analyze_config` 不含 inbox 路径。
         `file_result_repository` 由上游注入，pipeline 不关闭连接。
         """
         self.run_id = run_id

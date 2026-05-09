@@ -13,7 +13,6 @@ from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeCo
 from j_file_kit.app.file_task.domain.decisions import (
     DeleteDecision,
     MoveDecision,
-    SkipDecision,
 )
 from j_file_kit.app.file_task.domain.file_types import FileType
 
@@ -126,31 +125,7 @@ class TestAnalyzeJavFileVideoImageSubtitle:
         assert decision.serial_id is None
         assert decision.target_path == tmp_path / "unsorted" / "no_serial.mp4"
 
-    def test_video_with_serial_sorted_dir_none_skips(
-        self,
-        analyze_config_factory: Callable[..., JavAnalyzeConfig],
-        tmp_path: Path,
-    ) -> None:
-        config = analyze_config_factory(sorted_dir=None)
-        path = tmp_path / "ABC-123.mp4"
-        path.touch()
-        decision = analyze_jav_file(path, config)
-        assert isinstance(decision, SkipDecision)
-        assert "sorted_dir" in decision.reason
-
-    def test_video_without_serial_unsorted_dir_none_skips(
-        self,
-        analyze_config_factory: Callable[..., JavAnalyzeConfig],
-        tmp_path: Path,
-    ) -> None:
-        config = analyze_config_factory(unsorted_dir=None)
-        path = tmp_path / "no_serial.mp4"
-        path.touch()
-        decision = analyze_jav_file(path, config)
-        assert isinstance(decision, SkipDecision)
-        assert "unsorted_dir" in decision.reason
-
-    def test_image_without_serial_deleted(
+    def test_image_without_serial_is_deleted(
         self,
         analyze_config_factory: Callable[..., JavAnalyzeConfig],
         tmp_path: Path,
@@ -162,17 +137,6 @@ class TestAnalyzeJavFileVideoImageSubtitle:
         assert isinstance(decision, DeleteDecision)
         assert decision.file_type == FileType.IMAGE
         assert "图片无番号" in decision.reason
-
-    def test_image_without_serial_deleted_without_unsorted_dir(
-        self,
-        analyze_config_factory: Callable[..., JavAnalyzeConfig],
-        tmp_path: Path,
-    ) -> None:
-        config = analyze_config_factory(unsorted_dir=None)
-        path = tmp_path / "no_serial.jpg"
-        path.touch()
-        decision = analyze_jav_file(path, config)
-        assert isinstance(decision, DeleteDecision)
 
     def test_image_classified_correctly(
         self,
@@ -216,27 +180,3 @@ class TestAnalyzeJavFileVideoImageSubtitle:
         assert decision.file_type == FileType.SUBTITLE
         assert decision.serial_id is None
         assert decision.target_path == tmp_path / "unsorted" / "no_serial.srt"
-
-    def test_subtitle_with_serial_sorted_dir_none_skips(
-        self,
-        analyze_config_factory: Callable[..., JavAnalyzeConfig],
-        tmp_path: Path,
-    ) -> None:
-        config = analyze_config_factory(sorted_dir=None)
-        path = tmp_path / "ABC-123.ass"
-        path.touch()
-        decision = analyze_jav_file(path, config)
-        assert isinstance(decision, SkipDecision)
-        assert "sorted_dir" in decision.reason
-
-    def test_subtitle_without_serial_unsorted_dir_none_skips(
-        self,
-        analyze_config_factory: Callable[..., JavAnalyzeConfig],
-        tmp_path: Path,
-    ) -> None:
-        config = analyze_config_factory(unsorted_dir=None)
-        path = tmp_path / "no_serial.ass"
-        path.touch()
-        decision = analyze_jav_file(path, config)
-        assert isinstance(decision, SkipDecision)
-        assert "unsorted_dir" in decision.reason

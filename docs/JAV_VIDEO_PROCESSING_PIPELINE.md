@@ -52,16 +52,16 @@ flowchart TB
 | 层次 | 类型 | 说明 |
 |------|------|------|
 | 存储 | `TaskConfig` | YAML 中一条记录：`type` + `enabled` + `config`（dict） |
-| 任务强类型 | `JavVideoOrganizeConfig` | `get_config(JavVideoOrganizeConfig)`；含 **`inbox_dir`**、各输出目录、收件箱预删、`misc_file_delete_rules` 可调片段（max_size）等 |
-| 分析专用 | `JavAnalyzeConfig` | `JavVideoOrganizer` 内由 `_create_analyze_config()` 组装：**四类扩展名**、**站标去噪子串**、**misc 删除扩展名**来自 **`domain/organizer_defaults.py`**，并与 YAML 中的目录、`misc_file_delete_rules`（无 extensions）、收件箱预删等合并；**不含** `inbox_dir`，专供 **`analyze_jav_file`** |
+| 任务强类型 | `JavVideoOrganizeConfig` | `get_config(JavVideoOrganizeConfig)`；**仅** **`workspace_root`**（须在 **`JAV_MEDIA_ROOT`** 下）+ 收件箱预删、`misc_file_delete_rules` 可调片段（max_size）等；**不再**逐项配置各归宿目录 |
+| 分析专用 | `JavAnalyzeConfig` | `JavVideoOrganizer` 内由 `_create_analyze_config()` 组装：**四类扩展名**、**站标去噪子串**、**misc 删除扩展名**来自 **`domain/organizer_defaults.py`**，并与 **`jav_workspace_paths(workspace_root)`** 派生的 **`sorted_dir` / `unsorted_dir` / `archive_dir` / `misc_dir`**、`misc_file_delete_rules`（无 extensions）、收件箱预删等合并；**不含**收件箱路径，专供 **`analyze_jav_file`** |
 
-路径不变量：配置中凡出现的媒体目录须在 **`JAV_MEDIA_ROOT`（`/media/jav_workspace`）** 下，由 Pydantic 校验（见 `JavVideoOrganizeConfig.validate_dir_paths_under_media_root`）。
+路径不变量：**`workspace_root`** 须在 **`JAV_MEDIA_ROOT`（`/media/jav_workspace`）** 下（`JavVideoOrganizeConfig`）；子目录名单一来源见 **`application/config_common.py`**（`jav_workspace_paths`）。通过 API / `FileTaskConfigService` 保存配置时会 **`mkdir` `workspace_root` + `inbox`**；任务 **`run`** 前再次校验派生 **`inbox`** 存在且为目录，其余归宿目录在执行 **`MoveDecision`** 时按需创建。
 
 **`JavVideoOrganizer.run`**（`jav_video_organizer.py`）要点：
 
-1. `inbox_dir` 为 `None` → `ValueError`。  
-2. 构造 `JavAnalyzeConfig`。  
-3. 实例化 `FilePipeline`：`scan_root = inbox_dir`，`analyze_config`、`run_id`、`log_dir`、`file_result_repository` 注入。  
+1. 派生 **`inbox`** 不存在或非目录 → **`ValueError`**。  
+2. 构造 `JavAnalyzeConfig`（归宿路径已由 root 派生）。  
+3. 实例化 `FilePipeline`：`scan_root = inbox`, `analyze_config`、`run_id`、`log_dir`、`file_result_repository` 注入。  
 4. 返回 `pipeline.run(dry_run=..., cancellation_event=...)`。
 
 ---
@@ -70,7 +70,7 @@ flowchart TB
 
 **文件**：`application/jav_pipeline/pipeline.py`（编排）、`application/file_ops.py`、`application/jav_pipeline/item_processor.py`、`application/jav_pipeline/directory_cleanup.py`。
 
-- **遍历根**：`scan_root` 即收件箱 **`inbox_dir`**。  
+- **遍历根**：`scan_root` 即派生收件箱 **`inbox`**（`jav_workspace_paths(...).inbox`）。  
 - **顺序**：`os.walk(..., topdown=False)` **自底向上**：先子目录内文件，再子目录，再父目录。意图是：文件先被移走/删掉后，空目录可在后续步骤被删掉。  
 - **对每个 FILE**：`process_single_file_for_run`（`jav_pipeline.item_processor`）。  
 - **对每个 DIRECTORY**（含根以下的目录节点）：`cleanup_empty_directory_under_scan`——**非** `dry_run`、且不是 `scan_root` 本身时，尝试删除空目录（见 `delete_directory_if_empty`）。
@@ -109,13 +109,11 @@ flowchart TB
 
 1. `check_misc_delete_rules`：`misc_file_delete_rules` 字典——**扩展名列表**由代码常量注入（**优先级最高**）；若配置了 `max_size`，则再按体积阈值删除。旧 YAML 若含 `extensions` / `keywords` 键会在加载 `JavVideoOrganizeConfig` 时被剔除且不写回。  
 2. 命中删除 → `DeleteDecision`。  
-3. 否则若 **`misc_dir` 未设置** → `SkipDecision`。  
-4. 否则 → **`MoveDecision`** 到 `misc_dir / 原文件名`（经 `sanitize_surrogate_str`）。
+3. 否则 → **`MoveDecision`** 到 `misc_dir / 原文件名`（经 `sanitize_surrogate_str`；`misc_dir` 由 root 派生，始终存在）。
 
 ### 4.5 压缩包（`decide_archive_action`）
 
-- **`archive_dir` 未设置** → `SkipDecision`。  
-- 否则 → `MoveDecision` 到 `archive_dir / 文件名`。
+- **`MoveDecision`** 到 `archive_dir / 文件名`（`archive_dir` 由 `workspace_root` 派生）。
 
 ### 4.6 视频 / 图片 / 字幕（`decide_media_action`）
 
@@ -129,13 +127,11 @@ flowchart TB
    - 再滑动匹配番号（见第 5 节）；  
    - 返回 **`(new_filename, serial_id)`**；无番号时 **`(原 filename, None)`**（未匹配番号时**不做**去噪输出，与有番号路径不同）。
 
-3. **有番号**（`serial_id` 非空）：  
-   - **`sorted_dir` 未设置** → `SkipDecision`。  
-   - 否则目标目录：`sorted_dir / generate_sorted_dir(serial_id) / new_filename`（见第 5.2 节）→ **`MoveDecision`**（带 `serial_id`）。
+3. **有番号**（`serial_id` 非空）：目标目录 `sorted_dir / generate_sorted_dir(serial_id) / new_filename`（见第 5.2 节）→ **`MoveDecision`**（带 `serial_id`）。
 
 4. **无番号**：  
    - **IMAGE** → **`DeleteDecision`**（图片无番号直接删）。  
-   - **VIDEO / SUBTITLE**：**`unsorted_dir` 未设置** → `SkipDecision`；否则 → **`MoveDecision`** 到 `unsorted_dir / safe_name`（**不**用 `new_filename` 路径逻辑，见源码：无番号用 `safe_name`）。
+   - **VIDEO / SUBTITLE** → **`MoveDecision`** 到 `unsorted_dir / safe_name`（**不**用 `new_filename` 路径逻辑，见源码：无番号用 `safe_name`）。
 
 ---
 
@@ -227,7 +223,7 @@ flowchart TB
 
 ## 10. 调试与排错提示
 
-- **整批跳过移动**：检查 **`sorted_dir` / `unsorted_dir` / `misc_dir` / `archive_dir`** 是否在 YAML 中配置且通过校验。  
+- **整批跳过移动**：多为 **`dry_run`**、权限或磁盘错误；归宿目录不由 YAML 逐项配置，若 **`workspace_root`** 或派生路径异常，通常在 **`run`** 或校验阶段已失败。  
 - **番号总匹配失败**：对照 **`organizer_defaults`** 中的站标去噪子串与 **`JAV_SERIAL_PREFIX_PATTERN` / `SerialId`** 规则；文件名是否含合法前缀+数字段。  
 - **预览正常、正式不对**：对比 **`dry_run`** 分支是否仅跳过真实 I/O；正式路径下看 executor 返回的 **`message`** 与 DB 中 **`error_message`**。  
 - **空目录没删**：非 dry_run 下由 `_cleanup_empty_directory` 处理；根 **`scan_root`** 本身不会被删。

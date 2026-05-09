@@ -13,18 +13,13 @@ from j_file_kit.app.file_task.domain.task_config import TaskConfig
 def create_default_jav_video_organizer_task_config() -> TaskConfig:
     """生成「一份可写入 YAML」的 jav_video_organizer 默认 `TaskConfig`。
 
-    调用方：应用 lifespan 中若配置文件缺失，则以此初始化磁盘上的 `task_config.yaml`。
-    扩展名分类、站标去噪、Misc 删除扩展名不在此字典中，运行时由 `organizer_defaults` 注入 `JavAnalyzeConfig`。
+    仅持久化 ``workspace_root`` 与可调删除策略；inbox/sorted 等由代码派生。
     """
     return TaskConfig(
         type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
         enabled=True,
         config={
-            "inbox_dir": "/media/jav_workspace/inbox",
-            "sorted_dir": "/media/jav_workspace/sorted",
-            "unsorted_dir": "/media/jav_workspace/unsorted",
-            "archive_dir": "/media/jav_workspace/archive",
-            "misc_dir": "/media/jav_workspace/misc",
+            "workspace_root": "/media/jav_workspace",
             "inbox_delete_rules": {
                 "exact_stems": [],
                 "max_size_bytes": 0,
@@ -38,29 +33,11 @@ def create_default_jav_video_organizer_task_config() -> TaskConfig:
 
 
 def create_default_raw_file_organizer_task_config() -> TaskConfig:
-    """生成 raw_file_organizer 默认 `TaskConfig`（写入 YAML 时仅含路径键，扩展名由运行时注入分析配置）。"""
-    base = "/media/raw_workspace"
+    """生成 raw_file_organizer 默认 `TaskConfig`（仅 workspace 根）。"""
     return TaskConfig(
         type=TASK_TYPE_RAW_FILE_ORGANIZER,
         enabled=True,
         config={
-            "inbox_dir": f"{base}/inbox",
-            "folders_to_delete": f"{base}/folders_to_delete",
-            "folders_video": f"{base}/folders_video",
-            "folders_compressed": f"{base}/folders_compressed",
-            "folders_pic": f"{base}/folders_pic",
-            "folders_audio": f"{base}/folders_audio",
-            "folders_misc": f"{base}/folders_misc",
-            "files_to_delete": f"{base}/files_to_delete",
-            "files_video_jav": f"{base}/files_video_jav",
-            "files_video_us": f"{base}/files_video_us",
-            "files_video_jav_vr": f"{base}/files_video_jav_vr",
-            "files_video_us_vr": f"{base}/files_video_us_vr",
-            "files_video_movie": f"{base}/files_video_movie",
-            "files_video_misc": f"{base}/files_video_misc",
-            "files_compressed": f"{base}/files_compressed",
-            "files_pic": f"{base}/files_pic",
-            "files_audio": f"{base}/files_audio",
-            "files_misc": f"{base}/files_misc",
+            "workspace_root": "/media/raw_workspace",
         },
     )

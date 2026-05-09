@@ -69,11 +69,6 @@ def run_phase1(
     level1_files = _list_inbox_level1_files(ctx.scan_root)
     counters.phase1_seen_files = len(level1_files)
 
-    if dest is None:
-        if level1_files:
-            raise ValueError("files_misc 未设置")
-        return False
-
     logger.bind(
         run_id=str(ctx.run_id),
         run_name=ctx.run_name,

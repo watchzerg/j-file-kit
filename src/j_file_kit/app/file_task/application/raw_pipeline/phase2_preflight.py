@@ -1,6 +1,6 @@
-"""Raw 阶段 2 前置：第一层目录枚举、关键字归一化、必须配置的路径校验。
+"""Raw 阶段 2 前置：第一层目录枚举、关键字归一化、路径就绪检查。
 
-编排层在 `run_phase2` 开头调用本模块，保证「半套配置」在阶段开始前失败，而非中途抛错。
+编排层在 `run_phase2` 开头调用本模块；归宿路径均由 ``workspace_root`` 派生，此处仅做语义校验钩子占位。
 """
 
 from pathlib import Path
@@ -8,7 +8,6 @@ from pathlib import Path
 from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
 from j_file_kit.app.file_task.domain.organizer_defaults import DEFAULT_RAW_JUNK_KEYWORDS
 from j_file_kit.shared.utils.name_keyword_match import (
-    dir_name_matches,
     normalize_keyword_tokens,
 )
 
@@ -30,47 +29,16 @@ def build_phase2_normalized_keywords() -> tuple[tuple[str, ...], tuple[str, ...]
     return norm, norm
 
 
-def ensure_phase2_classification_targets(cfg: RawAnalyzeConfig) -> None:
-    """当 inbox 存在待 2.4 分类的第一层目录时，要求归宿路径齐备。"""
-    pairs = [
-        ("files_misc", cfg.files_misc),
-        ("folders_pic", cfg.folders_pic),
-        ("folders_audio", cfg.folders_audio),
-        ("folders_compressed", cfg.folders_compressed),
-        ("folders_video", cfg.folders_video),
-        ("folders_misc", cfg.folders_misc),
-    ]
-    missing = [name for name, p in pairs if p is None]
-    if missing:
-        msg = "Raw 阶段2.4 需要配置归宿目录（存在待分类的第一层目录）：" + ", ".join(
-            missing
-        )
-        raise ValueError(msg)
-
-
 def validate_phase2_preflight_paths(
     dirs: list[Path],
     cfg: RawAnalyzeConfig,
     *,
     dir_keywords_norm: tuple[str, ...],
-) -> Path | None:
-    """校验阶段 2 所需路径配置；通过则返回 ``folders_to_delete``（可为 ``None``）。
+) -> Path:
+    """确认阶段 2 所需路径可用；返回 ``folders_to_delete`` 路径。
 
-    Raises:
-        ValueError: 存在待迁出关键字目录但 ``folders_to_delete`` 未配置。
+    当前所有归宿目录均由代码从 workspace 派生，无需「半套配置」检测；保留本函数以便日后扩展预检。
     """
-    needs_delete_dest = any(
-        dir_name_matches(dir_path, dir_keywords_norm) for dir_path in dirs
-    )
-    dest_delete = cfg.folders_to_delete
-    if needs_delete_dest and dest_delete is None:
-        msg = "folders_to_delete 未设置（存在待迁出的关键字目录）"
-        raise ValueError(msg)
-
-    needs_classification_targets = any(
-        not dir_name_matches(dir_path, dir_keywords_norm) for dir_path in dirs
-    )
-    if needs_classification_targets:
-        ensure_phase2_classification_targets(cfg)
-
-    return dest_delete
+    _ = dirs
+    _ = dir_keywords_norm
+    return cfg.folders_to_delete

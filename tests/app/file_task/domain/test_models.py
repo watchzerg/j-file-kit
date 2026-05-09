@@ -4,6 +4,7 @@
 """
 
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
@@ -290,14 +291,10 @@ class TestTaskConfigGetConfig:
             type="jav_video_organizer",
             enabled=True,
             config={
-                "inbox_dir": None,
-                "sorted_dir": None,
-                "unsorted_dir": None,
-                "archive_dir": None,
-                "misc_dir": None,
+                "workspace_root": "/media/jav_workspace",
                 "misc_file_delete_rules": {},
             },
         )
         result: JavVideoOrganizeConfig = config.get_config(JavVideoOrganizeConfig)
         assert isinstance(result, JavVideoOrganizeConfig)
-        assert result.inbox_dir is None
+        assert result.workspace_root == Path("/media/jav_workspace")

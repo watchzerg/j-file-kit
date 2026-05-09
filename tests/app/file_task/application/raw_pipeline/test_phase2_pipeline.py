@@ -83,35 +83,6 @@ def test_phase2_keyword_moves_dir_case_insensitive(
     assert not d.exists()
 
 
-def test_phase2_raises_when_keyword_hit_but_folders_to_delete_unset(
-    tmp_path: Path,
-    file_result_repository: FileResultRepositoryImpl,
-    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
-) -> None:
-    inbox = tmp_path / "inbox"
-    misc = tmp_path / "files_misc"
-    inbox.mkdir()
-    misc.mkdir()
-    d = inbox / "FC2-PPV-only"
-    d.mkdir()
-    (d / "a.txt").write_text("x")
-
-    pipe = RawFilePipeline(
-        run_id=55,
-        run_name="raw_file_organizer",
-        scan_root=inbox,
-        analyze_config=raw_analyze_config_factory(
-            tmp_path,
-            files_misc=misc,
-            folders_to_delete=None,
-        ),
-        log_dir=tmp_path / "logs",
-        file_result_repository=file_result_repository,
-    )
-    with pytest.raises(ValueError, match="folders_to_delete"):
-        pipe.run()
-
-
 def test_phase2_clean_deletes_junk_and_removes_empty_root(
     tmp_path: Path,
     file_result_repository: FileResultRepositoryImpl,
@@ -262,35 +233,6 @@ def test_phase2_dry_run_count_without_deleting_dir_contents(
     assert (d / "x.txt").exists()
     assert stats.phase2_cleaned_deleted_files == 1
     assert stats.phase2_moved_to_misc_dirs == 1
-
-
-def test_phase2_raises_when_classification_destinations_unconfigured(
-    tmp_path: Path,
-    file_result_repository: FileResultRepositoryImpl,
-    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
-) -> None:
-    inbox = tmp_path / "inbox"
-    misc = tmp_path / "files_misc"
-    inbox.mkdir()
-    misc.mkdir()
-    d = inbox / "needs_buckets"
-    d.mkdir()
-    (d / "a.mp4").write_text("v")
-
-    pipe = RawFilePipeline(
-        run_id=200,
-        run_name="raw_file_organizer",
-        scan_root=inbox,
-        analyze_config=raw_analyze_config_factory(
-            tmp_path,
-            files_misc=misc,
-            with_classification_destinations=False,
-        ),
-        log_dir=tmp_path / "logs",
-        file_result_repository=file_result_repository,
-    )
-    with pytest.raises(ValueError, match="阶段2.4"):
-        pipe.run()
 
 
 def test_phase2_flatten_video_plus_cover_jpg(

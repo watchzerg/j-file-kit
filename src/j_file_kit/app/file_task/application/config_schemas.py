@@ -11,8 +11,8 @@ from pydantic import BaseModel, Field
 class GetFileTaskConfigResponse(BaseModel):
     """获取 file task 配置响应
 
-    `config` 为仓储中的原始 dict：不含应由代码注入的分析字段（扩展名集、`jav_filename_strip_substrings`、
-    misc 删除 `extensions`）；GET 仍可能返回旧 YAML 里遗留的键直至某次 PATCH 重写。
+    ``config`` 为仓储中的持久化 dict：仅含 ``workspace_root`` 等业务可调字段；
+    归宿子目录由代码从 workspace 派生，不经 YAML 暴露。
     """
 
     type: str = Field(..., description="任务类型")

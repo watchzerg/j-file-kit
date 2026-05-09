@@ -1,77 +1,39 @@
 """Raw 收件箱整理任务：YAML / 存储层的强类型 `config` 模型。
 
-路径字段名与磁盘约定一致，便于 `config_validator` 做冲突检测；与 `RawAnalyzeConfig` 分离是因为分析阶段
-不含 `inbox_dir` 且携带扩展名集合，避免组织器与管线互相拖拽完整任务配置。
+路径字段不再持久化：仅 ``workspace_root``；``inbox``、``folders_*``、``files_*`` 由
+``config_common.raw_workspace_paths`` 从根目录派生，与 `RawAnalyzeConfig` 的分工保持不变。
 """
 
 from pathlib import Path
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 import j_file_kit.app.file_task.application.config_common as _config_common
+from j_file_kit.app.file_task.application.config_common import path_is_descendant_of
+
+
+def _default_raw_workspace_root() -> Path:
+    return _config_common.RAW_MEDIA_ROOT.expanduser()
 
 
 class RawFileOrganizeConfig(BaseModel):
-    """Raw 收件箱整理任务强类型配置（YAML `config` 字典对应物）。
+    """Raw 收件箱整理任务配置：仅 workspace 根。
 
-    字段名与业务目录名一致（`folders_*` / `files_*`）。`inbox_dir` 为扫描根；其余目录为分类归宿。
-    不变量：凡非 None 的路径必须为 `RAW_MEDIA_ROOT`（`/media/raw_workspace`）子目录。
+    不变量：``workspace_root`` 必须位于 ``RAW_MEDIA_ROOT``（默认 ``/media/raw_workspace``）之下。
     """
 
-    inbox_dir: Path | None = Field(default=None, description="inbox：BT 下载初始目录")
-    folders_to_delete: Path | None = Field(
-        default=None,
-        description="待人工确认的疑似删除目录（Raw 阶段 2.1 命中关键字时整目录迁入）",
-    )
-    folders_video: Path | None = Field(default=None, description="视频目录")
-    folders_compressed: Path | None = Field(default=None, description="压缩文件目录")
-    folders_pic: Path | None = Field(default=None, description="图片目录")
-    folders_audio: Path | None = Field(default=None, description="音频目录")
-    folders_misc: Path | None = Field(
-        default=None,
-        description="无法自动分类的杂项目录",
-    )
-    files_to_delete: Path | None = Field(
-        default=None,
-        description="阶段 3.0 junk stem 迁入目录（人工确认后删除）；路径名建议 files_to_delete",
-    )
-    files_video_jav: Path | None = Field(default=None, description="JAV 视频文件目录")
-    files_video_us: Path | None = Field(default=None, description="US 视频文件目录")
-    files_video_jav_vr: Path | None = Field(
-        default=None,
-        description="JAV VR 视频文件目录",
-    )
-    files_video_us_vr: Path | None = Field(
-        default=None,
-        description="US VR 视频文件目录",
-    )
-    files_video_movie: Path | None = Field(default=None, description="电影文件目录")
-    files_video_misc: Path | None = Field(default=None, description="杂项视频文件目录")
-    files_compressed: Path | None = Field(default=None, description="压缩文件目录")
-    files_pic: Path | None = Field(default=None, description="图片文件目录")
-    files_audio: Path | None = Field(default=None, description="音频文件目录")
-    files_misc: Path | None = Field(
-        default=None,
-        description="无法自动分类的杂项文件目录",
+    model_config = ConfigDict(extra="forbid")
+
+    workspace_root: Path = Field(
+        default_factory=_default_raw_workspace_root,
+        description="Raw 工作区根目录（其下 inbox/folders_* / files_* 由代码约定）",
     )
 
     @model_validator(mode="after")
-    def validate_dir_paths_under_raw_media_root(self) -> RawFileOrganizeConfig:
-        """所有非 None 目录路径必须位于 RAW_MEDIA_ROOT 下（运行时读 `config_common.RAW_MEDIA_ROOT`，便于测试 monkeypatch）。"""
-        raw_root = _config_common.RAW_MEDIA_ROOT.resolve(strict=False)
-        errors: list[str] = []
-        for field_name in _config_common.RAW_FILE_ORGANIZE_PATH_FIELD_NAMES:
-            dir_path: Path | None = getattr(self, field_name)
-            if (
-                dir_path is not None
-                and raw_root not in dir_path.resolve(strict=False).parents
-            ):
-                errors.append(
-                    f"{field_name}（{dir_path}）必须是 {raw_root} 的子目录",
-                )
-        if errors:
-            raise ValueError(
-                "目录路径不符合 RAW_MEDIA_ROOT 约束：\n"
-                + "\n".join(f"  - {e}" for e in errors),
-            )
+    def validate_workspace_under_raw_media_root(self) -> RawFileOrganizeConfig:
+        raw_root = _config_common.RAW_MEDIA_ROOT.expanduser().resolve(strict=False)
+        w = self.workspace_root.expanduser().resolve(strict=False)
+        if not path_is_descendant_of(w, raw_root):
+            msg = f"workspace_root（{w}）必须是 {raw_root} 或其子目录"
+            raise ValueError(msg)
         return self

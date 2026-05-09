@@ -1,6 +1,6 @@
 # j-file-kit
 
-基于 Python + FastAPI 的媒体文件自动整理工具，**以 Docker 容器方式运行，面向 Unraid 设计**。核心功能之一是将 **`jav_workspace/inbox`（容器内默认路径为 `/media/jav_workspace/inbox`）** 中的视频文件按番号识别后自动分类归档到 `sorted`、`unsorted`、`archive` 等目录；另提供 **`raw_workspace`** 下的 **Raw 收件箱整理**（inbox 第一层：文件归集 `files_misc`、目录迁至 `folders_to_delete`/清洗/`files_misc` 分流规划等；详见 [docs/RAW_FILE_PROCESSING_PIPELINE.md](docs/RAW_FILE_PROCESSING_PIPELINE.md)）。任务通过 HTTP API 触发与查询状态。
+基于 Python + FastAPI 的媒体文件自动整理工具，**以 Docker 容器方式运行，面向 Unraid 设计**。核心功能之一是在配置的 **`workspace_root`**（默认 **`/media/jav_workspace`**）下，从派生的 **`inbox`** 扫描视频并按番号识别后归入 **`sorted`、`unsorted`、`archive`、`misc`**（子目录名由代码约定，不经 YAML 逐项配置）；另提供 **`raw_workspace`** 下的 **Raw 收件箱整理**（inbox 第一层：文件归集 `files_misc`、目录迁至 `folders_to_delete`/清洗/`files_misc` 分流规划等；详见 [docs/RAW_FILE_PROCESSING_PIPELINE.md](docs/RAW_FILE_PROCESSING_PIPELINE.md)）。通过 HTTP API 更新 **`workspace_root`** 时会自动创建 **`workspace_root/inbox`**；任务通过 HTTP API 触发与查询状态。
 
 架构设计见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
@@ -42,17 +42,18 @@ cp .env.example .env
 just docker-up
 ```
 
-媒体目录结构（**`jav_workspace/inbox` 需提前存在**；**`raw_workspace` 下各业务子目录**可按默认配置自行创建，参见 `task_config.yaml` / [RAW_FILE_PROCESSING_PIPELINE.md](docs/RAW_FILE_PROCESSING_PIPELINE.md)。JAV 其余子目录多由任务执行时自动创建）：
+媒体目录：`jav_workspace` / `raw_workspace` 默认对应 **`/media/jav_workspace`**、**`/media/raw_workspace`**。**PATCH 保存任务配置**时会创建对应 **`workspace_root`** 与 **`inbox`**。其余业务子目录（如 `sorted`、`folders_pic`、`files_misc` 等）名由 [`application/config_common.py`](src/j_file_kit/app/file_task/application/config_common.py) 约定，任务执行时按需创建（参见各流水线文档）。
 
 | 宿主机 | 容器内 | 用途 |
 |---|---|---|
 | `$MEDIA_ROOT` | `/media` | 媒体根目录 |
-| `$MEDIA_ROOT/jav_workspace/inbox` | `/media/jav_workspace/inbox` | JAV 待处理（需提前存在） |
-| `$MEDIA_ROOT/jav_workspace/sorted` | `/media/jav_workspace/sorted` | JAV 有番号归档 |
-| `$MEDIA_ROOT/jav_workspace/unsorted` | `/media/jav_workspace/unsorted` | JAV 无番号 |
-| `$MEDIA_ROOT/jav_workspace/archive` | `/media/jav_workspace/archive` | JAV 压缩包 |
-| `$MEDIA_ROOT/jav_workspace/misc` | `/media/jav_workspace/misc` | JAV 杂项 |
-| `$MEDIA_ROOT/raw_workspace/...` | `/media/raw_workspace/...` | Raw 整理（默认见配置，如 `inbox`、`folders_*`、`files_*`） |
+| `$MEDIA_ROOT/jav_workspace` | `/media/jav_workspace` | JAV **`workspace_root`**（默认）；其下 **`inbox`** 在保存配置时创建 |
+| `$MEDIA_ROOT/jav_workspace/inbox` | `/media/jav_workspace/inbox` | JAV 待处理收件箱 |
+| `$MEDIA_ROOT/jav_workspace/sorted` | `/media/jav_workspace/sorted` | JAV 有番号归档（按需创建） |
+| `$MEDIA_ROOT/jav_workspace/unsorted` | `/media/jav_workspace/unsorted` | JAV 无番号（按需创建） |
+| `$MEDIA_ROOT/jav_workspace/archive` | `/media/jav_workspace/archive` | JAV 压缩包（按需创建） |
+| `$MEDIA_ROOT/jav_workspace/misc` | `/media/jav_workspace/misc` | JAV 杂项（按需创建） |
+| `$MEDIA_ROOT/raw_workspace` | `/media/raw_workspace` | Raw **`workspace_root`**（默认）；子目录同上按需创建 |
 
 ---
 
