@@ -8,7 +8,10 @@ from dataclasses import dataclass
 
 @dataclass
 class RawPhaseCounters:
-    """单次 run 内阶段计数（并入返回统计；不落目录明细表）。"""
+    """单次 run 内阶段计数（并入返回统计；不落目录明细表）。
+
+    phase3_deferred_files_misc：视频占位、未知扩展名、迁移失败；不含已成功迁入 files_* 的文件。
+    """
 
     phase1_seen_files: int = 0
     phase1_moved_files: int = 0

@@ -130,6 +130,28 @@ def analyze_config_factory(
     return _create
 
 
+class _UseDefaultFileBuckets:
+    """Sentinel for raw test factory: use default ``files_*`` next to ``folders_*``."""
+
+
+USE_DEFAULT_FILE_BUCKETS = _UseDefaultFileBuckets()
+
+
+def _resolve_optional_files_bucket(
+    param: Path | None | _UseDefaultFileBuckets,
+    *,
+    with_classification_destinations: bool,
+    tmp_path: Path,
+    default_name: str,
+) -> Path | None:
+    """Resolve ``files_*`` path for raw test configs (explicit path vs default vs unset)."""
+    if isinstance(param, _UseDefaultFileBuckets):
+        if with_classification_destinations:
+            return tmp_path / default_name
+        return None
+    return param
+
+
 @pytest.fixture
 def raw_analyze_config_factory() -> Callable[..., RawAnalyzeConfig]:
     """构造 `RawAnalyzeConfig`，用于 raw pipeline 单测。"""
@@ -140,6 +162,11 @@ def raw_analyze_config_factory() -> Callable[..., RawAnalyzeConfig]:
         files_misc: Path | None,
         folders_to_delete: Path | None = None,
         with_classification_destinations: bool = True,
+        files_compressed: Path
+        | None
+        | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
+        files_pic: Path | None | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
+        files_audio: Path | None | _UseDefaultFileBuckets = USE_DEFAULT_FILE_BUCKETS,
     ) -> RawAnalyzeConfig:
         folders_pic = folders_audio = folders_compressed = None
         folders_video = folders_misc = None
@@ -157,6 +184,32 @@ def raw_analyze_config_factory() -> Callable[..., RawAnalyzeConfig]:
                 folders_misc,
             ):
                 path.mkdir(parents=True, exist_ok=True)
+        files_compressed_resolved = _resolve_optional_files_bucket(
+            files_compressed,
+            with_classification_destinations=with_classification_destinations,
+            tmp_path=tmp_path,
+            default_name="files_compressed",
+        )
+        files_pic_resolved = _resolve_optional_files_bucket(
+            files_pic,
+            with_classification_destinations=with_classification_destinations,
+            tmp_path=tmp_path,
+            default_name="files_pic",
+        )
+        files_audio_resolved = _resolve_optional_files_bucket(
+            files_audio,
+            with_classification_destinations=with_classification_destinations,
+            tmp_path=tmp_path,
+            default_name="files_audio",
+        )
+
+        for path in (
+            files_compressed_resolved,
+            files_pic_resolved,
+            files_audio_resolved,
+        ):
+            if path is not None:
+                path.mkdir(parents=True, exist_ok=True)
         return RawAnalyzeConfig(
             folders_to_delete=folders_to_delete,
             folders_video=folders_video,
@@ -171,9 +224,9 @@ def raw_analyze_config_factory() -> Callable[..., RawAnalyzeConfig]:
             files_video_us_vr=None,
             files_video_movie=None,
             files_video_misc=None,
-            files_compressed=None,
-            files_pic=None,
-            files_audio=None,
+            files_compressed=files_compressed_resolved,
+            files_pic=files_pic_resolved,
+            files_audio=files_audio_resolved,
             files_misc=files_misc,
             video_extensions={".mp4"},
             image_extensions={".jpg", ".jpeg", ".png"},

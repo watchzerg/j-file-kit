@@ -174,7 +174,10 @@ class FileTaskRunStatistics(BaseModel):
     )
     phase3_deferred_files_misc: int = Field(
         0,
-        description="Raw：阶段3 占位暂未分流处理的文件数",
+        description=(
+            "Raw：阶段3 未分流处理的文件数（视频占位、未知扩展名、迁移失败；"
+            "不含已成功迁入 files_* 的文件）"
+        ),
     )
 
 

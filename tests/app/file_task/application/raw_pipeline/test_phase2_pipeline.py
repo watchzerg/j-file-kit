@@ -278,8 +278,11 @@ def test_phase2_flatten_video_plus_cover_jpg(
     stats = pipe.run()
 
     assert not rel.exists()
-    assert (misc / "release_cover.jpg").exists()
+    files_pic = tmp_path / "files_pic"
+    assert (files_pic / "release_cover.jpg").exists()
+    assert (files_pic / "release_cover.jpg").read_text() == "img"
     assert (misc / "release_main.mp4").exists()
+    assert (misc / "release_main.mp4").read_text() == "vid"
     assert stats.phase2_flattened_dirs == 1
     assert stats.phase2_flattened_files == 2
 

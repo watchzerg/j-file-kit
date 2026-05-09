@@ -106,13 +106,18 @@
 
 ---
 
-### 阶段 3（占位）：`files_misc` 第一层计数
+### 阶段 3：`files_misc` 第一层文件 → `files_compressed` / `files_pic` / `files_audio`
 
 **代码**：[`application/raw_pipeline/phase3.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase3.py)
 
-- 统计 **`files_misc` 下第一层文件数**；分流到各 **`files_*`** **非本期**。
-
----
+- **范围**：仅 **`files_misc` 下一层普通文件**（不递归子目录）。
+- **动作**：按扩展名将压缩 / 图片 / 音频分别迁入 **`files_compressed`**、**`files_pic`**、**`files_audio`**。
+- **视频**：扩展名命中 **`RawAnalyzeConfig.video_extensions`** 的文件 **暂不移动**（占位，后续专用逻辑）。
+- **其它扩展名**：视为未知，**保留在 `files_misc`**。
+- **命名 / 冲突**：**`normalize_move_basename`**（UTF-8 字节上限 + 为 `-jfk-xxxx` 预留）+ **`move_file_with_conflict_resolution`**（与阶段 1、阶段 2.4 拆解一致）。
+- **配置**：若 `files_misc` 中存在待分流的压缩 / 图片 / 音频文件，则对应的 **`files_compressed` / `files_pic` / `files_audio`** 必须已配置；否则 **报错并中止 run**。仅含视频或未知扩展名时，不要求配置上述目录。
+- **dry_run**：不落盘；对可归类的文件仅作预览日志，计数上视为已路由（与阶段 1 预览语义一致：**`phase3_deferred_files_misc`** 不含本会成功的分流预览）。
+- **统计**：**`phase3_seen_files_misc`** 为第一层文件总数；**`phase3_deferred_files_misc`** 为未分流数量（视频占位 + 未知扩展名 + 迁移失败）；不设更细粒度 phase3 字段。
 
 ## 取消（`cancellation_event`）
 
