@@ -59,7 +59,9 @@ flowchart LR
 | `DEFAULT_RAW_JUNK_KEYWORDS` | 2.1 目录 basename；2.2 / 3.0 文件 stem **token 边界**命中 junk。 |
 | `DEFAULT_MISC_FILE_DELETE_EXTENSIONS` | 2.2 命中即删（**无体积上限**）。 |
 | `DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES` | **仅 2.2**：stem junk 命中时须 **`st_size` 严格小于**该值（默认 **100MiB**）才删除。 |
-| `DEFAULT_RAW_VIDEO_BUCKET_*_KEYWORDS` | **3.4**：视频/字幕 stem **token 边界**关键字（按桶，`jav` 桶可为空元组占位）。 |
+| `DEFAULT_RAW_VIDEO_BUCKET_*_KEYWORDS` | **3.4**：movie / us_vr / us 桶视频/字幕 stem **token 边界**关键字匹配。 |
+| `DEFAULT_JAV_VR_SERIAL_PREFIXES` | **3.4**：JAV VR 番号前缀白名单；番号前缀属于此集合归入 `files_video_jav_vr`，否则归入 `files_video_jav`。 |
+| `DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS` | **3.4**（复用自 JAV 管线）：番号识别前去除的站标噪声子串；JAV 匹配策略演进后此处天然受益。 |
 | 媒体扩展名集合 | `DEFAULT_*_EXTENSIONS` → 注入 **`RawAnalyzeConfig`**，供 2.4 / 3 分流判定。六类集合启动时校验两两互斥。 |
 
 ---
@@ -234,18 +236,20 @@ flowchart LR
 
 **匹配规则**：`suffix ∈ video_extensions`（`DEFAULT_VIDEO_EXTENSIONS`）**或** `suffix ∈ subtitle_extensions`（`DEFAULT_SUBTITLE_EXTENSIONS`）。
 
-字幕与视频共用相同的 stem 关键字桶路由逻辑（字幕文件名通常与对应视频 stem 相同，关键字命中结果天然一致）。
+字幕与视频共用相同的桶路由逻辑（字幕文件名通常与对应视频 stem 相同，番号识别结果天然一致）。
 
-**桶匹配顺序（stem token 边界，首中即止）**：
+**桶匹配顺序（首中即止）**：
 
-| 顺序 | 关键字常量 | 目标目录 |
-|------|-----------|---------|
-| 1 | `DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS` | `files_video_movie/{keyword}/` |
-| 2 | `DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS` | `files_video_us_vr/{keyword}/` |
-| 3 | `DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS` | `files_video_us/{keyword}/` |
-| 4 | `DEFAULT_RAW_VIDEO_BUCKET_JAV_VR_KEYWORDS` | `files_video_jav_vr` |
-| 5 | `DEFAULT_RAW_VIDEO_BUCKET_JAV_KEYWORDS` | `files_video_jav`（当前空元组，实际不命中） |
-| 6 | 均未命中 | `files_video_misc` |
+| 顺序 | 逻辑 | 目标目录 |
+|------|------|---------|
+| 1 | stem token 边界命中 `DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS` | `files_video_movie/{keyword}/` |
+| 2 | stem token 边界命中 `DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS` | `files_video_us_vr/{keyword}/` |
+| 3 | stem token 边界命中 `DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS` | `files_video_us/{keyword}/` |
+| 4 | 识别出番号 + 前缀 ∈ `DEFAULT_JAV_VR_SERIAL_PREFIXES` | `files_video_jav_vr` |
+| 5 | 识别出番号 + 前缀 ∉ `DEFAULT_JAV_VR_SERIAL_PREFIXES` | `files_video_jav` |
+| 6 | 无番号（均未命中） | `files_video_misc` |
+
+**JAV 番号识别**：步骤 4 / 5 调用 `generate_jav_filename(stem, strip_substrings=DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS)` 提取 `SerialId`，口径与 JAV 管线完全一致，JAV 匹配策略演进后此处天然受益。
 
 **`files_video_movie`、`files_video_us_vr` 和 `files_video_us` 子目录分组**：三桶关键词在桶内均保序首中即止；命中的第一个**原始配置关键词**（如 `AMZN`、`VirtualTaboo`、`HardCoreGangbang`）作为子目录名，文件落入 `files_video_movie/{keyword}/`、`files_video_us_vr/{keyword}/` 或 `files_video_us/{keyword}/`。三目录本身不直接存放文件。
 

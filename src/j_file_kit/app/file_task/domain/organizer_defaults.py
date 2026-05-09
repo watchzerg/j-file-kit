@@ -12,7 +12,7 @@ Raw **junk** 相关产品常量：
 - **`DEFAULT_RAW_JUNK_KEYWORDS`**：2.1 目录 basename、2.2 / 3.0 stem；命中语义为 **token 边界匹配**（见 ``shared/utils/name_keyword_match``：NFKC + casefold + 分隔符 / Unicode ``Z*``、``P*``），非纯子串包含。
 - **`DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES`**：递归清洗阶段（2.2）中仅当 stem 命中 junk 关键字时，单文件须 **`st_size` 严格小于** 该值（默认 100MiB）才删除；扩展名 / 0 字节规则不受此上限约束。
 
-Raw **视频归桶关键字**（`files_misc` 第一层视频 stem 匹配，即阶段 3.4）：token 边界匹配，规范化口径与 junk 相同（见 ``shared/utils/name_keyword_match``）。匹配顺序：`movie` → `video_US_VR` → `video_US` → `video_jav_vr` → `video_jav`；均未命中则 **`files_video_misc`**。
+Raw **视频归桶**（`files_misc` 第一层视频 stem 匹配，即阶段 3.4）：关键字匹配顺序：`movie` → `video_US_VR` → `video_US`；均未命中则通过 ``generate_jav_filename`` 识别番号，番号前缀属于 ``DEFAULT_JAV_VR_SERIAL_PREFIXES`` 归入 `video_jav_vr`，其余已识别番号归入 `video_jav`，无番号归入 **`files_video_misc`**。
 
 六类扩展名集合（video / image / subtitle / archive / music / misc_delete）在分类与删除规则中按互斥假设使用；**启动时**须通过 `validate_organizer_extension_sets_disjoint()` 校验两两交集为空。
 """
@@ -56,9 +56,8 @@ DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS: tuple[str, ...] = (
 
 DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS: tuple[str, ...] = ("HardCoreGangbang",)
 
-DEFAULT_RAW_VIDEO_BUCKET_JAV_VR_KEYWORDS: tuple[str, ...] = ("JAV-VR",)
-
-DEFAULT_RAW_VIDEO_BUCKET_JAV_KEYWORDS: tuple[str, ...] = ()
+DEFAULT_JAV_VR_SERIAL_PREFIXES: frozenset[str] = frozenset({"JAVR"})
+"""番号前缀属于此集合的 JAV 视频归入 files_video_jav_vr；其余已识别番号归入 files_video_jav。"""
 
 DEFAULT_VIDEO_EXTENSIONS: frozenset[str] = frozenset(
     {

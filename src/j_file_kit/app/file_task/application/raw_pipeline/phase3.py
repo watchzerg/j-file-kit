@@ -5,8 +5,9 @@
 
 阶段 3.1~3.3：压缩 / 图片 / 音频迁入 ``files_compressed`` / ``files_pic`` / ``files_audio``。
 
-阶段 3.4：视频扩展名归桶——按 stem 关键字顺序匹配迁入 ``files_video_*``；
-均未命中则迁入 ``files_video_misc``。非视频且未知扩展名留在 ``files_misc``。
+阶段 3.4：视频扩展名归桶——movie / us_vr / us 按 stem 关键字顺序匹配；
+其余通过 JAV 番号识别分流至 ``files_video_jav_vr`` / ``files_video_jav`` / ``files_video_misc``。
+非视频且未知扩展名留在 ``files_misc``。
 
 命名与冲突：``normalize_move_basename`` + ``move_file_with_conflict_resolution``（``-jfk-xxxx``）。
 见 ``docs/RAW_FILE_PROCESSING_PIPELINE.md``。
@@ -20,6 +21,7 @@ from j_file_kit.app.file_task.application.file_ops import (
     move_file_with_conflict_resolution,
     normalize_move_basename,
 )
+from j_file_kit.app.file_task.application.jav_filename_util import generate_jav_filename
 from j_file_kit.app.file_task.application.raw_analyze_config import (
     RawAnalyzeConfig,
     classify_file_media_kind,
@@ -28,9 +30,9 @@ from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseConte
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_CAMELCASE_NO_SPLIT_WORDS,
+    DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS,
+    DEFAULT_JAV_VR_SERIAL_PREFIXES,
     DEFAULT_RAW_JUNK_KEYWORDS,
-    DEFAULT_RAW_VIDEO_BUCKET_JAV_KEYWORDS,
-    DEFAULT_RAW_VIDEO_BUCKET_JAV_VR_KEYWORDS,
     DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS,
     DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS,
     DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS,
@@ -63,12 +65,6 @@ _US_KW_ORDERED: tuple[tuple[str, tuple[str, ...]], ...] = tuple(
     (kw, expand_keyword_to_variants(kw, DEFAULT_CAMELCASE_NO_SPLIT_WORDS))
     for kw in DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS
     if kw
-)
-_JAV_VR_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
-    DEFAULT_RAW_VIDEO_BUCKET_JAV_VR_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
-)
-_JAV_KW_EX: tuple[str, ...] = expand_keywords_camelcase(
-    DEFAULT_RAW_VIDEO_BUCKET_JAV_KEYWORDS, DEFAULT_CAMELCASE_NO_SPLIT_WORDS
 )
 
 
@@ -116,7 +112,12 @@ def classify_video_bucket_and_subdir(stem: str) -> tuple[str, str | None]:
     （如 ``AMZN``、``VirtualTaboo``、``HardCoreGangbang``），分别用作
     ``files_video_movie/{keyword}/``、``files_video_us_vr/{keyword}/`` 和
     ``files_video_us/{keyword}/`` 子目录名。其余桶均返回 None。
-    关键词匹配使用 CamelCase 变体展开；各桶内保序首中即止。
+
+    关键词匹配（movie / us_vr / us 桶）使用 CamelCase 变体展开，各桶内保序首中即止。
+    jav_vr / jav 桶通过 JAV 番号识别决定：调用 ``generate_jav_filename`` 提取 ``SerialId``，
+    番号前缀属于 ``DEFAULT_JAV_VR_SERIAL_PREFIXES`` 白名单则归入 ``jav_vr``，
+    其余已识别番号归入 ``jav``，无法识别番号则归入 ``misc``。
+    番号识别口径与 JAV 管线共享，JAV 匹配策略演进后此处天然受益。
     """
     movie_kw = _find_first_movie_keyword_match(stem)
     if movie_kw is not None:
@@ -127,9 +128,12 @@ def classify_video_bucket_and_subdir(stem: str) -> tuple[str, str | None]:
     us_kw = _find_first_us_keyword_match(stem)
     if us_kw is not None:
         return "us", us_kw
-    if name_matches_any_keyword(stem, _JAV_VR_KW_EX):
-        return "jav_vr", None
-    if name_matches_any_keyword(stem, _JAV_KW_EX):
+    _, serial_id = generate_jav_filename(
+        stem, strip_substrings=DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS
+    )
+    if serial_id is not None:
+        if serial_id.prefix in DEFAULT_JAV_VR_SERIAL_PREFIXES:
+            return "jav_vr", None
         return "jav", None
     return "misc", None
 

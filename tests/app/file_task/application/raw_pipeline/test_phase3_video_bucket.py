@@ -26,7 +26,8 @@ def test_classify_movie_wins_over_us_vr() -> None:
     assert classify_video_bucket("AMZN_VirtualTaboo_x") == "movie"
 
 
-def test_classify_jav_empty_keywords_goes_misc() -> None:
+def test_classify_no_serial_goes_misc() -> None:
+    # 无可识别番号的 stem 归入 misc
     assert classify_video_bucket("jav_only_stem") == "misc"
 
 
@@ -47,7 +48,7 @@ def test_routes_each_video_keyword(
     (misc / "m_AMZN.mp4").write_text("a")
     (misc / "v_VirtualTaboo.mp4").write_text("b")
     (misc / "u_HardCoreGangbang.mp4").write_text("c")
-    (misc / "jv_JAV-VR.mp4").write_text("d")
+    (misc / "JAVR-001.mp4").write_text("d")
 
     counters = RawPhaseCounters()
     run_phase3(phase_context_factory(config), counters, dry_run=False)
@@ -61,7 +62,7 @@ def test_routes_each_video_keyword(
     assert (
         tmp_path / "files_video_us" / "HardCoreGangbang" / "u_HardCoreGangbang.mp4"
     ).read_text() == "c"
-    assert (tmp_path / "files_video_jav_vr" / "jv_JAV-VR.mp4").read_text() == "d"
+    assert (tmp_path / "files_video_jav_vr" / "JAVR-001.mp4").read_text() == "d"
 
 
 def test_amzn_only_routes_to_movie(
@@ -153,7 +154,7 @@ def test_classify_video_bucket_and_subdir_us_camelcase_variant_returns_original_
 
 
 def test_classify_video_bucket_and_subdir_non_subdir_buckets_return_none() -> None:
-    # jav_vr / misc 桶返回 None 子目录名；movie / us_vr / us 桶返回关键词
+    # jav_vr / jav / misc 桶均返回 None 子目录名；movie / us_vr / us 桶返回关键词
     assert classify_video_bucket_and_subdir("unknown_stem") == ("misc", None)
 
 
@@ -291,5 +292,75 @@ def test_routes_us_video_to_keyword_subdir(
     subdir = tmp_path / "files_video_us" / "HardCoreGangbang"
     assert (subdir / "HardCoreGangbang.scene.mp4").read_text() == "v"
     assert (subdir / "HardCoreGangbang.scene.srt").read_text() == "s"
+    assert list(misc.iterdir()) == []
+    assert counters.phase3_deferred_files_misc == 0
+
+
+# --- JAV 番号分流测试 ---
+
+
+def test_classify_jav_vr_serial_prefix_goes_jav_vr() -> None:
+    # JAVR 前缀番号归入 jav_vr 桶
+    assert classify_video_bucket("JAVR-001") == "jav_vr"
+
+
+def test_classify_jav_non_vr_serial_prefix_goes_jav() -> None:
+    # 非 VR 白名单前缀的番号归入 jav 桶
+    assert classify_video_bucket("ABCD-001") == "jav"
+
+
+def test_classify_noise_stripped_jav_vr_serial() -> None:
+    # stem 含 DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS 中的站标噪声，去噪后识别出 JAVR 番号 → jav_vr
+    assert classify_video_bucket("JAVR-001-BBS-2048") == "jav_vr"
+
+
+def test_routes_jav_video_to_jav_dir(
+    tmp_path: Path,
+    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
+    phase_context_factory: Callable[[RawAnalyzeConfig], PhaseContext],
+) -> None:
+    # 集成验证：普通 JAV 番号视频落入 files_video_jav/
+    misc = tmp_path / "files_misc"
+    misc.mkdir()
+    config = raw_analyze_config_factory(
+        tmp_path,
+        files_misc=misc,
+        files_compressed=tmp_path / "files_compressed",
+        files_pic=tmp_path / "files_pic",
+        files_audio=tmp_path / "files_audio",
+    )
+    (misc / "ABCD-001.mp4").write_text("v")
+
+    counters = RawPhaseCounters()
+    run_phase3(phase_context_factory(config), counters, dry_run=False)
+
+    assert (tmp_path / "files_video_jav" / "ABCD-001.mp4").read_text() == "v"
+    assert list(misc.iterdir()) == []
+    assert counters.phase3_deferred_files_misc == 0
+
+
+def test_routes_jav_vr_video_and_subtitle_to_jav_vr_dir(
+    tmp_path: Path,
+    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
+    phase_context_factory: Callable[[RawAnalyzeConfig], PhaseContext],
+) -> None:
+    # 集成验证：JAVR 番号视频与字幕均落入 files_video_jav_vr/（字幕与视频共用桶路由）
+    misc = tmp_path / "files_misc"
+    misc.mkdir()
+    config = raw_analyze_config_factory(
+        tmp_path,
+        files_misc=misc,
+        files_compressed=tmp_path / "files_compressed",
+        files_pic=tmp_path / "files_pic",
+        files_audio=tmp_path / "files_audio",
+    )
+    (misc / "JAVR-001.mp4").write_text("v")
+    (misc / "JAVR-001.srt").write_text("s")
+
+    counters = RawPhaseCounters()
+    run_phase3(phase_context_factory(config), counters, dry_run=False)
+
+    assert (tmp_path / "files_video_jav_vr" / "JAVR-001.mp4").read_text() == "v"
+    assert (tmp_path / "files_video_jav_vr" / "JAVR-001.srt").read_text() == "s"
     assert list(misc.iterdir()) == []
     assert counters.phase3_deferred_files_misc == 0
