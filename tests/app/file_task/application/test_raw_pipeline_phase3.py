@@ -165,6 +165,27 @@ def test_phase3_raises_when_destination_missing(
         run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
 
 
+def test_phase3_raises_when_files_to_delete_missing_for_junk_stem(
+    tmp_path: Path,
+    raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
+) -> None:
+    misc = tmp_path / "files_misc"
+    misc.mkdir()
+    cfg = raw_analyze_config_factory(
+        tmp_path,
+        files_misc=misc,
+        files_compressed=tmp_path / "files_compressed",
+        files_pic=tmp_path / "files_pic",
+        files_audio=tmp_path / "files_audio",
+        files_to_delete=None,
+    )
+    (misc / "promo_FC2-PPV.txt").write_text("x")
+
+    counters = RawPhaseCounters()
+    with pytest.raises(ValueError, match="files_to_delete"):
+        run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
+
+
 def test_phase3_dry_run_does_not_move(
     tmp_path: Path,
     raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
@@ -212,12 +233,13 @@ def test_phase3_skips_when_misc_missing(
     assert counters.phase3_deferred_files_misc == 0
 
 
-def test_phase3_preclean_deletes_small_junk_stem_then_routes_archive(
+def test_phase3_preclean_moves_junk_stem_to_files_to_delete_then_routes_archive(
     tmp_path: Path,
     raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
 ) -> None:
     misc = tmp_path / "files_misc"
     fc = tmp_path / "files_compressed"
+    fdel = tmp_path / "files_to_delete"
     misc.mkdir()
     cfg = raw_analyze_config_factory(
         tmp_path,
@@ -225,6 +247,7 @@ def test_phase3_preclean_deletes_small_junk_stem_then_routes_archive(
         files_compressed=fc,
         files_pic=tmp_path / "files_pic",
         files_audio=tmp_path / "files_audio",
+        files_to_delete=fdel,
     )
     (misc / "ad_FC2-PPV.txt").write_text("junk")
     (misc / "a.zip").write_text("z")
@@ -236,18 +259,17 @@ def test_phase3_preclean_deletes_small_junk_stem_then_routes_archive(
     assert counters.phase3_seen_files_misc == 1
     assert (fc / "a.zip").read_text() == "z"
     assert not (misc / "ad_FC2-PPV.txt").exists()
+    moved = list(fdel.glob("*.txt"))
+    assert len(moved) == 1
+    assert moved[0].read_text() == "junk"
 
 
-def test_phase3_preclean_keeps_junk_when_file_ge_threshold_bytes(
+def test_phase3_preclean_moves_large_junk_stem_to_files_to_delete(
     tmp_path: Path,
     raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        "j_file_kit.app.file_task.application.raw_pipeline.phase3.DEFAULT_RAW_PHASE30_FILE_MAX_BYTES",
-        100,
-    )
     misc = tmp_path / "files_misc"
+    fdel = tmp_path / "files_to_delete"
     misc.mkdir()
     cfg = raw_analyze_config_factory(
         tmp_path,
@@ -255,25 +277,29 @@ def test_phase3_preclean_keeps_junk_when_file_ge_threshold_bytes(
         files_compressed=tmp_path / "files_compressed",
         files_pic=tmp_path / "files_pic",
         files_audio=tmp_path / "files_audio",
+        files_to_delete=fdel,
     )
     p = misc / "big_FC2-PPV.bin"
-    p.write_bytes(b"z" * 100)
+    p.write_bytes(b"z" * (1024 * 1024 + 1))
 
     counters = RawPhaseCounters()
     run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
 
-    assert counters.phase3_deleted_junk_misc == 0
-    assert counters.phase3_seen_files_misc == 1
-    assert p.exists()
-    assert p.stat().st_size == 100
+    assert counters.phase3_deleted_junk_misc == 1
+    assert counters.phase3_seen_files_misc == 0
+    assert not p.exists()
+    moved = list(fdel.glob("*.bin"))
+    assert len(moved) == 1
+    assert moved[0].stat().st_size == 1024 * 1024 + 1
 
 
 def test_phase3_only_junk_archive_preclean_does_not_require_files_compressed(
     tmp_path: Path,
     raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
 ) -> None:
-    """唯余 zip 也因 stem junk 删掉时，不因缺压缩归宿而报错。"""
+    """唯余 zip 也因 stem junk 迁入 files_to_delete 时，不因缺压缩归宿而报错。"""
     misc = tmp_path / "files_misc"
+    fdel = tmp_path / "files_to_delete"
     misc.mkdir()
     cfg = raw_analyze_config_factory(
         tmp_path,
@@ -281,6 +307,7 @@ def test_phase3_only_junk_archive_preclean_does_not_require_files_compressed(
         files_compressed=None,
         files_pic=None,
         files_audio=None,
+        files_to_delete=fdel,
     )
     (misc / "junk_FC2-PPV.zip").write_bytes(b"x")
 
@@ -290,6 +317,7 @@ def test_phase3_only_junk_archive_preclean_does_not_require_files_compressed(
     assert counters.phase3_deleted_junk_misc == 1
     assert counters.phase3_seen_files_misc == 0
     assert list(misc.iterdir()) == []
+    assert (fdel / "junk_FC2-PPV.zip").read_bytes() == b"x"
 
 
 def test_phase3_dry_run_preclean_counts_without_unlink(

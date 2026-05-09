@@ -44,7 +44,7 @@ RAW_FILE_ORGANIZE_PATH_FIELD_NAMES: tuple[str, ...] = (
     "folders_pic",
     "folders_audio",
     "folders_misc",
-    "files_video_to_delete",
+    "files_to_delete",
     "files_video_jav",
     "files_video_us",
     "files_video_jav_vr",

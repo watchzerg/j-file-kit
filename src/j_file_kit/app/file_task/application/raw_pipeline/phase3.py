@@ -1,6 +1,7 @@
 """Raw 管道阶段 3：`files_misc` 第一层文件按扩展名分流。
 
-阶段 3.0：对 stem 命中垃圾关键字且体积低于阈值的单层文件预先删除；
+阶段 3.0：对 stem 命中垃圾关键字的第一层文件迁入 ``files_to_delete``（``normalize_move_basename`` +
+``move_file_with_conflict_resolution``），不按体积过滤；
 再将压缩 / 图片 / 音频迁入 ``files_compressed`` / ``files_pic`` / ``files_audio``；
 视频与未知扩展名暂留在 ``files_misc``（视频占位，后续迭代）。
 命名与冲突与阶段 1 / 阶段 2.4 拆解一致：``normalize_move_basename`` +
@@ -23,10 +24,7 @@ from j_file_kit.app.file_task.application.raw_pipeline.keywords import (
     normalize_for_match,
     normalize_keyword_tokens,
 )
-from j_file_kit.app.file_task.domain.organizer_defaults import (
-    DEFAULT_RAW_JUNK_KEYWORDS,
-    DEFAULT_RAW_PHASE30_FILE_MAX_BYTES,
-)
+from j_file_kit.app.file_task.domain.organizer_defaults import DEFAULT_RAW_JUNK_KEYWORDS
 from j_file_kit.shared.utils.file_utils import ensure_directory, sanitize_surrogate_str
 
 
@@ -44,35 +42,47 @@ def _phase30_stem_matches_probable_junk_keywords(
     return any(k in stem_norm for k in junk_keywords_norm if k)
 
 
+def _preflight_phase30_files_to_delete(
+    files_level1: list[Path],
+    junk_keywords_norm: tuple[str, ...],
+    cfg: RawAnalyzeConfig,
+) -> None:
+    """若第一层存在 junk stem 命中，则必须配置 ``files_to_delete``。"""
+    needs_bucket = any(
+        _phase30_stem_matches_probable_junk_keywords(p, junk_keywords_norm)
+        for p in files_level1
+    )
+    if needs_bucket and cfg.files_to_delete is None:
+        msg = "files_to_delete 未设置（files_misc 第一层存在待按 junk stem 迁出的文件）"
+        raise ValueError(msg)
+
+
 def _phase30_preclean_misc_level1(
     ctx: PhaseContext,
     *,
     files: list[Path],
     junk_keywords_norm: tuple[str, ...],
+    cfg: RawAnalyzeConfig,
     dry_run: bool,
     counters: RawPhaseCounters,
 ) -> list[Path]:
-    """3.0：删除（或 dry_run 预览）stem junk 且单文件体积 < 阈值的第一层文件；返回剩余队列。"""
+    """3.0：将 junk stem 第一层文件迁入 ``files_to_delete``（或 dry_run 预览）；返回剩余队列。"""
     remaining: list[Path] = []
     for path in files:
         if not _phase30_stem_matches_probable_junk_keywords(path, junk_keywords_norm):
             remaining.append(path)
             continue
-        try:
-            size = path.stat().st_size
-        except OSError as e:
+
+        dest_root = cfg.files_to_delete
+        if dest_root is None:
             logger.bind(
                 run_id=str(ctx.run_id),
                 run_name=ctx.run_name,
                 level="RAW_PHASE",
                 phase=3,
-                subphase="preclean_stat_error",
+                subphase="preclean_invariant",
                 source=str(path),
-                error=str(e),
-            ).warning("阶段3.0：无法获取文件体积，跳过预删")
-            remaining.append(path)
-            continue
-        if size >= DEFAULT_RAW_PHASE30_FILE_MAX_BYTES:
+            ).error("阶段3.0：files_to_delete 未配置（预检应已拦截）")
             remaining.append(path)
             continue
 
@@ -85,22 +95,27 @@ def _phase30_preclean_misc_level1(
                 phase=3,
                 subphase="preclean_preview",
                 source=str(path),
-                size_bytes=size,
-            ).info("阶段3.0（dry_run）：预览按 junk stem 预删")
+                target_dir=str(dest_root),
+            ).info("阶段3.0（dry_run）：预览按 junk stem 迁出")
             continue
 
+        basename = normalize_move_basename(sanitize_surrogate_str(path.name))
+        target = dest_root / basename
+
         try:
-            path.unlink()
-        except OSError as e:
+            ensure_directory(dest_root, parents=True)
+            final = move_file_with_conflict_resolution(path, target)
+        except (OSError, RuntimeError) as e:
             logger.bind(
                 run_id=str(ctx.run_id),
                 run_name=ctx.run_name,
                 level="RAW_PHASE",
                 phase=3,
-                subphase="preclean_unlink_error",
+                subphase="preclean_move_error",
                 source=str(path),
+                target=str(target),
                 error=str(e),
-            ).warning("阶段3.0：预删失败")
+            ).warning("阶段3.0：junk stem 迁出失败")
             remaining.append(path)
             continue
 
@@ -112,8 +127,8 @@ def _phase30_preclean_misc_level1(
             phase=3,
             subphase="preclean",
             source=str(path),
-            size_bytes=size,
-        ).info("阶段3.0：已按 junk stem 预删")
+            target=str(final),
+        ).info("阶段3.0：已按 junk stem 迁入 files_to_delete")
 
     return remaining
 
@@ -193,10 +208,12 @@ def run_phase3(
 
     level1_before = _list_files_misc_level1(misc)
     junk_norm = normalize_keyword_tokens(DEFAULT_RAW_JUNK_KEYWORDS)
+    _preflight_phase30_files_to_delete(level1_before, junk_norm, ctx.analyze_config)
     files = _phase30_preclean_misc_level1(
         ctx,
         files=level1_before,
         junk_keywords_norm=junk_norm,
+        cfg=ctx.analyze_config,
         dry_run=dry_run,
         counters=counters,
     )
@@ -265,7 +282,7 @@ def run_phase3(
         level="RAW_PHASE",
         phase=3,
         misc_level1_before=len(level1_before),
-        deleted_junk_preclean=counters.phase3_deleted_junk_misc,
+        moved_junk_preclean=counters.phase3_deleted_junk_misc,
         seen_after_preclean=len(files),
         routed=routed_ok,
         deferred=deferred,

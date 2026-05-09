@@ -7,10 +7,9 @@
 
 `DEFAULT_MUSIC_EXTENSIONS`：音乐类扩展名，在 Raw 分析配置中作 `audio_extensions` 注入；JAV **`JavAnalyzeConfig`** 尚未接入。
 
-Raw **junk / 体量**相关产品常量仅两处：
+Raw **junk** 相关产品常量：
 
 - **`DEFAULT_RAW_JUNK_KEYWORDS`**：2.1 目录 basename、2.2 / 3.0 stem 的子串关键字。
-- **`DEFAULT_RAW_PHASE30_FILE_MAX_BYTES`**：3.0 预删，`files_misc` 单层须 **单文件 `st_size` <** 该值（默认 1GiB，0 字节可删）。
 
 六类扩展名集合（video / image / subtitle / archive / music / misc_delete）在分类与删除规则中按互斥假设使用；**启动时**须通过 `validate_organizer_extension_sets_disjoint()` 校验两两交集为空。
 """
@@ -20,8 +19,6 @@ DEFAULT_RAW_JUNK_KEYWORDS: tuple[str, ...] = (
     "1024手机网址",
     "FC2-PPV",
 )
-
-DEFAULT_RAW_PHASE30_FILE_MAX_BYTES: int = 1024 * 1024 * 1024
 
 DEFAULT_VIDEO_EXTENSIONS: frozenset[str] = frozenset(
     {

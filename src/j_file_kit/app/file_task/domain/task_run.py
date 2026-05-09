@@ -174,7 +174,7 @@ class FileTaskRunStatistics(BaseModel):
     )
     phase3_deleted_junk_misc: int = Field(
         0,
-        description="Raw：阶段3.0 按 stem junk 关键字且体积<阈值删除的文件数（含 dry_run 预览）",
+        description="Raw：阶段3.0 按 stem junk 关键字迁入 files_to_delete 的文件数（含 dry_run 预览）",
     )
     phase3_deferred_files_misc: int = Field(
         0,

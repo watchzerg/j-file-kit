@@ -31,9 +31,9 @@ class RawFileOrganizeConfig(BaseModel):
         default=None,
         description="无法自动分类的杂项目录",
     )
-    files_video_to_delete: Path | None = Field(
+    files_to_delete: Path | None = Field(
         default=None,
-        description="待人工确认后删除的视频文件目录",
+        description="阶段 3.0 junk stem 迁入目录（人工确认后删除）；路径名建议 files_to_delete",
     )
     files_video_jav: Path | None = Field(default=None, description="JAV 视频文件目录")
     files_video_us: Path | None = Field(default=None, description="US 视频文件目录")

@@ -57,7 +57,7 @@ class RawFileOrganizer:
             folders_pic=c.folders_pic,
             folders_audio=c.folders_audio,
             folders_misc=c.folders_misc,
-            files_video_to_delete=c.files_video_to_delete,
+            files_to_delete=c.files_to_delete,
             files_video_jav=c.files_video_jav,
             files_video_us=c.files_video_us,
             files_video_jav_vr=c.files_video_jav_vr,

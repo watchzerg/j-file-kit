@@ -203,7 +203,7 @@ flowchart LR
 |------|------|------|
 | `FileTaskRunner` | `domain/task_runner.py` | Protocol：`task_type` + `run(...)` |
 | `RawFileOrganizer` | `application/raw_file_organizer.py` | 把 `RawFileOrganizeConfig` 接到 `RawFilePipeline` |
-| `RawFilePipeline` | `application/raw_pipeline/pipeline.py` | 第一层三阶段编排：1→`files_misc`；2→`phase2.py` 调度，`phase2_*`；3→`files_misc` 单层 3.0 关键字预删后分流至 `files_compressed` / `files_pic` / `files_audio`（视频占位） |
+| `RawFilePipeline` | `application/raw_pipeline/pipeline.py` | 第一层三阶段编排：1→`files_misc`；2→`phase2.py` 调度，`phase2_*`；3→`files_misc` 单层 3.0 junk 关键字迁入 `files_to_delete` 后分流至 `files_compressed` / `files_pic` / `files_audio`（视频占位） |
 | `JavVideoOrganizer` | `application/jav_video_organizer.py` | 把 `JavVideoOrganizeConfig` 接到 `FilePipeline` |
 | `FilePipeline` | `application/jav_pipeline/pipeline.py` 与子模块 | 扫描调度、生命周期；单文件处理与映射见同包 `item_processor` / `result_mapper` |
 | `analyze_jav_file` | `application/jav_analysis/runner.py` | 纯函数编排；规则域见同包 `inbox` / `classify` / `misc` / `archive` / `media` |

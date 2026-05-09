@@ -10,8 +10,8 @@ from dataclasses import dataclass
 class RawPhaseCounters:
     """单次 run 内阶段计数（并入返回统计；不落目录明细表）。
 
-    phase3_seen_files_misc：阶段3.0 预删 junk 之后，进入分流循环的一层文件数。
-    phase3_deleted_junk_misc：阶段3.0 预删计数（dry_run 同口径预览）。
+    phase3_seen_files_misc：阶段3.0 迁出 junk 之后，进入分流循环的一层文件数。
+    phase3_deleted_junk_misc：阶段3.0 迁入 files_to_delete 计数（dry_run 同口径预览）。
     phase3_deferred_files_misc：分流阶段未处理文件数。
     """
 

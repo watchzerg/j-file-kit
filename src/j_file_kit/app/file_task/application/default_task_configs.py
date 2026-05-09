@@ -51,7 +51,7 @@ def create_default_raw_file_organizer_task_config() -> TaskConfig:
             "folders_pic": f"{base}/folders_pic",
             "folders_audio": f"{base}/folders_audio",
             "folders_misc": f"{base}/folders_misc",
-            "files_video_to_delete": f"{base}/files_video_to_delete",
+            "files_to_delete": f"{base}/files_to_delete",
             "files_video_jav": f"{base}/files_video_jav",
             "files_video_us": f"{base}/files_video_us",
             "files_video_jav_vr": f"{base}/files_video_jav_vr",

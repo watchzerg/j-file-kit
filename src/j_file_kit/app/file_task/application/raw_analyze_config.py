@@ -30,9 +30,9 @@ class RawAnalyzeConfig(BaseModel):
         default=None,
         description="无法自动分类的杂项目录",
     )
-    files_video_to_delete: Path | None = Field(
+    files_to_delete: Path | None = Field(
         default=None,
-        description="待人工确认后删除的视频文件目录",
+        description="阶段 3.0：stem 命中 junk 关键字时从 files_misc 迁入的目录（人工确认后删除）",
     )
     files_video_jav: Path | None = Field(default=None, description="JAV 视频文件目录")
     files_video_us: Path | None = Field(default=None, description="US 视频文件目录")
