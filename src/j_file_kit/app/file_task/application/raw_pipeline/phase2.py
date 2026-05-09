@@ -12,7 +12,6 @@ from loguru import logger
 
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
-from j_file_kit.app.file_task.application.raw_pipeline.keywords import dir_name_matches
 from j_file_kit.app.file_task.application.raw_pipeline.phase2_classify import (
     run_phase2_classify,
 )
@@ -30,6 +29,7 @@ from j_file_kit.app.file_task.application.raw_pipeline.phase2_preflight import (
     list_inbox_level1_dirs,
     validate_phase2_preflight_paths,
 )
+from j_file_kit.shared.utils.name_keyword_match import dir_name_matches
 
 
 def _phase2_process_one_level1_dir(

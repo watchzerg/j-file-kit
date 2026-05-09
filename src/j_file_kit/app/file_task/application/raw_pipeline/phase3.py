@@ -23,10 +23,6 @@ from j_file_kit.app.file_task.application.file_ops import (
 from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
-from j_file_kit.app.file_task.application.raw_pipeline.keywords import (
-    normalize_for_match,
-    normalize_keyword_tokens,
-)
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_RAW_JUNK_KEYWORDS,
     DEFAULT_RAW_PHASE34_VIDEO_JAV_KEYWORDS,
@@ -36,16 +32,10 @@ from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_RAW_PHASE34_VIDEO_US_VR_KEYWORDS,
 )
 from j_file_kit.shared.utils.file_utils import ensure_directory, sanitize_surrogate_str
-
-
-def filename_contains_keyword(stem: str, keyword: str) -> bool:
-    """规范化后判断文件名 stem 是否包含关键字子串（NFKC + casefold）。
-
-    供阶段 3.4 及后续统一迭代关键字匹配策略时使用。
-    """
-    if not keyword:
-        return False
-    return normalize_for_match(keyword) in normalize_for_match(stem)
+from j_file_kit.shared.utils.name_keyword_match import (
+    name_matches_any_keyword,
+    normalize_keyword_tokens,
+)
 
 
 def classify_phase34_video_bucket(stem: str) -> str:
@@ -74,7 +64,7 @@ def classify_phase34_video_bucket(stem: str) -> str:
 
 
 def _stem_matches_any_phase34_keyword(stem: str, keywords_raw: tuple[str, ...]) -> bool:
-    return any(filename_contains_keyword(stem, k) for k in keywords_raw if k)
+    return name_matches_any_keyword(stem, keywords_raw)
 
 
 def _list_files_misc_level1(misc: Path) -> list[Path]:
@@ -87,8 +77,7 @@ def _phase30_stem_matches_probable_junk_keywords(
     junk_keywords_norm: tuple[str, ...],
 ) -> bool:
     """与阶段 2.2 相同的 stem 关键字子串口径（规范化后）。"""
-    stem_norm = normalize_for_match(path.stem)
-    return any(k in stem_norm for k in junk_keywords_norm if k)
+    return name_matches_any_keyword(path.stem, junk_keywords_norm)
 
 
 def _preflight_phase30_files_to_delete(

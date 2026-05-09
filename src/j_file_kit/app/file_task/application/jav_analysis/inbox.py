@@ -1,6 +1,6 @@
 """收件箱预删除规则（扩展名分类之前）。
 
-OR 语义：stem 完全匹配、stem 含默认垃圾关键词、或体积不超过上限（若配置）。
+OR 语义：stem 完全匹配、stem **在 token 边界上出现**默认垃圾关键词（与 Raw 共用 ``shared/utils/name_keyword_match``：NFKC + casefold + 分隔符 / Unicode ``Z*``、``P*``）、或体积不超过上限（若配置）。
 评估顺序：完全匹配 → 关键字 → stat，以减少磁盘访问。
 
 ``InboxDeleteRules`` 与默认关键词来自任务配置与 ``organizer_defaults``；
@@ -13,6 +13,7 @@ from j_file_kit.app.file_task.application.config_common import InboxDeleteRules
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_RAW_JUNK_KEYWORDS,
 )
+from j_file_kit.shared.utils.name_keyword_match import name_contains_keyword
 
 
 def check_inbox_delete_rules(path: Path, rules: InboxDeleteRules) -> str | None:
@@ -29,7 +30,7 @@ def check_inbox_delete_rules(path: Path, rules: InboxDeleteRules) -> str | None:
     if stem in rules.exact_stems:
         return f"stem 完全匹配收件箱删除规则: {stem!r}"
     for kw in DEFAULT_RAW_JUNK_KEYWORDS:
-        if kw in stem:
+        if name_contains_keyword(stem, kw):
             return f"stem 包含收件箱删除关键字: {kw!r}"
     if rules.max_size_bytes is not None:
         try:

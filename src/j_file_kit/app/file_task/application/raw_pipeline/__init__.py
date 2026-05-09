@@ -6,7 +6,8 @@
 - `phase2.py`: 阶段 2 编排入口；规则在 `phase2_preflight.py`、`phase2_delete_move.py`、
   `phase2_clean.py`、`phase2_collapse.py`、`phase2_classify.py`
 - `context.py` / `counters.py`: 阶段共享上下文与计数
-- `keywords.py`: 关键字策略
+
+名称关键字子串匹配见 ``shared/utils/name_keyword_match.py``（Raw / JAV 共用）。
 
 业务符号建议按子模块显式导入，避免包级隐式 re-export。
 """

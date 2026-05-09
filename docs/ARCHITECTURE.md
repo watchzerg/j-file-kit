@@ -9,7 +9,8 @@
 | 逻辑主题 | 主要目录 / 文件 |
 |------|------|
 | Raw 收件箱三阶段编排 | `application/raw_pipeline/`：`pipeline.py`、`phase1.py`、`phase2.py`（编排）、`phase2_preflight.py`、`phase2_delete_move.py`、`phase2_clean.py`、`phase2_collapse.py`、`phase2_classify.py`、`phase3.py` |
-| Raw 阶段共享上下文与计数 | `application/raw_pipeline/context.py`、`application/raw_pipeline/counters.py`、`application/raw_pipeline/keywords.py` |
+| Raw 阶段共享上下文与计数 | `application/raw_pipeline/context.py`、`application/raw_pipeline/counters.py` |
+| 名称关键字 token 边界匹配（Raw / JAV 共用） | `shared/utils/name_keyword_match.py` |
 | JAV 单文件分析编排 | `application/jav_analysis/runner.py` |
 | JAV 分析规则域 | `application/jav_analysis/classify.py`、`application/jav_analysis/inbox.py`、`application/jav_analysis/misc.py`、`application/jav_analysis/archive.py`、`application/jav_analysis/media.py` |
 | JAV 扫描执行管线 | `application/jav_pipeline/pipeline.py`、`application/jav_pipeline/item_processor.py`、`application/jav_pipeline/result_mapper.py` |
@@ -85,7 +86,7 @@ src/j_file_kit/
 │   │       │   ├── directory_cleanup.py # 扫描后空目录收缩（非 scan_root）
 │   │       │   └── executor.py          # execute_decision（Raw 阶段 1 共用）
 │   │       ├── raw_pipeline/        # RawFilePipeline：第一层三阶段；阶段 2 规则在 phase2_* 子模块
-│   │       │   ├── pipeline.py、context.py、counters.py、keywords.py
+│   │       │   ├── pipeline.py、context.py、counters.py
 │   │       │   ├── phase1.py、phase2.py、phase3.py
 │   │       │   ├── phase2_preflight.py、phase2_delete_move.py、phase2_clean.py
 │   │       │   └── phase2_collapse.py、phase2_classify.py
@@ -103,7 +104,7 @@ src/j_file_kit/
 │       └── schemas.py
 ├── shared/
 │   ├── constants.py                # MEDIA_ROOT = Path("/media")
-│   └── utils/                      # logging、file_utils …
+│   └── utils/                      # logging、file_utils、name_keyword_match …
 └── infrastructure/
     ├── file_task/
     │   └── file_task_run_manager.py    # 后台线程执行 task.run()、取消、崩溃恢复

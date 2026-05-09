@@ -11,14 +11,12 @@ from loguru import logger
 from j_file_kit.app.file_task.application.file_ops import scan_directory_items
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
-from j_file_kit.app.file_task.application.raw_pipeline.keywords import (
-    normalize_for_match,
-)
 from j_file_kit.app.file_task.domain import organizer_defaults
 from j_file_kit.app.file_task.domain.file_types import PathEntryType
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_MISC_FILE_DELETE_EXTENSIONS,
 )
+from j_file_kit.shared.utils.name_keyword_match import name_matches_any_keyword
 
 
 def should_delete_clean_file(
@@ -32,8 +30,7 @@ def should_delete_clean_file(
     ext = path.suffix.lower()
     if ext in misc_delete_ext:
         return True
-    stem_norm = normalize_for_match(path.stem)
-    junk_hit = any(k in stem_norm for k in junk_keywords_norm if k)
+    junk_hit = name_matches_any_keyword(path.stem, junk_keywords_norm)
     if junk_hit:
         try:
             return path.is_file() and path.stat().st_size < junk_delete_max_bytes

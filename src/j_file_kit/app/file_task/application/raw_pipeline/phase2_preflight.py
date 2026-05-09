@@ -6,11 +6,11 @@
 from pathlib import Path
 
 from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
-from j_file_kit.app.file_task.application.raw_pipeline.keywords import (
+from j_file_kit.app.file_task.domain.organizer_defaults import DEFAULT_RAW_JUNK_KEYWORDS
+from j_file_kit.shared.utils.name_keyword_match import (
     dir_name_matches,
     normalize_keyword_tokens,
 )
-from j_file_kit.app.file_task.domain.organizer_defaults import DEFAULT_RAW_JUNK_KEYWORDS
 
 
 def list_inbox_level1_dirs(scan_root: Path) -> list[Path]:

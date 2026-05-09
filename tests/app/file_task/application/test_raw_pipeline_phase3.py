@@ -15,9 +15,9 @@ from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseConte
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
 from j_file_kit.app.file_task.application.raw_pipeline.phase3 import (
     classify_phase34_video_bucket,
-    filename_contains_keyword,
     run_phase3,
 )
+from j_file_kit.shared.utils.name_keyword_match import name_contains_keyword
 
 pytestmark = pytest.mark.unit
 
@@ -350,8 +350,8 @@ def test_phase3_dry_run_preclean_counts_without_unlink(
     assert (misc / "promo_FC2-PPV.jpg").exists()
 
 
-def test_filename_contains_keyword_case_insensitive() -> None:
-    assert filename_contains_keyword("Foo_AMZN_bar", "amzn")
+def test_name_contains_keyword_case_insensitive() -> None:
+    assert name_contains_keyword("Foo_AMZN_bar", "amzn")
 
 
 def test_classify_phase34_movie_wins_over_us_vr() -> None:

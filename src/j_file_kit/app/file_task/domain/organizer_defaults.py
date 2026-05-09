@@ -9,10 +9,10 @@
 
 Raw **junk** 相关产品常量：
 
-- **`DEFAULT_RAW_JUNK_KEYWORDS`**：2.1 目录 basename、2.2 / 3.0 stem 的子串关键字。
+- **`DEFAULT_RAW_JUNK_KEYWORDS`**：2.1 目录 basename、2.2 / 3.0 stem；命中语义为 **token 边界匹配**（见 ``shared/utils/name_keyword_match``：NFKC + casefold + 分隔符 / Unicode ``Z*``、``P*``），非纯子串包含。
 - **`DEFAULT_RAW_PHASE22_JUNK_DELETE_MAX_BYTES`**：2.2 中仅当 stem 命中 junk 关键字时，单文件须 **`st_size` 严格小于** 该值（默认 100MiB）才删除；扩展名 / 0 字节规则不受此上限约束。
 
-Raw **阶段 3.4**（`files_misc` 第一层视频）：stem 子串关键字，规范化口径与 junk 相同（见 `raw_pipeline/keywords`）。匹配顺序：`movie` → `video_US_VR` → `video_US` → `video_jav_vr` → `video_jav`；均未命中则 **`files_video_misc`**。
+Raw **阶段 3.4**（`files_misc` 第一层视频）：stem 关键字 **token 边界匹配**，规范化口径与 junk 相同（见 ``shared/utils/name_keyword_match``）。匹配顺序：`movie` → `video_US_VR` → `video_US` → `video_jav_vr` → `video_jav`；均未命中则 **`files_video_misc`**。
 
 六类扩展名集合（video / image / subtitle / archive / music / misc_delete）在分类与删除规则中按互斥假设使用；**启动时**须通过 `validate_organizer_extension_sets_disjoint()` 校验两两交集为空。
 """
