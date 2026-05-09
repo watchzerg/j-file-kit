@@ -17,6 +17,8 @@
 | JAV 管线执行器与观测 | `application/jav_pipeline/executor.py`、`application/jav_pipeline/observer.py`、`application/jav_pipeline/directory_cleanup.py` |
 | 任务配置模型与公共约束 | `application/jav_task_config.py`、`application/raw_task_config.py`、`application/config_common.py`、`application/default_task_configs.py` |
 | 文件任务领域模型与协议 | `domain/file_types.py`、`domain/serial_id.py`、`domain/task_run.py`、`domain/task_errors.py`、`domain/task_runner.py`、`domain/task_config.py` |
+| **前端页面与交互** | `frontend/src/`：`api/`（TanStack Query hooks）、`pages/`（路由页面）、`components/`（共享组件）|
+| **前端构建产物（由 FastAPI 服务）** | `src/j_file_kit/static/`（`vite build` 输出，不提交 git）|
 
 ---
 
@@ -276,3 +278,109 @@ flowchart LR
 - **生产启动**：未挂载 **`/media`** 会直接 **`RuntimeError`**，属预期防护。  
 
 更细的模块级说明见各文件 **模块 docstring** 与 **类注释**（尤其 `jav_video_organizer.py`、`jav_pipeline/pipeline.py`、`*_task_config.py`、`ports.py`）。
+
+---
+
+## 12. 前端架构
+
+### 12.1 概览
+
+前端为 **SPA（单页应用）**，构建产物作为静态文件由 FastAPI 服务。前后端在同一仓库（monorepo），共享接口约定，便于 AI Agent 跨端理解与修改。
+
+技术栈：**Bun**（包管理 + 运行）+ **Vite 6**（构建）+ **React 19 + TypeScript 5**（UI）+ **Tailwind CSS v4**（样式）+ **shadcn/ui**（组件）+ **Biome**（Lint+Format）+ **vitest**（测试）+ **TanStack Query v5**（服务端状态）+ **React Router v7**（路由）。
+
+### 12.2 目录结构
+
+```text
+frontend/                       # 前端所有源码（独立子项目）
+├── index.html
+├── package.json                # Bun 项目，scripts: dev / build / test / check
+├── bun.lock
+├── biome.json                  # Biome lint + format 配置
+├── tsconfig.json
+├── vite.config.ts              # Vite 配置；vitest 测试环境（jsdom）也在此定义
+└── src/
+    ├── main.tsx                # React 入口，挂载 App
+    ├── App.tsx                 # 根组件：QueryClientProvider + RouterProvider
+    ├── index.css               # Tailwind v4 入口（@import "tailwindcss"; @theme { … }）
+    ├── api/                    # TanStack Query hooks + 原始 fetch 函数（禁止 import UI）
+    │   ├── client.ts           # 封装 fetch baseURL、错误解析，统一返回 typed response
+    │   ├── types.ts            # 所有后端 API 的 TypeScript 接口定义
+    │   ├── tasks.ts            # 任务相关 useQuery / useMutation（含轮询）
+    │   ├── config.ts           # 任务配置 CRUD hooks
+    │   └── media.ts            # 媒体目录浏览 hooks
+    ├── components/             # 共享可复用组件
+    │   └── ui/                 # shadcn/ui 生成的原子组件（不手动编辑）
+    ├── pages/                  # 路由级页面（薄层：组合 hooks + components）
+    │   ├── TasksPage.tsx       # 任务列表与执行控制
+    │   ├── ConfigPage.tsx      # 任务配置编辑
+    │   └── MediaPage.tsx       # 媒体目录浏览
+    ├── hooks/                  # 非 API 类自定义 React hooks
+    └── lib/
+        ├── utils.ts            # shadcn cn() 等通用工具
+        └── errors.ts           # 后端 {code, message} → 用户可读文案映射
+
+src/j_file_kit/
+└── static/                     # vite build 输出目录（git 忽略，Docker 构建时生成）
+    ├── index.html
+    └── assets/
+```
+
+测试文件与源文件共置：`TaskCard.test.tsx` 紧邻 `TaskCard.tsx`，vitest 通过 glob 自动发现。
+
+### 12.3 FastAPI 静态文件挂载
+
+API 路由优先注册，最后挂载静态文件（顺序决定路由优先级）：
+
+```python
+# api/app.py —— 路由注册完成后
+from fastapi.staticfiles import StaticFiles
+app.mount("/", StaticFiles(directory="static", html=True), name="frontend")
+```
+
+`html=True` 使所有未匹配路径回退到 `index.html`，支持前端客户端路由。
+
+### 12.4 本地开发（Vite 代理）
+
+`vite.config.ts` 中配置代理，将 `/api` 转发到本地 FastAPI（默认 `localhost:8000`）：
+
+```typescript
+// vite.config.ts
+server: {
+  proxy: {
+    "/api": "http://localhost:8000",
+  },
+},
+```
+
+开发时前端跑 `bun run dev`（Vite dev server，默认 5173），后端跑 `uv run j-file-kit`（FastAPI，8000），二者独立热重载。
+
+### 12.5 Docker 多阶段构建集成
+
+Dockerfile 新增前端构建阶段，产物复制到 runtime 镜像的 `static/` 目录：
+
+```dockerfile
+# Stage 1: Frontend build
+FROM oven/bun:1 AS frontend-builder
+WORKDIR /frontend
+COPY frontend/package.json frontend/bun.lock ./
+RUN bun install --frozen-lockfile
+COPY frontend/ ./
+RUN bun run build          # 输出到 /frontend/dist
+
+# … 现有 Python builder 与 runtime stages 不变 …
+
+# 在 runtime stage 最后复制前端产物
+COPY --from=frontend-builder /frontend/dist /app/src/j_file_kit/static
+```
+
+### 12.6 AI 快速定位：「我要改前端 X」
+
+| 目标 | 优先打开的文件 |
+|------|--------------|
+| 新增页面或路由 | `App.tsx`（路由定义）+ `src/pages/` 新建页面文件 |
+| 调用新后端接口 | `src/api/types.ts`（加类型）+ `src/api/*.ts`（加 hook）|
+| 新增 UI 组件 | `src/components/`；原子组件先用 `bunx shadcn add` |
+| 修改全局样式 / 设计 token | `src/index.css` 中的 `@theme { }` 块 |
+| 任务状态轮询逻辑 | `src/api/tasks.ts` 中 `refetchInterval` 配置 |
+| 错误文案 | `src/lib/errors.ts` |

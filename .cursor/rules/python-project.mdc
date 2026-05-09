@@ -1,8 +1,7 @@
 ---
-alwaysApply: true
+globs: **/*.py
+alwaysApply: false
 ---
-
-
 You are an expert Python engineer. Produce concise, correct, typed, runnable code and minimal prose.
 
 Targets

@@ -1,0 +1,73 @@
+---
+globs: frontend/**/*.{ts,tsx,css,json}
+alwaysApply: false
+---
+You are an expert frontend engineer. Produce concise, correct, typed, runnable code and minimal prose.
+
+Targets
+- Runtime & package manager: Bun
+- Build tool: Vite 6+
+- UI framework: React 19 + TypeScript 5+
+- Styling: Tailwind CSS v4 (CSS-first `@theme` config, no `tailwind.config.js`)
+- Component library: shadcn/ui (generated components live in `src/components/ui/`)
+- Lint & format: Biome (single tool, replaces ESLint + Prettier; config in `biome.json`)
+- Testing: vitest + @testing-library/react (invoked via `bun run test`)
+- Server state: TanStack Query v5 (`useQuery`, `useMutation`)
+- Routing: React Router v7
+- All frontend source lives under `frontend/`; build output → `src/j_file_kit/static/` (served by FastAPI)
+- Follow the project layout defined in `docs/ARCHITECTURE.md` (section 12).
+
+Core Principles
+- Avoid speculative extensibility — design only for current, clearly justified use cases.
+- One responsibility per file; keep components and hooks small and focused.
+- Co-locate tests with source files: `TaskCard.test.tsx` lives next to `TaskCard.tsx`.
+- Type everything end-to-end; ban `any`, `as unknown as X`, and `@ts-ignore`.
+- Derive UI state from server state (TanStack Query) wherever possible; minimize standalone `useState`.
+- Keep pages thin — data-fetching hooks belong in `src/api/`, shared logic in `src/hooks/` or `src/lib/`.
+- `kebab-case` for directory names; `PascalCase` for component files (`TaskCard.tsx`); `camelCase` for hooks and utilities.
+
+Component & File Layout
+- `src/api/`         — TanStack Query hooks + raw fetch functions; no UI imports allowed here
+- `src/components/`  — shared reusable components; `ui/` sub-directory is shadcn/ui output only
+- `src/pages/`       — route-level page components (thin: compose hooks + components)
+- `src/hooks/`       — custom React hooks that are not API-related
+- `src/lib/`         — pure utility functions (no React imports); includes shadcn `cn()` helper
+- `src/api/types.ts` — all API response/request TypeScript interfaces
+
+Types & Validation
+- Define all backend response shapes in `src/api/types.ts`; never use raw `Response` or untyped JSON.
+- Prefer `interface` for object shapes, `type` for unions, mapped types, and utility types.
+- Use Zod (`z`) for runtime validation only when schema correctness is critical (e.g., untrusted config input).
+- Never pass raw objects between layers — always use typed interfaces.
+
+State Management
+- Server state owned entirely by TanStack Query; do not duplicate it in local state.
+- Long-running task polling: `refetchInterval` on task status queries (e.g., RUNNING → COMPLETED).
+- Local UI state: `useState` / `useReducer`; no global client state library needed for this project.
+- Invalidate queries after mutations via `queryClient.invalidateQueries`.
+
+Error Handling
+- All API errors surface through TanStack Query's `error` / `isError`; render an `<ErrorAlert>` component.
+- Never swallow errors silently; always handle the `isError` branch in UI code.
+- Map backend `{code, message}` error schema to user-friendly strings in `src/lib/errors.ts`.
+
+Testing & Tooling
+- vitest with `jsdom` environment; test environment configured in `vite.config.ts`.
+- `@testing-library/react` for component tests; `@testing-library/user-event` for interactions.
+- `msw` (Mock Service Worker) for mocking API calls; never mock `fetch` directly.
+- Test behavior, not implementation: assert what the user sees and interacts with.
+- CI gate: `biome check` clean; `tsc --noEmit` clean; `vitest run` green.
+
+Style Details
+- Tailwind v4: define design tokens via `@theme { }` in the root CSS file; no JS config.
+- shadcn/ui: add components with `bunx shadcn add <component>`; never manually edit files in `ui/`.
+- All spacing, color, and typography via Tailwind utility classes; no inline `style` props.
+- Use `cn()` from `src/lib/utils.ts` for all conditional class merging.
+- Comments: concise English only when explaining non-obvious intent; never narrate what the code does.
+
+Anti-Patterns (reject)
+- `any` types; unchecked `as` casts; suppressing TypeScript errors.
+- Fetching data directly in component bodies — use TanStack Query hooks.
+- Global mutable state outside React context or query cache.
+- Mixing API logic, business logic, and JSX in a single page component.
+- Committing the generated `src/j_file_kit/static/` build artifacts to git.
