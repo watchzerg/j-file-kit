@@ -2,6 +2,8 @@
 
 任务：`TASK_TYPE_RAW_FILE_ORGANIZER`。入口 **`RawFileOrganizer`** → **`RawFilePipeline.run()`**（[`pipeline.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/pipeline.py)）。仅处理 **`scan_root`（inbox）第一层**：散落文件、第一层子目录；**不递归 inbox 下的多级散落文件**（阶段 1）。计数写入 **`FileTaskRunStatistics`**；与代码冲突时**以源码为准**。
 
+架构总览：[ARCHITECTURE.md](./ARCHITECTURE.md)。
+
 ---
 
 ## 配置与目录约定
@@ -42,7 +44,8 @@ flowchart LR
 
 | 项 | 说明 |
 |----|------|
-| **junk / 视频桶关键字** | [`organizer_defaults.DEFAULT_RAW_JUNK_KEYWORDS`](../src/j_file_kit/app/file_task/domain/organizer_defaults.py) 等；目录名 / stem 经 [`name_keyword_match`](../src/j_file_kit/shared/utils/name_keyword_match.py)：NFKC、大小写无关，且须在 **token 边界**上出现（显式分隔符含 `.` 等 + Unicode `Z*` / `P*`）；`L*`/`N*` 粘连不算边界（详见模块注释）。 |
+| **junk / 视频桶关键字** | [`organizer_defaults.py`](../src/j_file_kit/app/file_task/domain/organizer_defaults.py) 中的 `DEFAULT_RAW_JUNK_KEYWORDS` 等；目录名 / stem 经 [`name_keyword_match`](../src/j_file_kit/shared/utils/name_keyword_match.py) 匹配：NFKC、大小写无关，且须在 **token 边界**上出现（显式分隔符含 `.` 等 + Unicode `Z*` / `P*`）；`L*`/`N*` 粘连不算边界（详见模块注释）。 |
+| **CamelCase 展开** | [`phase2_preflight.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_preflight.py) 在阶段 2 启动前预计算关键字的 CamelCase 变体（如 `SampleKeyword`），供目录名匹配使用；同时负责枚举第一层目录。 |
 | **移动命名** | **`normalize_move_basename`** + **`move_file_with_conflict_resolution`**（`-jfk-xxxx`）；目录整块迁移用 **`move_directory_with_conflict_resolution`**。 |
 | **dry_run** | 不写盘；计数与日志仍按「将要发生的动作」累加。 |
 | **取消** | `cancellation_event` 置位后：阶段 1 逐文件、阶段 2 目录边界与 2.2 扫描迭代等处退出（[`pipeline.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/pipeline.py)）。 |
@@ -50,19 +53,9 @@ flowchart LR
 
 ---
 
-## 产品常量（Raw 相关摘录）
+## 产品常量
 
-来源：[`organizer_defaults.py`](../src/j_file_kit/app/file_task/domain/organizer_defaults.py)
-
-| 符号 | 用途 |
-|------|------|
-| `DEFAULT_RAW_JUNK_KEYWORDS` | 2.1 目录 basename；2.2 / 3.0 文件 stem **token 边界**命中 junk。 |
-| `DEFAULT_MISC_FILE_DELETE_EXTENSIONS` | 2.2 命中即删（**无体积上限**）。 |
-| `DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES` | **仅 2.2**：stem junk 命中时须 **`st_size` 严格小于**该值（默认 **100MiB**）才删除。 |
-| `DEFAULT_RAW_VIDEO_BUCKET_*_KEYWORDS` | **3.4**：movie / us_vr / us 桶视频/字幕 stem **token 边界**关键字匹配。 |
-| `DEFAULT_JAV_VR_SERIAL_PREFIXES` | **3.4**：JAV VR 番号前缀白名单；番号前缀属于此集合归入 `files_video_jav_vr`，否则归入 `files_video_jav`。 |
-| `DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS` | **3.4**（复用自 JAV 管线）：番号识别前去除的站标噪声子串；JAV 匹配策略演进后此处天然受益。 |
-| 媒体扩展名集合 | `DEFAULT_*_EXTENSIONS` → 注入 **`RawAnalyzeConfig`**，供 2.4 / 3 分流判定。六类集合启动时校验两两互斥。 |
+所有默认关键字、扩展名集合、体积阈值均定义于 [`organizer_defaults.py`](../src/j_file_kit/app/file_task/domain/organizer_defaults.py)，由 `RawFileOrganizer._create_analyze_config` 注入 `RawAnalyzeConfig`。六类扩展名集合（video / image / audio / archive / subtitle / misc_delete）启动时校验两两互斥。
 
 ---
 
@@ -90,7 +83,7 @@ flowchart LR
 
 **代码**：[`phase2_delete_move.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_delete_move.py) · `move_dir_to_delete()`；关键字匹配 [`name_keyword_match.dir_name_matches`](../src/j_file_kit/shared/utils/name_keyword_match.py)
 
-**匹配规则**：目录 **basename** token 边界命中 `DEFAULT_RAW_JUNK_KEYWORDS`。
+**匹配规则**：目录 **basename** token 边界命中 `DEFAULT_RAW_JUNK_KEYWORDS`（含 CamelCase 变体）。
 
 **动作**：整目录（含全部子树）迁入 `folders_to_delete`，使用目录级冲突消解（`-jfk-xxxx`）。
 
@@ -120,7 +113,7 @@ flowchart LR
 
 ### 2.3 — 单链折叠
 
-**代码**：[`phase2_collapse.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_collapse.py) · `collapse_level1_single_chain()` · `collect_single_chain_segments()` · `merge_chain_segments_to_basename()`
+**代码**：[`phase2_collapse.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase2_collapse.py) · `collapse_level1_single_chain()`
 
 **触发条件**：目录内部形成「连续仅单子目录、无文件」链路（≥ 2 层段）。
 
@@ -141,8 +134,6 @@ flowchart LR
 ---
 
 #### 2.4.1 — 小目录拆解 → `files_misc`
-
-**代码**：`should_flatten_small_dir()` · `flatten_dir_into_misc()`
 
 **触发条件（同时满足）**：
 
@@ -168,8 +159,6 @@ flowchart LR
 
 #### 2.4.2 — 整目录归档 → `folders_*`
 
-**代码**：`_move_whole_classified_dir()` · `_collect_descendant_file_media_kinds()` · `_whole_dir_destination_for_kinds()`
-
 **触发条件**：有子目录，**或**文件数 > 5，**或**类型组合不满足 2.4.1。
 
 **动作**：递归扫描全部后代文件扩展名，画像映射到目标桶，整目录迁入。
@@ -184,7 +173,7 @@ flowchart LR
 | video（可含 image / subtitle） | `folders_video` | `phase2_moved_to_video_dirs` |
 | 其余 / 混合 / 空目录 | `folders_misc` | `phase2_moved_to_misc_dirs` |
 
-> subtitle 扩展名在此阶段识别为 `"subtitle"`（`_media_kind_dir`），视频桶判定允许 `{video, image, subtitle}` 子集，因此含字幕的视频目录正确落入 `folders_video`；含字幕而无视频的目录（罕见）落入 `folders_misc`。
+> subtitle 扩展名在此阶段识别为 `"subtitle"`，视频桶判定允许 `{video, image, subtitle}` 子集；含字幕而无视频的目录（罕见）落入 `folders_misc`。
 
 **计数**：`phase2_classification_errors`（迁移失败）
 
@@ -200,8 +189,6 @@ flowchart LR
 
 ### 3.0 — junk stem → `files_to_delete`
 
-**代码**：`_phase30_preclean_misc_level1()`；关键字匹配 `_phase30_stem_matches_probable_junk_keywords()`
-
 **匹配规则**：文件 stem **token 边界**命中 `DEFAULT_RAW_JUNK_KEYWORDS`，**无体积上限**（区别于 2.2）。
 
 **动作**：迁入 `files_to_delete`（人工确认删除）；迁移失败者留 `files_misc` 继续参与后续步骤。
@@ -211,8 +198,6 @@ flowchart LR
 ---
 
 ### 3.1 — 压缩包 → `files_compressed`
-
-**代码**：`_classify_misc_file_suffix()` + `_destination_root_for_routed_kind()`
 
 **匹配规则**：`suffix ∈ archive_extensions`（`DEFAULT_ARCHIVE_EXTENSIONS`）
 
@@ -232,11 +217,9 @@ flowchart LR
 
 ### 3.4 — 视频 + 字幕 → `files_video_*`
 
-**代码**：`classify_video_bucket_and_subdir()` · `_video_destination_root()`
+**代码**：[`phase3.py`](../src/j_file_kit/app/file_task/application/raw_pipeline/phase3.py) · `classify_video_bucket_and_subdir()`
 
-**匹配规则**：`suffix ∈ video_extensions`（`DEFAULT_VIDEO_EXTENSIONS`）**或** `suffix ∈ subtitle_extensions`（`DEFAULT_SUBTITLE_EXTENSIONS`）。
-
-字幕与视频共用相同的桶路由逻辑（字幕文件名通常与对应视频 stem 相同，番号识别结果天然一致）。
+**匹配规则**：`suffix ∈ video_extensions` 或 `suffix ∈ subtitle_extensions`（字幕与视频共用相同桶路由逻辑）。
 
 **桶匹配顺序（首中即止）**：
 
@@ -249,32 +232,15 @@ flowchart LR
 | 5 | 识别出番号 + 前缀 ∉ `DEFAULT_JAV_VR_SERIAL_PREFIXES` | `files_video_jav` |
 | 6 | 无番号（均未命中） | `files_video_misc` |
 
-**JAV 番号识别**：步骤 4 / 5 调用 `generate_jav_filename(stem, strip_substrings=DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS)` 提取 `SerialId`，口径与 JAV 管线完全一致，JAV 匹配策略演进后此处天然受益。
+三个关键词桶（movie / us_vr / us）内均保序首中即止；命中的**原始配置关键词**作为子目录名，文件落入对应 `{桶}/{keyword}/`。具体关键词列表见 [`organizer_defaults.py`](../src/j_file_kit/app/file_task/domain/organizer_defaults.py)。
 
-**`files_video_movie`、`files_video_us_vr` 和 `files_video_us` 子目录分组**：三桶关键词在桶内均保序首中即止；命中的第一个**原始配置关键词**（如 `AMZN`、`VirtualTaboo`、`HardcoreGangBang`）作为子目录名，文件落入 `files_video_movie/{keyword}/`、`files_video_us_vr/{keyword}/` 或 `files_video_us/{keyword}/`。三目录本身不直接存放文件。
-
-**`DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS`（补充）**：
-
-- `SLR`
-- `LethalHardcoreVR`
-- `AsianSexVR`
-- `VirtualTaboo`
-- `VRLatina`
-- `FuckPassVR`
-- `SLR_Taboo`
-- `BadoinkVR`
-- `czechvr`
-- `VRSpy`
-- `VRCosplayX`
-- `VirtualRealPorn`
-
-**log 字段**：`kind` 保持原值（`"video"` 或 `"subtitle"`），`video_bucket` 记录命中桶名，`subdir` 记录 US_VR 或 US 桶命中的原始关键词（其余桶无此字段）。
+**JAV 番号识别**：步骤 4 / 5 调用 `generate_jav_filename(stem, strip_substrings=DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS)`，口径与 JAV 管线完全一致。
 
 ---
 
 ### 3.5 — 未知扩展名 → 留 `files_misc`（deferred）
 
-**匹配规则**：`_classify_misc_file_suffix()` 返回 `None`（非 image / video / audio / archive / subtitle）。
+**匹配规则**：非 image / video / audio / archive / subtitle 扩展名。
 
 **动作**：不移动，留在 `files_misc`，计入 `phase3_deferred_files_misc`。
 
@@ -290,4 +256,4 @@ flowchart LR
 
 **phase3_deferred_files_misc**：包含「非视频/字幕的未知扩展名留 misc」以及「I/O 迁移失败」两类，不含已成功迁入各 `files_*` / `files_video_*` 的文件。
 
-完整字段语义：[`domain/task_run.py`](../src/j_file_kit/app/file_task/domain/task_run.py)。架构总览：[ARCHITECTURE.md](./ARCHITECTURE.md)。
+完整字段语义：[`domain/task_run.py`](../src/j_file_kit/app/file_task/domain/task_run.py)。

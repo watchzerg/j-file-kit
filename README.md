@@ -1,8 +1,12 @@
 # j-file-kit
 
-基于 Python + FastAPI 的媒体文件自动整理工具，**以 Docker 容器方式运行，面向 Unraid 设计**。核心功能之一是在配置的 **`workspace_root`**（默认 **`/media/jav_workspace`**）下，从派生的 **`inbox`** 扫描视频并按番号识别后归入 **`sorted`、`unsorted`、`archive`、`misc`**（子目录名由代码约定，不经 YAML 逐项配置）；另提供 **`raw_workspace`** 下的 **Raw 收件箱整理**（inbox 第一层：文件归集 `files_misc`、目录迁至 `folders_to_delete`/清洗/`files_misc` 分流规划等；详见 [docs/RAW_FILE_PROCESSING_PIPELINE.md](docs/RAW_FILE_PROCESSING_PIPELINE.md)）。通过 HTTP API 更新 **`workspace_root`** 时会自动创建 **`workspace_root/inbox`**；任务通过 HTTP API 触发与查询状态。
+基于 Python + FastAPI 的媒体文件自动整理工具，**以 Docker 容器方式运行，面向 Unraid 设计**。
 
-架构设计见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+两条主业务管线：
+- **JAV 整理**：从 `jav_workspace/inbox` 递归扫描，按番号规则移动/删除/跳过 → 详见 [docs/JAV_VIDEO_PROCESSING_PIPELINE.md](docs/JAV_VIDEO_PROCESSING_PIPELINE.md)
+- **Raw 整理**：从 `raw_workspace/inbox` 第一层三阶段处理（文件归集 → 目录清洗/分类 → 文件分流）→ 详见 [docs/RAW_FILE_PROCESSING_PIPELINE.md](docs/RAW_FILE_PROCESSING_PIPELINE.md)
+
+任务通过 HTTP API 触发与查询；架构设计见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
 ---
 
@@ -35,25 +39,19 @@ just deps-sync          # 创建 .venv 并安装全部依赖
 ## 本地 Docker 测试
 
 ```bash
-# 复制并编辑 .env，填写宿主机媒体根目录
-cp .env.example .env
-
-# 构建镜像并后台启动
-just docker-up
+cp .env.example .env   # 复制并编辑 .env，填写宿主机媒体根目录
+just docker-up         # 构建镜像并后台启动
 ```
 
-媒体目录：`jav_workspace` / `raw_workspace` 默认对应 **`/media/jav_workspace`**、**`/media/raw_workspace`**。**PATCH 保存任务配置**时会创建对应 **`workspace_root`** 与 **`inbox`**。其余业务子目录（如 `sorted`、`folders_pic`、`files_misc` 等）名由 [`application/config_common.py`](src/j_file_kit/app/file_task/application/config_common.py) 约定，任务执行时按需创建（参见各流水线文档）。
+容器内关键挂载点：
 
 | 宿主机 | 容器内 | 用途 |
 |---|---|---|
 | `$MEDIA_ROOT` | `/media` | 媒体根目录 |
-| `$MEDIA_ROOT/jav_workspace` | `/media/jav_workspace` | JAV **`workspace_root`**（默认）；其下 **`inbox`** 在保存配置时创建 |
-| `$MEDIA_ROOT/jav_workspace/inbox` | `/media/jav_workspace/inbox` | JAV 待处理收件箱 |
-| `$MEDIA_ROOT/jav_workspace/sorted` | `/media/jav_workspace/sorted` | JAV 有番号归档（按需创建） |
-| `$MEDIA_ROOT/jav_workspace/unsorted` | `/media/jav_workspace/unsorted` | JAV 无番号（按需创建） |
-| `$MEDIA_ROOT/jav_workspace/archive` | `/media/jav_workspace/archive` | JAV 压缩包（按需创建） |
-| `$MEDIA_ROOT/jav_workspace/misc` | `/media/jav_workspace/misc` | JAV 杂项（按需创建） |
-| `$MEDIA_ROOT/raw_workspace` | `/media/raw_workspace` | Raw **`workspace_root`**（默认）；子目录同上按需创建 |
+| `$MEDIA_ROOT/jav_workspace` | `/media/jav_workspace` | JAV workspace_root（默认）|
+| `$MEDIA_ROOT/raw_workspace` | `/media/raw_workspace` | Raw workspace_root（默认）|
+
+业务子目录（`inbox`、`sorted`、`files_misc` 等）名称由 [`config_common.py`](src/j_file_kit/app/file_task/application/config_common.py) 集中定义，任务执行时按需创建。PATCH 保存配置时会自动创建 `workspace_root` 与 `inbox`。
 
 ---
 
@@ -70,8 +68,6 @@ just docker-up
 | 路径 2（容器→宿主） | `/media` → `/mnt/user/Porn-Japan/media` |
 | 环境变量 `PUID` | 你的 uid（执行 `id <username>` 查询） |
 | 环境变量 `PGID` | 你的 gid |
-
-> 在 unraid 里执行 `id [username]`来获取 PUID 与 PGID。
 
 确认后容器启动，访问 `http://<unraid-ip>:1307/docs`。
 

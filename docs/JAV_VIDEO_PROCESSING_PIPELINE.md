@@ -2,6 +2,8 @@
 
 任务：`TASK_TYPE_JAV_VIDEO_ORGANIZER`。入口 **`JavVideoOrganizer`** → **`FilePipeline.run()`**（[`jav_pipeline/pipeline.py`](../src/j_file_kit/app/file_task/application/jav_pipeline/pipeline.py)）。递归扫描 **`inbox`** 全树：对每个文件执行「分析 → 执行 → 落库」，对每个目录尝试清理空目录；**分析（纯函数）与执行（副作用）通过 Decision 解耦**。计数写入 **`FileTaskRunStatistics`**；与代码冲突时**以源码为准**。
 
+架构总览：[ARCHITECTURE.md](./ARCHITECTURE.md)。
+
 ---
 
 ## 配置与目录约定
@@ -41,7 +43,7 @@ flowchart LR
 
 | 项 | 说明 |
 |----|------|
-| **junk 关键字** | [`organizer_defaults.DEFAULT_RAW_JUNK_KEYWORDS`](../src/j_file_kit/app/file_task/domain/organizer_defaults.py)；stem 经 [`name_keyword_match`](../src/j_file_kit/shared/utils/name_keyword_match.py)：NFKC、大小写无关，且须在 **token 边界**上出现（显式分隔符含 `.` 等 + Unicode `Z*` / `P*`）；`L*`/`N*` 粘连不算边界（详见模块注释）。 |
+| **junk 关键字** | [`organizer_defaults.py`](../src/j_file_kit/app/file_task/domain/organizer_defaults.py) 中的 `DEFAULT_RAW_JUNK_KEYWORDS`（Raw / JAV 共用）；stem 经 [`name_keyword_match`](../src/j_file_kit/shared/utils/name_keyword_match.py) 匹配：NFKC、大小写无关，且须在 **token 边界**上出现（显式分隔符含 `.` 等 + Unicode `Z*` / `P*`）；`L*`/`N*` 粘连不算边界（详见模块注释）。 |
 | **移动命名** | **`move_file_with_conflict_resolution`**（目标存在时追加 `-jfk-xxxx` 重试，最多 10 次）；目标目录由 `ensure_directory(..., parents=True)` 按需创建。 |
 | **dry_run** | 不写盘；`execute_decision` 返回 `status=PREVIEW`，携带拟议操作描述；计数与日志仍按「将要发生的动作」累加。 |
 | **取消** | `cancellation_event` 置位后：在「每个路径项」之间检查，置位即跳出循环，再进入 `finish_task_with_repository_statistics`。 |
@@ -49,16 +51,9 @@ flowchart LR
 
 ---
 
-## 产品常量（JAV 相关摘录）
+## 产品常量
 
-来源：[`organizer_defaults.py`](../src/j_file_kit/app/file_task/domain/organizer_defaults.py)
-
-| 符号 | 用途 |
-|------|------|
-| `DEFAULT_RAW_JUNK_KEYWORDS` | 步骤 1 收件箱预删除的 stem token 边界关键字（Raw / JAV **共用**）。 |
-| `DEFAULT_MISC_FILE_DELETE_EXTENSIONS` | 步骤 3a Misc：扩展名命中即删（**优先级最高，无体积上限**）；由 organizer 注入 `misc_file_delete_rules.extensions`。 |
-| `DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS` | 步骤 3c 番号匹配前做**站标去噪**（大小写不敏感，各处均删）；注入 `JavAnalyzeConfig.jav_filename_strip_substrings`。 |
-| 媒体扩展名集合 | `DEFAULT_{VIDEO,IMAGE,SUBTITLE,ARCHIVE}_EXTENSIONS` → 注入 **`JavAnalyzeConfig`**，供步骤 2 分类判定。四类集合与 music / misc_delete 共六组，启动时校验两两互斥。 |
+所有默认关键字与扩展名集合均定义于 [`organizer_defaults.py`](../src/j_file_kit/app/file_task/domain/organizer_defaults.py)，由 `JavVideoOrganizer._create_analyze_config` 注入 `JavAnalyzeConfig`。四类媒体扩展名集合（video / image / subtitle / archive）与 music / misc_delete 共六组，启动时校验两两互斥。
 
 ---
 
@@ -86,7 +81,7 @@ flowchart LR
 
 ### 步骤 1 — 收件箱预删除
 
-**代码**：[`jav_analysis/inbox.py`](../src/j_file_kit/app/file_task/application/jav_analysis/inbox.py) · `check_inbox_delete_rules()`；关键字匹配 [`name_keyword_match`](../src/j_file_kit/shared/utils/name_keyword_match.py)
+**代码**：[`jav_analysis/inbox.py`](../src/j_file_kit/app/file_task/application/jav_analysis/inbox.py) · `check_inbox_delete_rules()`
 
 **匹配规则（OR，评估顺序如下以减少磁盘访问）**：
 
@@ -106,7 +101,7 @@ flowchart LR
 
 **代码**：[`jav_analysis/classify.py`](../src/j_file_kit/app/file_task/application/jav_analysis/classify.py) · `classify_jav_file()`
 
-**匹配规则**：`suffix.lower()` 依次对照 `video_extensions` / `image_extensions` / `subtitle_extensions` / `archive_extensions`（`JavAnalyzeConfig` 注入）；均不命中 → `MISC`。
+`suffix.lower()` 依次对照 `video_extensions` / `image_extensions` / `subtitle_extensions` / `archive_extensions`（`JavAnalyzeConfig` 注入）；均不命中 → `MISC`。
 
 ---
 
@@ -118,12 +113,10 @@ flowchart LR
 
 | 顺序 | 规则 | 条件 | 体积限制 |
 |------|------|------|----------|
-| 1 | 扩展名列表 | `suffix ∈ misc_file_delete_rules.extensions`（`DEFAULT_MISC_FILE_DELETE_EXTENSIONS` 注入） | 无 |
+| 1 | 扩展名列表 | `suffix ∈ misc_file_delete_rules.extensions` | 无 |
 | 2 | 体积上限（若配置） | `st_size ≤ max_size`；`stat` 失败则跳过不删 | 以 `max_size` 为准 |
 
-**动作**：命中删除 → `DeleteDecision`；否则 → `MoveDecision` 到 `misc_dir / 原文件名`（经 `sanitize_surrogate_str`）。
-
-> 旧 YAML 中 `misc_file_delete_rules` 若含 `extensions` / `keywords` 键，加载 `JavVideoOrganizeConfig` 时被剔除且不写回。
+**动作**：命中删除 → `DeleteDecision`；否则 → `MoveDecision` 到 `misc_dir / 原文件名`。
 
 ---
 
@@ -139,17 +132,15 @@ flowchart LR
 
 **代码**：[`jav_analysis/media.py`](../src/j_file_kit/app/file_task/application/jav_analysis/media.py) · `decide_media_action()`
 
-**小体积视频前置删除**（仅 VIDEO，须配置 `video_small_delete_bytes`）：`st_size < video_small_delete_bytes`（严格小于）→ `DeleteDecision`；`stat` 失败则跳过此规则继续走番号逻辑。
-
-**番号与文件名重构**：`sanitize_surrogate_str(path.name)` 得安全名；调 `generate_jav_filename(safe_name, strip_substrings=...)` → `(new_filename, serial_id)`（见"番号与文件名"节）。
+**小体积视频前置删除**（仅 VIDEO，须配置 `video_small_delete_bytes`）：`st_size < video_small_delete_bytes` → `DeleteDecision`；`stat` 失败则跳过继续走番号逻辑。
 
 **决策分支**：
 
 | 条件 | 决策 |
 |------|------|
-| `serial_id` 非空 | `MoveDecision` → `sorted_dir / generate_sorted_dir(serial_id) / new_filename`（携带 `serial_id`） |
+| `serial_id` 非空 | `MoveDecision` → `sorted_dir / generate_sorted_dir(serial_id) / new_filename` |
 | 无 `serial_id` + IMAGE | `DeleteDecision`（图片无番号直接删） |
-| 无 `serial_id` + VIDEO / SUBTITLE | `MoveDecision` → `unsorted_dir / safe_name`（使用 `safe_name`，非 `new_filename`） |
+| 无 `serial_id` + VIDEO / SUBTITLE | `MoveDecision` → `unsorted_dir / safe_name` |
 
 ---
 
@@ -157,21 +148,13 @@ flowchart LR
 
 **代码**：[`application/jav_filename_util.py`](../src/j_file_kit/app/file_task/application/jav_filename_util.py)；`SerialId` / 有效性校验见 [`domain/serial_id.py`](../src/j_file_kit/app/file_task/domain/serial_id.py)
 
-### 站标去噪
+**站标去噪**：`generate_jav_filename` 先按 `JavAnalyzeConfig.jav_filename_strip_substrings`（`DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS`）做大小写不敏感全局替换；有番号时输出文件名同样不含这些子串；无番号时不做去噪输出。
 
-`generate_jav_filename` 先按 `JavAnalyzeConfig.jav_filename_strip_substrings`（管线注入 `DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS`）做**大小写不敏感**替换，各处出现均删除；成功重构时输出文件名同样不含这些子串；**无番号时不做去噪输出**（直接返回原 `safe_name`）。
+**番号匹配**：固定 `JAV_SERIAL_PREFIX_PATTERN`——字母前缀 2–6 位，后与数字间可有 `-`/`_`，再跟 3–5 位数字，且满足 `serial_number_raw_is_valid`；支持滑动重试以避免误吞过长数字段。
 
-### 番号匹配
+**sorted 子目录结构**：`generate_sorted_dir(serial_id)` 返回 **`首字母 / 前两字母 / 完整前缀`**，例如前缀 `ABCD` → `A/AB/ABCD`。
 
-模块内固定 `JAV_SERIAL_PREFIX_PATTERN`：字母前缀 **2–6 位**，后与数字间可有 `-`/`_`，再跟 **3–5 位数字**，且满足 `serial_number_raw_is_valid`（与 `SerialId` 规范一致）；支持**滑动重试**以避免误吞过长数字段。
-
-### sorted 子目录结构
-
-`generate_sorted_dir(serial_id)` 返回 **`首字母 / 前两字母 / 完整前缀`**，例如前缀 `ABCD` → `A/AB/ABCD`。最终路径：`sorted_dir / A/AB/ABCD / new_filename`。
-
-### 超长文件名截断
-
-重构后文件名超出 `MAX_FILENAME_BYTES` 时，按各长段原始字节占比分配预算截断非关键段；番号与扩展名等关键部分保留（见模块顶部注释）。
+**超长文件名截断**：重构后文件名超出 `MAX_FILENAME_BYTES` 时，按各长段原始字节占比分配预算截断非关键段；番号与扩展名等关键部分保留（见模块顶部注释）。
 
 ---
 
@@ -181,12 +164,12 @@ flowchart LR
 
 | `dry_run` | 行为 |
 |-----------|------|
-| `True` | 不创建目录、不移动、不删除；直接返回 `ExecutionResult.preview`（`status=PREVIEW`），消息描述拟议操作。 |
-| `False` | 按 Decision 类型执行（见下表） |
+| `True` | 不创建目录、不移动、不删除；返回 `ExecutionResult.preview`（`status=PREVIEW`）。 |
+| `False` | 按 Decision 类型执行 |
 
 | Decision | 实际 I/O |
 |----------|----------|
-| `MoveDecision` | `ensure_directory(target.parent, parents=True)` → `move_file_with_conflict_resolution`（冲突时追加 `-jfk-xxxx`，最多 10 次） |
+| `MoveDecision` | `ensure_directory(target.parent)` → `move_file_with_conflict_resolution` |
 | `DeleteDecision` | `delete_file_if_exists` |
 | `SkipDecision` | 无 I/O；返回 `ExecutionResult.skipped` |
 
@@ -203,14 +186,14 @@ flowchart LR
 1. `build_file_item_data`：组装 `FileItemData`（决策类型、目标路径、成功与否、`duration_ms` 等）。
 2. `file_result_repository.save_result(run_id, item_data)`。
 3. `PipelineRunCounters.apply_execution_result` + 结构化 `ITEM_RESULT` 日志。
-4. 整段抛异常 → 写 `decision_type=error` 的 `FileItemData`，仍 `save_result`；内存侧 `record_file_processing_exception`。
+4. 整段抛异常 → 写 `decision_type=error` 的 `FileItemData`，仍 `save_result`。
 
-**收尾**：`finish_task_with_repository_statistics` 调 `get_statistics(run_id)`（SQLite 聚合），校验为 `FileTaskRunStatistics` 返回上层；任务级开始/结束另有 `TASK_START` / `TASK_END` 日志。
+**收尾**：`finish_task_with_repository_statistics` 调 `get_statistics(run_id)`（SQLite 聚合）校验为 `FileTaskRunStatistics` 返回上层；任务级另有 `TASK_START` / `TASK_END` 日志。
 
-> 对外展示的汇总统计以**仓储聚合**为准；管道对象上的内存计数与日志口径一致，不与 DB 混用含义。
+> 对外展示的汇总统计以**仓储聚合**为准；管道对象上的内存计数仅用于日志，不与 DB 混用含义。
 
 ---
 
 ## 计数字段语义
 
-完整字段语义：[`domain/task_run.py`](../src/j_file_kit/app/file_task/domain/task_run.py)。架构总览：[ARCHITECTURE.md](./ARCHITECTURE.md)。
+完整字段语义：[`domain/task_run.py`](../src/j_file_kit/app/file_task/domain/task_run.py)。
