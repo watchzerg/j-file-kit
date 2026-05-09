@@ -6,6 +6,8 @@
 其列表同样由此模块提供；YAML 仅保留 misc 删除的 max_size。
 
 `DEFAULT_MUSIC_EXTENSIONS`：音乐类扩展名，在 Raw 分析配置中作 `audio_extensions` 注入；JAV **`JavAnalyzeConfig`** 尚未接入。
+
+六类扩展名集合（video / image / subtitle / archive / music / misc_delete）在分类与删除规则中按互斥假设使用；**启动时**须通过 `validate_organizer_extension_sets_disjoint()` 校验两两交集为空。
 """
 
 DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS: tuple[str, ...] = (
@@ -173,3 +175,25 @@ DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS: tuple[str, ...] = (
     "XHD-1080",
     "CCTV-12306",
 )
+
+
+def validate_organizer_extension_sets_disjoint() -> None:
+    """断言六类默认扩展名集合两两不交；若有交集则拒绝启动（见模块 docstring）。"""
+    groups: tuple[tuple[str, frozenset[str]], ...] = (
+        ("video", DEFAULT_VIDEO_EXTENSIONS),
+        ("image", DEFAULT_IMAGE_EXTENSIONS),
+        ("subtitle", DEFAULT_SUBTITLE_EXTENSIONS),
+        ("archive", DEFAULT_ARCHIVE_EXTENSIONS),
+        ("music", DEFAULT_MUSIC_EXTENSIONS),
+        ("misc_delete", DEFAULT_MISC_FILE_DELETE_EXTENSIONS),
+    )
+    for i, (name_a, set_a) in enumerate(groups):
+        for name_b, set_b in groups[i + 1 :]:
+            overlap = set_a & set_b
+            if overlap:
+                sorted_overlap = ", ".join(sorted(overlap))
+                msg = (
+                    "organizer_defaults：扩展名集合须两两互斥，"
+                    f"但 {name_a!r} 与 {name_b!r} 交集非空：{sorted_overlap}"
+                )
+                raise RuntimeError(msg)

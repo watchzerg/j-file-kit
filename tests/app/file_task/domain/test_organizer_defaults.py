@@ -10,9 +10,14 @@ from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_MUSIC_EXTENSIONS,
     DEFAULT_SUBTITLE_EXTENSIONS,
     DEFAULT_VIDEO_EXTENSIONS,
+    validate_organizer_extension_sets_disjoint,
 )
 
 pytestmark = pytest.mark.unit
+
+
+def test_extension_sets_pairwise_disjoint() -> None:
+    validate_organizer_extension_sets_disjoint()
 
 
 def test_all_extension_sets_nonempty_and_dotted() -> None:

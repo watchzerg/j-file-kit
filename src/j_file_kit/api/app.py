@@ -27,6 +27,9 @@ from j_file_kit.app.file_task.domain.constants import (
     TASK_TYPE_JAV_VIDEO_ORGANIZER,
     TASK_TYPE_RAW_FILE_ORGANIZER,
 )
+from j_file_kit.app.file_task.domain.organizer_defaults import (
+    validate_organizer_extension_sets_disjoint,
+)
 from j_file_kit.app.file_task.domain.ports import TaskConfigRepository
 from j_file_kit.app.file_task.domain.task_errors import (
     FileTaskAlreadyRunningError,
@@ -96,6 +99,7 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
         """应用生命周期管理"""
         setup_logging()
         logger.info("j-file-kit starting, version={}", _APP_VERSION)
+        validate_organizer_extension_sets_disjoint()
 
         if os.getenv("J_FILE_KIT_ENV") == "production" and not os.path.ismount(
             str(MEDIA_ROOT),
