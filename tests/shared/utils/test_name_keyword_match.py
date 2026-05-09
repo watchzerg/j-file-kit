@@ -57,6 +57,29 @@ def test_bounded_unicode_punctuation_boundary_class_p() -> None:
     assert name_contains_keyword("trail（FC2-PPV）", "FC2-PPV") is True
 
 
+# --- 简繁归一化 ---
+
+
+def test_normalize_converts_traditional_to_simplified() -> None:
+    """normalize_for_match 须将繁体转为简体后再做 NFKC+casefold。"""
+    from j_file_kit.shared.utils.name_keyword_match import normalize_for_match
+
+    assert normalize_for_match("發布器") == normalize_for_match("发布器")
+    assert normalize_for_match("論壇文宣") == normalize_for_match("论坛文宣")
+
+
+def test_name_contains_keyword_traditional_haystack_simplified_keyword() -> None:
+    """繁体文件名可被简体关键词命中。"""
+    assert name_contains_keyword("論壇文宣_archive", "论坛文宣") is True
+    assert name_contains_keyword("_發布器_", "发布器") is True
+
+
+def test_name_contains_keyword_simplified_haystack_traditional_keyword() -> None:
+    """简体文件名同样可被繁体关键词命中（双向归一化）。"""
+    assert name_contains_keyword("_发布器_", "發布器") is True
+    assert name_contains_keyword("论坛文宣_archive", "論壇文宣") is True
+
+
 # --- split_camelcase_tokens ---
 
 

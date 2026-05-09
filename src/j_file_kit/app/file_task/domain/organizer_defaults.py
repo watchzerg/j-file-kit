@@ -33,10 +33,9 @@ DEFAULT_CAMELCASE_NO_SPLIT_WORDS: frozenset[str] = frozenset(
 DEFAULT_RAW_JUNK_KEYWORDS: tuple[str, ...] = (
     "FC2-PPV",
     "RARBG_DO_NOT_MIRROR",
-    "發布器",
     "发布器",
     "社区回家指南",
-    "論壇文宣",
+    "论坛文宣",
     "美女直播",
     "手机网址",
     "新地址",

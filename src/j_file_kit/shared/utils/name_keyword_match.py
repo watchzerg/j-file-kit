@@ -1,6 +1,6 @@
 """名称与关键字的 token 边界匹配。
 
-先对目录 basename、文件名 stem、配置关键字做 **NFKC + casefold**，再在规范化串上判定：
+先对目录 basename、文件名 stem、配置关键字做 **简繁归一（→简体）→ NFKC + casefold**，再在规范化串上判定：
 关键字某一出现之 **左邻**（串首除外）与 **右邻**（串尾除外）须为「分隔符」。
 
 分隔符：① **显式字符集**（含 ``.``、常见文件名分段符）；② **Unicode 类别兜底**
@@ -20,6 +20,8 @@ import re
 import unicodedata
 from pathlib import Path
 
+import zhconv
+
 from j_file_kit.shared.utils.file_utils import sanitize_surrogate_str
 
 # 显式分隔符：补充 NFKC 后仍为 ``S*``/``M*`` 等、但产品上希望切断 token 的少量字符可在此列出。
@@ -31,8 +33,12 @@ _UNICODE_BOUNDARY_CATEGORIES: frozenset[str] = frozenset(("Z", "P"))
 
 
 def normalize_for_match(text: str) -> str:
-    """NFKC + casefold：用于名称与关键字匹配的统一形态。"""
-    return unicodedata.normalize("NFKC", text.casefold())
+    """繁→简 + NFKC + casefold：用于名称与关键字匹配的统一形态。
+
+    三步管道：① zhconv 繁体→简体；② NFKC 全角/兼容形式归一；③ casefold 大小写归一。
+    haystack 与 needle 均经此管道后再做 token 边界匹配，故关键词只需配置简体即可同时命中繁体文本。
+    """
+    return unicodedata.normalize("NFKC", zhconv.convert(text, "zh-hans").casefold())
 
 
 def normalize_keyword_tokens(tokens: tuple[str, ...]) -> tuple[str, ...]:
