@@ -10,10 +10,7 @@ from j_file_kit.app.file_task.application.raw_pipeline.keywords import (
     dir_name_matches,
     normalize_keyword_tokens,
 )
-from j_file_kit.app.file_task.domain.organizer_defaults import (
-    DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS,
-    DEFAULT_RAW_DIR_TO_DELETE_KEYWORDS,
-)
+from j_file_kit.app.file_task.domain.organizer_defaults import DEFAULT_RAW_JUNK_KEYWORDS
 
 
 def list_inbox_level1_dirs(scan_root: Path) -> list[Path]:
@@ -28,10 +25,9 @@ def list_inbox_level1_dirs(scan_root: Path) -> list[Path]:
 
 
 def build_phase2_normalized_keywords() -> tuple[tuple[str, ...], tuple[str, ...]]:
-    """返回 `(待删目录关键字 tokens, 垃圾 stem 关键字 tokens)`，用于 2.1 / 2.2 匹配。"""
-    dir_keywords_norm = normalize_keyword_tokens(DEFAULT_RAW_DIR_TO_DELETE_KEYWORDS)
-    junk_keywords_norm = normalize_keyword_tokens(DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS)
-    return dir_keywords_norm, junk_keywords_norm
+    """返回 `(第一层目录 basename tokens, junk stem tokens)`——本期共用 ``DEFAULT_RAW_JUNK_KEYWORDS``。"""
+    norm = normalize_keyword_tokens(DEFAULT_RAW_JUNK_KEYWORDS)
+    return norm, norm
 
 
 def ensure_phase2_classification_targets(cfg: RawAnalyzeConfig) -> None:

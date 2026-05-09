@@ -5,10 +5,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from j_file_kit.app.file_task.application.file_ops import (
-    scan_directory_items,
-    sum_regular_file_sizes_under,
-)
+from j_file_kit.app.file_task.application.file_ops import scan_directory_items
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
 from j_file_kit.app.file_task.application.raw_pipeline.keywords import (
@@ -17,7 +14,6 @@ from j_file_kit.app.file_task.application.raw_pipeline.keywords import (
 from j_file_kit.app.file_task.domain.file_types import PathEntryType
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_MISC_FILE_DELETE_EXTENSIONS,
-    DEFAULT_RAW_SMALL_BATCH_MAX_BYTES,
 )
 
 
@@ -133,47 +129,17 @@ def clean_level1_dir(
     dry_run: bool,
     cancellation_event: threading.Event | None,
 ) -> bool:
-    """遍历目录删除垃圾文件与空子目录；返回 True 表示已请求取消。
-
-    若目录树下常规文件字节和 >= ``DEFAULT_RAW_SMALL_BATCH_MAX_BYTES``，或体积不可靠统计，
-    则跳过对文件的删除（仍可对已空目录做 rmdir 收缩），避免误删大体量发布包中的小垃圾文件。
+    """自底向上遍历目录：删掉命中规则的垃圾文件，并删除因此产生的空子目录。
+    若第一层目录被删空则 ``rmdir``。返回 ``True`` 表示已请求取消。
     """
     misc_ext = DEFAULT_MISC_FILE_DELETE_EXTENSIONS
     root_resolved = root_dir.resolve(strict=False)
-
-    total_maybe = sum_regular_file_sizes_under(root_dir)
-    if total_maybe is None:
-        allow_file_deletes = False
-        logger.bind(
-            run_id=str(ctx.run_id),
-            run_name=ctx.run_name,
-            level="RAW_PHASE",
-            phase=22,
-            subphase="clean_skip_unmeasurable_size",
-            root=str(root_dir),
-        ).warning("阶段2.2：无法统计目录体积，跳过清洗删除文件")
-    elif total_maybe >= DEFAULT_RAW_SMALL_BATCH_MAX_BYTES:
-        allow_file_deletes = False
-        logger.bind(
-            run_id=str(ctx.run_id),
-            run_name=ctx.run_name,
-            level="RAW_PHASE",
-            phase=22,
-            subphase="clean_skip_large_dir",
-            root=str(root_dir),
-            total_bytes=total_maybe,
-            threshold_bytes=DEFAULT_RAW_SMALL_BATCH_MAX_BYTES,
-        ).info("阶段2.2：目录总字节超限，跳过清洗删除文件")
-    else:
-        allow_file_deletes = True
 
     try:
         for path, kind in scan_directory_items(root_dir):
             if cancellation_event and cancellation_event.is_set():
                 return True
             if kind == PathEntryType.FILE:
-                if not allow_file_deletes:
-                    continue
                 _maybe_delete_candidate_file(
                     ctx,
                     path,

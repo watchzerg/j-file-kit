@@ -14,7 +14,7 @@ from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeCo
 from j_file_kit.app.file_task.domain.decisions import DeleteDecision, MoveDecision
 from j_file_kit.app.file_task.domain.file_types import FileType
 from j_file_kit.app.file_task.domain.organizer_defaults import (
-    DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS,
+    DEFAULT_RAW_JUNK_KEYWORDS,
 )
 
 pytestmark = pytest.mark.unit
@@ -43,7 +43,7 @@ class TestAnalyzeJavFileInboxDelete:
         tmp_path: Path,
     ) -> None:
         config = analyze_config_factory(sorted_dir=tmp_path / "sorted")
-        kw = DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS[0]
+        kw = DEFAULT_RAW_JUNK_KEYWORDS[0]
         path = tmp_path / f"foo_{kw}_bar.mp4"
         path.touch()
         decision = analyze_jav_file(path, config)

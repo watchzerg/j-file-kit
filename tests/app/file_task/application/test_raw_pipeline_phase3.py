@@ -14,9 +14,6 @@ from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeCo
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
 from j_file_kit.app.file_task.application.raw_pipeline.phase3 import run_phase3
-from j_file_kit.app.file_task.domain.organizer_defaults import (
-    DEFAULT_RAW_SMALL_BATCH_MAX_BYTES,
-)
 
 pytestmark = pytest.mark.unit
 
@@ -244,7 +241,12 @@ def test_phase3_preclean_deletes_small_junk_stem_then_routes_archive(
 def test_phase3_preclean_keeps_junk_when_file_ge_threshold_bytes(
     tmp_path: Path,
     raw_analyze_config_factory: Callable[..., RawAnalyzeConfig],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(
+        "j_file_kit.app.file_task.application.raw_pipeline.phase3.DEFAULT_RAW_PHASE30_FILE_MAX_BYTES",
+        100,
+    )
     misc = tmp_path / "files_misc"
     misc.mkdir()
     cfg = raw_analyze_config_factory(
@@ -255,7 +257,7 @@ def test_phase3_preclean_keeps_junk_when_file_ge_threshold_bytes(
         files_audio=tmp_path / "files_audio",
     )
     p = misc / "big_FC2-PPV.bin"
-    p.write_bytes(b"z" * DEFAULT_RAW_SMALL_BATCH_MAX_BYTES)
+    p.write_bytes(b"z" * 100)
 
     counters = RawPhaseCounters()
     run_phase3(_ctx(tmp_path, cfg), counters, dry_run=False)
@@ -263,7 +265,7 @@ def test_phase3_preclean_keeps_junk_when_file_ge_threshold_bytes(
     assert counters.phase3_deleted_junk_misc == 0
     assert counters.phase3_seen_files_misc == 1
     assert p.exists()
-    assert p.stat().st_size == DEFAULT_RAW_SMALL_BATCH_MAX_BYTES
+    assert p.stat().st_size == 100
 
 
 def test_phase3_only_junk_archive_preclean_does_not_require_files_compressed(

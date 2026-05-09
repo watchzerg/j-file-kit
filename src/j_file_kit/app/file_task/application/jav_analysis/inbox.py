@@ -11,7 +11,7 @@ from pathlib import Path
 
 from j_file_kit.app.file_task.application.config_common import InboxDeleteRules
 from j_file_kit.app.file_task.domain.organizer_defaults import (
-    DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS,
+    DEFAULT_RAW_JUNK_KEYWORDS,
 )
 
 
@@ -28,7 +28,7 @@ def check_inbox_delete_rules(path: Path, rules: InboxDeleteRules) -> str | None:
     stem = path.stem
     if stem in rules.exact_stems:
         return f"stem 完全匹配收件箱删除规则: {stem!r}"
-    for kw in DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS:
+    for kw in DEFAULT_RAW_JUNK_KEYWORDS:
         if kw in stem:
             return f"stem 包含收件箱删除关键字: {kw!r}"
     if rules.max_size_bytes is not None:

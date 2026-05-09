@@ -98,7 +98,7 @@ flowchart TB
 ### 4.2 收件箱预删除（`InboxDeleteRules`）
 
 - **语义**：任一条件满足即删除（OR）。  
-- **评估顺序**（为少打盘）：`stem` **完全匹配** `exact_stems` → `stem` **包含**任一默认垃圾关键词（`DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS`）→ 若配置了 `max_size_bytes`，则 **`stat`，大小 ≤ 阈值**（含 0 可表示「空/极小文件」等用法，以配置为准）。  
+- **评估顺序**（为少打盘）：`stem` **完全匹配** `exact_stems` → `stem` **包含**任一默认垃圾关键词（**`DEFAULT_RAW_JUNK_KEYWORDS`**，Raw / JAV 共用）→ 若配置了 `max_size_bytes`，则 **`stat`，大小 ≤ 阈值**（含 0 可表示「空/极小文件」等用法，以配置为准）。  
 - 命中 → `DeleteDecision`，`file_type=UNCLASSIFIED`。
 
 ### 4.3 扩展名分类（`classify_jav_file`）

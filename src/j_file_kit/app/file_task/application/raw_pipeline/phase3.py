@@ -24,8 +24,8 @@ from j_file_kit.app.file_task.application.raw_pipeline.keywords import (
     normalize_keyword_tokens,
 )
 from j_file_kit.app.file_task.domain.organizer_defaults import (
-    DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS,
-    DEFAULT_RAW_SMALL_BATCH_MAX_BYTES,
+    DEFAULT_RAW_JUNK_KEYWORDS,
+    DEFAULT_RAW_PHASE30_FILE_MAX_BYTES,
 )
 from j_file_kit.shared.utils.file_utils import ensure_directory, sanitize_surrogate_str
 
@@ -72,7 +72,7 @@ def _phase30_preclean_misc_level1(
             ).warning("阶段3.0：无法获取文件体积，跳过预删")
             remaining.append(path)
             continue
-        if size >= DEFAULT_RAW_SMALL_BATCH_MAX_BYTES:
+        if size >= DEFAULT_RAW_PHASE30_FILE_MAX_BYTES:
             remaining.append(path)
             continue
 
@@ -192,7 +192,7 @@ def run_phase3(
         return
 
     level1_before = _list_files_misc_level1(misc)
-    junk_norm = normalize_keyword_tokens(DEFAULT_PROBABLE_JUNK_MEDIA_KEYWORDS)
+    junk_norm = normalize_keyword_tokens(DEFAULT_RAW_JUNK_KEYWORDS)
     files = _phase30_preclean_misc_level1(
         ctx,
         files=level1_before,
