@@ -13,6 +13,36 @@ interface RawApiError {
   message: string;
 }
 
+interface RawFastApiError {
+  detail?: RawApiError | string;
+}
+
+function isRawApiError(value: unknown): value is RawApiError {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "code" in value &&
+    "message" in value &&
+    typeof value.code === "string" &&
+    typeof value.message === "string"
+  );
+}
+
+function parseApiError(body: unknown, statusCode: number): RawApiError {
+  if (isRawApiError(body)) {
+    return body;
+  }
+
+  const detail = (body as RawFastApiError).detail;
+  if (isRawApiError(detail)) {
+    return detail;
+  }
+  if (typeof detail === "string") {
+    return { code: "UNKNOWN", message: detail };
+  }
+  return { code: "UNKNOWN", message: `HTTP ${statusCode}` };
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     headers: { "Content-Type": "application/json", ...init?.headers },
@@ -20,13 +50,14 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    let errorBody: RawApiError;
+    let errorBody: unknown;
     try {
-      errorBody = (await response.json()) as RawApiError;
+      errorBody = await response.json();
     } catch {
       throw new ApiResponseError("UNKNOWN", `HTTP ${response.status}`);
     }
-    throw new ApiResponseError(errorBody.code, errorBody.message);
+    const parsedError = parseApiError(errorBody, response.status);
+    throw new ApiResponseError(parsedError.code, parsedError.message);
   }
 
   return response.json() as Promise<T>;

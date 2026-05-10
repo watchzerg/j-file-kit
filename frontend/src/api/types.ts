@@ -123,15 +123,44 @@ export interface TaskRunListParams {
 
 // ── Task config ────────────────────────────────────────────────────────────
 
-export interface GetFileTaskConfigResponse {
-  type: string;
-  enabled: boolean;
-  config: Record<string, unknown>;
+export interface InboxDeleteRulesConfig {
+  exact_stems: string[];
+  max_size_bytes: number;
 }
 
-export interface UpdateFileTaskConfigRequest {
+export interface JavVideoOrganizeConfig {
+  workspace_root: string;
+  misc_file_delete_rules: {
+    max_size?: number;
+  };
+  video_small_delete_bytes: number | null;
+  inbox_delete_rules: InboxDeleteRulesConfig;
+}
+
+export interface RawFileOrganizeConfig {
+  workspace_root: string;
+}
+
+export interface FileTaskConfigByType {
+  jav_video_organizer: JavVideoOrganizeConfig;
+  raw_file_organizer: RawFileOrganizeConfig;
+}
+
+export type FileTaskConfig = FileTaskConfigByType[FileTaskType];
+
+export interface GetFileTaskConfigResponse<
+  TConfig extends FileTaskConfig = FileTaskConfig,
+> {
+  type: FileTaskType;
+  enabled: boolean;
+  config: TConfig;
+}
+
+export interface UpdateFileTaskConfigRequest<
+  TConfig extends FileTaskConfig = FileTaskConfig,
+> {
   enabled?: boolean;
-  config?: Record<string, unknown>;
+  config?: Partial<TConfig>;
 }
 
 export interface UpdateFileTaskConfigResponse {
@@ -149,4 +178,16 @@ export interface DirectoryItem {
 export interface ListDirectoriesResponse {
   path: string;
   children: DirectoryItem[];
+}
+
+// ── System ─────────────────────────────────────────────────────────────────
+
+export interface SystemInfoResponse {
+  app_version: string;
+  env: string;
+  base_dir: string;
+  media_root: string;
+  jav_media_root: string;
+  raw_media_root: string;
+  media_mounted: boolean;
 }

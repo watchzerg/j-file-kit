@@ -4,7 +4,12 @@ import { setupServer } from "msw/node";
 const defaultConfig = {
   type: "jav_video_organizer",
   enabled: true,
-  config: { workspace_root: "/media/inbox" },
+  config: {
+    workspace_root: "/media/jav_workspace",
+    misc_file_delete_rules: { max_size: 1048576 },
+    video_small_delete_bytes: 209715200,
+    inbox_delete_rules: { exact_stems: ["sample"], max_size_bytes: 0 },
+  },
 };
 
 const defaultStatistics = {
@@ -80,6 +85,39 @@ const taskRuns = [
 ];
 
 export const server = setupServer(
+  http.get("/api/system/info", () =>
+    HttpResponse.json({
+      app_version: "dev",
+      env: "development",
+      base_dir: "/data",
+      media_root: "/media",
+      jav_media_root: "/media/jav_workspace",
+      raw_media_root: "/media/raw_workspace",
+      media_mounted: true,
+    }),
+  ),
+  http.get("/api/media/directories", ({ request }) => {
+    const url = new URL(request.url);
+    const path = url.searchParams.get("path") ?? "/media";
+    const childrenByPath: Record<string, { name: string; path: string }[]> = {
+      "/media": [
+        { name: "jav_workspace", path: "/media/jav_workspace" },
+        { name: "raw_workspace", path: "/media/raw_workspace" },
+      ],
+      "/media/jav_workspace": [
+        { name: "project-a", path: "/media/jav_workspace/project-a" },
+      ],
+      "/media/raw_workspace": [
+        { name: "inbox-a", path: "/media/raw_workspace/inbox-a" },
+      ],
+      "/media/jav_workspace/project-a": [],
+      "/media/raw_workspace/inbox-a": [],
+    };
+    return HttpResponse.json({
+      path,
+      children: childrenByPath[path] ?? [],
+    });
+  }),
   http.get("/api/tasks/active", () => HttpResponse.json(null)),
   http.get("/api/tasks", ({ request }) => {
     const url = new URL(request.url);
@@ -121,15 +159,20 @@ export const server = setupServer(
     HttpResponse.json({
       ...defaultConfig,
       type: "jav_video_organizer",
-      config: { workspace_root: "/media/jav" },
     }),
   ),
   http.get("/api/file-task/config/raw-file-organizer", () =>
     HttpResponse.json({
       ...defaultConfig,
       type: "raw_file_organizer",
-      config: { workspace_root: "/media/raw" },
+      config: { workspace_root: "/media/raw_workspace" },
     }),
+  ),
+  http.patch("/api/file-task/config/jav-video-organizer", () =>
+    HttpResponse.json({ code: "SUCCESS", message: "配置更新成功" }),
+  ),
+  http.patch("/api/file-task/config/raw-file-organizer", () =>
+    HttpResponse.json({ code: "SUCCESS", message: "配置更新成功" }),
   ),
   http.post("/api/tasks/:taskType/start", () =>
     HttpResponse.json({
