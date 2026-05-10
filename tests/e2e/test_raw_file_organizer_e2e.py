@@ -264,5 +264,104 @@ class TestRawFileOrganizerE2E:
 
         assert status == "completed"
         root = _raw_workspace_root(clean_media)
-        assert (root / "files_video_jav_vr" / "KMVR-100.mp4").exists()
+        assert (root / "files_video_jav_vr" / "single_vid_KMVR-100.mp4").exists()
         assert not (root / "inbox" / "single_vid").exists()
+
+    def test_jav_vr_video_goes_to_files_video_jav_vr(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 1 → Phase 3.4：inbox 第一层含 JAV VR 番号的视频应路由到 files_video_jav_vr。
+
+        KMVR 属于 DEFAULT_JAV_VR_SERIAL_PREFIXES，无需经过目录折叠，直接由 phase1 进 files_misc
+        后由 phase3.4 识别番号路由。
+        """
+        _write_file(_raw_workspace_root(clean_media) / "inbox" / "KMVR-200.mp4")
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (root / "files_video_jav_vr" / "KMVR-200.mp4").exists()
+        assert not (root / "inbox" / "KMVR-200.mp4").exists()
+
+    def test_us_vr_keyword_video_goes_to_files_video_us_vr(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 1 → Phase 3.4：stem 命中 DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS（VirtualTaboo）
+        的视频应路由到 files_video_us_vr/{keyword}/ 子目录。
+        """
+        _write_file(
+            _raw_workspace_root(clean_media) / "inbox" / "VirtualTaboo.2024.ep01.mp4"
+        )
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (
+            root / "files_video_us_vr" / "VirtualTaboo" / "VirtualTaboo.2024.ep01.mp4"
+        ).exists()
+        assert not (root / "inbox" / "VirtualTaboo.2024.ep01.mp4").exists()
+
+    def test_us_keyword_video_goes_to_files_video_us(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 1 → Phase 3.4：stem 命中 DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS（EvilAngel）
+        的视频应路由到 files_video_us/{keyword}/ 子目录。
+        """
+        _write_file(
+            _raw_workspace_root(clean_media) / "inbox" / "EvilAngel.2024.scene01.mp4"
+        )
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (
+            root / "files_video_us" / "EvilAngel" / "EvilAngel.2024.scene01.mp4"
+        ).exists()
+        assert not (root / "inbox" / "EvilAngel.2024.scene01.mp4").exists()
+
+    def test_image_dir_goes_to_folders_pic(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 2.4.2：6 个图片文件的子目录（超过 5 文件上限，不触发拆解）
+        按媒体画像整目录归档到 folders_pic。
+        """
+        album_dir = _raw_workspace_root(clean_media) / "inbox" / "vacation_album"
+        for i in range(1, 7):
+            _write_file(album_dir / f"photo{i:02d}.jpg", size=1024)
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (root / "folders_pic" / "vacation_album").is_dir()
+        assert not (root / "inbox" / "vacation_album").exists()
+
+    def test_audio_dir_goes_to_folders_audio(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 2.4.2：6 个音频文件的子目录（超过 5 文件上限，不触发拆解）
+        按媒体画像整目录归档到 folders_audio。
+        """
+        album_dir = _raw_workspace_root(clean_media) / "inbox" / "music_album"
+        for i in range(1, 7):
+            _write_file(album_dir / f"track{i:02d}.flac", size=1024)
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (root / "folders_audio" / "music_album").is_dir()
+        assert not (root / "inbox" / "music_album").exists()

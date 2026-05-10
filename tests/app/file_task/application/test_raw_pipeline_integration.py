@@ -77,3 +77,88 @@ class TestDryRunLeavesInboxIntact:
         assert src.exists()
         assert not list(raw_integration_paths.files_misc.iterdir())
         assert not list(raw_integration_paths.files_compressed.iterdir())
+
+
+class TestConflictResolutionPreservesDestination:
+    """完整管道：目标桶已有同名文件/目录时，不得静默覆盖。"""
+
+    def test_existing_file_in_dest_not_overwritten_by_inbox_file(
+        self,
+        raw_pipeline_with_real_repo: RawFilePipeline,
+        raw_integration_paths: RawWorkspacePaths,
+    ) -> None:
+        """``files_video_misc/hello.mp4`` 已存在时，inbox 的同名文件经 phase1→phase3
+        落地时应生成 -jfk-xxxx 后缀，原文件内容不被覆盖。"""
+        raw_integration_paths.files_video_misc.mkdir(parents=True, exist_ok=True)
+        (raw_integration_paths.files_video_misc / "hello.mp4").write_bytes(b"original")
+
+        (raw_integration_paths.inbox / "hello.mp4").write_bytes(b"incoming")
+
+        raw_pipeline_with_real_repo.run(dry_run=False)
+
+        assert not (raw_integration_paths.inbox / "hello.mp4").exists()
+
+        all_mp4 = list(raw_integration_paths.files_video_misc.glob("hello*.mp4"))
+        assert len(all_mp4) == 2, (
+            f"期望 2 个文件（原始 + 冲突命名），实际: {[f.name for f in all_mp4]}"
+        )
+        assert (
+            raw_integration_paths.files_video_misc / "hello.mp4"
+        ).read_bytes() == b"original", "原始文件内容被覆盖"
+        new_files = [f for f in all_mp4 if f.name != "hello.mp4"]
+        assert len(new_files) == 1
+        assert new_files[0].read_bytes() == b"incoming"
+
+    def test_existing_file_in_dest_not_overwritten_by_inbox_zip(
+        self,
+        raw_pipeline_with_real_repo: RawFilePipeline,
+        raw_integration_paths: RawWorkspacePaths,
+    ) -> None:
+        """``files_compressed/foo.zip`` 已存在时，inbox/foo.zip 经 phase1→phase3
+        落地时应生成 -jfk-xxxx 后缀，原文件内容不被覆盖。"""
+        raw_integration_paths.files_compressed.mkdir(parents=True, exist_ok=True)
+        (raw_integration_paths.files_compressed / "foo.zip").write_bytes(b"old_zip")
+
+        (raw_integration_paths.inbox / "foo.zip").write_bytes(b"new_zip")
+
+        raw_pipeline_with_real_repo.run(dry_run=False)
+
+        assert not (raw_integration_paths.inbox / "foo.zip").exists()
+
+        all_zip = list(raw_integration_paths.files_compressed.glob("foo*.zip"))
+        assert len(all_zip) == 2, (
+            f"期望 2 个文件（原始 + 冲突命名），实际: {[f.name for f in all_zip]}"
+        )
+        assert (
+            raw_integration_paths.files_compressed / "foo.zip"
+        ).read_bytes() == b"old_zip", "原始文件内容被覆盖"
+
+    def test_existing_dir_in_folders_to_delete_not_overwritten(
+        self,
+        raw_pipeline_with_real_repo: RawFilePipeline,
+        raw_integration_paths: RawWorkspacePaths,
+    ) -> None:
+        """``folders_to_delete/FC2-PPV`` 已存在时，inbox/FC2-PPV/ 经 phase2.1
+        迁入时应生成 -jfk-xxxx 后缀，原目录内容不被覆盖。"""
+        raw_integration_paths.folders_to_delete.mkdir(parents=True, exist_ok=True)
+        existing = raw_integration_paths.folders_to_delete / "FC2-PPV"
+        existing.mkdir()
+        (existing / "keep.mp4").write_bytes(b"keep_this")
+
+        junk_dir = raw_integration_paths.inbox / "FC2-PPV"
+        junk_dir.mkdir(parents=True)
+        (junk_dir / "new.mp4").write_bytes(b"new_content")
+
+        raw_pipeline_with_real_repo.run(dry_run=False)
+
+        assert not junk_dir.exists()
+
+        dirs = [
+            p for p in raw_integration_paths.folders_to_delete.iterdir() if p.is_dir()
+        ]
+        assert len(dirs) == 2, (
+            f"期望 2 个目录（原始 + 冲突命名），实际: {[d.name for d in dirs]}"
+        )
+        assert (existing / "keep.mp4").read_bytes() == b"keep_this", (
+            "原始目录内容被覆盖"
+        )
