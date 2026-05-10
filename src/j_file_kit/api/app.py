@@ -14,7 +14,7 @@ from fastapi.responses import JSONResponse
 from loguru import logger
 
 from j_file_kit.api.app_state import AppState
-from j_file_kit.app.file_task.api import router as file_task_router
+from j_file_kit.app.file_task.api.router import routers as file_task_routers
 from j_file_kit.app.file_task.application.default_task_configs import (
     create_default_jav_video_organizer_task_config,
     create_default_raw_file_organizer_task_config,
@@ -193,7 +193,8 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
         """健康检查端点，供 Docker HEALTHCHECK 和容器编排系统使用。"""
         return {"status": "ok", "version": _APP_VERSION}
 
-    fastapi_app.include_router(file_task_router)
+    for r in file_task_routers:
+        fastapi_app.include_router(r)
     fastapi_app.include_router(file_task_config_router)
     fastapi_app.include_router(media_browser_router)
     fastapi_app.include_router(system_router)

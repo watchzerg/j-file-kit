@@ -1,21 +1,11 @@
-"""文件任务 API 路由
+"""Run 生命周期路由：启动、查询、取消、删除、列表。"""
 
-定义文件任务相关的全部 HTTP API 路由处理函数：
-- POST /{task_type}/start：启动任务执行实例
-- GET /{run_id}：查询执行实例状态
-- POST /{run_id}/cancel：取消执行实例
-- GET /：列出所有执行实例
-"""
-
-import json
-from collections.abc import Mapping
 from datetime import datetime
-from pathlib import Path
-from typing import TypeGuard
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from j_file_kit.api.app_state import AppState
+from j_file_kit.app.file_task.api._helpers import _parse_run_id, _task_log_file_path
 from j_file_kit.app.file_task.application.jav_video_organizer import JavVideoOrganizer
 from j_file_kit.app.file_task.application.raw_file_organizer import RawFileOrganizer
 from j_file_kit.app.file_task.application.schemas import (
@@ -24,10 +14,6 @@ from j_file_kit.app.file_task.application.schemas import (
     DeleteFileTaskRunResponse,
     FileTaskRunListItem,
     FileTaskRunListResponse,
-    FileTaskRunLogLine,
-    FileTaskRunLogsResponse,
-    FileTaskRunResultItem,
-    FileTaskRunResultsResponse,
     FileTaskRunStatisticsSummary,
     FileTaskRunStatusResponse,
     StartTaskRequest,
@@ -54,8 +40,6 @@ VALID_TASK_TYPES = {
     TASK_TYPE_RAW_FILE_ORGANIZER,
 }
 
-VALID_DECISION_TYPES = {"move", "delete", "skip"}
-
 TERMINAL_STATUSES = {
     FileTaskRunStatus.COMPLETED,
     FileTaskRunStatus.FAILED,
@@ -63,40 +47,7 @@ TERMINAL_STATUSES = {
 }
 
 
-def _parse_run_id(run_id_str: str) -> int:
-    """解析执行实例ID字符串为整数
-
-    Args:
-        run_id_str: 执行实例ID字符串
-
-    Returns:
-        执行实例ID整数
-
-    Raises:
-        HTTPException: 如果 run_id 格式无效
-    """
-    try:
-        return int(run_id_str)
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"无效的执行实例ID格式: {run_id_str}",
-        ) from None
-
-
 def _get_task_config(task_type: str, app_state: AppState) -> TaskConfig:
-    """获取指定任务配置，不存在时抛出 404
-
-    Args:
-        task_type: 任务类型
-        app_state: 应用状态
-
-    Returns:
-        任务配置
-
-    Raises:
-        HTTPException: 如果任务配置不存在
-    """
     task_config = app_state.file_task_config_repository.get_by_type(task_type)
     if task_config is not None:
         return task_config
@@ -107,18 +58,6 @@ def _get_task_config(task_type: str, app_state: AppState) -> TaskConfig:
 
 
 def _new_task_instance(task_type: str, app_state: AppState) -> FileTaskRunner:
-    """在 API 层组装任务实例，注入所需的 repositories
-
-    Args:
-        task_type: 任务类型
-        app_state: 应用状态
-
-    Returns:
-        任务实例
-
-    Raises:
-        HTTPException: 如果任务类型未知
-    """
     if task_type == TASK_TYPE_JAV_VIDEO_ORGANIZER:
         return JavVideoOrganizer(
             task_config=_get_task_config(task_type, app_state),
@@ -145,7 +84,6 @@ def _duration_ms(run: FileTaskRun) -> float:
 def _statistics_for_run(run: FileTaskRun, app_state: AppState) -> FileTaskRunStatistics:
     if run.statistics is not None:
         return run.statistics
-
     stats = app_state.file_result_repository.get_statistics(run.run_id)
     return FileTaskRunStatistics.model_validate(stats)
 
@@ -188,122 +126,13 @@ def _parse_status_filter(status_value: str | None) -> FileTaskRunStatus | None:
         ) from None
 
 
-def _parse_decision_type_filter(decision_type: str | None) -> str | None:
-    if decision_type is None:
-        return None
-    if decision_type in VALID_DECISION_TYPES:
-        return decision_type
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail=f"无效的处理决策类型: {decision_type}",
-    )
-
-
-def _task_log_file_path(log_dir: Path, run: FileTaskRun) -> Path:
-    return log_dir / f"{run.run_name}_{run.run_id}.jsonl"
-
-
-def _parse_log_line(line_no: int, raw_line: str) -> FileTaskRunLogLine:
-    try:
-        payload = json.loads(raw_line)
-    except json.JSONDecodeError:
-        return FileTaskRunLogLine(
-            line_no=line_no,
-            ts=None,
-            level=None,
-            msg=raw_line,
-            fields={},
-        )
-
-    if not _is_string_key_mapping(payload):
-        return FileTaskRunLogLine(
-            line_no=line_no,
-            ts=None,
-            level=None,
-            msg=raw_line,
-            fields={},
-        )
-
-    record = payload.get("record")
-    if not _is_string_key_mapping(record):
-        return FileTaskRunLogLine(
-            line_no=line_no,
-            ts=None,
-            level=None,
-            msg=raw_line,
-            fields={},
-        )
-
-    level = record.get("level")
-    time_value = record.get("time")
-    extra = record.get("extra")
-    return FileTaskRunLogLine(
-        line_no=line_no,
-        ts=_stringify_log_time(time_value),
-        level=_extract_log_level(level),
-        msg=str(record.get("message") or ""),
-        fields=dict(extra) if _is_string_key_mapping(extra) else {},
-    )
-
-
-def _is_string_key_mapping(value: object) -> TypeGuard[Mapping[str, object]]:
-    return isinstance(value, Mapping) and all(
-        isinstance(key, str) for key in value.keys()
-    )
-
-
-def _stringify_log_time(value: object) -> str | None:
-    if _is_string_key_mapping(value):
-        repr_value = value.get("repr")
-        if repr_value is not None:
-            return str(repr_value)
-    if value is None:
-        return None
-    return str(value)
-
-
-def _extract_log_level(value: object) -> str | None:
-    if _is_string_key_mapping(value):
-        name = value.get("name")
-        if name is not None:
-            return str(name)
-    if value is None:
-        return None
-    return str(value)
-
-
-def _read_log_lines(
-    log_file: Path,
-    offset: int,
-    limit: int,
-) -> tuple[int, list[FileTaskRunLogLine]]:
-    if not log_file.exists():
-        return 0, []
-
-    raw_lines = log_file.read_text(encoding="utf-8").splitlines()
-    selected_lines = raw_lines[offset : offset + limit]
-    lines = [
-        _parse_log_line(line_no=offset + index + 1, raw_line=raw_line)
-        for index, raw_line in enumerate(selected_lines)
-    ]
-    return len(raw_lines), lines
-
-
 @router.post("/{task_type}/start", response_model=StartTaskResponse)
 async def start_task(
     task_type: str,
     body: StartTaskRequest,
     request: Request,
 ) -> StartTaskResponse:
-    """启动任务执行实例
-
-    Args:
-        task_type: 任务类型
-        body: 启动任务请求
-        request: HTTP请求对象
-
-    Returns:
-        启动任务响应
+    """启动任务执行实例。
 
     Raises:
         HTTPException: 如果任务不存在或已有执行实例正在运行
@@ -363,14 +192,7 @@ async def get_run_status(
     run_id: str,
     request: Request,
 ) -> FileTaskRunStatusResponse:
-    """查询执行实例状态
-
-    Args:
-        run_id: 执行实例ID（字符串，需要转换为整数）
-        request: HTTP请求对象
-
-    Returns:
-        执行实例状态响应
+    """查询执行实例状态。
 
     Raises:
         HTTPException: 如果执行实例不存在或 run_id 格式无效
@@ -378,7 +200,6 @@ async def get_run_status(
     app_state: AppState = request.app.state.app_state
     run_id_int = _parse_run_id(run_id)
     run = app_state.file_task_run_manager.get_run(run_id_int)
-
     statistics = _statistics_for_run(run, app_state)
 
     return FileTaskRunStatusResponse(
@@ -401,14 +222,7 @@ async def cancel_run(
     run_id: str,
     request: Request,
 ) -> CancelFileTaskRunResponse:
-    """取消执行实例
-
-    Args:
-        run_id: 执行实例ID（字符串，需要转换为整数）
-        request: HTTP请求对象
-
-    Returns:
-        取消执行实例响应
+    """取消执行实例。
 
     Raises:
         HTTPException: 如果执行实例不存在或 run_id 格式无效
@@ -419,69 +233,6 @@ async def cancel_run(
     return CancelFileTaskRunResponse(
         run_id=run_id_int,
         message="任务已取消",
-    )
-
-
-@router.get("/{run_id}/results", response_model=FileTaskRunResultsResponse)
-async def list_run_results(
-    run_id: str,
-    request: Request,
-    decision_type: str | None = Query(None),
-    success: bool | None = Query(None),
-    q: str | None = Query(None),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-) -> FileTaskRunResultsResponse:
-    """分页列出执行实例的文件处理结果。"""
-    app_state: AppState = request.app.state.app_state
-    run_id_int = _parse_run_id(run_id)
-    app_state.file_task_run_manager.get_run(run_id_int)
-    parsed_decision_type = _parse_decision_type_filter(decision_type)
-    normalized_q = q.strip() if q else None
-    offset = (page - 1) * page_size
-
-    result_rows = app_state.file_result_repository.list_results(
-        run_id=run_id_int,
-        decision_type=parsed_decision_type,
-        success=success,
-        q=normalized_q,
-        limit=page_size,
-        offset=offset,
-    )
-    total = app_state.file_result_repository.count_results(
-        run_id=run_id_int,
-        decision_type=parsed_decision_type,
-        success=success,
-        q=normalized_q,
-    )
-
-    return FileTaskRunResultsResponse(
-        results=[FileTaskRunResultItem.model_validate(row) for row in result_rows],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
-
-
-@router.get("/{run_id}/logs", response_model=FileTaskRunLogsResponse)
-async def list_run_logs(
-    run_id: str,
-    request: Request,
-    offset: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=500),
-) -> FileTaskRunLogsResponse:
-    """分页列出执行实例日志。"""
-    app_state: AppState = request.app.state.app_state
-    run_id_int = _parse_run_id(run_id)
-    run = app_state.file_task_run_manager.get_run(run_id_int)
-    log_file = _task_log_file_path(app_state.log_dir, run)
-    total_lines, lines = _read_log_lines(log_file, offset, limit)
-
-    return FileTaskRunLogsResponse(
-        total_lines=total_lines,
-        offset=offset,
-        limit=limit,
-        lines=lines,
     )
 
 
@@ -518,14 +269,7 @@ async def list_runs(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> FileTaskRunListResponse:
-    """列出所有执行实例
-
-    Args:
-        request: HTTP请求对象
-
-    Returns:
-        执行实例列表响应
-    """
+    """列出所有执行实例。"""
     app_state: AppState = request.app.state.app_state
     parsed_task_type = _parse_task_type_filter(task_type)
     parsed_status = _parse_status_filter(status_value)
