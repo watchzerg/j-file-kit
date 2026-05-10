@@ -32,14 +32,6 @@ def generate_run_name(
 
     格式: {task_type}-{trigger_type}-{YYYYMMDDHHMMSSmmm}
     示例: jav_video_organizer-manual-20241215143052123
-
-    Args:
-        task_type: 任务类型
-        trigger_type: 触发类型
-        start_time: 开始时间
-
-    Returns:
-        执行实例名称
     """
     date_time_str = start_time.strftime("%Y%m%d%H%M%S")
     millisecond = f"{start_time.microsecond // 1000:03d}"
@@ -204,33 +196,17 @@ class FileTaskRunManager:
             ):
                 raise FileTaskCancelledError(run_id)
 
-            if run.status == FileTaskRunStatus.RUNNING:
-                if self._cancellation_event:
-                    self._cancellation_event.set()
-                self.file_task_run_repository.update_run(
-                    run_id,
-                    status=FileTaskRunStatus.CANCELLED,
-                    end_time=datetime.now(),
-                )
-            elif run.status == FileTaskRunStatus.PENDING:
-                self.file_task_run_repository.update_run(
-                    run_id,
-                    status=FileTaskRunStatus.CANCELLED,
-                    end_time=datetime.now(),
-                )
+            if run.status == FileTaskRunStatus.RUNNING and self._cancellation_event:
+                self._cancellation_event.set()
+
+            self.file_task_run_repository.update_run(
+                run_id,
+                status=FileTaskRunStatus.CANCELLED,
+                end_time=datetime.now(),
+            )
 
     def get_run(self, run_id: int) -> FileTaskRun:
-        """获取执行实例信息
-
-        Args:
-            run_id: 执行实例ID
-
-        Returns:
-            执行实例记录
-
-        Raises:
-            FileTaskNotFoundError: 如果执行实例不存在
-        """
+        """获取执行实例信息，不存在则抛 FileTaskNotFoundError。"""
         run = self.file_task_run_repository.get_run(run_id)
         if run is None:
             raise FileTaskNotFoundError(run_id)
@@ -243,11 +219,7 @@ class FileTaskRunManager:
         limit: int | None = None,
         offset: int = 0,
     ) -> list[FileTaskRun]:
-        """列出所有执行实例（按开始时间降序）
-
-        Returns:
-            执行实例列表
-        """
+        """列出所有执行实例（按开始时间降序）。"""
         return self.file_task_run_repository.list_runs(
             task_type=task_type,
             status=status,
