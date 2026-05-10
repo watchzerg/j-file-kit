@@ -54,6 +54,10 @@ class TestUpdateConfig:
             "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
             tmp_path,
         )
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.jav_task_config.MEDIA_ROOT",
+            tmp_path,
+        )
         ws = tmp_path / "jav_ws"
         response = client.patch(
             "/api/file-task/config/jav-video-organizer",
@@ -97,6 +101,10 @@ class TestUpdateRawConfig:
     ) -> None:
         monkeypatch.setattr(
             "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
+            tmp_path,
+        )
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.raw_task_config.MEDIA_ROOT",
             tmp_path,
         )
         ws = tmp_path / "raw_ws"

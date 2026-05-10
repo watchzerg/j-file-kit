@@ -34,6 +34,10 @@ def task_config_with_workspace(
         "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
         tmp_path,
     )
+    monkeypatch.setattr(
+        "j_file_kit.app.file_task.application.jav_task_config.MEDIA_ROOT",
+        tmp_path,
+    )
     ws = tmp_path / "jav_ws"
     ws.mkdir()
     (ws / "inbox").mkdir()
@@ -76,6 +80,10 @@ class TestJavVideoOrganizerRun:
     ) -> None:
         monkeypatch.setattr(
             "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
+            tmp_path,
+        )
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.jav_task_config.MEDIA_ROOT",
             tmp_path,
         )
         ws = tmp_path / "jav_ws"
@@ -135,6 +143,10 @@ class TestJavVideoOrganizerCreateAnalyzeConfig:
             "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
             tmp_path,
         )
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.jav_task_config.MEDIA_ROOT",
+            tmp_path,
+        )
         ws = tmp_path / "jav_ws"
         ws.mkdir()
         (ws / "inbox").mkdir()
@@ -176,6 +188,10 @@ class TestJavVideoOrganizerCreateAnalyzeConfig:
     ) -> None:
         monkeypatch.setattr(
             "j_file_kit.app.file_task.application.config_common.JAV_MEDIA_ROOT",
+            tmp_path,
+        )
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.jav_task_config.MEDIA_ROOT",
             tmp_path,
         )
         ws = tmp_path / "jav_ws"

@@ -44,3 +44,11 @@ def patch_media_roots(monkeypatch: pytest.MonkeyPatch, media_root: Path) -> None
         "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
         media_root,
     )
+    monkeypatch.setattr(
+        "j_file_kit.app.file_task.application.jav_task_config.MEDIA_ROOT",
+        media_root,
+    )
+    monkeypatch.setattr(
+        "j_file_kit.app.file_task.application.raw_task_config.MEDIA_ROOT",
+        media_root,
+    )

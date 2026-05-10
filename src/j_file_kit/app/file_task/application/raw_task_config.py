@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 import j_file_kit.app.file_task.application.config_common as _config_common
 from j_file_kit.app.file_task.application.config_common import path_is_descendant_of
+from j_file_kit.shared.constants import MEDIA_ROOT
 
 
 def _default_raw_workspace_root() -> Path:
@@ -31,9 +32,9 @@ class RawFileOrganizeConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_workspace_under_raw_media_root(self) -> RawFileOrganizeConfig:
-        raw_root = _config_common.RAW_MEDIA_ROOT.expanduser().resolve(strict=False)
+        media_root = MEDIA_ROOT.expanduser().resolve(strict=False)
         w = self.workspace_root.expanduser().resolve(strict=False)
-        if not path_is_descendant_of(w, raw_root):
-            msg = f"workspace_root（{w}）必须是 {raw_root} 或其子目录"
+        if not path_is_descendant_of(w, media_root):
+            msg = f"workspace_root（{w}）必须是 {media_root} 或其子目录"
             raise ValueError(msg)
         return self

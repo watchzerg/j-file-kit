@@ -4,6 +4,8 @@ from pathlib import Path
 
 import pytest
 
+import j_file_kit.app.file_task.application.jav_task_config as jav_task_config_module
+import j_file_kit.app.file_task.application.raw_task_config as raw_task_config_module
 from j_file_kit.app.file_task.application import config_common as config_common_module
 from j_file_kit.app.file_task.application.config_validator import (
     validate_jav_video_organizer_config,
@@ -16,11 +18,17 @@ pytestmark = pytest.mark.unit
 
 
 class TestJavVideoOrganizeModelPaths:
-    def test_workspace_outside_jav_media_root_raises(self) -> None:
+    def test_workspace_outside_media_root_raises(self) -> None:
         with pytest.raises(ValueError, match="workspace_root"):
             JavVideoOrganizeConfig.model_validate(
-                {"workspace_root": "/media/other/jav"},
+                {"workspace_root": "/etc/other/jav"},
             )
+
+    def test_workspace_in_any_media_subdir_is_valid(self) -> None:
+        cfg = JavVideoOrganizeConfig.model_validate(
+            {"workspace_root": "/media/other/jav"},
+        )
+        assert str(cfg.workspace_root) == "/media/other/jav"
 
 
 class TestValidateJavVideoOrganizerConfig:
@@ -29,6 +37,7 @@ class TestValidateJavVideoOrganizerConfig:
         monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
     ) -> None:
+        monkeypatch.setattr(jav_task_config_module, "MEDIA_ROOT", tmp_path)
         monkeypatch.setattr(config_common_module, "JAV_MEDIA_ROOT", tmp_path)
         ws = tmp_path / "ws"
         cfg = JavVideoOrganizeConfig.model_validate({"workspace_root": str(ws)})
@@ -40,6 +49,7 @@ class TestValidateJavVideoOrganizerConfig:
         monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
     ) -> None:
+        monkeypatch.setattr(jav_task_config_module, "MEDIA_ROOT", tmp_path)
         monkeypatch.setattr(config_common_module, "JAV_MEDIA_ROOT", tmp_path)
         ws = tmp_path / "ws"
         inbox = ws / "inbox"
@@ -55,6 +65,7 @@ class TestValidateRawFileOrganizerConfig:
         monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
     ) -> None:
+        monkeypatch.setattr(raw_task_config_module, "MEDIA_ROOT", tmp_path)
         monkeypatch.setattr(config_common_module, "RAW_MEDIA_ROOT", tmp_path)
         ws = tmp_path / "raw_ws"
         cfg = RawFileOrganizeConfig.model_validate({"workspace_root": str(ws)})
@@ -66,6 +77,7 @@ class TestValidateRawFileOrganizerConfig:
         monkeypatch: pytest.MonkeyPatch,
         tmp_path: Path,
     ) -> None:
+        monkeypatch.setattr(raw_task_config_module, "MEDIA_ROOT", tmp_path)
         monkeypatch.setattr(config_common_module, "RAW_MEDIA_ROOT", tmp_path)
         ws = tmp_path / "raw_ws"
         ws.mkdir()

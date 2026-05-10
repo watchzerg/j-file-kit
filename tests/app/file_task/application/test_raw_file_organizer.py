@@ -45,6 +45,10 @@ def test_run_requires_existing_inbox(
         "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
         tmp_path,
     )
+    monkeypatch.setattr(
+        "j_file_kit.app.file_task.application.raw_task_config.MEDIA_ROOT",
+        tmp_path,
+    )
     ws = tmp_path / "raw_ws"
     ws.mkdir()
     tc = TaskConfig(
@@ -67,6 +71,10 @@ def test_run_returns_empty_statistics(
 ) -> None:
     monkeypatch.setattr(
         "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
+        tmp_path,
+    )
+    monkeypatch.setattr(
+        "j_file_kit.app.file_task.application.raw_task_config.MEDIA_ROOT",
         tmp_path,
     )
     ws = tmp_path / "raw_ws"
@@ -105,6 +113,10 @@ class TestRawFileOrganizerCreateAnalyzeConfig:
     ) -> RawFileOrganizer:
         monkeypatch.setattr(
             "j_file_kit.app.file_task.application.config_common.RAW_MEDIA_ROOT",
+            tmp_path,
+        )
+        monkeypatch.setattr(
+            "j_file_kit.app.file_task.application.raw_task_config.MEDIA_ROOT",
             tmp_path,
         )
         ws = tmp_path / "raw_ws"

@@ -162,6 +162,7 @@ class TestCancelRun:
         (
             "task_type",
             "media_root_module_attr",
+            "task_config_media_root_path",
             "config_url",
             "workspace_dir",
             "inbox_parent_dir",
@@ -170,6 +171,7 @@ class TestCancelRun:
             (
                 TASK_TYPE_JAV_VIDEO_ORGANIZER,
                 "JAV_MEDIA_ROOT",
+                "j_file_kit.app.file_task.application.jav_task_config.MEDIA_ROOT",
                 "/api/file-task/config/jav-video-organizer",
                 lambda p: p,
                 lambda p: p,
@@ -177,6 +179,7 @@ class TestCancelRun:
             (
                 TASK_TYPE_RAW_FILE_ORGANIZER,
                 "RAW_MEDIA_ROOT",
+                "j_file_kit.app.file_task.application.raw_task_config.MEDIA_ROOT",
                 "/api/file-task/config/raw-file-organizer",
                 lambda p: p / "raw_ws",
                 lambda p: p / "raw_ws",
@@ -191,6 +194,7 @@ class TestCancelRun:
         tmp_path: Path,
         task_type: str,
         media_root_module_attr: str,
+        task_config_media_root_path: str,
         config_url: str,
         workspace_dir: Callable[[Path], Path],
         inbox_parent_dir: Callable[[Path], Path],
@@ -200,6 +204,7 @@ class TestCancelRun:
             f"j_file_kit.app.file_task.application.config_common.{media_root_module_attr}",
             tmp_path,
         )
+        monkeypatch.setattr(task_config_media_root_path, tmp_path)
         ws = workspace_dir(tmp_path)
         ws.mkdir(parents=True, exist_ok=True)
         inbox = inbox_parent_dir(tmp_path) / "inbox"

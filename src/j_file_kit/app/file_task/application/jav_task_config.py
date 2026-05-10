@@ -14,6 +14,7 @@ from j_file_kit.app.file_task.application.config_common import (
     InboxDeleteRules,
     path_is_descendant_of,
 )
+from j_file_kit.shared.constants import MEDIA_ROOT
 
 
 def _default_jav_workspace_root() -> Path:
@@ -60,12 +61,10 @@ class JavVideoOrganizeConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_workspace_under_media_root(self) -> JavVideoOrganizeConfig:
-        """workspace_root 须在 JAV_MEDIA_ROOT 之下（测试可 monkeypatch 该变量）。"""
-        jav_media_root = _config_common.JAV_MEDIA_ROOT.expanduser().resolve(
-            strict=False
-        )
+        """workspace_root 须在 MEDIA_ROOT（/media）之下。"""
+        media_root = MEDIA_ROOT.expanduser().resolve(strict=False)
         w = self.workspace_root.expanduser().resolve(strict=False)
-        if not path_is_descendant_of(w, jav_media_root):
-            msg = f"workspace_root（{w}）必须是 {jav_media_root} 或其子目录"
+        if not path_is_descendant_of(w, media_root):
+            msg = f"workspace_root（{w}）必须是 {media_root} 或其子目录"
             raise ValueError(msg)
         return self

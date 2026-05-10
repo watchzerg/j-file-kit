@@ -25,14 +25,15 @@ class TestJavVideoOrganizeConfigDirConstraint:
                 {"workspace_root": "/etc/jav", "misc_file_delete_rules": {}},
             )
 
-    def test_wrong_media_branch_raises(self) -> None:
-        with pytest.raises(ValidationError):
-            JavVideoOrganizeConfig.model_validate(
-                {
-                    "workspace_root": "/media/raw_workspace",
-                    "misc_file_delete_rules": {},
-                },
-            )
+    def test_any_media_subdir_is_valid(self) -> None:
+        # 只要在 /media 下即可，不再要求必须在 /media/jav_workspace 下
+        cfg = JavVideoOrganizeConfig.model_validate(
+            {
+                "workspace_root": "/media/raw_workspace",
+                "misc_file_delete_rules": {},
+            },
+        )
+        assert str(cfg.workspace_root) == "/media/raw_workspace"
 
 
 class TestJavVideoOrganizeConfigMiscRules:
@@ -92,11 +93,12 @@ class TestRawFileOrganizeConfigDirConstraint:
         with pytest.raises(ValidationError):
             RawFileOrganizeConfig.model_validate({"workspace_root": "/etc/raw"})
 
-    def test_jav_workspace_raises(self) -> None:
-        with pytest.raises(ValidationError):
-            RawFileOrganizeConfig.model_validate(
-                {"workspace_root": "/media/jav_workspace"},
-            )
+    def test_any_media_subdir_is_valid(self) -> None:
+        # 只要在 /media 下即可，不再要求必须在 /media/raw_workspace 下
+        cfg = RawFileOrganizeConfig.model_validate(
+            {"workspace_root": "/media/jav_workspace"},
+        )
+        assert str(cfg.workspace_root) == "/media/jav_workspace"
 
 
 class TestCreateDefaultRawFileOrganizerTaskConfig:
