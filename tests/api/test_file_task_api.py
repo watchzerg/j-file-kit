@@ -263,7 +263,11 @@ class TestListRuns:
         """无执行记录时返回空列表"""
         response = client.get("/api/tasks")
         assert response.status_code == 200
-        assert response.json()["runs"] == []
+        data = response.json()
+        assert data["runs"] == []
+        assert data["total"] == 0
+        assert data["page"] == 1
+        assert data["page_size"] == 20
 
     @pytest.mark.parametrize(
         "task_type",
@@ -282,7 +286,112 @@ class TestListRuns:
         assert len(runs) >= 1
         assert "run_id" in runs[0]
         assert "run_name" in runs[0]
+        assert runs[0]["task_type"] == task_type
+        assert runs[0]["trigger_type"] == "manual"
+        assert runs[0]["dry_run"] is False
         assert "status" in runs[0]
+        assert "duration_ms" in runs[0]
+        assert "statistics_summary" in runs[0]
+
+    def test_list_runs_filters_and_paginates(self, client) -> None:
+        """列表接口支持 task_type、status、page、page_size。"""
+        app_state = client.app.state.app_state
+        app_state.file_task_run_repository.create_run(
+            run_name="jav-completed",
+            task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.COMPLETED,
+            start_time=datetime(2024, 1, 1),
+            dry_run=False,
+        )
+        app_state.file_task_run_repository.create_run(
+            run_name="raw-failed",
+            task_type=TASK_TYPE_RAW_FILE_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.FAILED,
+            start_time=datetime(2024, 1, 2),
+            dry_run=True,
+        )
+        raw_completed_id = app_state.file_task_run_repository.create_run(
+            run_name="raw-completed",
+            task_type=TASK_TYPE_RAW_FILE_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.COMPLETED,
+            start_time=datetime(2024, 1, 3),
+            dry_run=True,
+        )
+        app_state.file_task_run_repository.update_run(
+            raw_completed_id,
+            statistics={
+                "total_items": 8,
+                "success_items": 6,
+                "error_items": 1,
+                "skipped_items": 1,
+                "warning_items": 0,
+                "total_duration_ms": 123,
+            },
+        )
+
+        response = client.get(
+            "/api/tasks",
+            params={
+                "task_type": TASK_TYPE_RAW_FILE_ORGANIZER,
+                "status": "completed",
+                "page": 1,
+                "page_size": 1,
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert data["page"] == 1
+        assert data["page_size"] == 1
+        assert len(data["runs"]) == 1
+        run = data["runs"][0]
+        assert run["run_id"] == raw_completed_id
+        assert run["run_name"] == "raw-completed"
+        assert run["task_type"] == TASK_TYPE_RAW_FILE_ORGANIZER
+        assert run["dry_run"] is True
+        assert run["statistics_summary"]["total_items"] == 8
+        assert run["statistics_summary"]["success_items"] == 6
+
+    @pytest.mark.parametrize(
+        ("params", "message"),
+        [
+            ({"task_type": "unknown"}, "无效的任务类型"),
+            ({"status": "unknown"}, "无效的执行状态"),
+        ],
+    )
+    def test_list_runs_invalid_filters(
+        self,
+        client,
+        params: dict[str, str],
+        message: str,
+    ) -> None:
+        """无效筛选值返回 400。"""
+        response = client.get("/api/tasks", params=params)
+
+        assert response.status_code == 400
+        assert message in response.json()["detail"]
+
+    @pytest.mark.parametrize(
+        "params",
+        [
+            {"page": 0},
+            {"page_size": 0},
+            {"page_size": 101},
+        ],
+    )
+    def test_list_runs_invalid_pagination(
+        self,
+        client,
+        params: dict[str, int],
+    ) -> None:
+        """无效分页参数由 FastAPI 校验。"""
+        response = client.get("/api/tasks", params=params)
+
+        assert response.status_code == 422
 
 
 class TestGetActiveRun:

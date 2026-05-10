@@ -81,12 +81,26 @@ class FileTaskRunRepository(Protocol):
         """
         ...
 
-    def list_runs(self) -> list[FileTaskRun]:
+    def list_runs(
+        self,
+        task_type: str | None = None,
+        status: FileTaskRunStatus | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[FileTaskRun]:
         """列出所有执行实例记录（按开始时间降序）
 
         Returns:
             执行实例列表
         """
+        ...
+
+    def count_runs(
+        self,
+        task_type: str | None = None,
+        status: FileTaskRunStatus | None = None,
+    ) -> int:
+        """统计符合条件的执行实例记录数。"""
         ...
 
     def get_running_run(self) -> FileTaskRun | None:

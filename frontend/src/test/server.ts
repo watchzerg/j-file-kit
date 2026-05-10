@@ -37,9 +37,71 @@ const defaultStatistics = {
   phase3_deferred_files_misc: 1,
 };
 
+const defaultStatisticsSummary = {
+  total_items: defaultStatistics.total_items,
+  success_items: defaultStatistics.success_items,
+  error_items: defaultStatistics.error_items,
+  skipped_items: defaultStatistics.skipped_items,
+  warning_items: defaultStatistics.warning_items,
+  total_duration_ms: defaultStatistics.total_duration_ms,
+};
+
+const taskRuns = [
+  {
+    run_id: 123,
+    run_name: "raw_file_organizer-manual-20260510010101000",
+    task_type: "raw_file_organizer",
+    trigger_type: "manual",
+    dry_run: true,
+    status: "completed",
+    start_time: "2026-05-10T01:01:01",
+    end_time: "2026-05-10T01:01:03",
+    duration_ms: 2000,
+    statistics_summary: defaultStatisticsSummary,
+  },
+  {
+    run_id: 321,
+    run_name: "jav_video_organizer-manual-20260510020101000",
+    task_type: "jav_video_organizer",
+    trigger_type: "manual",
+    dry_run: false,
+    status: "running",
+    start_time: "2026-05-10T02:01:01",
+    end_time: null,
+    duration_ms: 3000,
+    statistics_summary: {
+      ...defaultStatisticsSummary,
+      total_items: 3,
+      success_items: 1,
+      error_items: 0,
+      skipped_items: 0,
+    },
+  },
+];
+
 export const server = setupServer(
   http.get("/api/tasks/active", () => HttpResponse.json(null)),
-  http.get("/api/tasks", () => HttpResponse.json({ runs: [] })),
+  http.get("/api/tasks", ({ request }) => {
+    const url = new URL(request.url);
+    const page = Number(url.searchParams.get("page") ?? "1");
+    const pageSize = Number(url.searchParams.get("page_size") ?? "20");
+    const taskType = url.searchParams.get("task_type");
+    const status = url.searchParams.get("status");
+    const filteredRuns = taskRuns.filter((run) => {
+      const matchesTaskType = taskType === null || run.task_type === taskType;
+      const matchesStatus = status === null || run.status === status;
+      return matchesTaskType && matchesStatus;
+    });
+    const start = (page - 1) * pageSize;
+    const runs = filteredRuns.slice(start, start + pageSize);
+
+    return HttpResponse.json({
+      runs,
+      total: filteredRuns.length,
+      page,
+      page_size: pageSize,
+    });
+  }),
   http.get("/api/tasks/:runId", ({ params }) =>
     HttpResponse.json({
       run_id: Number(params.runId),

@@ -8,6 +8,7 @@ import type {
   FileTaskRunStatus,
   StartTaskRequest,
   StartTaskResponse,
+  TaskRunListParams,
 } from "./types";
 
 export const TASK_TYPES = {
@@ -20,15 +21,30 @@ export type TaskType = (typeof TASK_TYPES)[keyof typeof TASK_TYPES];
 const POLL_INTERVAL_MS = 2_000;
 const ACTIVE_RUN_POLL_INTERVAL_MS = 3_000;
 const RECENT_RUNS_LIMIT = 10;
+export const DEFAULT_TASK_RUN_PAGE_SIZE = 20;
 
 function isActiveStatus(status: FileTaskRunStatus) {
   return status === "pending" || status === "running";
 }
 
-export function useTaskRunList() {
+function buildTaskRunsPath(params: TaskRunListParams) {
+  const searchParams = new URLSearchParams();
+  searchParams.set("page", String(params.page));
+  searchParams.set("page_size", String(params.page_size));
+  if (params.task_type) {
+    searchParams.set("task_type", params.task_type);
+  }
+  if (params.status) {
+    searchParams.set("status", params.status);
+  }
+  return `/api/tasks?${searchParams.toString()}`;
+}
+
+export function useTaskRunList(params: TaskRunListParams) {
   return useQuery({
-    queryKey: ["tasks", "runs"],
-    queryFn: () => apiClient.get<FileTaskRunListResponse>("/api/tasks"),
+    queryKey: ["tasks", "runs", params],
+    queryFn: () =>
+      apiClient.get<FileTaskRunListResponse>(buildTaskRunsPath(params)),
   });
 }
 
@@ -36,9 +52,13 @@ export function useRecentTaskRuns() {
   return useQuery({
     queryKey: ["tasks", "runs", "recent"],
     queryFn: async () => {
-      const response =
-        await apiClient.get<FileTaskRunListResponse>("/api/tasks");
-      return response.runs.slice(0, RECENT_RUNS_LIMIT);
+      const response = await apiClient.get<FileTaskRunListResponse>(
+        buildTaskRunsPath({
+          page: 1,
+          page_size: RECENT_RUNS_LIMIT,
+        }),
+      );
+      return response.runs;
     },
   });
 }

@@ -75,6 +75,18 @@ class SQLiteSchemaInitializer:
 
     def _create_indexes(self, cursor: sqlite3.Cursor) -> None:
         cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_file_task_runs_task_type_status_start_time
+            ON file_task_runs(task_type, status, start_time)
+            """,
+        )
+        cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_file_task_runs_status_start_time
+            ON file_task_runs(status, start_time)
+            """,
+        )
+        cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_file_results_run_id ON file_results(run_id)",
         )
         cursor.execute(

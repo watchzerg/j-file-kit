@@ -7,7 +7,7 @@
 import json
 import sqlite3
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from j_file_kit.app.file_task.domain.task_run import (
     FileTaskRun,
@@ -18,6 +18,50 @@ from j_file_kit.app.file_task.domain.task_run import (
 from j_file_kit.infrastructure.persistence.sqlite.connection import (
     SQLiteConnectionManager,
 )
+
+RunListFilterKey = Literal["all", "task_type", "status", "task_type_status"]
+
+LIST_RUN_QUERIES: dict[RunListFilterKey, str] = {
+    "all": """
+        SELECT * FROM file_task_runs
+        ORDER BY start_time DESC
+        LIMIT ? OFFSET ?
+    """,
+    "task_type": """
+        SELECT * FROM file_task_runs
+        WHERE task_type = ?
+        ORDER BY start_time DESC
+        LIMIT ? OFFSET ?
+    """,
+    "status": """
+        SELECT * FROM file_task_runs
+        WHERE status = ?
+        ORDER BY start_time DESC
+        LIMIT ? OFFSET ?
+    """,
+    "task_type_status": """
+        SELECT * FROM file_task_runs
+        WHERE task_type = ? AND status = ?
+        ORDER BY start_time DESC
+        LIMIT ? OFFSET ?
+    """,
+}
+
+COUNT_RUN_QUERIES: dict[RunListFilterKey, str] = {
+    "all": "SELECT COUNT(*) AS total FROM file_task_runs",
+    "task_type": """
+        SELECT COUNT(*) AS total FROM file_task_runs
+        WHERE task_type = ?
+    """,
+    "status": """
+        SELECT COUNT(*) AS total FROM file_task_runs
+        WHERE status = ?
+    """,
+    "task_type_status": """
+        SELECT COUNT(*) AS total FROM file_task_runs
+        WHERE task_type = ? AND status = ?
+    """,
+}
 
 
 class FileTaskRunRepositoryImpl:
@@ -64,6 +108,27 @@ class FileTaskRunRepositoryImpl:
             error_message=row["error_message"],
             statistics=statistics,
         )
+
+    def _build_list_filters(
+        self,
+        task_type: str | None,
+        status: FileTaskRunStatus | None,
+    ) -> tuple[RunListFilterKey, list[str]]:
+        params: list[str] = []
+
+        if task_type is None and status is None:
+            return "all", params
+        if task_type is not None and status is None:
+            params.append(task_type)
+            return "task_type", params
+        if task_type is None and status is not None:
+            params.append(status.value)
+            return "status", params
+        if task_type is not None and status is not None:
+            params.extend([task_type, status.value])
+            return "task_type_status", params
+
+        raise AssertionError("unreachable filter combination")
 
     def create_run(
         self,
@@ -187,19 +252,49 @@ class FileTaskRunRepositoryImpl:
 
             return self._row_to_run(row)
 
-    def list_runs(self) -> list[FileTaskRun]:
+    def list_runs(
+        self,
+        task_type: str | None = None,
+        status: FileTaskRunStatus | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[FileTaskRun]:
         """列出所有执行实例记录（按开始时间降序）
 
         Returns:
             执行实例列表
         """
+        filter_key, params = self._build_list_filters(task_type, status)
+        query = LIST_RUN_QUERIES[filter_key]
+        effective_limit = limit if limit is not None else -1
+        effective_offset = offset if limit is not None else 0
+        query_params: list[str | int] = [
+            *params,
+            effective_limit,
+            effective_offset,
+        ]
+
         with self._conn_manager.get_cursor() as cursor:
-            cursor.execute(
-                "SELECT * FROM file_task_runs ORDER BY start_time DESC",
-            )
+            cursor.execute(query, tuple(query_params))
             rows = cursor.fetchall()
 
             return [self._row_to_run(row) for row in rows]
+
+    def count_runs(
+        self,
+        task_type: str | None = None,
+        status: FileTaskRunStatus | None = None,
+    ) -> int:
+        """统计符合条件的执行实例记录数。"""
+        filter_key, params = self._build_list_filters(task_type, status)
+
+        with self._conn_manager.get_cursor() as cursor:
+            cursor.execute(
+                COUNT_RUN_QUERIES[filter_key],
+                tuple(params),
+            )
+            row = cursor.fetchone()
+            return int(row["total"])
 
     def get_running_run(self) -> FileTaskRun | None:
         """获取当前运行中的执行实例，无则返回 None

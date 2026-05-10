@@ -236,13 +236,35 @@ class FileTaskRunManager:
             raise FileTaskNotFoundError(run_id)
         return run
 
-    def list_runs(self) -> list[FileTaskRun]:
+    def list_runs(
+        self,
+        task_type: str | None = None,
+        status: FileTaskRunStatus | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[FileTaskRun]:
         """列出所有执行实例（按开始时间降序）
 
         Returns:
             执行实例列表
         """
-        return self.file_task_run_repository.list_runs()
+        return self.file_task_run_repository.list_runs(
+            task_type=task_type,
+            status=status,
+            limit=limit,
+            offset=offset,
+        )
+
+    def count_runs(
+        self,
+        task_type: str | None = None,
+        status: FileTaskRunStatus | None = None,
+    ) -> int:
+        """统计符合条件的执行实例数量。"""
+        return self.file_task_run_repository.count_runs(
+            task_type=task_type,
+            status=status,
+        )
 
     def get_active_run(self) -> FileTaskRun | None:
         """获取当前待处理或运行中的执行实例，无则返回 None。"""

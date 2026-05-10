@@ -126,6 +126,66 @@ class TestFileTaskRunRepository:
         assert len(runs) == 2
         assert runs[0].run_name == "second"
 
+    def test_list_runs_filters_and_paginates(
+        self,
+        file_task_run_repository: FileTaskRunRepositoryImpl,
+    ) -> None:
+        file_task_run_repository.create_run(
+            run_name="jav-completed",
+            task_type="jav_video_organizer",
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.COMPLETED,
+            start_time=datetime(2024, 1, 1),
+        )
+        file_task_run_repository.create_run(
+            run_name="raw-failed",
+            task_type="raw_file_organizer",
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.FAILED,
+            start_time=datetime(2024, 1, 2),
+        )
+        file_task_run_repository.create_run(
+            run_name="raw-completed",
+            task_type="raw_file_organizer",
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.COMPLETED,
+            start_time=datetime(2024, 1, 3),
+        )
+
+        runs = file_task_run_repository.list_runs(
+            task_type="raw_file_organizer",
+            status=FileTaskRunStatus.COMPLETED,
+            limit=1,
+            offset=0,
+        )
+
+        assert [run.run_name for run in runs] == ["raw-completed"]
+        assert (
+            file_task_run_repository.count_runs(
+                task_type="raw_file_organizer",
+                status=FileTaskRunStatus.COMPLETED,
+            )
+            == 1
+        )
+
+    def test_list_runs_limit_offset_keeps_sort_order(
+        self,
+        file_task_run_repository: FileTaskRunRepositoryImpl,
+    ) -> None:
+        for index in range(3):
+            file_task_run_repository.create_run(
+                run_name=f"run-{index}",
+                task_type="raw_file_organizer",
+                trigger_type=FileTaskTriggerType.MANUAL,
+                status=FileTaskRunStatus.COMPLETED,
+                start_time=datetime(2024, 1, index + 1),
+            )
+
+        runs = file_task_run_repository.list_runs(limit=1, offset=1)
+
+        assert [run.run_name for run in runs] == ["run-1"]
+        assert file_task_run_repository.count_runs() == 3
+
     def test_get_running_run(
         self,
         file_task_run_repository: FileTaskRunRepositoryImpl,

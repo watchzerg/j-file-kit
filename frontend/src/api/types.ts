@@ -53,6 +53,15 @@ export interface FileTaskRunStatistics {
   phase3_deferred_files_misc: number;
 }
 
+export interface FileTaskRunStatisticsSummary {
+  total_items: number;
+  success_items: number;
+  error_items: number;
+  skipped_items: number;
+  warning_items: number;
+  total_duration_ms: number;
+}
+
 export interface FileTaskRunDetailResponse {
   run_id: number;
   run_name: string;
@@ -88,13 +97,28 @@ export interface CancelFileTaskRunResponse {
 export interface FileTaskRunListItem {
   run_id: number;
   run_name: string;
+  task_type: FileTaskType;
+  trigger_type: FileTaskTriggerType;
+  dry_run: boolean;
   status: FileTaskRunStatus;
   start_time: string;
   end_time: string | null;
+  duration_ms: number;
+  statistics_summary: FileTaskRunStatisticsSummary;
 }
 
 export interface FileTaskRunListResponse {
   runs: FileTaskRunListItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface TaskRunListParams {
+  task_type?: FileTaskType;
+  status?: FileTaskRunStatus;
+  page: number;
+  page_size: number;
 }
 
 // ── Task config ────────────────────────────────────────────────────────────

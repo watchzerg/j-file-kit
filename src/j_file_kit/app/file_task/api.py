@@ -9,7 +9,7 @@
 
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Request, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from j_file_kit.api.app_state import AppState
 from j_file_kit.app.file_task.application.jav_video_organizer import JavVideoOrganizer
@@ -19,6 +19,7 @@ from j_file_kit.app.file_task.application.schemas import (
     CancelFileTaskRunResponse,
     FileTaskRunListItem,
     FileTaskRunListResponse,
+    FileTaskRunStatisticsSummary,
     FileTaskRunStatusResponse,
     StartTaskRequest,
     StartTaskResponse,
@@ -31,11 +32,17 @@ from j_file_kit.app.file_task.domain.task_config import TaskConfig
 from j_file_kit.app.file_task.domain.task_run import (
     FileTaskRun,
     FileTaskRunStatistics,
+    FileTaskRunStatus,
     FileTaskTriggerType,
 )
 from j_file_kit.app.file_task.domain.task_runner import FileTaskRunner
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
+
+VALID_TASK_TYPES = {
+    TASK_TYPE_JAV_VIDEO_ORGANIZER,
+    TASK_TYPE_RAW_FILE_ORGANIZER,
+}
 
 
 def _parse_run_id(run_id_str: str) -> int:
@@ -123,6 +130,44 @@ def _statistics_for_run(run: FileTaskRun, app_state: AppState) -> FileTaskRunSta
 
     stats = app_state.file_result_repository.get_statistics(run.run_id)
     return FileTaskRunStatistics.model_validate(stats)
+
+
+def _statistics_summary_for_run(
+    run: FileTaskRun,
+    app_state: AppState,
+) -> FileTaskRunStatisticsSummary:
+    statistics = _statistics_for_run(run, app_state)
+    return FileTaskRunStatisticsSummary(
+        total_items=statistics.total_items,
+        success_items=statistics.success_items,
+        error_items=statistics.error_items,
+        skipped_items=statistics.skipped_items,
+        warning_items=statistics.warning_items,
+        total_duration_ms=statistics.total_duration_ms,
+    )
+
+
+def _parse_task_type_filter(task_type: str | None) -> str | None:
+    if task_type is None:
+        return None
+    if task_type in VALID_TASK_TYPES:
+        return task_type
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"无效的任务类型: {task_type}",
+    )
+
+
+def _parse_status_filter(status_value: str | None) -> FileTaskRunStatus | None:
+    if status_value is None:
+        return None
+    try:
+        return FileTaskRunStatus(status_value)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"无效的执行状态: {status_value}",
+        ) from None
 
 
 @router.post("/{task_type}/start", response_model=StartTaskResponse)
@@ -261,6 +306,10 @@ async def cancel_run(
 @router.get("", response_model=FileTaskRunListResponse)
 async def list_runs(
     request: Request,
+    task_type: str | None = Query(None),
+    status_value: str | None = Query(None, alias="status"),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
 ) -> FileTaskRunListResponse:
     """列出所有执行实例
 
@@ -271,15 +320,38 @@ async def list_runs(
         执行实例列表响应
     """
     app_state: AppState = request.app.state.app_state
-    runs = app_state.file_task_run_manager.list_runs()
+    parsed_task_type = _parse_task_type_filter(task_type)
+    parsed_status = _parse_status_filter(status_value)
+    offset = (page - 1) * page_size
+
+    runs = app_state.file_task_run_manager.list_runs(
+        task_type=parsed_task_type,
+        status=parsed_status,
+        limit=page_size,
+        offset=offset,
+    )
+    total = app_state.file_task_run_manager.count_runs(
+        task_type=parsed_task_type,
+        status=parsed_status,
+    )
     run_items = [
         FileTaskRunListItem(
             run_id=run.run_id,
             run_name=run.run_name,
+            task_type=run.task_type,
+            trigger_type=run.trigger_type,
+            dry_run=run.dry_run,
             status=run.status,
             start_time=run.start_time,
             end_time=run.end_time,
+            duration_ms=_duration_ms(run),
+            statistics_summary=_statistics_summary_for_run(run, app_state),
         )
         for run in runs
     ]
-    return FileTaskRunListResponse(runs=run_items)
+    return FileTaskRunListResponse(
+        runs=run_items,
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
