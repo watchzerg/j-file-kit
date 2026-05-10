@@ -20,7 +20,7 @@ describe("Tasks list page", () => {
     ).toBeInTheDocument();
     expect(screen.getAllByText("Raw 文件整理").length).toBeGreaterThan(0);
     expect(screen.getAllByText("JAV 视频整理").length).toBeGreaterThan(0);
-    expect(screen.getByText("Dry Run")).toBeInTheDocument();
+    expect(screen.getAllByText("Dry Run").length).toBeGreaterThan(0);
     expect(
       screen.getByText("总 12 / 成功 9 / 失败 1 / 跳过 2"),
     ).toBeInTheDocument();
@@ -94,6 +94,71 @@ describe("Tasks list page", () => {
     });
   });
 
+  it("shows empty state when no runs match filters", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get("/api/tasks", () =>
+        HttpResponse.json({ runs: [], total: 0, page: 1, page_size: 20 }),
+      ),
+    );
+
+    renderAt("/tasks");
+
+    await user.selectOptions(
+      await screen.findByLabelText("任务类型"),
+      "jav_video_organizer",
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("暂无符合条件的任务记录。")).toBeInTheDocument();
+    });
+  });
+
+  it("shows error state when API fails", async () => {
+    server.use(
+      http.get("/api/tasks", () =>
+        HttpResponse.json({ detail: "Internal Server Error" }, { status: 500 }),
+      ),
+    );
+
+    renderAt("/tasks");
+
+    // React Query retries once (~1000ms delay) before showing error state
+    await waitFor(
+      () => {
+        expect(
+          screen.getByText("发生未知错误，请稍后重试"),
+        ).toBeInTheDocument();
+      },
+      { timeout: 5000 },
+    );
+  });
+
+  it("resets filters and clears URL params", async () => {
+    const user = userEvent.setup();
+    // Use a filter that still yields data from the mock
+    renderAt("/tasks?task_type=raw_file_organizer");
+
+    await screen.findByText("raw_file_organizer-manual-20260510010101000");
+    await user.click(screen.getByRole("button", { name: "重置" }));
+
+    await waitFor(() => {
+      expect(window.location.search).not.toContain("task_type");
+    });
+  });
+
+  it("changes page size and syncs to URL", async () => {
+    const user = userEvent.setup();
+    renderAt("/tasks");
+
+    await screen.findByText("raw_file_organizer-manual-20260510010101000");
+    await user.selectOptions(screen.getByLabelText("每页"), "50");
+
+    await waitFor(() => {
+      expect(window.location.search).toContain("page_size=50");
+    });
+  });
+
   it("cancels a running task from the task list", async () => {
     const user = userEvent.setup();
     const cancelHandler = vi.fn();
@@ -106,7 +171,10 @@ describe("Tasks list page", () => {
 
     renderAt("/tasks");
 
-    await user.click(await screen.findByRole("button", { name: "取消" }));
+    // Multiple active runs may appear; click the first cancel button
+    await user.click(
+      (await screen.findAllByRole("button", { name: "取消" }))[0],
+    );
 
     await waitFor(() => expect(cancelHandler).toHaveBeenCalledOnce());
   });
@@ -124,7 +192,10 @@ describe("Tasks list page", () => {
 
     renderAt("/tasks");
 
-    await user.click(await screen.findByRole("button", { name: "删除" }));
+    // Multiple terminal runs may appear; click the first delete button
+    await user.click(
+      (await screen.findAllByRole("button", { name: "删除" }))[0],
+    );
 
     await waitFor(() => expect(deleteHandler).toHaveBeenCalledOnce());
   });

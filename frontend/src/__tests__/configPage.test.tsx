@@ -134,6 +134,78 @@ describe("Config page", () => {
     });
   });
 
+  it("shows error when JAV config save fails", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.patch("/api/file-task/config/jav-video-organizer", () =>
+        HttpResponse.json({ detail: "Internal Server Error" }, { status: 500 }),
+      ),
+    );
+
+    renderAt("/config");
+
+    await screen.findByLabelText("工作区");
+    await user.click(screen.getByRole("button", { name: "保存配置" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("发生未知错误，请稍后重试")).toBeInTheDocument();
+    });
+  });
+
+  it("blocks Raw config updates outside the task media root", async () => {
+    const user = userEvent.setup();
+    const updateHandler = vi.fn();
+    server.use(
+      http.patch("/api/file-task/config/raw-file-organizer", () => {
+        updateHandler();
+        return HttpResponse.json({ code: "SUCCESS", message: "配置更新成功" });
+      }),
+    );
+
+    renderAt("/config");
+
+    await user.click(await screen.findByRole("tab", { name: "Raw 文件整理" }));
+    const workspaceInput = await screen.findByLabelText("工作区");
+    await user.clear(workspaceInput);
+    await user.type(workspaceInput, "/tmp/outside");
+    await user.click(screen.getByRole("button", { name: "保存配置" }));
+
+    await waitFor(() => {
+      expect(updateHandler).not.toHaveBeenCalled();
+      expect(
+        screen.getAllByText("工作区必须位于 /media/raw_workspace 下").length,
+      ).toBeGreaterThan(0);
+    });
+  });
+
+  it("toggles JAV enabled off and sends enabled: false on save", async () => {
+    const user = userEvent.setup();
+    const updateHandler = vi.fn();
+    server.use(
+      http.patch(
+        "/api/file-task/config/jav-video-organizer",
+        async ({ request }) => {
+          updateHandler(await request.json());
+          return HttpResponse.json({
+            code: "SUCCESS",
+            message: "配置更新成功",
+          });
+        },
+      ),
+    );
+
+    renderAt("/config");
+
+    await user.click(await screen.findByRole("checkbox", { name: "启用任务" }));
+    await user.click(screen.getByRole("button", { name: "保存配置" }));
+
+    await waitFor(() => {
+      expect(updateHandler).toHaveBeenCalledWith(
+        expect.objectContaining({ enabled: false }),
+      );
+    });
+  });
+
   it("renders and updates the Raw config tab", async () => {
     const user = userEvent.setup();
     const updateHandler = vi.fn();

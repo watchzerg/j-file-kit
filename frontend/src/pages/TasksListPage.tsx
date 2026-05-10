@@ -20,7 +20,7 @@ const STATUS_VALUES = [
   "cancelled",
 ] as const satisfies readonly FileTaskRunStatus[];
 
-interface ListState {
+export interface ListState {
   taskType: FileTaskType | "all";
   status: FileTaskRunStatus | "all";
   page: number;
@@ -99,7 +99,7 @@ export default function TasksListPage() {
   );
 }
 
-function parseListState(searchParams: URLSearchParams): ListState {
+export function parseListState(searchParams: URLSearchParams): ListState {
   return {
     taskType: parseTaskType(searchParams.get("task_type")),
     status: parseStatus(searchParams.get("status")),
@@ -108,21 +108,21 @@ function parseListState(searchParams: URLSearchParams): ListState {
   };
 }
 
-function parseTaskType(value: string | null): FileTaskType | "all" {
+export function parseTaskType(value: string | null): FileTaskType | "all" {
   if (value && (TASK_TYPE_VALUES as readonly string[]).includes(value)) {
     return value as FileTaskType;
   }
   return "all";
 }
 
-function parseStatus(value: string | null): FileTaskRunStatus | "all" {
+export function parseStatus(value: string | null): FileTaskRunStatus | "all" {
   if (value && (STATUS_VALUES as readonly string[]).includes(value)) {
     return value as FileTaskRunStatus;
   }
   return "all";
 }
 
-function parsePositiveInt(value: string | null, fallback: number) {
+export function parsePositiveInt(value: string | null, fallback: number) {
   if (!value) {
     return fallback;
   }
@@ -130,14 +130,14 @@ function parsePositiveInt(value: string | null, fallback: number) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
-function parsePageSize(value: string | null) {
+export function parsePageSize(value: string | null) {
   const parsed = parsePositiveInt(value, DEFAULT_TASK_RUN_PAGE_SIZE);
   return [10, 20, 50, 100].includes(parsed)
     ? parsed
     : DEFAULT_TASK_RUN_PAGE_SIZE;
 }
 
-function toSearchParams(state: ListState) {
+export function toSearchParams(state: ListState) {
   const nextSearchParams = new URLSearchParams();
   nextSearchParams.set("page", String(state.page));
   nextSearchParams.set("page_size", String(state.pageSize));

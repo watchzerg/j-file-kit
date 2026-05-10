@@ -51,7 +51,16 @@ const defaultStatisticsSummary = {
   total_duration_ms: defaultStatistics.total_duration_ms,
 };
 
-const taskRuns = [
+const emptyStatisticsSummary = {
+  total_items: 0,
+  success_items: 0,
+  error_items: 0,
+  skipped_items: 0,
+  warning_items: 0,
+  total_duration_ms: 0,
+};
+
+export const taskRuns = [
   {
     run_id: 123,
     run_name: "raw_file_organizer-manual-20260510010101000",
@@ -81,6 +90,42 @@ const taskRuns = [
       error_items: 0,
       skipped_items: 0,
     },
+  },
+  {
+    run_id: 400,
+    run_name: "raw_file_organizer-manual-20260510030101000",
+    task_type: "raw_file_organizer",
+    trigger_type: "manual",
+    dry_run: false,
+    status: "pending",
+    start_time: "2026-05-10T03:01:01",
+    end_time: null,
+    duration_ms: 0,
+    statistics_summary: emptyStatisticsSummary,
+  },
+  {
+    run_id: 401,
+    run_name: "jav_video_organizer-manual-20260510040101000",
+    task_type: "jav_video_organizer",
+    trigger_type: "manual",
+    dry_run: false,
+    status: "failed",
+    start_time: "2026-05-10T04:01:01",
+    end_time: "2026-05-10T04:01:05",
+    duration_ms: 4000,
+    statistics_summary: { ...emptyStatisticsSummary, error_items: 1 },
+  },
+  {
+    run_id: 402,
+    run_name: "raw_file_organizer-manual-20260510050101000",
+    task_type: "raw_file_organizer",
+    trigger_type: "manual",
+    dry_run: true,
+    status: "cancelled",
+    start_time: "2026-05-10T05:01:01",
+    end_time: "2026-05-10T05:01:02",
+    duration_ms: 1000,
+    statistics_summary: emptyStatisticsSummary,
   },
 ];
 
@@ -251,9 +296,37 @@ export const server = setupServer(
       lines,
     });
   }),
-  http.get("/api/tasks/:runId", ({ params }) =>
-    HttpResponse.json({
-      run_id: Number(params.runId),
+  http.get("/api/tasks/:runId", ({ params }) => {
+    const runId = Number(params.runId);
+    const found = taskRuns.find((r) => r.run_id === runId);
+    if (found) {
+      return HttpResponse.json({
+        run_id: found.run_id,
+        run_name: found.run_name,
+        task_type: found.task_type,
+        trigger_type: found.trigger_type,
+        dry_run: found.dry_run,
+        status: found.status,
+        start_time: found.start_time,
+        end_time: found.end_time,
+        error_message: null,
+        duration_ms: found.duration_ms,
+        statistics:
+          found.task_type === "raw_file_organizer"
+            ? defaultStatistics
+            : {
+                total_items: found.statistics_summary.total_items,
+                success_items: found.statistics_summary.success_items,
+                error_items: found.statistics_summary.error_items,
+                skipped_items: found.statistics_summary.skipped_items,
+                warning_items: found.statistics_summary.warning_items,
+                total_duration_ms: found.statistics_summary.total_duration_ms,
+              },
+      });
+    }
+    // fallback for unknown IDs (e.g. used by dynamic tests)
+    return HttpResponse.json({
+      run_id: runId,
       run_name: "raw_file_organizer-manual-20260510010101000",
       task_type: "raw_file_organizer",
       trigger_type: "manual",
@@ -264,8 +337,8 @@ export const server = setupServer(
       error_message: null,
       duration_ms: 2000,
       statistics: defaultStatistics,
-    }),
-  ),
+    });
+  }),
   http.get("/api/file-task/config/jav-video-organizer", () =>
     HttpResponse.json({
       ...defaultConfig,

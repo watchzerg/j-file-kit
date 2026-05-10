@@ -151,6 +151,59 @@ describe("Task detail page", () => {
     expect(window.location.search).toContain("logs_offset=100");
   });
 
+  it("renders error page for invalid run ID", () => {
+    renderAt("/tasks/abc");
+
+    expect(screen.getByText("无效任务 ID。")).toBeInTheDocument();
+  });
+
+  it("renders JAV task detail without RawPhaseStats", async () => {
+    renderAt("/tasks/321");
+
+    expect(
+      await screen.findByText("jav_video_organizer-manual-20260510020101000"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("JAV 视频整理")).toBeInTheDocument();
+    expect(screen.queryByText("Raw 阶段统计")).not.toBeInTheDocument();
+  });
+
+  it("filters file results by keyword and syncs to URL", async () => {
+    const user = userEvent.setup();
+    renderAt("/tasks/123");
+
+    await user.click(await screen.findByRole("tab", { name: "文件结果" }));
+
+    const queryInput = await screen.findByPlaceholderText(
+      "file_stem 或 serial_id",
+    );
+    await user.type(queryInput, "ABC");
+
+    await waitFor(() => {
+      expect(window.location.search).toContain("results_q=ABC");
+      // "junk" result should no longer appear
+      expect(screen.queryByText("junk")).not.toBeInTheDocument();
+      // ABC-123 appears in at least one cell
+      expect(screen.getAllByText("ABC-123").length).toBeGreaterThan(0);
+    });
+  });
+
+  it("resets file result filters and clears URL params", async () => {
+    const user = userEvent.setup();
+    renderAt("/tasks/123?results_decision=delete&results_success=false");
+
+    await user.click(await screen.findByRole("tab", { name: "文件结果" }));
+    await screen.findByText("junk");
+
+    await user.click(screen.getByRole("button", { name: "重置" }));
+
+    await waitFor(() => {
+      expect(window.location.search).not.toContain("results_decision");
+      expect(window.location.search).not.toContain("results_success");
+      // both results should now be visible
+      expect(screen.getAllByText("ABC-123").length).toBeGreaterThan(0);
+    });
+  });
+
   it("restarts a task detail with the same dry run setting", async () => {
     const user = userEvent.setup();
     const startHandler = vi.fn();
@@ -176,6 +229,140 @@ describe("Task detail page", () => {
         trigger_type: "manual",
       });
       expect(window.location.pathname).toBe("/tasks/55");
+    });
+  });
+
+  it("shows empty state when file results are empty", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get("/api/tasks/:runId/results", () =>
+        HttpResponse.json({ results: [], total: 0, page: 1, page_size: 20 }),
+      ),
+    );
+
+    renderAt("/tasks/123");
+
+    await user.click(await screen.findByRole("tab", { name: "文件结果" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("暂无符合条件的文件结果。")).toBeInTheDocument();
+    });
+  });
+
+  it("shows empty state when logs are empty", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get("/api/tasks/:runId/logs", () =>
+        HttpResponse.json({ total_lines: 0, offset: 0, limit: 100, lines: [] }),
+      ),
+    );
+
+    renderAt("/tasks/123");
+
+    await user.click(await screen.findByRole("tab", { name: "日志" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("暂无任务日志。")).toBeInTheDocument();
+    });
+  });
+
+  it("disables restart when an active run exists", async () => {
+    server.use(
+      http.get("/api/tasks/active", () =>
+        HttpResponse.json({
+          run_id: 321,
+          run_name: "jav-running",
+          task_type: "jav_video_organizer",
+          trigger_type: "manual",
+          status: "running",
+          start_time: new Date().toISOString(),
+          end_time: null,
+          error_message: null,
+        }),
+      ),
+    );
+
+    renderAt("/tasks/123");
+
+    const restartBtn = await screen.findByRole("button", { name: "重跑" });
+    expect(restartBtn).toBeDisabled();
+    expect(
+      screen.getByText("当前已有活跃任务，完成或取消后才能重跑。"),
+    ).toBeInTheDocument();
+  });
+
+  it("does not delete when confirmation is dismissed", async () => {
+    const user = userEvent.setup();
+    const deleteHandler = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    server.use(
+      http.delete("/api/tasks/123", () => {
+        deleteHandler();
+        return HttpResponse.json({ run_id: 123, message: "任务已删除" });
+      }),
+    );
+
+    renderAt("/tasks/123");
+
+    await user.click(await screen.findByRole("button", { name: "删除" }));
+
+    await waitFor(() => expect(window.confirm).toHaveBeenCalledOnce());
+    expect(deleteHandler).not.toHaveBeenCalled();
+  });
+
+  it("shows error message when cancel API fails", async () => {
+    server.use(
+      http.get("/api/tasks/321", () =>
+        HttpResponse.json({
+          run_id: 321,
+          run_name: "running-detail",
+          task_type: "jav_video_organizer",
+          trigger_type: "manual",
+          dry_run: false,
+          status: "running",
+          start_time: new Date().toISOString(),
+          end_time: null,
+          error_message: null,
+          duration_ms: 0,
+          statistics: {
+            total_items: 0,
+            success_items: 0,
+            error_items: 0,
+            skipped_items: 0,
+            warning_items: 0,
+            total_duration_ms: 0,
+          },
+        }),
+      ),
+      http.post("/api/tasks/321/cancel", () =>
+        HttpResponse.json({ detail: "Internal Server Error" }, { status: 500 }),
+      ),
+    );
+
+    const user = userEvent.setup();
+    renderAt("/tasks/321");
+
+    await user.click(await screen.findByRole("button", { name: "取消" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("发生未知错误，请稍后重试")).toBeInTheDocument();
+    });
+  });
+
+  it("shows error message when restart API fails", async () => {
+    server.use(
+      http.post("/api/tasks/raw_file_organizer/start", () =>
+        HttpResponse.json({ detail: "Internal Server Error" }, { status: 500 }),
+      ),
+    );
+
+    const user = userEvent.setup();
+    renderAt("/tasks/123");
+
+    await clickEnabledButton(user, "重跑", 0);
+
+    await waitFor(() => {
+      expect(screen.getByText("发生未知错误，请稍后重试")).toBeInTheDocument();
     });
   });
 
