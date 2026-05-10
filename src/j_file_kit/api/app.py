@@ -11,6 +11,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from j_file_kit.api.app_state import AppState
@@ -94,6 +95,7 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
         if base_dir is not None
         else Path(os.getenv("J_FILE_KIT_BASE_DIR", "/data"))
     )
+    static_dir = Path(__file__).resolve().parents[1] / "static"
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
@@ -198,6 +200,10 @@ def create_app(base_dir: Path | None = None) -> FastAPI:
     fastapi_app.include_router(file_task_config_router)
     fastapi_app.include_router(media_browser_router)
     fastapi_app.include_router(system_router)
+    if static_dir.is_dir():
+        fastapi_app.mount("/", StaticFiles(directory=str(static_dir), html=True))
+    else:
+        logger.warning("frontend static directory not found: {}", static_dir)
 
     return fastapi_app
 
