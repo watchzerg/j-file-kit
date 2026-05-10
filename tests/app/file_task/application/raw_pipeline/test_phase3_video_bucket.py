@@ -8,10 +8,10 @@ import pytest
 from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
-from j_file_kit.app.file_task.application.raw_pipeline.phase3 import (
+from j_file_kit.app.file_task.application.raw_pipeline.phase3 import run_phase3
+from j_file_kit.app.file_task.application.raw_pipeline.video_bucket_classifier import (
     classify_video_bucket,
     classify_video_bucket_and_subdir,
-    run_phase3,
 )
 from j_file_kit.shared.utils.name_keyword_match import name_contains_keyword
 
