@@ -111,3 +111,158 @@ class TestRawFileOrganizerE2E:
         assert source.exists()
         root = _raw_workspace_root(clean_media)
         assert not (root / "files_video_misc" / "preview_hold.mp4").exists()
+
+    def test_image_goes_to_files_pic(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 1 → Phase 3.2：inbox 第一层图片文件应经 files_misc 分流到 files_pic。"""
+        _write_file(_raw_workspace_root(clean_media) / "inbox" / "photo.jpg", size=_1MB)
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (root / "files_pic" / "photo.jpg").exists()
+        assert not (root / "inbox" / "photo.jpg").exists()
+
+    def test_audio_goes_to_files_audio(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 1 → Phase 3.3：inbox 第一层音频文件应经 files_misc 分流到 files_audio。"""
+        _write_file(
+            _raw_workspace_root(clean_media) / "inbox" / "music.flac", size=_1MB
+        )
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (root / "files_audio" / "music.flac").exists()
+        assert not (root / "inbox" / "music.flac").exists()
+
+    def test_junk_stem_in_misc_goes_to_files_to_delete(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 1 → Phase 3.0：inbox 第一层文件 stem 命中 junk 关键词应迁入 files_to_delete。
+
+        使用 DEFAULT_RAW_JUNK_KEYWORDS 中的 "FC2-PPV"（连字符为 token 边界）。
+        注意：Raw 管线 Phase 3.0 无体积上限（区别于 Phase 2.2 的 100 MiB 限制）。
+        """
+        _write_file(_raw_workspace_root(clean_media) / "inbox" / "FC2-PPV.mp4")
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (root / "files_to_delete" / "FC2-PPV.mp4").exists()
+        assert not (root / "inbox" / "FC2-PPV.mp4").exists()
+
+    def test_jav_video_goes_to_files_video_jav(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 1 → Phase 3.4：inbox 第一层含 JAV 非 VR 番号的视频应路由到 files_video_jav。"""
+        _write_file(_raw_workspace_root(clean_media) / "inbox" / "ABC-999.mp4")
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (root / "files_video_jav" / "ABC-999.mp4").exists()
+        assert not (root / "inbox" / "ABC-999.mp4").exists()
+
+    def test_movie_keyword_video_goes_to_files_video_movie(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 1 → Phase 3.4：stem 命中 DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS（AMZN）
+        的视频应路由到 files_video_movie/{keyword}/ 子目录。
+        """
+        _write_file(_raw_workspace_root(clean_media) / "inbox" / "AMZN.2024.S01E01.mp4")
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (root / "files_video_movie" / "AMZN" / "AMZN.2024.S01E01.mp4").exists()
+        assert not (root / "inbox" / "AMZN.2024.S01E01.mp4").exists()
+
+    def test_unknown_extension_stays_in_files_misc(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 1 → Phase 3.5：inbox 第一层非已知扩展名文件经 Phase 1 进入 files_misc 后
+        由 Phase 3.5 保留（deferred），不被移走。
+        """
+        _write_file(_raw_workspace_root(clean_media) / "inbox" / "data.xyz123")
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (root / "files_misc" / "data.xyz123").exists()
+        assert not (root / "inbox" / "data.xyz123").exists()
+
+    def test_junk_dir_goes_to_folders_to_delete(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 2.1：inbox 子目录名 stem 在 token 边界命中 junk 关键词时整目录迁入 folders_to_delete。"""
+        _write_file(
+            _raw_workspace_root(clean_media) / "inbox" / "FC2-PPV" / "video.mp4"
+        )
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (root / "folders_to_delete" / "FC2-PPV").exists()
+        assert not (root / "inbox" / "FC2-PPV").exists()
+
+    def test_video_dir_goes_to_folders_video(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 2.4.2：6 个视频文件的子目录（超过 5 文件上限）应整目录归档到 folders_video。"""
+        show_dir = _raw_workspace_root(clean_media) / "inbox" / "my_show"
+        for i in range(1, 7):
+            _write_file(show_dir / f"ep{i:02d}.mp4")
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (root / "folders_video" / "my_show").exists()
+        assert not (root / "inbox" / "my_show").exists()
+
+    def test_small_video_dir_flattened_to_files_misc(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """Phase 2.4.1 → Phase 3.4：单文件视频子目录满足拆解条件（≤5 文件，单一类型），
+        文件被拆解到 files_misc 后由 Phase 3.4 路由到对应视频桶。
+
+        KMVR 属于 DEFAULT_JAV_VR_SERIAL_PREFIXES，最终落入 files_video_jav_vr。
+        """
+        _write_file(
+            _raw_workspace_root(clean_media) / "inbox" / "single_vid" / "KMVR-100.mp4"
+        )
+
+        status = _run_raw_task(docker_service)
+
+        assert status == "completed"
+        root = _raw_workspace_root(clean_media)
+        assert (root / "files_video_jav_vr" / "KMVR-100.mp4").exists()
+        assert not (root / "inbox" / "single_vid").exists()

@@ -285,3 +285,104 @@ class TestJavVideoOrganizerE2E:
             / "STAR-100.mp4"
         ).exists()
         assert not subdir.exists()
+
+    def test_image_without_serial_id_deleted(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """无番号的图片文件（IMAGE 类型）应被删除，而非移到 unsorted（与视频/字幕不同）。"""
+        img = _jav_workspace_root(clean_media) / "inbox" / "cover.jpg"
+        _write_file(img)
+
+        status = _run_task(docker_service)
+
+        assert status == "completed"
+        assert not img.exists()
+        assert not (
+            _jav_workspace_root(clean_media) / "unsorted" / "cover.jpg"
+        ).exists()
+        assert not (_jav_workspace_root(clean_media) / "misc" / "cover.jpg").exists()
+
+    def test_image_with_serial_id_goes_to_sorted(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """含番号的图片文件应与视频同路由，移动到 sorted/<首字母>/<前2字母>/<前缀>/ 目录下。"""
+        _write_file(
+            _jav_workspace_root(clean_media) / "inbox" / "ABC-456.jpg", size=1024
+        )
+
+        status = _run_task(docker_service)
+
+        assert status == "completed"
+        assert (
+            _jav_workspace_root(clean_media)
+            / "sorted"
+            / "A"
+            / "AB"
+            / "ABC"
+            / "ABC-456.jpg"
+        ).exists()
+        assert not (_jav_workspace_root(clean_media) / "inbox" / "ABC-456.jpg").exists()
+
+    def test_subtitle_with_serial_id_goes_to_sorted(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """含番号的字幕文件（.srt）应移动到 sorted/<首字母>/<前2字母>/<前缀>/ 目录下。"""
+        _write_file(
+            _jav_workspace_root(clean_media) / "inbox" / "XYZ-789.srt", size=1024
+        )
+
+        status = _run_task(docker_service)
+
+        assert status == "completed"
+        assert (
+            _jav_workspace_root(clean_media)
+            / "sorted"
+            / "X"
+            / "XY"
+            / "XYZ"
+            / "XYZ-789.srt"
+        ).exists()
+        assert not (_jav_workspace_root(clean_media) / "inbox" / "XYZ-789.srt").exists()
+
+    def test_subtitle_without_serial_id_goes_to_unsorted(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """无番号的字幕文件应与无番号视频同路由，移动到 unsorted/ 目录下。"""
+        sub = _jav_workspace_root(clean_media) / "inbox" / "commentary.srt"
+        _write_file(sub, size=1024)
+
+        status = _run_task(docker_service)
+
+        assert status == "completed"
+        assert (
+            _jav_workspace_root(clean_media) / "unsorted" / "commentary.srt"
+        ).exists()
+        assert not sub.exists()
+
+    def test_inbox_junk_keyword_deleted(
+        self,
+        docker_service: str,
+        clean_media: Path,
+    ) -> None:
+        """步骤 1 收件箱预删除：stem 在 token 边界命中 junk 关键词的文件应在扩展名分类前被删除。
+
+        使用 DEFAULT_RAW_JUNK_KEYWORDS 中的 "FC2-PPV"（含连字符分隔，符合 token 边界规则）。
+        """
+        junk = _jav_workspace_root(clean_media) / "inbox" / "FC2-PPV.mp4"
+        _write_file(junk)
+
+        status = _run_task(docker_service)
+
+        assert status == "completed"
+        assert not junk.exists()
+        assert not (
+            _jav_workspace_root(clean_media) / "unsorted" / "FC2-PPV.mp4"
+        ).exists()
