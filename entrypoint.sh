@@ -13,8 +13,9 @@ if [ "$(id -u)" = "0" ]; then
     fi
 
     # Ensure user with target UID exists
+    # 2>/dev/null suppresses "uid outside of UID_MIN/UID_MAX range" warning (e.g. Unraid nobody=99)
     if ! getent passwd "${PUID}" > /dev/null 2>&1; then
-        useradd -u "${PUID}" -g "${PGID}" -M -s /sbin/nologin appuser
+        useradd -u "${PUID}" -g "${PGID}" -M -s /sbin/nologin appuser 2>/dev/null
     fi
 
     # Fix ownership so the target user can write to /data

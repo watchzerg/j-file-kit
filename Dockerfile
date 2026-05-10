@@ -40,7 +40,8 @@ COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/src /app/src
 
 # 从 frontend-builder 阶段复制前端构建产物（由 FastAPI StaticFiles serve）
-COPY --from=frontend-builder /frontend/dist /app/src/j_file_kit/static
+# vite.config.ts 的 outDir 为 "../src/j_file_kit/static"，故容器内实际路径为 /src/j_file_kit/static
+COPY --from=frontend-builder /src/j_file_kit/static /app/src/j_file_kit/static
 
 # 将 .venv 优先放入 PATH，使 python / uvicorn 等命令直接可用
 ENV PATH="/app/.venv/bin:$PATH"
