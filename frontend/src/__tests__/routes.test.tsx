@@ -14,7 +14,6 @@ describe("App routes", () => {
     const routes = [
       { path: "/tasks", heading: "任务列表" },
       { path: "/config", heading: "任务配置" },
-      { path: "/media", heading: "媒体目录" },
     ];
 
     for (const route of routes) {

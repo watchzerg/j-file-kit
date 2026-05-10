@@ -6,7 +6,6 @@ const navItems = [
   { label: "Dashboard", to: "/", end: true },
   { label: "任务列表", to: "/tasks", end: false },
   { label: "配置", to: "/config", end: false },
-  { label: "媒体", to: "/media", end: false },
 ] as const;
 
 export default function TopNav() {

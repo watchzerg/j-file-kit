@@ -7,11 +7,6 @@ const links = [
     to: "/config",
   },
   {
-    title: "媒体浏览器",
-    description: "浏览后端暴露的媒体目录。",
-    to: "/media",
-  },
-  {
     title: "任务列表",
     description: "进入历史 run 浏览页。",
     to: "/tasks",
