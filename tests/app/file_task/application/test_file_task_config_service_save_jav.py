@@ -57,3 +57,4 @@ def test_validate_and_save_jav_passes_enabled_flag(
 
     call_args = repository.update.call_args[0][0]
     assert call_args.enabled is False
+    assert not (tmp_path / "inbox").exists()

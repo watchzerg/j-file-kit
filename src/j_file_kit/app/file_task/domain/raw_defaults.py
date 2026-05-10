@@ -26,6 +26,8 @@ DEFAULT_RAW_JUNK_KEYWORDS: tuple[str, ...] = (
     "安卓APP",
     "文宣",
     "手机版网址",
+    "_ 1024_ b56",
+    "种子压缩合集",
 )
 
 DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES: int = 100 * 1024 * 1024

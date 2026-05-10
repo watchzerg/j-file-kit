@@ -23,6 +23,7 @@ DEFAULT_CAMELCASE_NO_SPLIT_WORDS: frozenset[str] = frozenset(
 
 DEFAULT_VIDEO_EXTENSIONS: frozenset[str] = frozenset(
     {
+        ".asf",
         ".mp4",
         ".avi",
         ".mkv",

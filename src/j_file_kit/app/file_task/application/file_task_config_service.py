@@ -90,20 +90,22 @@ class FileTaskConfigService:
         Raises:
             ValueError: 如果配置验证失败或无法创建 workspace/inbox
         """
-        try:
-            ensure_workspace_root_and_inbox(merged_config.workspace_root)
-        except OSError as e:
-            raise ValueError(f"无法创建 workspace 或 inbox 目录: {e!s}") from e
-
-        errors = validate_jav_video_organizer_config(merged_config)
-        if errors:
-            raise ValueError(
-                "目录配置验证失败:\n" + "\n".join(f"  - {e}" for e in errors),
-            )
-
         task_config = FileTaskConfigService._get_jav_video_task_config(
             task_config_repository,
         )
+        effective_enabled = enabled if enabled is not None else task_config.enabled
+
+        if effective_enabled:
+            try:
+                ensure_workspace_root_and_inbox(merged_config.workspace_root)
+            except OSError as e:
+                raise ValueError(f"无法创建 workspace 或 inbox 目录: {e!s}") from e
+
+            errors = validate_jav_video_organizer_config(merged_config)
+            if errors:
+                raise ValueError(
+                    "目录配置验证失败:\n" + "\n".join(f"  - {e}" for e in errors),
+                )
 
         update_dict: dict[str, object] = {
             "config": merged_config.model_dump(mode="json"),
@@ -140,20 +142,23 @@ class FileTaskConfigService:
         enabled: bool | None = None,
     ) -> None:
         """验证并保存 raw_file_organizer 配置。"""
-        try:
-            ensure_workspace_root_and_inbox(merged_config.workspace_root)
-        except OSError as e:
-            raise ValueError(f"无法创建 workspace 或 inbox 目录: {e!s}") from e
-
-        errors = validate_raw_file_organizer_config(merged_config)
-        if errors:
-            raise ValueError(
-                "目录配置验证失败:\n" + "\n".join(f"  - {e}" for e in errors),
-            )
-
         task_config = FileTaskConfigService._get_raw_file_task_config(
             task_config_repository,
         )
+        effective_enabled = enabled if enabled is not None else task_config.enabled
+
+        if effective_enabled:
+            try:
+                ensure_workspace_root_and_inbox(merged_config.workspace_root)
+            except OSError as e:
+                raise ValueError(f"无法创建 workspace 或 inbox 目录: {e!s}") from e
+
+            errors = validate_raw_file_organizer_config(merged_config)
+            if errors:
+                raise ValueError(
+                    "目录配置验证失败:\n" + "\n".join(f"  - {e}" for e in errors),
+                )
+
         update_dict: dict[str, object] = {
             "config": merged_config.model_dump(mode="json"),
         }
