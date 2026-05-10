@@ -8,6 +8,10 @@ default:
 pre-install:
     uv run pre-commit install --hook-type pre-commit --hook-type pre-push
 
+# 手工运行 pre-commit 阶段检查
+pre-commit:
+    uv run pre-commit run --hook-stage pre-commit --all-files
+
 # 清理临时文件
 clean:
     rm -rf .pytest_cache

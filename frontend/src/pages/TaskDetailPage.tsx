@@ -1,9 +1,13 @@
 import {
+  DEFAULT_TASK_LOG_LIMIT,
   DEFAULT_TASK_RUN_PAGE_SIZE,
   useTaskRunDetail,
+  useTaskRunLogs,
   useTaskRunResults,
 } from "@/api/tasks";
 import type { FileTaskDecisionType } from "@/api/types";
+import LogPagination from "@/components/task/LogPagination";
+import LogViewer from "@/components/task/LogViewer";
 import RawPhaseStats from "@/components/task/RawPhaseStats";
 import ResultFilterBar from "@/components/task/ResultFilterBar";
 import ResultTable from "@/components/task/ResultTable";
@@ -14,7 +18,7 @@ import RunTimeline from "@/components/task/RunTimeline";
 import StatsSummaryGrid from "@/components/task/StatsSummaryGrid";
 import { getErrorMessage } from "@/lib/errors";
 import { useMemo, useState } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 const tabs = [
   { id: "overview", label: "概览", milestone: "M3 实现" },
@@ -35,9 +39,15 @@ interface ResultState {
   pageSize: number;
 }
 
+interface LogState {
+  offset: number;
+  limit: number;
+}
+
 export default function TaskDetailPage() {
   const { runId } = useParams();
   const parsedRunId = parseRunId(runId);
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const runDetailQuery = useTaskRunDetail(parsedRunId);
   const [activeTab, setActiveTab] = useState<TabId>("overview");
@@ -45,6 +55,7 @@ export default function TaskDetailPage() {
     () => parseResultState(searchParams),
     [searchParams],
   );
+  const logState = useMemo(() => parseLogState(searchParams), [searchParams]);
   const resultsQuery = useTaskRunResults(
     parsedRunId,
     {
@@ -62,11 +73,23 @@ export default function TaskDetailPage() {
     },
     runDetailQuery.data?.status,
   );
+  const logsQuery = useTaskRunLogs(
+    parsedRunId,
+    {
+      offset: logState.offset,
+      limit: logState.limit,
+    },
+    runDetailQuery.data?.status,
+  );
   const activeTabLabel =
     tabs.find((tab) => tab.id === activeTab)?.label ?? "概览";
 
   function updateResultState(nextState: ResultState) {
     setSearchParams(toResultSearchParams(searchParams, nextState));
+  }
+
+  function updateLogState(nextState: LogState) {
+    setSearchParams(toLogSearchParams(searchParams, nextState));
   }
 
   if (parsedRunId === null) {
@@ -124,7 +147,10 @@ export default function TaskDetailPage() {
 
           {activeTab === "overview" ? (
             <div className="space-y-6">
-              <RunActions run={runDetailQuery.data} />
+              <RunActions
+                run={runDetailQuery.data}
+                onDeleted={() => navigate("/tasks")}
+              />
               <RunTimeline run={runDetailQuery.data} />
               <StatsSummaryGrid statistics={runDetailQuery.data.statistics} />
               {runDetailQuery.data.task_type === "raw_file_organizer" ? (
@@ -180,6 +206,47 @@ export default function TaskDetailPage() {
                     total={resultsQuery.data.total}
                     onPageChange={(page) =>
                       updateResultState({ ...resultState, page })
+                    }
+                  />
+                </>
+              ) : null}
+            </div>
+          ) : activeTab === "logs" ? (
+            <div className="space-y-4">
+              <div className="rounded-lg border bg-card p-4 text-sm">
+                <h2 className="font-semibold">任务日志</h2>
+                <p className="mt-1 text-muted-foreground">
+                  按日志文件行号分页展示；任务运行中会自动刷新。
+                </p>
+              </div>
+
+              {logsQuery.isLoading ? (
+                <div className="rounded-lg border border-dashed p-6 text-muted-foreground">
+                  正在加载任务日志...
+                </div>
+              ) : null}
+
+              {logsQuery.isError ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 text-sm">
+                  {getErrorMessage(logsQuery.error)}
+                </div>
+              ) : null}
+
+              {logsQuery.data?.lines.length === 0 ? (
+                <div className="rounded-lg border border-dashed p-6 text-muted-foreground">
+                  暂无任务日志。
+                </div>
+              ) : null}
+
+              {logsQuery.data && logsQuery.data.lines.length > 0 ? (
+                <>
+                  <LogViewer lines={logsQuery.data.lines} />
+                  <LogPagination
+                    offset={logsQuery.data.offset}
+                    limit={logsQuery.data.limit}
+                    total={logsQuery.data.total_lines}
+                    onOffsetChange={(offset) =>
+                      updateLogState({ ...logState, offset })
                     }
                   />
                 </>
@@ -252,6 +319,26 @@ function parsePageSize(value: string | null) {
     : DEFAULT_TASK_RUN_PAGE_SIZE;
 }
 
+function parseLogState(searchParams: URLSearchParams): LogState {
+  return {
+    offset: parseNonNegativeInt(searchParams.get("logs_offset"), 0),
+    limit: parseLogLimit(searchParams.get("logs_limit")),
+  };
+}
+
+function parseNonNegativeInt(value: string | null, fallback: number) {
+  if (!value) {
+    return fallback;
+  }
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
+}
+
+function parseLogLimit(value: string | null) {
+  const parsed = parsePositiveInt(value, DEFAULT_TASK_LOG_LIMIT);
+  return [50, 100, 200, 500].includes(parsed) ? parsed : DEFAULT_TASK_LOG_LIMIT;
+}
+
 function toResultSearchParams(
   currentSearchParams: URLSearchParams,
   state: ResultState,
@@ -266,6 +353,21 @@ function toResultSearchParams(
     "results_page_size",
     String(state.pageSize),
     String(DEFAULT_TASK_RUN_PAGE_SIZE),
+  );
+  return nextSearchParams;
+}
+
+function toLogSearchParams(
+  currentSearchParams: URLSearchParams,
+  state: LogState,
+) {
+  const nextSearchParams = new URLSearchParams(currentSearchParams);
+  setOrDelete(nextSearchParams, "logs_offset", String(state.offset), "0");
+  setOrDelete(
+    nextSearchParams,
+    "logs_limit",
+    String(state.limit),
+    String(DEFAULT_TASK_LOG_LIMIT),
   );
   return nextSearchParams;
 }

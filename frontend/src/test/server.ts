@@ -113,6 +113,23 @@ const taskResults = [
   },
 ] as const;
 
+const taskLogs = [
+  {
+    line_no: 1,
+    ts: "2026-05-10 01:01:01.000000+00:00",
+    level: "INFO",
+    msg: "Task started",
+    fields: { run_id: 123 },
+  },
+  {
+    line_no: 2,
+    ts: "2026-05-10 01:01:02.000000+00:00",
+    level: "WARNING",
+    msg: "Skipped unsupported file",
+    fields: { source_path: "/media/raw_workspace/inbox/readme.txt" },
+  },
+] as const;
+
 export const server = setupServer(
   http.get("/api/system/info", () =>
     HttpResponse.json({
@@ -197,6 +214,19 @@ export const server = setupServer(
       page_size: pageSize,
     });
   }),
+  http.get("/api/tasks/:runId/logs", ({ request }) => {
+    const url = new URL(request.url);
+    const offset = Number(url.searchParams.get("offset") ?? "0");
+    const limit = Number(url.searchParams.get("limit") ?? "100");
+    const lines = taskLogs.slice(offset, offset + limit);
+
+    return HttpResponse.json({
+      total_lines: taskLogs.length,
+      offset,
+      limit,
+      lines,
+    });
+  }),
   http.get("/api/tasks/:runId", ({ params }) =>
     HttpResponse.json({
       run_id: Number(params.runId),
@@ -241,5 +271,11 @@ export const server = setupServer(
   ),
   http.post("/api/tasks/:runId/cancel", () =>
     HttpResponse.json({ run_id: 1, message: "任务已取消" }),
+  ),
+  http.delete("/api/tasks/:runId", ({ params }) =>
+    HttpResponse.json({
+      run_id: Number(params.runId),
+      message: "任务已删除",
+    }),
   ),
 );

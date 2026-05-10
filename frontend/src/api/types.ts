@@ -96,6 +96,11 @@ export interface CancelFileTaskRunResponse {
   message: string;
 }
 
+export interface DeleteFileTaskRunResponse {
+  run_id: number;
+  message: string;
+}
+
 export interface FileTaskRunListItem {
   run_id: number;
   run_name: string;
@@ -150,6 +155,26 @@ export interface TaskRunResultsParams {
   q?: string;
   page: number;
   page_size: number;
+}
+
+export interface FileTaskRunLogLine {
+  line_no: number;
+  ts: string | null;
+  level: string | null;
+  msg: string;
+  fields: Record<string, unknown>;
+}
+
+export interface FileTaskRunLogsResponse {
+  total_lines: number;
+  offset: number;
+  limit: number;
+  lines: FileTaskRunLogLine[];
+}
+
+export interface TaskRunLogsParams {
+  offset: number;
+  limit: number;
 }
 
 // ── Task config ────────────────────────────────────────────────────────────

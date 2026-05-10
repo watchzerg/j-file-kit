@@ -213,6 +213,14 @@ class FileResultRepositoryImpl:
             row = cursor.fetchone()
             return int(row["total"] if row is not None else 0)
 
+    def delete_results(self, run_id: int) -> None:
+        """删除执行实例的全部文件处理结果。"""
+        with self._conn_manager.get_cursor() as cursor:
+            cursor.execute(
+                "DELETE FROM file_results WHERE run_id = ?",
+                (run_id,),
+            )
+
     def _build_result_filter_values(
         self,
         *,

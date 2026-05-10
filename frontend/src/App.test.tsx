@@ -12,6 +12,7 @@ function renderAt(path: string) {
 
 afterEach(() => {
   cleanup();
+  vi.restoreAllMocks();
   window.history.pushState(null, "", "/");
 });
 
@@ -278,6 +279,24 @@ describe("App routes", () => {
     await waitFor(() => expect(cancelHandler).toHaveBeenCalledOnce());
   });
 
+  it("deletes a terminal task from the task list", async () => {
+    const user = userEvent.setup();
+    const deleteHandler = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    server.use(
+      http.delete("/api/tasks/123", () => {
+        deleteHandler();
+        return HttpResponse.json({ run_id: 123, message: "任务已删除" });
+      }),
+    );
+
+    renderAt("/tasks");
+
+    await user.click(await screen.findByRole("button", { name: "删除" }));
+
+    await waitFor(() => expect(deleteHandler).toHaveBeenCalledOnce());
+  });
+
   it("renders task detail overview", async () => {
     renderAt("/tasks/123");
 
@@ -392,7 +411,7 @@ describe("App routes", () => {
     expect(dashboardLink).toHaveClass("text-muted-foreground");
   });
 
-  it("keeps later task detail tabs as placeholders", async () => {
+  it("renders task detail logs", async () => {
     const user = userEvent.setup();
     renderAt("/tasks/123");
 
@@ -404,9 +423,45 @@ describe("App routes", () => {
 
     await user.click(screen.getByRole("tab", { name: "日志（M7 实现）" }));
 
-    expect(
-      screen.getByText("[区块占位] 当前 Tab 内容：日志"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText("Task started")).toBeInTheDocument();
+    expect(screen.getByText("Skipped unsupported file")).toBeInTheDocument();
+    expect(screen.getByText("WARNING")).toBeInTheDocument();
+  });
+
+  it("changes task log pages", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get("/api/tasks/:runId/logs", ({ request }) => {
+        const url = new URL(request.url);
+        const offset = Number(url.searchParams.get("offset") ?? "0");
+        const limit = Number(url.searchParams.get("limit") ?? "100");
+        return HttpResponse.json({
+          total_lines: 150,
+          offset,
+          limit,
+          lines: [
+            {
+              line_no: offset + 1,
+              ts: "2026-05-10 01:01:01.000000+00:00",
+              level: "INFO",
+              msg: `log-${offset + 1}`,
+              fields: {},
+            },
+          ],
+        });
+      }),
+    );
+
+    renderAt("/tasks/123");
+
+    await user.click(
+      await screen.findByRole("tab", { name: "日志（M7 实现）" }),
+    );
+    expect(await screen.findByText("log-1")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "下一页" }));
+
+    expect(await screen.findByText("log-101")).toBeInTheDocument();
+    expect(window.location.search).toContain("logs_offset=100");
   });
 
   it("renders an active run banner and disables task starts", async () => {
@@ -562,6 +617,30 @@ describe("App routes", () => {
     await user.click(await screen.findByRole("button", { name: "取消" }));
 
     await waitFor(() => expect(cancelHandler).toHaveBeenCalledOnce());
+    expect(
+      screen.queryByRole("button", { name: "删除" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("deletes a terminal task from the detail page and navigates to the list", async () => {
+    const user = userEvent.setup();
+    const deleteHandler = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    server.use(
+      http.delete("/api/tasks/123", () => {
+        deleteHandler();
+        return HttpResponse.json({ run_id: 123, message: "任务已删除" });
+      }),
+    );
+
+    renderAt("/tasks/123");
+
+    await user.click(await screen.findByRole("button", { name: "删除" }));
+
+    await waitFor(() => {
+      expect(deleteHandler).toHaveBeenCalledOnce();
+      expect(window.location.pathname).toBe("/tasks");
+    });
   });
 
   it("cancels the active run from the global banner", async () => {

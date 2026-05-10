@@ -103,6 +103,10 @@ class FileTaskRunRepository(Protocol):
         """统计符合条件的执行实例记录数。"""
         ...
 
+    def delete_run(self, run_id: int) -> None:
+        """删除单个执行实例记录。"""
+        ...
+
     def get_running_run(self) -> FileTaskRun | None:
         """获取当前运行中的执行实例，无则返回 None
 
@@ -175,6 +179,10 @@ class FileResultRepository(Protocol):
         q: str | None = None,
     ) -> int:
         """统计单个 run 在筛选条件下的文件处理结果数。"""
+        ...
+
+    def delete_results(self, run_id: int) -> None:
+        """删除单个 run 的全部文件处理结果。"""
         ...
 
 

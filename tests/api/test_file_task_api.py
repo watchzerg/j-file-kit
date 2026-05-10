@@ -3,6 +3,7 @@
 覆盖 POST start、GET status、POST cancel、GET list 端点。
 """
 
+import json
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
@@ -511,6 +512,144 @@ class TestListRunResults:
         assert "无效的处理决策类型" in response.json()["detail"]
 
 
+class TestListRunLogs:
+    """GET /api/tasks/{run_id}/logs"""
+
+    def test_list_run_logs_paginates_and_parses_jsonl(self, client) -> None:
+        app_state = client.app.state.app_state
+        run_id = app_state.file_task_run_repository.create_run(
+            run_name="logs-run",
+            task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.COMPLETED,
+            start_time=datetime(2024, 1, 1),
+        )
+        log_file = app_state.log_dir / f"logs-run_{run_id}.jsonl"
+        log_file.write_text(
+            "\n".join(
+                [
+                    _make_log_line("first", "INFO", {"run_id": run_id}),
+                    _make_log_line("second", "WARNING", {"phase": "test"}),
+                    "not-json",
+                ],
+            ),
+            encoding="utf-8",
+        )
+
+        response = client.get(
+            f"/api/tasks/{run_id}/logs",
+            params={"offset": 1, "limit": 2},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_lines"] == 3
+        assert data["offset"] == 1
+        assert data["limit"] == 2
+        assert data["lines"][0]["line_no"] == 2
+        assert data["lines"][0]["level"] == "WARNING"
+        assert data["lines"][0]["msg"] == "second"
+        assert data["lines"][0]["fields"] == {"phase": "test"}
+        assert data["lines"][1]["line_no"] == 3
+        assert data["lines"][1]["msg"] == "not-json"
+
+    def test_list_run_logs_missing_file_returns_empty_page(self, client) -> None:
+        app_state = client.app.state.app_state
+        run_id = app_state.file_task_run_repository.create_run(
+            run_name="missing-logs",
+            task_type=TASK_TYPE_RAW_FILE_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.RUNNING,
+            start_time=datetime(2024, 1, 1),
+        )
+
+        response = client.get(f"/api/tasks/{run_id}/logs")
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "total_lines": 0,
+            "offset": 0,
+            "limit": 100,
+            "lines": [],
+        }
+
+    def test_list_run_logs_not_found(self, client) -> None:
+        response = client.get("/api/tasks/99999/logs")
+
+        assert response.status_code == 404
+        assert response.json()["code"] == "TASK_NOT_FOUND"
+
+    def test_list_run_logs_invalid_run_id(self, client) -> None:
+        response = client.get("/api/tasks/abc/logs")
+
+        assert response.status_code == 400
+        assert "无效的执行实例ID格式" in response.json()["detail"]
+
+
+class TestDeleteRun:
+    """DELETE /api/tasks/{run_id}"""
+
+    def test_delete_terminal_run_removes_run_results_and_log(
+        self, client, tmp_path: Path
+    ) -> None:
+        app_state = client.app.state.app_state
+        run_id = app_state.file_task_run_repository.create_run(
+            run_name="delete-run",
+            task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.COMPLETED,
+            start_time=datetime(2024, 1, 1),
+        )
+        app_state.file_result_repository.save_result(
+            run_id,
+            _make_file_result(
+                tmp_path,
+                stem="ABC-123",
+                serial_id=SerialId(prefix="ABC", number="123"),
+                decision_type="move",
+                success=True,
+            ),
+        )
+        log_file = app_state.log_dir / f"delete-run_{run_id}.jsonl"
+        log_file.write_text(_make_log_line("done", "INFO", {}), encoding="utf-8")
+
+        response = client.delete(f"/api/tasks/{run_id}")
+
+        assert response.status_code == 200
+        assert response.json() == {"run_id": run_id, "message": "任务已删除"}
+        assert app_state.file_task_run_repository.get_run(run_id) is None
+        assert app_state.file_result_repository.count_results(run_id) == 0
+        assert not log_file.exists()
+
+    def test_delete_active_run_is_rejected(self, client) -> None:
+        app_state = client.app.state.app_state
+        run_id = app_state.file_task_run_repository.create_run(
+            run_name="active-run",
+            task_type=TASK_TYPE_RAW_FILE_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.RUNNING,
+            start_time=datetime(2024, 1, 1),
+        )
+
+        response = client.delete(f"/api/tasks/{run_id}")
+
+        assert response.status_code == 400
+        assert response.json()["detail"]["code"] == "TASK_NOT_TERMINAL"
+        assert app_state.file_task_run_repository.get_run(run_id) is not None
+
+    def test_delete_run_not_found(self, client) -> None:
+        response = client.delete("/api/tasks/99999")
+
+        assert response.status_code == 404
+        assert response.json()["code"] == "TASK_NOT_FOUND"
+
+    def test_delete_run_invalid_run_id(self, client) -> None:
+        response = client.delete("/api/tasks/abc")
+
+        assert response.status_code == 400
+        assert "无效的执行实例ID格式" in response.json()["detail"]
+
+
 class TestGetActiveRun:
     """GET /api/tasks/active"""
 
@@ -563,6 +702,19 @@ class TestGetActiveRun:
 
         assert response.status_code == 200
         assert response.json() is None
+
+
+def _make_log_line(message: str, level: str, extra: dict[str, object]) -> str:
+    return json.dumps(
+        {
+            "record": {
+                "time": {"repr": "2026-05-10 01:01:01.000000+00:00"},
+                "level": {"name": level},
+                "message": message,
+                "extra": extra,
+            },
+        },
+    )
 
 
 def _make_file_result(

@@ -8,6 +8,7 @@
 """
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -65,6 +66,13 @@ class ActiveFileTaskRunResponse(BaseModel):
 
 class CancelFileTaskRunResponse(BaseModel):
     """取消执行实例响应"""
+
+    run_id: int = Field(..., description="执行实例ID")
+    message: str = Field(..., description="消息")
+
+
+class DeleteFileTaskRunResponse(BaseModel):
+    """删除执行实例响应"""
 
     run_id: int = Field(..., description="执行实例ID")
     message: str = Field(..., description="消息")
@@ -131,3 +139,22 @@ class FileTaskRunResultsResponse(BaseModel):
     total: int = Field(..., description="总记录数")
     page: int = Field(..., description="当前页码")
     page_size: int = Field(..., description="每页记录数")
+
+
+class FileTaskRunLogLine(BaseModel):
+    """单行任务日志"""
+
+    line_no: int = Field(..., description="日志文件中的行号")
+    ts: str | None = Field(None, description="日志时间")
+    level: str | None = Field(None, description="日志等级")
+    msg: str = Field(..., description="日志消息")
+    fields: dict[str, Any] = Field(default_factory=dict, description="结构化字段")
+
+
+class FileTaskRunLogsResponse(BaseModel):
+    """单 run 日志分页响应"""
+
+    total_lines: int = Field(..., description="日志总行数")
+    offset: int = Field(..., description="起始偏移")
+    limit: int = Field(..., description="返回数量上限")
+    lines: list[FileTaskRunLogLine] = Field(..., description="日志行")

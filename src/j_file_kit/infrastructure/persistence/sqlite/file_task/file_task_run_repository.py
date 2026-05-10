@@ -296,6 +296,14 @@ class FileTaskRunRepositoryImpl:
             row = cursor.fetchone()
             return int(row["total"])
 
+    def delete_run(self, run_id: int) -> None:
+        """删除单个执行实例记录。"""
+        with self._conn_manager.get_cursor() as cursor:
+            cursor.execute(
+                "DELETE FROM file_task_runs WHERE run_id = ?",
+                (run_id,),
+            )
+
     def get_running_run(self) -> FileTaskRun | None:
         """获取当前运行中的执行实例，无则返回 None
 

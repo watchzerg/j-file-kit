@@ -1,26 +1,47 @@
-import { useActiveTaskRun, useCancelTaskRun, useStartTask } from "@/api/tasks";
+import {
+  useActiveTaskRun,
+  useCancelTaskRun,
+  useDeleteTaskRun,
+  useStartTask,
+} from "@/api/tasks";
 import type { FileTaskRunDetailResponse } from "@/api/types";
 import { getErrorMessage } from "@/lib/errors";
 import { useNavigate } from "react-router-dom";
 
 interface RunActionsProps {
   run: FileTaskRunDetailResponse;
+  onDeleted?: () => void;
 }
 
 function isActiveStatus(status: FileTaskRunDetailResponse["status"]) {
   return status === "pending" || status === "running";
 }
 
-export default function RunActions({ run }: RunActionsProps) {
+function isTerminalStatus(status: FileTaskRunDetailResponse["status"]) {
+  return (
+    status === "completed" || status === "failed" || status === "cancelled"
+  );
+}
+
+export default function RunActions({ run, onDeleted }: RunActionsProps) {
   const navigate = useNavigate();
   const activeRunQuery = useActiveTaskRun();
   const cancelRun = useCancelTaskRun(run.run_id);
+  const deleteRun = useDeleteTaskRun(run.run_id);
   const startTask = useStartTask(run.task_type);
   const hasActiveRun =
     activeRunQuery.data !== null && activeRunQuery.data !== undefined;
   const canCancel = isActiveStatus(run.status);
+  const canDelete = isTerminalStatus(run.status);
   const restartDisabled =
     hasActiveRun || activeRunQuery.isLoading || startTask.isPending;
+
+  function handleDelete() {
+    if (!window.confirm(`确定删除任务 ${run.run_name}？此操作不可恢复。`)) {
+      return;
+    }
+    deleteRun.mutate(undefined, { onSuccess: onDeleted });
+  }
 
   return (
     <section className="rounded-lg border bg-card p-5 shadow-sm">
@@ -55,6 +76,16 @@ export default function RunActions({ run }: RunActionsProps) {
           >
             {startTask.isPending ? "重跑中..." : "重跑"}
           </button>
+          {canDelete ? (
+            <button
+              type="button"
+              disabled={deleteRun.isPending}
+              onClick={handleDelete}
+              className="rounded-md border border-red-200 px-4 py-2 font-medium text-red-700 text-sm transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {deleteRun.isPending ? "删除中..." : "删除"}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -71,6 +102,11 @@ export default function RunActions({ run }: RunActionsProps) {
       {startTask.isError ? (
         <p className="mt-3 text-red-600 text-sm">
           {getErrorMessage(startTask.error)}
+        </p>
+      ) : null}
+      {deleteRun.isError ? (
+        <p className="mt-3 text-red-600 text-sm">
+          {getErrorMessage(deleteRun.error)}
         </p>
       ) : null}
     </section>

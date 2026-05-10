@@ -184,6 +184,25 @@ class TestFileResultRepositoryListAndCount:
             == 1
         )
 
+    def test_delete_results_removes_only_target_run(
+        self,
+        file_result_repository: FileResultRepositoryImpl,
+        tmp_path: Path,
+    ) -> None:
+        file_result_repository.save_result(
+            run_id=5,
+            result=_make_result(tmp_path, stem="target"),
+        )
+        file_result_repository.save_result(
+            run_id=6,
+            result=_make_result(tmp_path, stem="other"),
+        )
+
+        file_result_repository.delete_results(run_id=5)
+
+        assert file_result_repository.count_results(run_id=5) == 0
+        assert file_result_repository.count_results(run_id=6) == 1
+
 
 def _make_result(
     tmp_path: Path,

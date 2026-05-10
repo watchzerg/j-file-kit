@@ -3,13 +3,16 @@ import { apiClient } from "./client";
 import type {
   ActiveFileTaskRunResponse,
   CancelFileTaskRunResponse,
+  DeleteFileTaskRunResponse,
   FileTaskRunDetailResponse,
   FileTaskRunListResponse,
+  FileTaskRunLogsResponse,
   FileTaskRunResultsResponse,
   FileTaskRunStatus,
   StartTaskRequest,
   StartTaskResponse,
   TaskRunListParams,
+  TaskRunLogsParams,
   TaskRunResultsParams,
 } from "./types";
 
@@ -23,8 +26,10 @@ export type TaskType = (typeof TASK_TYPES)[keyof typeof TASK_TYPES];
 const POLL_INTERVAL_MS = 2_000;
 const ACTIVE_RUN_POLL_INTERVAL_MS = 3_000;
 const RESULTS_POLL_INTERVAL_MS = 5_000;
+const LOGS_POLL_INTERVAL_MS = 3_000;
 const RECENT_RUNS_LIMIT = 10;
 export const DEFAULT_TASK_RUN_PAGE_SIZE = 20;
+export const DEFAULT_TASK_LOG_LIMIT = 100;
 
 function isActiveStatus(status: FileTaskRunStatus) {
   return status === "pending" || status === "running";
@@ -57,6 +62,13 @@ function buildTaskRunResultsPath(runId: number, params: TaskRunResultsParams) {
     searchParams.set("q", params.q);
   }
   return `/api/tasks/${runId}/results?${searchParams.toString()}`;
+}
+
+function buildTaskRunLogsPath(runId: number, params: TaskRunLogsParams) {
+  const searchParams = new URLSearchParams();
+  searchParams.set("offset", String(params.offset));
+  searchParams.set("limit", String(params.limit));
+  return `/api/tasks/${runId}/logs?${searchParams.toString()}`;
 }
 
 export function useTaskRunList(params: TaskRunListParams) {
@@ -121,6 +133,23 @@ export function useTaskRunResults(
   });
 }
 
+export function useTaskRunLogs(
+  runId: number | null,
+  params: TaskRunLogsParams,
+  runStatus?: FileTaskRunStatus,
+) {
+  return useQuery({
+    queryKey: ["tasks", "runs", runId, "logs", params],
+    queryFn: () =>
+      apiClient.get<FileTaskRunLogsResponse>(
+        buildTaskRunLogsPath(Number(runId), params),
+      ),
+    enabled: runId !== null,
+    refetchInterval: () =>
+      runStatus && isActiveStatus(runStatus) ? LOGS_POLL_INTERVAL_MS : false,
+  });
+}
+
 export function useStartTask(taskType: TaskType) {
   const queryClient = useQueryClient();
   return useMutation({
@@ -141,6 +170,18 @@ export function useCancelTaskRun(runId: number) {
   return useMutation({
     mutationFn: () =>
       apiClient.post<CancelFileTaskRunResponse>(`/api/tasks/${runId}/cancel`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", "runs"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", "active"] });
+    },
+  });
+}
+
+export function useDeleteTaskRun(runId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiClient.delete<DeleteFileTaskRunResponse>(`/api/tasks/${runId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks", "runs"] });
       queryClient.invalidateQueries({ queryKey: ["tasks", "active"] });
