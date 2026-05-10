@@ -50,8 +50,8 @@ async def get_system_info(request: Request) -> SystemInfoResponse:
         env=os.getenv("J_FILE_KIT_ENV", "development"),
         base_dir=str(app_state.base_dir),
         media_root=str(MEDIA_ROOT),
-        jav_media_root=str(MEDIA_ROOT),
-        raw_media_root=str(MEDIA_ROOT),
+        jav_media_root=str(MEDIA_ROOT / "jav_workspace"),
+        raw_media_root=str(MEDIA_ROOT / "raw_workspace"),
         media_mounted=os.path.ismount(MEDIA_ROOT),
     )
 

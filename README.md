@@ -68,7 +68,10 @@ just docker-up         # 构建镜像并后台启动
 | 路径 2（容器→宿主） | `/media` → `/mnt/user/Porn-Japan/media` |
 | 环境变量 `PUID` | 你的 uid（执行 `id <username>` 查询） |
 | 环境变量 `PGID` | 你的 gid |
+| WebUI | `http://[IP]:[PORT:8000]/` |
 
 确认后容器启动，访问 `http://<unraid-ip>:8000`（前端页面）；API 文档在 `http://<unraid-ip>:8000/docs`。
+
+> 提示：`WebUI` 需要在容器编辑页切换到 `Advanced View` 才会显示。配置后可在 Docker 列表右键容器，直接点击 `WebUI` 打开页面，无需手工输入地址和端口。
 
 **后续部署：** 首次创建即相当于保存了模板，之后进入 `Add Container`，在顶部 Template 下拉菜单中选择 `j-file-kit` 即可直接使用。

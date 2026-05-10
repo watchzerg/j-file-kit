@@ -26,8 +26,8 @@ def test_get_system_info(
     assert data["env"] == "development"
     assert data["base_dir"] == str(tmp_path)
     assert data["media_root"] == str(media_root)
-    assert data["jav_media_root"] == str(media_root)
-    assert data["raw_media_root"] == str(media_root)
+    assert data["jav_media_root"] == str(media_root / "jav_workspace")
+    assert data["raw_media_root"] == str(media_root / "raw_workspace")
     assert data["media_mounted"] is True
 
 
