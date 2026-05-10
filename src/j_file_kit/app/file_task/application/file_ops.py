@@ -116,8 +116,9 @@ def generate_alternative_filename(target_path: Path) -> Path:
     else:
         original_stem = base_name
 
-    # 生成新的候选路径
-    chars = string.ascii_lowercase + string.digits
+    # 生成新的候选路径（仅用 a-z：避免纯数字后缀进入 Raw 阶段 3 的视频 stem，
+    # 被 JAV 番号滑动窗口误判从而迁入 files_video_jav，破坏冲突测试与归宿确定性）。
+    chars = string.ascii_lowercase
     # 非安全随机即可满足“文件名冲突消解”，不涉及密钥/令牌
     random_suffix = "-jfk-" + "".join(random_choices(chars, k=4))  # noqa: S311
     new_name = f"{original_stem}{random_suffix}{suffix}"

@@ -12,6 +12,10 @@ pre-install:
 pre-commit:
     uv run pre-commit run --hook-stage pre-commit --all-files
 
+# 手工运行 pre-push 阶段检查（与 git push 前钩子一致）
+pre-push:
+    uv run pre-commit run --hook-stage pre-push --all-files
+
 # 清理临时文件
 clean:
     rm -rf .pytest_cache

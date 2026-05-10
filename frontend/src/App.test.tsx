@@ -10,6 +10,20 @@ function renderAt(path: string) {
   return render(<App />);
 }
 
+/** `findByRole` matches disabled buttons; clicks on those no-op. Wait until enabled. */
+async function clickEnabledButton(
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+  index = 0,
+) {
+  await waitFor(() => {
+    const buttons = screen.getAllByRole("button", { name });
+    expect(buttons[index]).toBeDefined();
+    expect(buttons[index]).not.toBeDisabled();
+  });
+  await user.click(screen.getAllByRole("button", { name })[index]);
+}
+
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
@@ -543,9 +557,7 @@ describe("App routes", () => {
       expect(checkbox).toBeChecked();
     }
 
-    await user.click(
-      (await screen.findAllByRole("button", { name: "启动" }))[0],
-    );
+    await clickEnabledButton(user, "启动", 0);
 
     await waitFor(() => {
       expect(startHandler).toHaveBeenCalledWith({
@@ -573,7 +585,7 @@ describe("App routes", () => {
 
     renderAt("/tasks/123");
 
-    await user.click(await screen.findByRole("button", { name: "重跑" }));
+    await clickEnabledButton(user, "重跑", 0);
 
     await waitFor(() => {
       expect(startHandler).toHaveBeenCalledWith({
@@ -692,7 +704,8 @@ describe("App routes", () => {
 
     renderAt("/");
 
-    await user.click(await screen.findByRole("button", { name: "取消" }));
+    await screen.findByText("active-run");
+    await clickEnabledButton(user, "取消", 0);
 
     await waitFor(() => expect(cancelHandler).toHaveBeenCalledOnce());
   });
