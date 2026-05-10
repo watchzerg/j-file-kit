@@ -21,6 +21,22 @@ if [ "$(id -u)" = "0" ]; then
     # Fix ownership so the target user can write to /data
     chown -R "${PUID}:${PGID}" /data
 
+    # Version-based /data cleanup: wipe on new version, skip on plain restart
+    DEPLOY_MARKER="/data/.deployed_version"
+    CURRENT_VERSION="${APP_VERSION:-dev}"
+
+    if [ "$CURRENT_VERSION" != "dev" ]; then
+        LAST_VERSION=""
+        [ -f "$DEPLOY_MARKER" ] && LAST_VERSION=$(cat "$DEPLOY_MARKER")
+
+        if [ "$CURRENT_VERSION" != "$LAST_VERSION" ]; then
+            echo "[entrypoint] version changed: ${LAST_VERSION:-none} -> ${CURRENT_VERSION}, cleaning /data ..."
+            find /data -mindepth 1 -delete
+            echo "$CURRENT_VERSION" > "$DEPLOY_MARKER"
+            echo "[entrypoint] /data cleaned."
+        fi
+    fi
+
     exec gosu "${PUID}:${PGID}" "$@"
 else
     exec "$@"
