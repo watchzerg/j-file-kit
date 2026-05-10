@@ -295,6 +295,83 @@ describe("App routes", () => {
     expect(screen.getByText("12")).toBeInTheDocument();
   });
 
+  it("renders task detail file results", async () => {
+    const user = userEvent.setup();
+    renderAt("/tasks/123");
+
+    await user.click(
+      await screen.findByRole("tab", { name: "文件结果（M6 已完成）" }),
+    );
+
+    expect(
+      await screen.findByText("/media/raw_workspace/inbox/ABC-123.mp4"),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("ABC-123").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("移动").length).toBeGreaterThan(0);
+    expect(screen.getByText("permission denied")).toBeInTheDocument();
+  });
+
+  it("syncs file result filters to the URL", async () => {
+    const user = userEvent.setup();
+    renderAt("/tasks/123");
+
+    await user.click(
+      await screen.findByRole("tab", { name: "文件结果（M6 已完成）" }),
+    );
+    await user.selectOptions(await screen.findByLabelText("决策"), "delete");
+    await user.selectOptions(screen.getByLabelText("结果"), "false");
+
+    await waitFor(() => {
+      expect(window.location.search).toContain("results_decision=delete");
+      expect(window.location.search).toContain("results_success=false");
+      expect(screen.getByText("junk")).toBeInTheDocument();
+      expect(screen.queryByText("ABC-123")).not.toBeInTheDocument();
+    });
+  });
+
+  it("changes file result pages", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get("/api/tasks/:runId/results", ({ request }) => {
+        const url = new URL(request.url);
+        const page = Number(url.searchParams.get("page") ?? "1");
+        return HttpResponse.json({
+          results: [
+            {
+              id: page,
+              source_path: `/media/raw_workspace/inbox/page-${page}.mp4`,
+              file_stem: `page-${page}`,
+              file_type: "video",
+              serial_id: null,
+              decision_type: "move",
+              target_path: `/media/raw_workspace/files_video/page-${page}.mp4`,
+              success: true,
+              error_message: null,
+              duration_ms: 1000,
+              created_at: "2026-05-10T01:01:02",
+            },
+          ],
+          total: 25,
+          page,
+          page_size: 20,
+        });
+      }),
+    );
+
+    renderAt("/tasks/123");
+
+    await user.click(
+      await screen.findByRole("tab", { name: "文件结果（M6 已完成）" }),
+    );
+    expect(await screen.findByText("page-1")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "下一页" }));
+
+    await waitFor(() => {
+      expect(window.location.search).toContain("results_page=2");
+      expect(screen.getByText("page-2")).toBeInTheDocument();
+    });
+  });
+
   it("navigates with TopNav and marks only the matching link active", async () => {
     const user = userEvent.setup();
     renderAt("/");

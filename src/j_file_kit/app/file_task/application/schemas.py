@@ -106,3 +106,28 @@ class FileTaskRunListResponse(BaseModel):
     total: int = Field(..., description="总记录数")
     page: int = Field(..., description="当前页码")
     page_size: int = Field(..., description="每页记录数")
+
+
+class FileTaskRunResultItem(BaseModel):
+    """单文件处理结果列表项"""
+
+    id: int = Field(..., description="结果记录ID")
+    source_path: str = Field(..., description="源文件路径")
+    file_stem: str = Field(..., description="文件名（不含扩展名）")
+    file_type: str | None = Field(None, description="文件类型")
+    serial_id: str | None = Field(None, description="番号")
+    decision_type: str = Field(..., description="处理决策类型")
+    target_path: str | None = Field(None, description="目标路径")
+    success: bool = Field(..., description="是否处理成功")
+    error_message: str | None = Field(None, description="错误消息")
+    duration_ms: float = Field(..., description="处理耗时（毫秒）")
+    created_at: datetime = Field(..., description="记录创建时间")
+
+
+class FileTaskRunResultsResponse(BaseModel):
+    """单 run 文件处理结果分页响应"""
+
+    results: list[FileTaskRunResultItem] = Field(..., description="文件处理结果列表")
+    total: int = Field(..., description="总记录数")
+    page: int = Field(..., description="当前页码")
+    page_size: int = Field(..., description="每页记录数")

@@ -13,6 +13,9 @@ from j_file_kit.app.file_task.domain.constants import (
     TASK_TYPE_JAV_VIDEO_ORGANIZER,
     TASK_TYPE_RAW_FILE_ORGANIZER,
 )
+from j_file_kit.app.file_task.domain.decisions import FileItemData
+from j_file_kit.app.file_task.domain.file_types import FileType
+from j_file_kit.app.file_task.domain.serial_id import SerialId
 from j_file_kit.app.file_task.domain.task_run import (
     FileTaskRunStatus,
     FileTaskTriggerType,
@@ -394,6 +397,120 @@ class TestListRuns:
         assert response.status_code == 422
 
 
+class TestListRunResults:
+    """GET /api/tasks/{run_id}/results"""
+
+    def test_list_run_results_filters_and_paginates(
+        self,
+        client,
+        tmp_path: Path,
+    ) -> None:
+        app_state = client.app.state.app_state
+        run_id = app_state.file_task_run_repository.create_run(
+            run_name="results-run",
+            task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.COMPLETED,
+            start_time=datetime(2024, 1, 1),
+        )
+        app_state.file_result_repository.save_result(
+            run_id,
+            _make_file_result(
+                tmp_path,
+                stem="ABC-123",
+                serial_id=SerialId(prefix="ABC", number="123"),
+                decision_type="move",
+                success=True,
+            ),
+        )
+        app_state.file_result_repository.save_result(
+            run_id,
+            _make_file_result(
+                tmp_path,
+                stem="ABC-999",
+                serial_id=SerialId(prefix="ABC", number="999"),
+                decision_type="move",
+                success=False,
+            ),
+        )
+        app_state.file_result_repository.save_result(
+            run_id,
+            _make_file_result(
+                tmp_path,
+                stem="junk",
+                serial_id=None,
+                decision_type="delete",
+                success=False,
+            ),
+        )
+
+        response = client.get(
+            f"/api/tasks/{run_id}/results",
+            params={
+                "decision_type": "move",
+                "success": "false",
+                "q": "999",
+                "page": 1,
+                "page_size": 10,
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total"] == 1
+        assert data["page"] == 1
+        assert data["page_size"] == 10
+        assert len(data["results"]) == 1
+        result = data["results"][0]
+        assert result["file_stem"] == "ABC-999"
+        assert result["serial_id"] == "ABC-999"
+        assert result["decision_type"] == "move"
+        assert result["success"] is False
+        assert "source_path" in result
+        assert "created_at" in result
+
+    def test_list_run_results_empty(self, client) -> None:
+        app_state = client.app.state.app_state
+        run_id = app_state.file_task_run_repository.create_run(
+            run_name="empty-results",
+            task_type=TASK_TYPE_RAW_FILE_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.COMPLETED,
+            start_time=datetime(2024, 1, 1),
+        )
+
+        response = client.get(f"/api/tasks/{run_id}/results")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["results"] == []
+        assert data["total"] == 0
+
+    def test_list_run_results_not_found(self, client) -> None:
+        response = client.get("/api/tasks/99999/results")
+
+        assert response.status_code == 404
+        assert response.json()["code"] == "TASK_NOT_FOUND"
+
+    def test_list_run_results_invalid_decision_type(self, client) -> None:
+        app_state = client.app.state.app_state
+        run_id = app_state.file_task_run_repository.create_run(
+            run_name="invalid-filter",
+            task_type=TASK_TYPE_JAV_VIDEO_ORGANIZER,
+            trigger_type=FileTaskTriggerType.MANUAL,
+            status=FileTaskRunStatus.COMPLETED,
+            start_time=datetime(2024, 1, 1),
+        )
+
+        response = client.get(
+            f"/api/tasks/{run_id}/results",
+            params={"decision_type": "unknown"},
+        )
+
+        assert response.status_code == 400
+        assert "无效的处理决策类型" in response.json()["detail"]
+
+
 class TestGetActiveRun:
     """GET /api/tasks/active"""
 
@@ -446,3 +563,24 @@ class TestGetActiveRun:
 
         assert response.status_code == 200
         assert response.json() is None
+
+
+def _make_file_result(
+    tmp_path: Path,
+    *,
+    stem: str,
+    serial_id: SerialId | None,
+    decision_type: str,
+    success: bool,
+) -> FileItemData:
+    return FileItemData(
+        path=tmp_path / f"{stem}.mp4",
+        stem=stem,
+        file_type=FileType.VIDEO,
+        serial_id=serial_id,
+        decision_type=decision_type,
+        target_path=tmp_path / "out" / f"{stem}.mp4",
+        success=success,
+        error_message=None if success else "test error",
+        duration_ms=5.0,
+    )

@@ -11,6 +11,8 @@ export type FileTaskTriggerType = "manual" | "auto";
 
 export type FileTaskType = "jav_video_organizer" | "raw_file_organizer";
 
+export type FileTaskDecisionType = "move" | "delete" | "skip";
+
 export interface StartTaskRequest {
   dry_run?: boolean;
   trigger_type?: FileTaskTriggerType | null;
@@ -117,6 +119,35 @@ export interface FileTaskRunListResponse {
 export interface TaskRunListParams {
   task_type?: FileTaskType;
   status?: FileTaskRunStatus;
+  page: number;
+  page_size: number;
+}
+
+export interface FileTaskRunResultItem {
+  id: number;
+  source_path: string;
+  file_stem: string;
+  file_type: string | null;
+  serial_id: string | null;
+  decision_type: FileTaskDecisionType;
+  target_path: string | null;
+  success: boolean;
+  error_message: string | null;
+  duration_ms: number;
+  created_at: string;
+}
+
+export interface FileTaskRunResultsResponse {
+  results: FileTaskRunResultItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface TaskRunResultsParams {
+  decision_type?: FileTaskDecisionType;
+  success?: boolean;
+  q?: string;
   page: number;
   page_size: number;
 }

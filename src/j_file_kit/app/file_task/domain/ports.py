@@ -155,6 +155,28 @@ class FileResultRepository(Protocol):
         """
         ...
 
+    def list_results(
+        self,
+        run_id: int,
+        decision_type: str | None = None,
+        success: bool | None = None,
+        q: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        """分页列出单个 run 的文件处理结果，按处理顺序稳定返回。"""
+        ...
+
+    def count_results(
+        self,
+        run_id: int,
+        decision_type: str | None = None,
+        success: bool | None = None,
+        q: str | None = None,
+    ) -> int:
+        """统计单个 run 在筛选条件下的文件处理结果数。"""
+        ...
+
 
 class TaskConfigRepository(Protocol):
     """任务配置仓储协议

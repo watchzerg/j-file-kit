@@ -5,10 +5,12 @@ import type {
   CancelFileTaskRunResponse,
   FileTaskRunDetailResponse,
   FileTaskRunListResponse,
+  FileTaskRunResultsResponse,
   FileTaskRunStatus,
   StartTaskRequest,
   StartTaskResponse,
   TaskRunListParams,
+  TaskRunResultsParams,
 } from "./types";
 
 export const TASK_TYPES = {
@@ -20,6 +22,7 @@ export type TaskType = (typeof TASK_TYPES)[keyof typeof TASK_TYPES];
 
 const POLL_INTERVAL_MS = 2_000;
 const ACTIVE_RUN_POLL_INTERVAL_MS = 3_000;
+const RESULTS_POLL_INTERVAL_MS = 5_000;
 const RECENT_RUNS_LIMIT = 10;
 export const DEFAULT_TASK_RUN_PAGE_SIZE = 20;
 
@@ -38,6 +41,22 @@ function buildTaskRunsPath(params: TaskRunListParams) {
     searchParams.set("status", params.status);
   }
   return `/api/tasks?${searchParams.toString()}`;
+}
+
+function buildTaskRunResultsPath(runId: number, params: TaskRunResultsParams) {
+  const searchParams = new URLSearchParams();
+  searchParams.set("page", String(params.page));
+  searchParams.set("page_size", String(params.page_size));
+  if (params.decision_type) {
+    searchParams.set("decision_type", params.decision_type);
+  }
+  if (params.success !== undefined) {
+    searchParams.set("success", String(params.success));
+  }
+  if (params.q) {
+    searchParams.set("q", params.q);
+  }
+  return `/api/tasks/${runId}/results?${searchParams.toString()}`;
 }
 
 export function useTaskRunList(params: TaskRunListParams) {
@@ -82,6 +101,23 @@ export function useTaskRunDetail(runId: number | null) {
       query.state.data && isActiveStatus(query.state.data.status)
         ? POLL_INTERVAL_MS
         : false,
+  });
+}
+
+export function useTaskRunResults(
+  runId: number | null,
+  params: TaskRunResultsParams,
+  runStatus?: FileTaskRunStatus,
+) {
+  return useQuery({
+    queryKey: ["tasks", "runs", runId, "results", params],
+    queryFn: () =>
+      apiClient.get<FileTaskRunResultsResponse>(
+        buildTaskRunResultsPath(Number(runId), params),
+      ),
+    enabled: runId !== null,
+    refetchInterval: () =>
+      runStatus && isActiveStatus(runStatus) ? RESULTS_POLL_INTERVAL_MS : false,
   });
 }
 

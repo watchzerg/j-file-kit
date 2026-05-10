@@ -84,6 +84,35 @@ const taskRuns = [
   },
 ];
 
+const taskResults = [
+  {
+    id: 1,
+    source_path: "/media/raw_workspace/inbox/ABC-123.mp4",
+    file_stem: "ABC-123",
+    file_type: "video",
+    serial_id: "ABC-123",
+    decision_type: "move",
+    target_path: "/media/raw_workspace/files_video/ABC-123.mp4",
+    success: true,
+    error_message: null,
+    duration_ms: 10.5,
+    created_at: "2026-05-10T01:01:02",
+  },
+  {
+    id: 2,
+    source_path: "/media/raw_workspace/inbox/junk.tmp",
+    file_stem: "junk",
+    file_type: null,
+    serial_id: null,
+    decision_type: "delete",
+    target_path: null,
+    success: false,
+    error_message: "permission denied",
+    duration_ms: 2,
+    created_at: "2026-05-10T01:01:03",
+  },
+] as const;
+
 export const server = setupServer(
   http.get("/api/system/info", () =>
     HttpResponse.json({
@@ -136,6 +165,34 @@ export const server = setupServer(
     return HttpResponse.json({
       runs,
       total: filteredRuns.length,
+      page,
+      page_size: pageSize,
+    });
+  }),
+  http.get("/api/tasks/:runId/results", ({ request }) => {
+    const url = new URL(request.url);
+    const page = Number(url.searchParams.get("page") ?? "1");
+    const pageSize = Number(url.searchParams.get("page_size") ?? "20");
+    const decisionType = url.searchParams.get("decision_type");
+    const success = url.searchParams.get("success");
+    const query = url.searchParams.get("q")?.toLowerCase();
+    const filteredResults = taskResults.filter((result) => {
+      const matchesDecision =
+        decisionType === null || result.decision_type === decisionType;
+      const matchesSuccess =
+        success === null || String(result.success) === success;
+      const matchesQuery =
+        !query ||
+        result.file_stem.toLowerCase().includes(query) ||
+        (result.serial_id?.toLowerCase().includes(query) ?? false);
+      return matchesDecision && matchesSuccess && matchesQuery;
+    });
+    const start = (page - 1) * pageSize;
+    const results = filteredResults.slice(start, start + pageSize);
+
+    return HttpResponse.json({
+      results,
+      total: filteredResults.length,
       page,
       page_size: pageSize,
     });

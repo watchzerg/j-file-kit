@@ -93,6 +93,9 @@ class SQLiteSchemaInitializer:
             "CREATE INDEX IF NOT EXISTS idx_file_results_decision_type ON file_results(run_id, decision_type)",
         )
         cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_file_results_success ON file_results(run_id, success)",
+        )
+        cursor.execute(
             "CREATE INDEX IF NOT EXISTS idx_file_results_file_type ON file_results(file_type)",
         )
         cursor.execute(

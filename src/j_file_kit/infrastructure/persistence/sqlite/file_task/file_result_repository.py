@@ -130,3 +130,106 @@ class FileResultRepositoryImpl:
                 "warning_items": 0,
                 "total_duration_ms": row["total_duration_ms"] or 0.0,
             }
+
+    def list_results(
+        self,
+        run_id: int,
+        decision_type: str | None = None,
+        success: bool | None = None,
+        q: str | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
+        """分页列出执行实例的文件处理结果。"""
+        values = self._build_result_filter_values(
+            run_id=run_id,
+            decision_type=decision_type,
+            success=success,
+            q=q,
+        )
+        values.extend([limit, offset])
+
+        with self._conn_manager.get_cursor() as cursor:
+            cursor.execute(
+                """
+            SELECT
+                id, source_path, file_stem, file_type, serial_id,
+                decision_type, target_path, success, error_message,
+                duration_ms, created_at
+            FROM file_results
+            WHERE run_id = ?
+              AND (? IS NULL OR decision_type = ?)
+              AND (? IS NULL OR success = ?)
+              AND (? IS NULL OR file_stem LIKE ? OR serial_id LIKE ?)
+            ORDER BY id ASC
+            LIMIT COALESCE(?, -1) OFFSET ?
+                """,
+                tuple(values),
+            )
+            return [
+                {
+                    "id": row["id"],
+                    "source_path": row["source_path"],
+                    "file_stem": row["file_stem"],
+                    "file_type": row["file_type"],
+                    "serial_id": row["serial_id"],
+                    "decision_type": row["decision_type"],
+                    "target_path": row["target_path"],
+                    "success": bool(row["success"]),
+                    "error_message": row["error_message"],
+                    "duration_ms": row["duration_ms"],
+                    "created_at": row["created_at"],
+                }
+                for row in cursor.fetchall()
+            ]
+
+    def count_results(
+        self,
+        run_id: int,
+        decision_type: str | None = None,
+        success: bool | None = None,
+        q: str | None = None,
+    ) -> int:
+        """统计执行实例的文件处理结果数量。"""
+        values = self._build_result_filter_values(
+            run_id=run_id,
+            decision_type=decision_type,
+            success=success,
+            q=q,
+        )
+
+        with self._conn_manager.get_cursor() as cursor:
+            cursor.execute(
+                """
+            SELECT COUNT(*) AS total
+            FROM file_results
+            WHERE run_id = ?
+              AND (? IS NULL OR decision_type = ?)
+              AND (? IS NULL OR success = ?)
+              AND (? IS NULL OR file_stem LIKE ? OR serial_id LIKE ?)
+                """,
+                tuple(values),
+            )
+            row = cursor.fetchone()
+            return int(row["total"] if row is not None else 0)
+
+    def _build_result_filter_values(
+        self,
+        *,
+        run_id: int,
+        decision_type: str | None,
+        success: bool | None,
+        q: str | None,
+    ) -> list[object]:
+        success_value = None if success is None else 1 if success else 0
+        pattern = f"%{q}%" if q else None
+        return [
+            run_id,
+            decision_type,
+            decision_type,
+            success_value,
+            success_value,
+            pattern,
+            pattern,
+            pattern,
+        ]

@@ -107,3 +107,100 @@ class TestFileResultRepositorySaveAndGetStatistics:
         assert stats["total_items"] == 3
         assert stats["success_items"] == 3
         assert stats["total_duration_ms"] == 15.0
+
+
+class TestFileResultRepositoryListAndCount:
+    """list_results 与 count_results"""
+
+    def test_list_results_paginates_in_insert_order(
+        self,
+        file_result_repository: FileResultRepositoryImpl,
+        tmp_path: Path,
+    ) -> None:
+        for i in range(3):
+            file_result_repository.save_result(
+                run_id=3,
+                result=_make_result(tmp_path, stem=f"page-{i}"),
+            )
+
+        rows = file_result_repository.list_results(run_id=3, limit=2, offset=1)
+
+        assert [row["file_stem"] for row in rows] == ["page-1", "page-2"]
+        assert file_result_repository.count_results(run_id=3) == 3
+
+    def test_list_results_filters_by_decision_success_and_query(
+        self,
+        file_result_repository: FileResultRepositoryImpl,
+        tmp_path: Path,
+    ) -> None:
+        file_result_repository.save_result(
+            run_id=4,
+            result=_make_result(
+                tmp_path,
+                stem="ABC-123",
+                serial_id=SerialId(prefix="ABC", number="123"),
+                decision_type="move",
+                success=True,
+            ),
+        )
+        file_result_repository.save_result(
+            run_id=4,
+            result=_make_result(
+                tmp_path,
+                stem="ABC-999",
+                serial_id=SerialId(prefix="ABC", number="999"),
+                decision_type="move",
+                success=False,
+            ),
+        )
+        file_result_repository.save_result(
+            run_id=4,
+            result=_make_result(
+                tmp_path,
+                stem="junk",
+                serial_id=None,
+                decision_type="delete",
+                success=False,
+            ),
+        )
+
+        rows = file_result_repository.list_results(
+            run_id=4,
+            decision_type="move",
+            success=False,
+            q="999",
+        )
+
+        assert len(rows) == 1
+        assert rows[0]["file_stem"] == "ABC-999"
+        assert rows[0]["success"] is False
+        assert (
+            file_result_repository.count_results(
+                run_id=4,
+                decision_type="move",
+                success=False,
+                q="999",
+            )
+            == 1
+        )
+
+
+def _make_result(
+    tmp_path: Path,
+    *,
+    stem: str,
+    serial_id: SerialId | None = None,
+    decision_type: str = "move",
+    success: bool = True,
+) -> FileItemData:
+    return FileItemData(
+        path=tmp_path / f"{stem}.mp4",
+        stem=stem,
+        file_type=FileType.VIDEO,
+        serial_id=serial_id,
+        decision_type=decision_type,
+        target_path=tmp_path / "out" / f"{stem}.mp4",
+        success=success,
+        error_message=None if success else "test error",
+        duration_ms=5.0,
+    )
