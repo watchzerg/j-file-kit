@@ -13,7 +13,7 @@ from j_file_kit.app.file_task.application.jav_analysis.runner import analyze_jav
 from j_file_kit.app.file_task.application.jav_analyze_config import JavAnalyzeConfig
 from j_file_kit.app.file_task.domain.decisions import DeleteDecision, MoveDecision
 from j_file_kit.app.file_task.domain.file_types import FileType
-from j_file_kit.app.file_task.domain.organizer_defaults import (
+from j_file_kit.app.file_task.domain.raw_defaults import (
     DEFAULT_RAW_JUNK_KEYWORDS,
 )
 

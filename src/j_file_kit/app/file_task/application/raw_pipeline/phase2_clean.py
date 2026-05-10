@@ -1,6 +1,6 @@
 """Raw 阶段 2.2：第一层目录内垃圾文件删除与空目录收缩。
 
-junk stem 删除须满足 ``organizer_defaults.DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES``（默认 100MiB）。
+junk stem 删除须满足 ``raw_defaults.DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES``（默认 100MiB）。
 """
 
 import threading
@@ -11,7 +11,7 @@ from loguru import logger
 from j_file_kit.app.file_task.application.file_ops import scan_directory_items
 from j_file_kit.app.file_task.application.raw_pipeline.context import PhaseContext
 from j_file_kit.app.file_task.application.raw_pipeline.counters import RawPhaseCounters
-from j_file_kit.app.file_task.domain import organizer_defaults
+from j_file_kit.app.file_task.domain import raw_defaults
 from j_file_kit.app.file_task.domain.file_types import PathEntryType
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_MISC_FILE_DELETE_EXTENSIONS,
@@ -141,7 +141,7 @@ def clean_level1_dir(
     若第一层目录被删空则 ``rmdir``。返回 ``True`` 表示已请求取消。
     """
     misc_ext = DEFAULT_MISC_FILE_DELETE_EXTENSIONS
-    junk_max = organizer_defaults.DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES
+    junk_max = raw_defaults.DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES
     root_resolved = root_dir.resolve(strict=False)
 
     try:

@@ -8,6 +8,8 @@ from pathlib import Path
 from j_file_kit.app.file_task.application.raw_analyze_config import RawAnalyzeConfig
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_CAMELCASE_NO_SPLIT_WORDS,
+)
+from j_file_kit.app.file_task.domain.raw_defaults import (
     DEFAULT_RAW_JUNK_KEYWORDS,
 )
 from j_file_kit.shared.utils.name_keyword_match import expand_keywords_camelcase

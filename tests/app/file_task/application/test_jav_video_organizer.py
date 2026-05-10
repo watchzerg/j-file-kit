@@ -11,10 +11,12 @@ from j_file_kit.app.file_task.application.config_common import (
 )
 from j_file_kit.app.file_task.application.jav_video_organizer import JavVideoOrganizer
 from j_file_kit.app.file_task.domain.constants import TASK_TYPE_JAV_VIDEO_ORGANIZER
+from j_file_kit.app.file_task.domain.jav_defaults import (
+    DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS,
+)
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_ARCHIVE_EXTENSIONS,
     DEFAULT_IMAGE_EXTENSIONS,
-    DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS,
     DEFAULT_MISC_FILE_DELETE_EXTENSIONS,
     DEFAULT_SUBTITLE_EXTENSIONS,
     DEFAULT_VIDEO_EXTENSIONS,

@@ -12,10 +12,14 @@ jav_vr / jav 通过 JAV 番号识别决定。
 """
 
 from j_file_kit.app.file_task.application.jav_filename_util import generate_jav_filename
-from j_file_kit.app.file_task.domain.organizer_defaults import (
-    DEFAULT_CAMELCASE_NO_SPLIT_WORDS,
+from j_file_kit.app.file_task.domain.jav_defaults import (
     DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS,
     DEFAULT_JAV_VR_SERIAL_PREFIXES,
+)
+from j_file_kit.app.file_task.domain.organizer_defaults import (
+    DEFAULT_CAMELCASE_NO_SPLIT_WORDS,
+)
+from j_file_kit.app.file_task.domain.raw_defaults import (
     DEFAULT_RAW_JUNK_KEYWORDS,
     DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS,
     DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS,

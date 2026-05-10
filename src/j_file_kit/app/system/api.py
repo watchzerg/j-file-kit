@@ -6,21 +6,25 @@ from fastapi import APIRouter, Request
 
 import j_file_kit.app.file_task.application.config_common as config_common
 from j_file_kit.api.app_state import AppState
+from j_file_kit.app.file_task.domain.jav_defaults import (
+    DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS,
+    DEFAULT_JAV_VR_SERIAL_PREFIXES,
+)
 from j_file_kit.app.file_task.domain.organizer_defaults import (
     DEFAULT_ARCHIVE_EXTENSIONS,
     DEFAULT_CAMELCASE_NO_SPLIT_WORDS,
     DEFAULT_IMAGE_EXTENSIONS,
-    DEFAULT_JAV_FILENAME_STRIP_SUBSTRINGS,
-    DEFAULT_JAV_VR_SERIAL_PREFIXES,
     DEFAULT_MISC_FILE_DELETE_EXTENSIONS,
     DEFAULT_MUSIC_EXTENSIONS,
+    DEFAULT_SUBTITLE_EXTENSIONS,
+    DEFAULT_VIDEO_EXTENSIONS,
+)
+from j_file_kit.app.file_task.domain.raw_defaults import (
     DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES,
     DEFAULT_RAW_JUNK_KEYWORDS,
     DEFAULT_RAW_VIDEO_BUCKET_MOVIE_KEYWORDS,
     DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS,
     DEFAULT_RAW_VIDEO_BUCKET_US_VR_KEYWORDS,
-    DEFAULT_SUBTITLE_EXTENSIONS,
-    DEFAULT_VIDEO_EXTENSIONS,
 )
 from j_file_kit.app.system.schemas import (
     ExtensionDefaultsResponse,

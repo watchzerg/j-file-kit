@@ -34,7 +34,7 @@ def test_clean_keeps_large_junk_stem_file(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setattr(
-        "j_file_kit.app.file_task.domain.organizer_defaults.DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES",
+        "j_file_kit.app.file_task.domain.raw_defaults.DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES",
         50,
     )
     inbox = tmp_path / "inbox"
