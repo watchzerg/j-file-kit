@@ -1,8 +1,6 @@
 import { useSystemFileTypeDefaults, useSystemInfo } from "@/api/system";
-import {
-  JavConfigPanel,
-  RawConfigPanel,
-} from "@/components/config/TaskConfigPanel";
+import { JavConfigPanel } from "@/components/config/JavConfigPanel";
+import { RawConfigPanel } from "@/components/config/RawConfigPanel";
 import { SystemDefaultsPanel } from "@/components/system/SystemDefaultsPanel";
 import { SystemInfoPanel } from "@/components/system/SystemInfoPanel";
 import { getErrorMessage } from "@/lib/errors";
