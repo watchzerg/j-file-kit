@@ -40,6 +40,7 @@ DEFAULT_VIDEO_EXTENSIONS: frozenset[str] = frozenset(
         ".m2ts",
         ".vob",
         ".divx",
+        ".3gp",
     },
 )
 

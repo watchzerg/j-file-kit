@@ -28,6 +28,9 @@ DEFAULT_RAW_JUNK_KEYWORDS: tuple[str, ...] = (
     "手机版网址",
     "_ 1024_ b56",
     "种子压缩合集",
+    "SIS001影视联盟",
+    "宣传图",
+    "論壇文宣",
 )
 
 DEFAULT_RAW_CLEANUP_JUNK_MAX_BYTES: int = 100 * 1024 * 1024
@@ -64,6 +67,7 @@ DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS: tuple[str, ...] = (
     "Assylum",
     "BackroomCastingCouch",
     "BangSurprise",
+    "BedroomBondage",
     "BoundGangBangs",
     "BrookelynneBriar",
     "CathysCraving",
@@ -86,11 +90,13 @@ DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS: tuple[str, ...] = (
     "FootsieBabes",
     "FrolicMe",
     "FTVGirls",
+    "Futanari",
     "GangbangCreampie",
     "GirlsOutWest",
     "GroupBanged",
     "HardcoreGangBang",
     "HardTied",
+    "Hogtied",
     "Hentaied",
     "HollandschePassie",
     "HouseOfTaboo",
@@ -112,7 +118,7 @@ DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS: tuple[str, ...] = (
     "MistressT",
     "MomComesFirst",
     "PascalsSubSluts",
-    "PerverseFamily",
+    "ParasitedPerverseFamily",
     "PinkoTGirls",
     "PissVids",
     "PornBox",
@@ -148,6 +154,7 @@ DEFAULT_RAW_VIDEO_BUCKET_US_KEYWORDS: tuple[str, ...] = (
     # 低优先级1
     "Beauty4K",
     "GirlCum",
+    "OnlyFans",
     # 低优先级2
     "Kink",
     "Brazzers",
