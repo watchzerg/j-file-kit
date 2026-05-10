@@ -8,6 +8,13 @@ interface PhaseGroup {
   items: Array<{ key: StatisticKey; label: string }>;
 }
 
+function readStat(
+  statistics: FileTaskRunStatistics,
+  key: StatisticKey,
+): number {
+  return statistics[key] ?? 0;
+}
+
 const phaseGroups: PhaseGroup[] = [
   {
     title: "阶段 1：收散落文件",
@@ -44,11 +51,27 @@ const phaseGroups: PhaseGroup[] = [
   },
   {
     title: "阶段 3：files_misc 分流",
-    description: "对 files_misc 第一层文件继续删除 junk 或分类迁移。",
+    description:
+      "对 files_misc 第一层文件继续删除 junk 或分类迁移，并展示细分去向。",
     items: [
       { key: "phase3_seen_files_misc", label: "进入分流文件" },
       { key: "phase3_deleted_junk_misc", label: "junk 待删除" },
+      { key: "phase3_routed_archive_files", label: "迁入压缩目录" },
+      { key: "phase3_routed_image_files", label: "迁入图片目录" },
+      { key: "phase3_routed_audio_files", label: "迁入音频目录" },
+      { key: "phase3_routed_video_files", label: "迁入视频目录（总）" },
+      { key: "phase3_routed_video_movie_files", label: "视频桶 movie" },
+      { key: "phase3_routed_video_us_vr_files", label: "视频桶 us_vr" },
+      { key: "phase3_routed_video_us_files", label: "视频桶 us" },
+      { key: "phase3_routed_video_jav_vr_files", label: "视频桶 jav_vr" },
+      { key: "phase3_routed_video_jav_files", label: "视频桶 jav" },
+      { key: "phase3_routed_video_misc_files", label: "视频桶 misc" },
       { key: "phase3_deferred_files_misc", label: "暂留 files_misc" },
+      {
+        key: "phase3_deferred_unknown_extension_files",
+        label: "暂留（未知扩展）",
+      },
+      { key: "phase3_deferred_error_files", label: "暂留（迁移失败）" },
     ],
   },
 ];
@@ -82,7 +105,9 @@ export default function RawPhaseStats({ statistics }: RawPhaseStatsProps) {
                   <dt className="text-muted-foreground text-sm">
                     {item.label}
                   </dt>
-                  <dd className="font-semibold">{statistics[item.key]}</dd>
+                  <dd className="font-semibold">
+                    {readStat(statistics, item.key)}
+                  </dd>
                 </div>
               ))}
             </dl>

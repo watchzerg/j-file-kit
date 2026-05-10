@@ -141,6 +141,8 @@ class TestGetRunStatus:
         assert data["statistics"]["error_items"] == 1
         assert data["statistics"]["phase1_seen_files"] == 7
         assert data["statistics"]["phase3_deferred_files_misc"] == 4
+        assert data["statistics"]["phase3_routed_video_files"] == 0
+        assert data["statistics"]["phase3_deferred_error_files"] == 0
 
     def test_get_run_status_not_found(self, client) -> None:
         """不存在的 run_id 返回 404"""

@@ -183,6 +183,54 @@ class FileTaskRunStatistics(BaseModel):
             "不含已成功迁入 files_* / files_video_*；基于阶段3.0 后的第一层队列）"
         ),
     )
+    phase3_routed_archive_files: int = Field(
+        0,
+        description="Raw：阶段3.1 成功迁入 files_compressed 的文件数（含 dry_run 预览）",
+    )
+    phase3_routed_image_files: int = Field(
+        0,
+        description="Raw：阶段3.2 成功迁入 files_pic 的文件数（含 dry_run 预览）",
+    )
+    phase3_routed_audio_files: int = Field(
+        0,
+        description="Raw：阶段3.3 成功迁入 files_audio 的文件数（含 dry_run 预览）",
+    )
+    phase3_routed_video_files: int = Field(
+        0,
+        description="Raw：阶段3.4 成功迁入任一 files_video_* 桶的文件数（含字幕，含 dry_run 预览）",
+    )
+    phase3_routed_video_movie_files: int = Field(
+        0,
+        description="Raw：阶段3.4 成功迁入 files_video_movie 的文件数（含 dry_run 预览）",
+    )
+    phase3_routed_video_us_vr_files: int = Field(
+        0,
+        description="Raw：阶段3.4 成功迁入 files_video_us_vr 的文件数（含 dry_run 预览）",
+    )
+    phase3_routed_video_us_files: int = Field(
+        0,
+        description="Raw：阶段3.4 成功迁入 files_video_us 的文件数（含 dry_run 预览）",
+    )
+    phase3_routed_video_jav_vr_files: int = Field(
+        0,
+        description="Raw：阶段3.4 成功迁入 files_video_jav_vr 的文件数（含 dry_run 预览）",
+    )
+    phase3_routed_video_jav_files: int = Field(
+        0,
+        description="Raw：阶段3.4 成功迁入 files_video_jav 的文件数（含 dry_run 预览）",
+    )
+    phase3_routed_video_misc_files: int = Field(
+        0,
+        description="Raw：阶段3.4 成功迁入 files_video_misc 的文件数（含 dry_run 预览）",
+    )
+    phase3_deferred_unknown_extension_files: int = Field(
+        0,
+        description="Raw：阶段3 因未知扩展名未分流、继续留在 files_misc 的文件数",
+    )
+    phase3_deferred_error_files: int = Field(
+        0,
+        description="Raw：阶段3 已识别路由但执行迁移失败的文件数",
+    )
 
 
 class FileTaskRun(BaseModel):

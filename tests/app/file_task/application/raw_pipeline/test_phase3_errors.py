@@ -139,6 +139,8 @@ def test_run_phase3_increments_deferred_when_move_fails(
 
     assert counters.phase3_seen_files_misc == 2
     assert counters.phase3_deferred_files_misc == 2
+    assert counters.phase3_deferred_unknown_extension_files == 0
+    assert counters.phase3_deferred_error_files == 2
     # 文件仍留在 files_misc
     assert (cfg.files_misc / "a.zip").exists()
     assert (cfg.files_misc / "b.mp4").exists()

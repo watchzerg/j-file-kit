@@ -207,18 +207,114 @@ def _move_routed_file(
         return False
 
 
+def _increment_video_bucket_counter(counters: RawPhaseCounters, bucket: str) -> None:
+    match bucket:
+        case "movie":
+            counters.phase3_routed_video_movie_files += 1
+        case "us_vr":
+            counters.phase3_routed_video_us_vr_files += 1
+        case "us":
+            counters.phase3_routed_video_us_files += 1
+        case "jav_vr":
+            counters.phase3_routed_video_jav_vr_files += 1
+        case "jav":
+            counters.phase3_routed_video_jav_files += 1
+        case "misc":
+            counters.phase3_routed_video_misc_files += 1
+        case _:
+            msg = f"阶段3.4 未知视频桶: {bucket}"
+            raise RuntimeError(msg)
+
+
+def _increment_routed_counter(
+    counters: RawPhaseCounters,
+    kind: str,
+    *,
+    video_bucket: str | None,
+) -> None:
+    if kind == "archive":
+        counters.phase3_routed_archive_files += 1
+        return
+    if kind == "image":
+        counters.phase3_routed_image_files += 1
+        return
+    if kind == "audio":
+        counters.phase3_routed_audio_files += 1
+        return
+    if kind in ("video", "subtitle"):
+        if video_bucket is None:
+            msg = "阶段3.4 缺少视频桶信息"
+            raise RuntimeError(msg)
+        counters.phase3_routed_video_files += 1
+        _increment_video_bucket_counter(counters, video_bucket)
+        return
+    msg = f"阶段3 不支持的路由类型: {kind}"
+    raise RuntimeError(msg)
+
+
+def _route_phase3_file(
+    ctx: PhaseContext,
+    path: Path,
+    *,
+    kind: str,
+    dry_run: bool,
+) -> tuple[bool, str | None]:
+    if kind in ("video", "subtitle"):
+        bucket, subdir = classify_video_bucket_and_subdir(path.stem)
+        dest_root = _video_destination_root(bucket, ctx.analyze_config, subdir)
+        ok = _move_routed_file(
+            ctx,
+            path,
+            dest_root,
+            kind=kind,
+            video_bucket=bucket,
+            subdir=subdir,
+            dry_run=dry_run,
+        )
+        return ok, bucket
+
+    dest_root = _destination_root_for_routed_kind(kind, ctx.analyze_config)
+    ok = _move_routed_file(
+        ctx,
+        path,
+        dest_root,
+        kind=kind,
+        video_bucket=None,
+        dry_run=dry_run,
+    )
+    return ok, None
+
+
 def run_phase3(
     ctx: PhaseContext,
     counters: RawPhaseCounters,
     *,
     dry_run: bool,
 ) -> None:
-    """阶段 3：``files_misc`` 第一层预清理后按扩展名与视频关键字迁入各类 ``files_*``。"""
+    """阶段 3：``files_misc`` 第一层预清理后按扩展名与视频关键字迁入各类 ``files_*``。
+
+    统计口径：
+    - `phase3_seen_files_misc` 基于 3.0 预清理后的待分流队列。
+    - `phase3_deferred_files_misc` = `phase3_deferred_unknown_extension_files` + `phase3_deferred_error_files`。
+    - `phase3_routed_video_files` 为视频总量，等于 6 个视频子桶计数之和。
+    """
     misc = ctx.analyze_config.files_misc
     if not misc.exists() or not misc.is_dir():
         counters.phase3_seen_files_misc = 0
         counters.phase3_deleted_junk_misc = 0
         counters.phase3_deferred_files_misc = 0
+        counters.phase3_routed_archive_files = 0
+        counters.phase3_routed_image_files = 0
+        counters.phase3_routed_audio_files = 0
+        counters.phase3_routed_video_files = 0
+        counters.phase3_routed_video_movie_files = 0
+        counters.phase3_routed_video_us_vr_files = 0
+        counters.phase3_routed_video_us_files = 0
+        counters.phase3_routed_video_jav_vr_files = 0
+        counters.phase3_routed_video_jav_files = 0
+        counters.phase3_routed_video_misc_files = 0
+        counters.phase3_deferred_unknown_extension_files = 0
+        counters.phase3_deferred_error_files = 0
         logger.bind(
             run_id=str(ctx.run_id),
             run_name=ctx.run_name,
@@ -238,40 +334,27 @@ def run_phase3(
     )
     counters.phase3_seen_files_misc = len(files)
 
-    deferred = 0
+    deferred_unknown = 0
+    deferred_error = 0
     routed_ok = 0
 
     for path in files:
         kind = classify_file_media_kind(path.suffix, ctx.analyze_config)
         if kind is None:
-            deferred += 1
+            deferred_unknown += 1
             continue
 
-        if kind in ("video", "subtitle"):
-            # 字幕与视频共用桶路由：stem 关键字匹配决定目标 files_video_* 目录
-            bucket, subdir = classify_video_bucket_and_subdir(path.stem)
-            dest_root = _video_destination_root(bucket, ctx.analyze_config, subdir)
-            ok = _move_routed_file(
-                ctx,
-                path,
-                dest_root,
-                kind=kind,
-                video_bucket=bucket,
-                subdir=subdir,
-                dry_run=dry_run,
-            )
-        else:
-            dest_root = _destination_root_for_routed_kind(kind, ctx.analyze_config)
-            ok = _move_routed_file(
-                ctx, path, dest_root, kind=kind, video_bucket=None, dry_run=dry_run
-            )
+        ok, video_bucket = _route_phase3_file(ctx, path, kind=kind, dry_run=dry_run)
 
         if ok:
             routed_ok += 1
+            _increment_routed_counter(counters, kind, video_bucket=video_bucket)
         else:
-            deferred += 1
+            deferred_error += 1
 
-    counters.phase3_deferred_files_misc = deferred
+    counters.phase3_deferred_unknown_extension_files = deferred_unknown
+    counters.phase3_deferred_error_files = deferred_error
+    counters.phase3_deferred_files_misc = deferred_unknown + deferred_error
 
     logger.bind(
         run_id=str(ctx.run_id),
@@ -282,5 +365,7 @@ def run_phase3(
         moved_junk_preclean=counters.phase3_deleted_junk_misc,
         seen_after_preclean=len(files),
         routed=routed_ok,
-        deferred=deferred,
+        deferred_unknown=deferred_unknown,
+        deferred_error=deferred_error,
+        deferred=counters.phase3_deferred_files_misc,
     ).info("阶段3完成：files_misc 第一层文件已处理")

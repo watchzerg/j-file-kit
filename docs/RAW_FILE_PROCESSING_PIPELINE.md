@@ -254,6 +254,42 @@ flowchart LR
 3.0 前 misc 第一层文件数 ≈ phase3_seen_files_misc + phase3_deleted_junk_misc
 ```
 
-**phase3_deferred_files_misc**：包含「非视频/字幕的未知扩展名留 misc」以及「I/O 迁移失败」两类，不含已成功迁入各 `files_*` / `files_video_*` 的文件。
+**阶段3细分字段**：
+
+- 路由去向（非视频）：
+  - `phase3_routed_archive_files`
+  - `phase3_routed_image_files`
+  - `phase3_routed_audio_files`
+- 视频总量与子桶：
+  - `phase3_routed_video_files`
+  - `phase3_routed_video_movie_files`
+  - `phase3_routed_video_us_vr_files`
+  - `phase3_routed_video_us_files`
+  - `phase3_routed_video_jav_vr_files`
+  - `phase3_routed_video_jav_files`
+  - `phase3_routed_video_misc_files`
+- 延迟处理构成：
+  - `phase3_deferred_unknown_extension_files`
+  - `phase3_deferred_error_files`
+  - `phase3_deferred_files_misc = phase3_deferred_unknown_extension_files + phase3_deferred_error_files`
+
+**一致性关系（实现口径）**：
+
+```
+phase3_seen_files_misc
+  = phase3_routed_archive_files
+  + phase3_routed_image_files
+  + phase3_routed_audio_files
+  + phase3_routed_video_files
+  + phase3_deferred_files_misc
+
+phase3_routed_video_files
+  = phase3_routed_video_movie_files
+  + phase3_routed_video_us_vr_files
+  + phase3_routed_video_us_files
+  + phase3_routed_video_jav_vr_files
+  + phase3_routed_video_jav_files
+  + phase3_routed_video_misc_files
+```
 
 完整字段语义：[`domain/task_run.py`](../src/j_file_kit/app/file_task/domain/task_run.py)。

@@ -53,6 +53,18 @@ export interface FileTaskRunStatistics {
   phase3_seen_files_misc: number;
   phase3_deleted_junk_misc: number;
   phase3_deferred_files_misc: number;
+  phase3_routed_archive_files: number;
+  phase3_routed_image_files: number;
+  phase3_routed_audio_files: number;
+  phase3_routed_video_files: number;
+  phase3_routed_video_movie_files: number;
+  phase3_routed_video_us_vr_files: number;
+  phase3_routed_video_us_files: number;
+  phase3_routed_video_jav_vr_files: number;
+  phase3_routed_video_jav_files: number;
+  phase3_routed_video_misc_files: number;
+  phase3_deferred_unknown_extension_files: number;
+  phase3_deferred_error_files: number;
 }
 
 export interface FileTaskRunStatisticsSummary {

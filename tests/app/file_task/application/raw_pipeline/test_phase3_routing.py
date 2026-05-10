@@ -40,6 +40,9 @@ def test_moves_archive_image_audio(
     assert counters.phase3_seen_files_misc == 3
     assert counters.phase3_deleted_junk_misc == 0
     assert counters.phase3_deferred_files_misc == 0
+    assert counters.phase3_routed_archive_files == 1
+    assert counters.phase3_routed_image_files == 1
+    assert counters.phase3_routed_audio_files == 1
     assert (files_compressed / "a.zip").read_text() == "zip"
     assert (files_pic / "b.jpg").read_text() == "img"
     assert (files_audio / "c.mp3").read_text() == "snd"
@@ -69,6 +72,10 @@ def test_routes_video_and_defers_unknown_non_video(
     assert counters.phase3_seen_files_misc == 2
     assert counters.phase3_deleted_junk_misc == 0
     assert counters.phase3_deferred_files_misc == 1
+    assert counters.phase3_routed_video_files == 1
+    assert counters.phase3_routed_video_misc_files == 1
+    assert counters.phase3_deferred_unknown_extension_files == 1
+    assert counters.phase3_deferred_error_files == 0
     assert (tmp_path / "files_video_misc" / "v.mp4").read_text() == "v"
     assert (misc / "u.txt").exists()
 
@@ -97,6 +104,9 @@ def test_dry_run_keeps_files_in_misc(
     assert counters.phase3_seen_files_misc == 2
     assert counters.phase3_deleted_junk_misc == 0
     assert counters.phase3_deferred_files_misc == 0
+    assert counters.phase3_routed_archive_files == 1
+    assert counters.phase3_routed_video_files == 1
+    assert counters.phase3_routed_video_misc_files == 1
     assert (misc / "a.zip").exists()
     assert (misc / "b.mp4").exists()
     assert list(files_compressed.iterdir()) == []

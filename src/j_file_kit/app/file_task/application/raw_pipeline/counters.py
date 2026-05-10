@@ -12,7 +12,10 @@ class RawPhaseCounters:
 
     phase3_seen_files_misc：阶段3.0 迁出 junk 之后，进入分流循环的一层文件数。
     phase3_deleted_junk_misc：阶段3.0 迁入 files_to_delete 计数（dry_run 同口径预览）。
-    phase3_deferred_files_misc：阶段3 结束时仍未完成分流者（如非视频未知扩展、I-O 失败）。
+    phase3_deferred_files_misc：阶段3 结束时仍未完成分流者（未知扩展 + 路由失败）。
+    phase3_routed_*：阶段3 成功分流到目标目录的细分计数（含 dry_run 预览）。
+    phase3_deferred_unknown_extension_files / phase3_deferred_error_files：
+    分别记录“未知扩展留存”与“已识别路由但执行失败”构成。
     """
 
     phase1_seen_files: int = 0
@@ -36,6 +39,18 @@ class RawPhaseCounters:
     phase3_seen_files_misc: int = 0
     phase3_deleted_junk_misc: int = 0
     phase3_deferred_files_misc: int = 0
+    phase3_routed_archive_files: int = 0
+    phase3_routed_image_files: int = 0
+    phase3_routed_audio_files: int = 0
+    phase3_routed_video_files: int = 0
+    phase3_routed_video_movie_files: int = 0
+    phase3_routed_video_us_vr_files: int = 0
+    phase3_routed_video_us_files: int = 0
+    phase3_routed_video_jav_vr_files: int = 0
+    phase3_routed_video_jav_files: int = 0
+    phase3_routed_video_misc_files: int = 0
+    phase3_deferred_unknown_extension_files: int = 0
+    phase3_deferred_error_files: int = 0
 
     def as_dict(self) -> dict[str, int]:
         return {
@@ -60,4 +75,16 @@ class RawPhaseCounters:
             "phase3_seen_files_misc": self.phase3_seen_files_misc,
             "phase3_deleted_junk_misc": self.phase3_deleted_junk_misc,
             "phase3_deferred_files_misc": self.phase3_deferred_files_misc,
+            "phase3_routed_archive_files": self.phase3_routed_archive_files,
+            "phase3_routed_image_files": self.phase3_routed_image_files,
+            "phase3_routed_audio_files": self.phase3_routed_audio_files,
+            "phase3_routed_video_files": self.phase3_routed_video_files,
+            "phase3_routed_video_movie_files": self.phase3_routed_video_movie_files,
+            "phase3_routed_video_us_vr_files": self.phase3_routed_video_us_vr_files,
+            "phase3_routed_video_us_files": self.phase3_routed_video_us_files,
+            "phase3_routed_video_jav_vr_files": self.phase3_routed_video_jav_vr_files,
+            "phase3_routed_video_jav_files": self.phase3_routed_video_jav_files,
+            "phase3_routed_video_misc_files": self.phase3_routed_video_misc_files,
+            "phase3_deferred_unknown_extension_files": self.phase3_deferred_unknown_extension_files,
+            "phase3_deferred_error_files": self.phase3_deferred_error_files,
         }

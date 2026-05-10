@@ -54,6 +54,11 @@ def test_routes_each_video_keyword(
     run_phase3(phase_context_factory(config), counters, dry_run=False)
 
     assert counters.phase3_deferred_files_misc == 0
+    assert counters.phase3_routed_video_files == 4
+    assert counters.phase3_routed_video_movie_files == 1
+    assert counters.phase3_routed_video_us_vr_files == 1
+    assert counters.phase3_routed_video_us_files == 1
+    assert counters.phase3_routed_video_jav_vr_files == 1
     assert list(misc.iterdir()) == []
     assert (tmp_path / "files_video_movie" / "AMZN" / "m_AMZN.mp4").read_text() == "a"
     assert (
