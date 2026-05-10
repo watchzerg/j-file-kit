@@ -1,8 +1,13 @@
+import { useSystemInfo } from "@/api/system";
+import { SystemInfoPanel } from "@/components/system/SystemInfoPanel";
 import NewTaskPanel from "@/components/task/NewTaskPanel";
 import QuickLinks from "@/components/task/QuickLinks";
 import RecentRunsList from "@/components/task/RecentRunsList";
+import { getErrorMessage } from "@/lib/errors";
 
 export default function DashboardPage() {
+  const systemInfoQuery = useSystemInfo();
+
   return (
     <div className="container mx-auto space-y-6 px-4 py-6">
       <div>
@@ -16,9 +21,16 @@ export default function DashboardPage() {
       <QuickLinks />
       <RecentRunsList />
 
-      <div className="rounded-lg border border-dashed p-6 text-muted-foreground">
-        [区块占位] 系统信息（M8 实现）
-      </div>
+      {systemInfoQuery.isError ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 text-sm">
+          {getErrorMessage(systemInfoQuery.error)}
+        </div>
+      ) : null}
+      <SystemInfoPanel
+        info={systemInfoQuery.data}
+        isLoading={systemInfoQuery.isLoading}
+        variant="compact"
+      />
     </div>
   );
 }

@@ -142,6 +142,30 @@ export const server = setupServer(
       media_mounted: true,
     }),
   ),
+  http.get("/api/system/file-type-defaults", () =>
+    HttpResponse.json({
+      extensions: {
+        video: [".avi", ".mkv", ".mp4"],
+        image: [".jpg", ".png", ".webp"],
+        subtitle: [".ass", ".srt"],
+        archive: [".7z", ".rar", ".zip"],
+        music: [".flac", ".mp3"],
+        misc_delete: [".nfo", ".txt", ".url"],
+      },
+      raw: {
+        junk_keywords: ["FC2-PPV", "扫码", "二维码"],
+        video_bucket_movie_keywords: ["AMZN"],
+        video_bucket_us_vr_keywords: ["LethalHardcoreVR", "VR"],
+        video_bucket_us_keywords: ["Brazzers", "Kink"],
+        camelcase_no_split_words: ["TGirls", "VR"],
+        cleanup_junk_max_bytes: 104857600,
+      },
+      jav: {
+        vr_serial_prefixes: ["3DSVR", "AJVR"],
+        filename_strip_substrings: ["BBS-2048", "CHD-1080"],
+      },
+    }),
+  ),
   http.get("/api/media/directories", ({ request }) => {
     const url = new URL(request.url);
     const path = url.searchParams.get("path") ?? "/media";

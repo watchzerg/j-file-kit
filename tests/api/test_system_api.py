@@ -34,3 +34,24 @@ def test_get_system_info(
     assert data["jav_media_root"] == str(jav_root)
     assert data["raw_media_root"] == str(raw_root)
     assert data["media_mounted"] is True
+
+
+def test_get_file_type_defaults(client) -> None:
+    response = client.get("/api/system/file-type-defaults")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["extensions"]["video"] == sorted(
+        data["extensions"]["video"],
+        key=str.casefold,
+    )
+    assert ".mp4" in data["extensions"]["video"]
+    assert ".jpg" in data["extensions"]["image"]
+    assert ".rar" in data["extensions"]["archive"]
+    assert ".mp3" in data["extensions"]["music"]
+    assert ".nfo" in data["extensions"]["misc_delete"]
+    assert data["raw"]["cleanup_junk_max_bytes"] == 100 * 1024 * 1024
+    assert "FC2-PPV" in data["raw"]["junk_keywords"]
+    assert "VR" in data["raw"]["camelcase_no_split_words"]
+    assert "3DSVR" in data["jav"]["vr_serial_prefixes"]
+    assert "BBS-2048" in data["jav"]["filename_strip_substrings"]

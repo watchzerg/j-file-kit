@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 describe("App routes", () => {
-  it("renders Dashboard at the root route", () => {
+  it("renders Dashboard at the root route", async () => {
     renderAt("/");
 
     expect(
@@ -26,6 +26,16 @@ describe("App routes", () => {
     expect(screen.queryByText("任务管理")).not.toBeInTheDocument();
     expect(screen.getByText("启动任务")).toBeInTheDocument();
     expect(screen.getByText("最近任务")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "系统信息" }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("/media/jav_workspace").length).toBeGreaterThan(
+      0,
+    );
+    expect(screen.getByText("媒体已挂载")).toBeInTheDocument();
+    expect(
+      screen.queryByText("[区块占位] 系统信息（M8 实现）"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders all M1 routes", () => {
@@ -59,6 +69,29 @@ describe("App routes", () => {
     expect(screen.getByDisplayValue("1048576")).toBeInTheDocument();
     expect(screen.getByDisplayValue("209715200")).toBeInTheDocument();
     expect(screen.getByDisplayValue("sample")).toBeInTheDocument();
+  });
+
+  it("renders readonly global system config and defaults", async () => {
+    const user = userEvent.setup();
+    renderAt("/config");
+
+    await user.click(await screen.findByRole("tab", { name: "全局配置" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "全局配置" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("/data")).toBeInTheDocument();
+    expect(screen.getAllByText("/media/raw_workspace").length).toBeGreaterThan(
+      0,
+    );
+    expect(
+      await screen.findByRole("heading", { name: "系统默认字典" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("视频（共 3 项）")).toBeInTheDocument();
+    expect(screen.getByText(".mp4")).toBeInTheDocument();
+    expect(screen.getByText("垃圾关键字（共 3 项）")).toBeInTheDocument();
+    expect(screen.getByText("100 MiB (104857600 bytes)")).toBeInTheDocument();
+    expect(screen.getByText("VR 番号前缀（共 2 项）")).toBeInTheDocument();
   });
 
   it("updates the JAV task config", async () => {

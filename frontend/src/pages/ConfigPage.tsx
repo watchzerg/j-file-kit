@@ -1,8 +1,10 @@
-import { useSystemInfo } from "@/api/system";
+import { useSystemFileTypeDefaults, useSystemInfo } from "@/api/system";
 import {
   JavConfigPanel,
   RawConfigPanel,
 } from "@/components/config/TaskConfigPanel";
+import { SystemDefaultsPanel } from "@/components/system/SystemDefaultsPanel";
+import { SystemInfoPanel } from "@/components/system/SystemInfoPanel";
 import { getErrorMessage } from "@/lib/errors";
 import { useState } from "react";
 
@@ -17,6 +19,7 @@ const tabs = [
 export default function ConfigPage() {
   const [activeTab, setActiveTab] = useState<ConfigTab>("jav");
   const systemInfoQuery = useSystemInfo();
+  const defaultsQuery = useSystemFileTypeDefaults();
   const systemInfo = systemInfoQuery.data;
 
   return (
@@ -56,16 +59,23 @@ export default function ConfigPage() {
           {getErrorMessage(systemInfoQuery.error)}
         </div>
       ) : null}
+      {activeTab === "global" && defaultsQuery.isError ? (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 text-sm">
+          {getErrorMessage(defaultsQuery.error)}
+        </div>
+      ) : null}
 
       {activeTab === "global" ? (
-        <GlobalConfigPanel
-          isLoading={systemInfoQuery.isLoading}
-          appVersion={systemInfo?.app_version}
-          env={systemInfo?.env}
-          baseDir={systemInfo?.base_dir}
-          mediaRoot={systemInfo?.media_root}
-          mediaMounted={systemInfo?.media_mounted}
-        />
+        <div className="space-y-6">
+          <SystemInfoPanel
+            info={systemInfo}
+            isLoading={systemInfoQuery.isLoading}
+          />
+          <SystemDefaultsPanel
+            defaults={defaultsQuery.data}
+            isLoading={defaultsQuery.isLoading}
+          />
+        </div>
       ) : null}
       {activeTab === "jav" ? (
         <JavConfigPanel rootPath={systemInfo?.jav_media_root ?? null} />
@@ -73,58 +83,6 @@ export default function ConfigPage() {
       {activeTab === "raw" ? (
         <RawConfigPanel rootPath={systemInfo?.raw_media_root ?? null} />
       ) : null}
-    </div>
-  );
-}
-
-function GlobalConfigPanel({
-  isLoading,
-  appVersion,
-  env,
-  baseDir,
-  mediaRoot,
-  mediaMounted,
-}: {
-  isLoading: boolean;
-  appVersion?: string;
-  env?: string;
-  baseDir?: string;
-  mediaRoot?: string;
-  mediaMounted?: boolean;
-}) {
-  if (isLoading) {
-    return (
-      <section className="rounded-lg border bg-card p-5 text-muted-foreground text-sm">
-        正在加载系统信息...
-      </section>
-    );
-  }
-
-  return (
-    <section className="rounded-lg border bg-card p-5 shadow-sm">
-      <h2 className="font-semibold text-xl">全局配置</h2>
-      <p className="mt-1 text-muted-foreground text-sm">
-        M5 先提供只读系统信息，完整全局配置编辑留给 M8。
-      </p>
-      <dl className="mt-5 grid gap-4 text-sm md:grid-cols-2">
-        <InfoItem label="版本" value={appVersion ?? "-"} />
-        <InfoItem label="环境" value={env ?? "-"} />
-        <InfoItem label="数据目录" value={baseDir ?? "-"} />
-        <InfoItem label="媒体根目录" value={mediaRoot ?? "-"} />
-        <InfoItem
-          label="媒体挂载"
-          value={mediaMounted === true ? "已挂载" : "未检测到挂载"}
-        />
-      </dl>
-    </section>
-  );
-}
-
-function InfoItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <dt className="font-medium text-muted-foreground">{label}</dt>
-      <dd className="mt-1 break-all text-foreground">{value}</dd>
     </div>
   );
 }

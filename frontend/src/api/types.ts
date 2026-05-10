@@ -247,3 +247,32 @@ export interface SystemInfoResponse {
   raw_media_root: string;
   media_mounted: boolean;
 }
+
+export interface ExtensionDefaultsResponse {
+  video: string[];
+  image: string[];
+  subtitle: string[];
+  archive: string[];
+  music: string[];
+  misc_delete: string[];
+}
+
+export interface RawDefaultsResponse {
+  junk_keywords: string[];
+  video_bucket_movie_keywords: string[];
+  video_bucket_us_vr_keywords: string[];
+  video_bucket_us_keywords: string[];
+  camelcase_no_split_words: string[];
+  cleanup_junk_max_bytes: number;
+}
+
+export interface JavDefaultsResponse {
+  vr_serial_prefixes: string[];
+  filename_strip_substrings: string[];
+}
+
+export interface SystemFileTypeDefaultsResponse {
+  extensions: ExtensionDefaultsResponse;
+  raw: RawDefaultsResponse;
+  jav: JavDefaultsResponse;
+}
