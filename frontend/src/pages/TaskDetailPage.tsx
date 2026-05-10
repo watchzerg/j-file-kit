@@ -1,11 +1,8 @@
 import {
-  DEFAULT_TASK_LOG_LIMIT,
-  DEFAULT_TASK_RUN_PAGE_SIZE,
   useTaskRunDetail,
   useTaskRunLogs,
   useTaskRunResults,
 } from "@/api/tasks";
-import type { FileTaskDecisionType } from "@/api/types";
 import LogPagination from "@/components/task/LogPagination";
 import LogViewer from "@/components/task/LogViewer";
 import RawPhaseStats from "@/components/task/RawPhaseStats";
@@ -19,6 +16,14 @@ import StatsSummaryGrid from "@/components/task/StatsSummaryGrid";
 import { getErrorMessage } from "@/lib/errors";
 import { useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import type { LogState, ResultState } from "./taskDetailSearchParams";
+import {
+  defaultResultState,
+  parseLogState,
+  parseResultState,
+  toLogSearchParams,
+  toResultSearchParams,
+} from "./taskDetailSearchParams";
 
 const tabs = [
   { id: "overview", label: "概览" },
@@ -27,22 +32,6 @@ const tabs = [
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
-type ResultSuccessFilter = "all" | "true" | "false";
-
-const DECISION_TYPES = ["move", "delete", "skip"] as const;
-
-interface ResultState {
-  decisionType: FileTaskDecisionType | "all";
-  success: ResultSuccessFilter;
-  query: string;
-  page: number;
-  pageSize: number;
-}
-
-interface LogState {
-  offset: number;
-  limit: number;
-}
 
 export default function TaskDetailPage() {
   const { runId } = useParams();
@@ -81,6 +70,7 @@ export default function TaskDetailPage() {
     },
     runDetailQuery.data?.status,
   );
+
   function updateResultState(nextState: ResultState) {
     setSearchParams(toResultSearchParams(searchParams, nextState));
   }
@@ -261,119 +251,4 @@ function parseRunId(value: string | undefined) {
     return null;
   }
   return Number(value);
-}
-
-function defaultResultState(): ResultState {
-  return {
-    decisionType: "all",
-    success: "all",
-    query: "",
-    page: 1,
-    pageSize: DEFAULT_TASK_RUN_PAGE_SIZE,
-  };
-}
-
-function parseResultState(searchParams: URLSearchParams): ResultState {
-  return {
-    decisionType: parseDecisionType(searchParams.get("results_decision")),
-    success: parseSuccess(searchParams.get("results_success")),
-    query: searchParams.get("results_q") ?? "",
-    page: parsePositiveInt(searchParams.get("results_page"), 1),
-    pageSize: parsePageSize(searchParams.get("results_page_size")),
-  };
-}
-
-function parseDecisionType(value: string | null): FileTaskDecisionType | "all" {
-  if (value && (DECISION_TYPES as readonly string[]).includes(value)) {
-    return value as FileTaskDecisionType;
-  }
-  return "all";
-}
-
-function parseSuccess(value: string | null): ResultSuccessFilter {
-  if (value === "true" || value === "false") {
-    return value;
-  }
-  return "all";
-}
-
-function parsePositiveInt(value: string | null, fallback: number) {
-  if (!value) {
-    return fallback;
-  }
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
-}
-
-function parsePageSize(value: string | null) {
-  const parsed = parsePositiveInt(value, DEFAULT_TASK_RUN_PAGE_SIZE);
-  return [10, 20, 50, 100].includes(parsed)
-    ? parsed
-    : DEFAULT_TASK_RUN_PAGE_SIZE;
-}
-
-function parseLogState(searchParams: URLSearchParams): LogState {
-  return {
-    offset: parseNonNegativeInt(searchParams.get("logs_offset"), 0),
-    limit: parseLogLimit(searchParams.get("logs_limit")),
-  };
-}
-
-function parseNonNegativeInt(value: string | null, fallback: number) {
-  if (!value) {
-    return fallback;
-  }
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed >= 0 ? parsed : fallback;
-}
-
-function parseLogLimit(value: string | null) {
-  const parsed = parsePositiveInt(value, DEFAULT_TASK_LOG_LIMIT);
-  return [50, 100, 200, 500].includes(parsed) ? parsed : DEFAULT_TASK_LOG_LIMIT;
-}
-
-function toResultSearchParams(
-  currentSearchParams: URLSearchParams,
-  state: ResultState,
-) {
-  const nextSearchParams = new URLSearchParams(currentSearchParams);
-  setOrDelete(nextSearchParams, "results_decision", state.decisionType, "all");
-  setOrDelete(nextSearchParams, "results_success", state.success, "all");
-  setOrDelete(nextSearchParams, "results_q", state.query.trim(), "");
-  setOrDelete(nextSearchParams, "results_page", String(state.page), "1");
-  setOrDelete(
-    nextSearchParams,
-    "results_page_size",
-    String(state.pageSize),
-    String(DEFAULT_TASK_RUN_PAGE_SIZE),
-  );
-  return nextSearchParams;
-}
-
-function toLogSearchParams(
-  currentSearchParams: URLSearchParams,
-  state: LogState,
-) {
-  const nextSearchParams = new URLSearchParams(currentSearchParams);
-  setOrDelete(nextSearchParams, "logs_offset", String(state.offset), "0");
-  setOrDelete(
-    nextSearchParams,
-    "logs_limit",
-    String(state.limit),
-    String(DEFAULT_TASK_LOG_LIMIT),
-  );
-  return nextSearchParams;
-}
-
-function setOrDelete(
-  searchParams: URLSearchParams,
-  key: string,
-  value: string,
-  defaultValue: string,
-) {
-  if (value === defaultValue) {
-    searchParams.delete(key);
-    return;
-  }
-  searchParams.set(key, value);
 }
