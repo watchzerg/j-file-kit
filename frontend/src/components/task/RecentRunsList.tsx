@@ -1,5 +1,6 @@
 import { useRecentTaskRuns } from "@/api/tasks";
 import { getErrorMessage } from "@/lib/errors";
+import { TASK_TRIGGER_LABELS } from "@/lib/task-labels";
 import { formatDateTime, formatMilliseconds } from "@/lib/time";
 import { Link } from "react-router-dom";
 import DryRunBadge from "./DryRunBadge";
@@ -55,6 +56,7 @@ export default function RecentRunsList() {
                   <th className="px-4 py-3 font-medium">状态</th>
                   <th className="px-4 py-3 font-medium">Run</th>
                   <th className="px-4 py-3 font-medium">类型</th>
+                  <th className="px-4 py-3 font-medium">触发</th>
                   <th className="px-4 py-3 font-medium">开始时间</th>
                   <th className="px-4 py-3 font-medium">结束时间</th>
                   <th className="px-4 py-3 font-medium">耗时</th>
@@ -74,6 +76,9 @@ export default function RecentRunsList() {
                     </td>
                     <td className="px-4 py-3">
                       <TaskTypeBadge taskType={run.task_type} />
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {TASK_TRIGGER_LABELS[run.trigger_type]}
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {formatDateTime(run.start_time)}

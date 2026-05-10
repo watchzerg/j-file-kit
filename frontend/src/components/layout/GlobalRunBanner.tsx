@@ -1,4 +1,5 @@
 import { useActiveTaskRun, useCancelTaskRun } from "@/api/tasks";
+import type { ActiveFileTaskRun } from "@/api/types";
 import { getErrorMessage } from "@/lib/errors";
 import { formatDuration } from "@/lib/time";
 import { useEffect, useState } from "react";
@@ -9,16 +10,6 @@ import TaskTypeBadge from "../task/TaskTypeBadge";
 export default function GlobalRunBanner() {
   const activeRunQuery = useActiveTaskRun();
   const activeRun = activeRunQuery.data;
-  const cancelRun = useCancelTaskRun(activeRun?.run_id ?? 0);
-  const [now, setNow] = useState(() => Date.now());
-
-  useEffect(() => {
-    if (!activeRun) {
-      return;
-    }
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(timer);
-  }, [activeRun]);
 
   if (activeRunQuery.isError) {
     return (
@@ -31,6 +22,18 @@ export default function GlobalRunBanner() {
   if (!activeRun) {
     return null;
   }
+
+  return <GlobalRunBannerInner activeRun={activeRun} />;
+}
+
+function GlobalRunBannerInner({ activeRun }: { activeRun: ActiveFileTaskRun }) {
+  const cancelRun = useCancelTaskRun(activeRun.run_id);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <div className="border-b bg-muted/40 px-4 py-2">

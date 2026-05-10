@@ -29,8 +29,7 @@ export default function RunActions({ run, onDeleted }: RunActionsProps) {
   const cancelRun = useCancelTaskRun(run.run_id);
   const deleteRun = useDeleteTaskRun(run.run_id);
   const startTask = useStartTask(run.task_type);
-  const hasActiveRun =
-    activeRunQuery.data !== null && activeRunQuery.data !== undefined;
+  const hasActiveRun = activeRunQuery.isPending || activeRunQuery.data != null;
   const canCancel = isActiveStatus(run.status);
   const canDelete = isTerminalStatus(run.status);
   const restartDisabled =

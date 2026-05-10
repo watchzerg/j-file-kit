@@ -78,7 +78,7 @@ describe("App routes", () => {
     await user.click(await screen.findByRole("tab", { name: "全局配置" }));
 
     expect(
-      await screen.findByRole("heading", { name: "全局配置" }),
+      await screen.findByRole("heading", { name: "路径与挂载" }),
     ).toBeInTheDocument();
     expect(screen.getByText("/data")).toBeInTheDocument();
     expect(screen.getAllByText("/media/raw_workspace").length).toBeGreaterThan(
@@ -351,9 +351,7 @@ describe("App routes", () => {
     const user = userEvent.setup();
     renderAt("/tasks/123");
 
-    await user.click(
-      await screen.findByRole("tab", { name: "文件结果（M6 已完成）" }),
-    );
+    await user.click(await screen.findByRole("tab", { name: "文件结果" }));
 
     expect(
       await screen.findByText("/media/raw_workspace/inbox/ABC-123.mp4"),
@@ -367,9 +365,7 @@ describe("App routes", () => {
     const user = userEvent.setup();
     renderAt("/tasks/123");
 
-    await user.click(
-      await screen.findByRole("tab", { name: "文件结果（M6 已完成）" }),
-    );
+    await user.click(await screen.findByRole("tab", { name: "文件结果" }));
     await user.selectOptions(await screen.findByLabelText("决策"), "delete");
     await user.selectOptions(screen.getByLabelText("结果"), "false");
 
@@ -412,9 +408,7 @@ describe("App routes", () => {
 
     renderAt("/tasks/123");
 
-    await user.click(
-      await screen.findByRole("tab", { name: "文件结果（M6 已完成）" }),
-    );
+    await user.click(await screen.findByRole("tab", { name: "文件结果" }));
     expect(await screen.findByText("page-1")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "下一页" }));
 
@@ -454,7 +448,7 @@ describe("App routes", () => {
       }),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: "日志（M7 实现）" }));
+    await user.click(screen.getByRole("tab", { name: "日志" }));
 
     expect(await screen.findByText("Task started")).toBeInTheDocument();
     expect(screen.getByText("Skipped unsupported file")).toBeInTheDocument();
@@ -487,9 +481,7 @@ describe("App routes", () => {
 
     renderAt("/tasks/123");
 
-    await user.click(
-      await screen.findByRole("tab", { name: "日志（M7 实现）" }),
-    );
+    await user.click(await screen.findByRole("tab", { name: "日志" }));
     expect(await screen.findByText("log-1")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "下一页" }));
 

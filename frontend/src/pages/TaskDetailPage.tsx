@@ -21,9 +21,9 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 const tabs = [
-  { id: "overview", label: "概览", milestone: "M3 实现" },
-  { id: "results", label: "文件结果", milestone: "M6 已完成" },
-  { id: "logs", label: "日志", milestone: "M7 实现" },
+  { id: "overview", label: "概览" },
+  { id: "results", label: "文件结果" },
+  { id: "logs", label: "日志" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -81,9 +81,6 @@ export default function TaskDetailPage() {
     },
     runDetailQuery.data?.status,
   );
-  const activeTabLabel =
-    tabs.find((tab) => tab.id === activeTab)?.label ?? "概览";
-
   function updateResultState(nextState: ResultState) {
     setSearchParams(toResultSearchParams(searchParams, nextState));
   }
@@ -140,7 +137,7 @@ export default function TaskDetailPage() {
                 ].join(" ")}
                 onClick={() => setActiveTab(tab.id)}
               >
-                {tab.label}（{tab.milestone}）
+                {tab.label}
               </button>
             ))}
           </div>
@@ -252,11 +249,7 @@ export default function TaskDetailPage() {
                 </>
               ) : null}
             </div>
-          ) : (
-            <div className="rounded-lg border border-dashed p-6 text-muted-foreground">
-              [区块占位] 当前 Tab 内容：{activeTabLabel}
-            </div>
-          )}
+          ) : null}
         </>
       ) : null}
     </div>

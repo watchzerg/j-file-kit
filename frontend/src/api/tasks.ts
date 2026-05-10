@@ -25,6 +25,7 @@ export type TaskType = (typeof TASK_TYPES)[keyof typeof TASK_TYPES];
 
 const POLL_INTERVAL_MS = 2_000;
 const ACTIVE_RUN_POLL_INTERVAL_MS = 3_000;
+const TASK_LIST_POLL_WHEN_ACTIVE_MS = 5_000;
 const RESULTS_POLL_INTERVAL_MS = 5_000;
 const LOGS_POLL_INTERVAL_MS = 3_000;
 const RECENT_RUNS_LIMIT = 10;
@@ -72,10 +73,21 @@ function buildTaskRunLogsPath(runId: number, params: TaskRunLogsParams) {
 }
 
 export function useTaskRunList(params: TaskRunListParams) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: ["tasks", "runs", params],
     queryFn: () =>
       apiClient.get<FileTaskRunListResponse>(buildTaskRunsPath(params)),
+    refetchInterval: () => {
+      const active = queryClient.getQueryData<ActiveFileTaskRunResponse>([
+        "tasks",
+        "active",
+      ]);
+      if (active === undefined || active === null) {
+        return false;
+      }
+      return TASK_LIST_POLL_WHEN_ACTIVE_MS;
+    },
   });
 }
 
@@ -185,6 +197,7 @@ export function useDeleteTaskRun(runId: number) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks", "runs"] });
       queryClient.invalidateQueries({ queryKey: ["tasks", "active"] });
+      queryClient.removeQueries({ queryKey: ["tasks", "runs", runId] });
     },
   });
 }

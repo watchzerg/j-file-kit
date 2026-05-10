@@ -57,9 +57,10 @@ export function SystemInfoPanel({
 
   return (
     <section className="rounded-lg border bg-card p-5 shadow-sm">
-      <h2 className="font-semibold text-xl">全局配置</h2>
+      <h2 className="font-semibold text-xl">路径与挂载</h2>
       <p className="mt-1 text-muted-foreground text-sm">
-        M8 提供只读系统信息，作为任务配置路径校验和媒体挂载状态的统一来源。
+        只读系统路径与挂载状态，作为任务配置校验与 Dashboard
+        页脚的统一数据来源。
       </p>
       <dl className="mt-5 grid gap-4 text-sm md:grid-cols-2">
         {items.map((item) => (
